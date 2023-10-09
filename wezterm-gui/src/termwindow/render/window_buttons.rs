@@ -149,7 +149,7 @@ mod gnome {
             PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
         ],
         intensity: BlockAlpha::Full,
-        style: PolyStyle::Outline,
+        style: PolyStyle::OutlineThin,
     }];
 
     pub const HIDE: &[Poly] = &[Poly {
@@ -158,7 +158,7 @@ mod gnome {
             PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(15, 16)),
         ],
         intensity: BlockAlpha::Full,
-        style: PolyStyle::Outline,
+        style: PolyStyle::OutlineThin,
     }];
 
     pub const MAXIMIZE: &[Poly] = &[Poly {
@@ -169,7 +169,7 @@ mod gnome {
             PolyCommand::LineTo(BlockCoord::Frac(1, 16), BlockCoord::Frac(1, 16)),
         ],
         intensity: BlockAlpha::Full,
-        style: PolyStyle::Outline,
+        style: PolyStyle::OutlineThin,
     }];
 
     pub const RESTORE: &[Poly] = &[Poly {
@@ -181,11 +181,11 @@ mod gnome {
             PolyCommand::LineTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(3, 16)),
         ],
         intensity: BlockAlpha::Full,
-        style: PolyStyle::Outline,
+        style: PolyStyle::OutlineThin,
     }];
 
-    pub fn sized_poly(poly: &'static [Poly]) -> SizedPoly {
-        let size = Dimension::Pixels(8.);
+    pub fn sized_poly(poly: &'static [Poly], size: f32) -> SizedPoly {
+        let size = Dimension::Pixels(size);
         SizedPoly {
             poly,
             width: size,
@@ -220,12 +220,15 @@ pub fn window_button_element(
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     config: &ConfigHandle,
+    tab_bar_height: f32,
 ) -> Element {
     let style = config.integrated_title_button_style;
 
     if style == Style::MacOsNative {
         return Element::new(font, ElementContent::Text(String::new()));
     }
+
+    let linux_size = (tab_bar_height / 5.).ceil();
 
     let poly = {
         let (close, hide, maximize, restore) = match style {
@@ -253,7 +256,7 @@ pub fn window_button_element(
 
         match style {
             Style::Windows => self::windows::sized_poly(poly),
-            Style::Gnome => self::gnome::sized_poly(poly),
+            Style::Gnome => self::gnome::sized_poly(poly, linux_size),
             Style::MacOsNative => unreachable!(),
         }
     };
@@ -285,18 +288,23 @@ pub fn window_button_element(
                 })
         }
         Style::Gnome => {
-            let dim = Dimension::Pixels(7.);
-            let border_corners_size = Dimension::Pixels(12.);
+            let padding = Dimension::Pixels(linux_size);
+            /* Icon itself + top and bottom padding gives us size of item.
+             * We then calculate margin by subtracting size from tab bar height
+             * and divive the result by 2. */
+            let margin = Dimension::Pixels(((tab_bar_height - (linux_size * 3.)) / 2.).ceil());
+            let border_corners_size = Dimension::Pixels((linux_size * 1.5).floor());
+
             element
                 .zindex(1)
                 .vertical_align(VerticalAlign::Middle)
                 .padding(BoxDimension {
-                    left: dim,
-                    right: dim,
-                    top: dim,
-                    bottom: dim,
+                    left: padding,
+                    right: padding,
+                    top: padding,
+                    bottom: padding,
                 })
-                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .border(BoxDimension::new(Dimension::Pixels(0.)))
                 .border_corners(Some(Corners {
                     top_left: SizedPoly {
                         width: border_corners_size,
@@ -320,10 +328,10 @@ pub fn window_button_element(
                     },
                 }))
                 .margin(BoxDimension {
-                    left: dim,
-                    right: dim,
-                    top: dim,
-                    bottom: dim,
+                    left: margin,
+                    right: margin,
+                    top: margin,
+                    bottom: margin,
                 })
         }
         Style::MacOsNative => unreachable!(),

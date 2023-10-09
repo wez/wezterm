@@ -288,6 +288,7 @@ impl crate::TermWindow {
                     &font,
                     &metrics,
                     &self.config,
+                    tab_bar_height,
                 ),
             }
         };
