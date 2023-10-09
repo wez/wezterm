@@ -2362,9 +2362,9 @@ dependencies = [
 
 [[package]]
 name = "http_req"
-version = "0.9.3"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42ce34c74ec562d68f2c23a532c62c1332ff1d1b6147fd118bd1938e090137d0"
+checksum = "158d4edacc70c9bdb0464314063b8d9d60fa776442dc13b00a13581b88b0a0a0"
 dependencies = [
  "native-tls",
  "unicase",
