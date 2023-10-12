@@ -11,4 +11,4 @@ config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 lazy_static = "1.4"
 luahelper = { path = "../../luahelper" }
-ordered-float = "3.0"
+ordered-float = "4.1"

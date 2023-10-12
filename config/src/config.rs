@@ -661,6 +661,9 @@ pub struct Config {
     #[dynamic(default)]
     pub ime_preedit_rendering: ImePreeditRendering,
 
+    #[dynamic(default)]
+    pub notification_handling: NotificationHandling,
+
     #[dynamic(default = "default_true")]
     pub use_dead_keys: bool,
 
@@ -2006,6 +2009,16 @@ pub enum ImePreeditRendering {
     Builtin,
     /// IME preedit is rendered by system
     System,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NotificationHandling {
+    #[default]
+    AlwaysShow,
+    NeverShow,
+    SuppressFromFocusedPane,
+    SuppressFromFocusedTab,
+    SuppressFromFocusedWindow,
 }
 
 fn validate_row_or_col(value: &u16) -> Result<(), String> {
