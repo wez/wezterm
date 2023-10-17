@@ -15,13 +15,13 @@ members = [
   "wezterm-uds",
 ]
 resolver = "2"
-exclude = [
-  "termwiz/codegen"
-]
+exclude = ["termwiz/codegen"]
 
 [profile.release]
 opt-level = 3
 # debug = 2
+lto = "fat"
+codegen-units = 1
 
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
@@ -29,6 +29,8 @@ opt-level = 3
 #split-debuginfo = "unpacked"
 
 [patch.crates-io]
+xcb = { git = "https://github.com/rust-x-bindings/rust-xcb", rev = "dbdaa01c178c6fbe68bd51b7ad44c08172181083" } # waiting on a release with https://github.com/rust-x-bindings/rust-xcb/pull/230
+
 # We use our own vendored cairo, which has minimal deps and should just
 # build via cargo.
-cairo-sys-rs = {path="deps/cairo", version="0.18.0"}
+cairo-sys-rs = { path = "deps/cairo", version = "0.18.0" }
