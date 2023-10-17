@@ -511,8 +511,7 @@ impl Window {
             let _: () = msg_send![*window, setRestorable: NO];
 
             window.setReleasedWhenClosed_(NO);
-            let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
-            window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(ns_color));
+            window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(nil));
 
             // We could set this, but it makes the entire window, including
             // its titlebar, opaque to this fixed degree.
@@ -1734,15 +1733,6 @@ impl WindowView {
         }
     }
 
-    /// `dealloc` is called when our NSView descendant is destroyed.
-    /// In practice, I've not seen this trigger, which likely means
-    /// that there is something afoot with reference counting.
-    /// The cardinality of Window and View objects is low enough
-    /// that I'm "OK" with this for now.
-    /// What really matters is that the `Inner` object is dropped
-    /// in a timely fashion once the window is closed, so we manage
-    /// that by hooking into `windowWillClose` and routing both
-    /// `dealloc` and `windowWillClose` to `drop_inner`.
     fn drop_inner(this: &mut Object) {
         unsafe {
             let myself: *mut c_void = *this.get_ivar(VIEW_CLS_NAME);
@@ -2124,10 +2114,10 @@ impl WindowView {
                 .events
                 .dispatch(WindowEvent::Destroyed);
             this.update_application_presentation(false);
+            let conn = Connection::get().unwrap();
+            let window_id = this.inner.borrow_mut().window_id;
+            conn.windows.borrow_mut().remove(&window_id);
         }
-
-        // Release and zero out the inner member
-        Self::drop_inner(this);
     }
 
     fn mouse_common(this: &mut Object, nsevent: id, kind: MouseEventKind) {
