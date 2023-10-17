@@ -7,3 +7,7 @@ ar = "x86_64-w64-mingw32-gcc-ar"
 # enabled for the target, so let's turn that on here.
 [target.x86_64-pc-windows-msvc]
 rustflags = "-C target-feature=+crt-static"
+
+[aarch64-unknown-linux-gnu]
+rustflags = ["-C", "linker-plugin-lto", "-C", "link-arg=-fuse-ld=lld"]
+
