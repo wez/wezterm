@@ -130,7 +130,7 @@ class CacheStep(ActionStep):
 
 class CacheRustStep(ActionStep):
     def __init__(self, name, key):
-        super().__init__(name, action="Swatinem/rust-cache@v2", params={"key": key})
+        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.3")
 
 
 class CheckoutStep(ActionStep):
@@ -767,6 +767,9 @@ cargo build --all --release""",
         return steps
 
     def global_env(self):
+        self.env["CARGO_INCREMENTAL"] = "0"
+        self.env["SCCACHE_GHA_ENABLED"] = "true"
+        self.env["RUSTC_WRAPPER"] = "sccache"
         if "macos" in self.name:
             self.env["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
         if "alpine" in self.name:
@@ -842,6 +845,15 @@ cargo build --all --release""",
                         "sed 's/root:!/root:*/g' -i /etc/shadow",
                     ),
                 ]
+            if "opensuse" in self.container:
+                steps += [
+                    # This holds the xcb bits
+                    RunStep(
+                        "Install tar",
+                        "zypper install -yl tar",
+                    ),
+                ]
+
         steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
@@ -854,7 +866,8 @@ cargo build --all --release""",
 
         steps += self.install_openssh_server()
         steps += self.checkout()
-        steps += self.install_rust(cache="mac" not in self.name)
+        # We should be able to cache mac builds now?
+        steps += self.install_rust() # cache="mac" not in self.name)
         steps += self.install_system_deps()
         return steps
 
