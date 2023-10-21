@@ -33,11 +33,8 @@ impl AsRef<OsStr> for Path {
 
 impl<'lua> mlua::FromLua<'lua> for Path {
     fn from_lua(value: mlua::Value<'lua>, lua: &'lua Lua) -> mlua::Result<Self> {
-        let s: String = mlua::FromLua::from_lua(value, lua)
-            .map_err(mlua::Error::external)?;
-        Ok(Path(
-            std::path::PathBuf::from(&s)
-        ))
+        let s: String = mlua::FromLua::from_lua(value, lua).map_err(mlua::Error::external)?;
+        Ok(Path(std::path::PathBuf::from(&s)))
     }
 }
 
@@ -105,7 +102,10 @@ impl UserData for Path {
             let s = this
                 .0
                 .to_str()
-                .ok_or(mlua::Error::external(format!("path entry is not representable as utf8: {:#?}", this.0)))?
+                .ok_or(mlua::Error::external(format!(
+                    "path entry is not representable as utf8: {:#?}",
+                    this.0
+                )))?
                 .to_string();
             Ok(s)
         });
@@ -172,20 +172,14 @@ impl UserData for Path {
             Ok(())
         });
         methods.add_method("ancestors", |_, this, _: ()| {
-            let ancestors: Vec<Path> = this
-                .0
-                .ancestors()
-                .map(|p| Path(p.to_path_buf()))
-                .collect();
+            let ancestors: Vec<Path> = this.0.ancestors().map(|p| Path(p.to_path_buf())).collect();
             Ok(ancestors)
         });
         methods.add_method("components", |_, this, _: ()| {
             let components: Vec<Path> = this
                 .0
                 .components()
-                .map(|c| Path(
-                    AsRef::<std::path::Path>::as_ref(&c).to_path_buf()
-                ))
+                .map(|c| Path(AsRef::<std::path::Path>::as_ref(&c).to_path_buf()))
                 .collect();
             Ok(components)
         });
@@ -196,7 +190,10 @@ impl UserData for Path {
                 .unwrap_or(std::ffi::OsStr::new("..")) // file_name returns None if the path
                 // terminates in ..
                 .to_str()
-                .ok_or(mlua::Error::external(format!("path entry is not representable as utf8: {:#?}", this.0)))?;
+                .ok_or(mlua::Error::external(format!(
+                    "path entry is not representable as utf8: {:#?}",
+                    this.0
+                )))?;
             Ok(Path(std::path::PathBuf::from(basename)))
         });
         methods.add_method("dirname", |_, this, _: ()| {
@@ -206,7 +203,10 @@ impl UserData for Path {
                 .unwrap_or(&this.0) // parent returns None if the path terminates in a root or a
                 // prefix
                 .to_str()
-                .ok_or(mlua::Error::external(format!("path entry is not representable as utf8: {:#?}", this.0)))?;
+                .ok_or(mlua::Error::external(format!(
+                    "path entry is not representable as utf8: {:#?}",
+                    this.0
+                )))?;
             Ok(Path(std::path::PathBuf::from(dirname)))
         });
         methods.add_method("file_stem", |_, this, _: ()| {
@@ -215,7 +215,10 @@ impl UserData for Path {
                 .file_stem()
                 .unwrap_or(std::ffi::OsStr::new(""))
                 .to_str()
-                .ok_or(mlua::Error::external(format!("path entry is not representable as utf8: {:#?}", this.0)))?
+                .ok_or(mlua::Error::external(format!(
+                    "path entry is not representable as utf8: {:#?}",
+                    this.0
+                )))?
                 .to_string();
             Ok(file_stem)
         });
@@ -225,7 +228,10 @@ impl UserData for Path {
                 .extension()
                 .unwrap_or(std::ffi::OsStr::new(""))
                 .to_str()
-                .ok_or(mlua::Error::external(format!("path entry is not representable as utf8: {:#?}", this.0)))?
+                .ok_or(mlua::Error::external(format!(
+                    "path entry is not representable as utf8: {:#?}",
+                    this.0
+                )))?
                 .to_string();
             Ok(extension)
         });
@@ -353,10 +359,7 @@ async fn glob<'lua>(
     Ok(entries)
 }
 
-fn to_path<'lua>(
-    _: &'lua Lua,
-    string: String,
-) -> mlua::Result<Path> {
+fn to_path<'lua>(_: &'lua Lua, string: String) -> mlua::Result<Path> {
     let p = std::path::PathBuf::from(string);
     Ok(Path(p))
 }
