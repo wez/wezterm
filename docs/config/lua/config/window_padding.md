@@ -33,7 +33,7 @@ a string value with a unit suffix:
 * `"1cell"` - the `cell` suffix indicates the size of the terminal cell, which in turn depends on the font size, font scaling and dpi.  When used for width, the width of the cell is used.  When used for height, the height of the cell is used.
 * `"1%"` - the `%` suffix indicates the size of the terminal portion of the display, which is computed based on the number of rows/columns and the size of the cell.  While it is possible to specify percentage, there are some resize scenarios where the percentage value may not be 100% stable/deterministic, as the size of the padding is used to compute the number of rows/columns.
 
-You may use a fractional number such as `"0.5cell"` or numbers large than one such as `"72pt"`.
+You may use a fractional number such as `"0.5cell"` or numbers larger than one such as `"72pt"`.
 
 The default padding is shown below.  In earlier releases, the default padding was 0 for each of the possible edges.
 
