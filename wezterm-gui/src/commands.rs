@@ -236,7 +236,7 @@ impl CommandDef {
             for dom in &domains {
                 let name = dom.domain_name();
                 // FIXME: use domain_label here, but needs to be async
-                let label = name.clone();
+                let label = name;
 
                 if dom.spawnable() {
                     if dom.state() == DomainState::Attached {
@@ -266,7 +266,7 @@ impl CommandDef {
             for dom in &domains {
                 let name = dom.domain_name();
                 // FIXME: use domain_label here, but needs to be async
-                let label = name.clone();
+                let label = name;
 
                 if dom.state() == DomainState::Attached {
                     if name == "local" {
