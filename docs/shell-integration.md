@@ -20,6 +20,8 @@ Xonsh is supported via a [term-integrations](https://github.com/jnoortheen/xontr
 
 Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
+Starting with version 20230320.124340.559cb7b0, the Arch Linux package
+also automatically activate it.
 
 If you're on another system, more information on how these escapes work
 can be found below.
