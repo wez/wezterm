@@ -87,13 +87,13 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.
 
-|Distro      | Stable           | Nightly             |
-|------------|------------------|---------------------|
-|Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
-|Ubuntu22    |[{{ ubuntu22_deb_stable_asset }}]({{ ubuntu22_deb_stable }}) |[{{ ubuntu22_deb_nightly_asset }}]({{ ubuntu22_deb_nightly }})|
-|Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
-|Debian11    |[{{ debian11_deb_stable_asset }}]({{ debian11_deb_stable }}) |[{{ debian11_deb_nightly_asset }}]({{ debian11_deb_nightly }})|
-|Debian12    |Nightly builds only|[{{ debian12_deb_nightly_asset }}]({{ debian12_deb_nightly }})|
+|Distro      | Stable           | Nightly|            |
+|------------|------------------|--------|------------|
+|Ubuntu20    |[amd64]({{ ubuntu20_deb_stable }})  |[amd64]({{ ubuntu20_deb_nightly }})| |
+|Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
+|Debian10    |[amd64]({{ debian10_deb_stable }}) |[amd64]({{ debian10_deb_nightly }})| |
+|Debian11    |[amd64]({{ debian11_deb_stable }}) |[amd64]({{ debian11_deb_nightly }})| |
+|Debian12    |Nightly builds only|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
 
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 20 package:
@@ -105,6 +105,33 @@ $ sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
 * Configuration instructions can be [found here](../config/files.md)
+
+## Installing on Fedora and rpm-based Systems via Copr
+
+Nightly builds of wezterm are now available via the [Copr](https://copr.fedorainfracloud.org/) build service.
+
+You can see the current list of available distributions and architectures
+[on the wezterm-nightly project page](https://copr.fedorainfracloud.org/coprs/wezfurlong/wezterm-nightly/).
+At the time that this page was written, the following distributions are available in Copr for `x86_64` and `aarch64`:
+
+ * Centos Stream 8 and 9
+ * Fedora 38, 39, rawhide
+ * OpenSUSE Leap 15.5
+ * OpenSUSE Tumbleweed
+ * RHEL 8, 9
+
+To perform initial installation:
+
+```console
+$ sudo dnf copr enable wezfurlong/wezterm-nightly
+$ sudo dnf install wezterm
+```
+
+To update:
+
+```console
+$ sudo dnf update wezterm
+```
 
 ## Installing on Fedora and rpm-based Systems
 
@@ -146,9 +173,9 @@ $ zypper install wezterm
 
 ## Arch Linux
 
-WezTerm is available in the [Community repository](https://archlinux.org/packages/community/x86_64/wezterm/).
+WezTerm is available in the [Extra repository](https://archlinux.org/packages/extra/x86_64/wezterm/).
 
-The version available in the community repository may lag behind the latest wezterm release, so you may
+The version available in the extra repository may lag behind the latest wezterm release, so you may
 wish to use one of these AUR options:
 
 |What                 |Where|

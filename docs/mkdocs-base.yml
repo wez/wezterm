@@ -114,9 +114,6 @@ markdown_extensions:
   - pymdownx.pathconverter:
       base_path: "./docs"
   - pymdownx.inlinehilite
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tabbed:

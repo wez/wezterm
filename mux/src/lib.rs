@@ -485,6 +485,15 @@ impl Mux {
         }
     }
 
+    pub fn resolve_focused_pane(
+        &self,
+        client_id: &ClientId,
+    ) -> Option<(DomainId, WindowId, TabId, PaneId)> {
+        let pane_id = self.clients.read().get(client_id)?.focused_pane_id?;
+        let (domain, window, tab) = self.resolve_pane_id(pane_id)?;
+        Some((domain, window, tab, pane_id))
+    }
+
     pub fn record_focus_for_client(&self, client_id: &ClientId, pane_id: PaneId) {
         let mut prior = None;
         if let Some(info) = self.clients.write().get_mut(client_id) {

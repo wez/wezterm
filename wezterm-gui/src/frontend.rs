@@ -5,8 +5,8 @@ use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
 use config::keyassignment::{KeyAssignment, SpawnCommand};
-use config::ConfigSubscription;
 pub use config::FrontEndSelection;
+use config::{ConfigSubscription, NotificationHandling};
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
@@ -96,7 +96,7 @@ impl GuiFrontEnd {
                 MuxNotification::PaneOutput(_) => {}
                 MuxNotification::PaneAdded(_) => {}
                 MuxNotification::Alert {
-                    pane_id: _,
+                    pane_id,
                     alert:
                         Alert::ToastNotification {
                             title,
@@ -104,12 +104,34 @@ impl GuiFrontEnd {
                             focus: _,
                         },
                 } => {
-                    let message = if title.is_none() { "" } else { &body };
-                    let title = title.as_ref().unwrap_or(&body);
-                    // FIXME: if notification.focus is true, we should do
-                    // something here to arrange to focus pane_id when the
-                    // notification is clicked
-                    persistent_toast_notification(title, message);
+                    let mux = Mux::get();
+
+                    if let Some((_domain, window_id, tab_id)) = mux.resolve_pane_id(pane_id) {
+                        let config = config::configuration();
+
+                        if let Some((_fdomain, f_window, f_tab, f_pane)) =
+                            mux.resolve_focused_pane(&client_id)
+                        {
+                            let show = match config.notification_handling {
+                                NotificationHandling::NeverShow => false,
+                                NotificationHandling::AlwaysShow => true,
+                                NotificationHandling::SuppressFromFocusedPane => f_pane != pane_id,
+                                NotificationHandling::SuppressFromFocusedTab => f_tab != tab_id,
+                                NotificationHandling::SuppressFromFocusedWindow => {
+                                    f_window != window_id
+                                }
+                            };
+
+                            if show {
+                                let message = if title.is_none() { "" } else { &body };
+                                let title = title.as_ref().unwrap_or(&body);
+                                // FIXME: if notification.focus is true, we should do
+                                // something here to arrange to focus pane_id when the
+                                // notification is clicked
+                                persistent_toast_notification(title, message);
+                            }
+                        }
+                    }
                 }
                 MuxNotification::Alert {
                     pane_id: _,

@@ -98,6 +98,8 @@ As features stabilize some brief notes about them will accumulate here.
   enhanced to allow setting an alphabet for quickly launching items beyond
   the first 10 items, as well as customizing the description/label text.
   Thanks to @Danielkonge! #4226 #4227
+* [notification_handling](config/lua/config/notification_handling.md) to
+  control whether notifications are suppressed based on focus. #3727
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
@@ -120,6 +122,7 @@ As features stabilize some brief notes about them will accumulate here.
   for either codepoint.  We now split the fallback query up and query for each
   individual codepoint separately. #4310
 * Gogh color schemes all had the incorrect cursor foreground color. #4257
+* Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
 
 #### Updated
 * Bundled harfbuzz to 8.2.1
