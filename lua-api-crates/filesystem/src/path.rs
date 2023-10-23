@@ -48,7 +48,7 @@ impl UserData for Path {
                 .0
                 .to_str()
                 .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
+                    "path entry {} is not representable as utf8",
                     this.0.display()
                 )))?
                 .to_string();
@@ -62,12 +62,12 @@ impl UserData for Path {
                 .0
                 .to_str()
                 .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
+                    "path entry {} is not representable as utf8",
                     this.0.display()
                 )))?
                 .to_string();
             p.push_str(path.0.to_str().ok_or(mlua::Error::external(format!(
-                "path entry is not representable as utf8: {}",
+                "path entry {} is not representable as utf8",
                 path.0.display()
             )))?);
             Ok(Path(PathBuf::from(&p)))
@@ -155,7 +155,7 @@ impl UserData for Path {
                 .unwrap_or(std::ffi::OsStr::new(""))
                 .to_str()
                 .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
+                    "path entry {} is not representable as utf8",
                     this.0.display()
                 )))?
                 .to_string();
@@ -168,7 +168,7 @@ impl UserData for Path {
                 .unwrap_or(std::ffi::OsStr::new(""))
                 .to_str()
                 .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
+                    "path entry {} is not representable as utf8",
                     this.0.display()
                 )))?
                 .to_string();
