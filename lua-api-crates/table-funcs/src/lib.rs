@@ -11,7 +11,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     table.set("has_key", lua.create_function(has_key)?)?;
     table.set("has_value", lua.create_function(has_value)?)?;
     table.set("to_string", lua.create_function(to_string)?)?;
-    table.set("to_string_fallback", lua.create_function(to_string_fallback)?)?;
+    table.set(
+        "to_string_fallback",
+        lua.create_function(to_string_fallback)?,
+    )?;
 
     Ok(())
 }
@@ -112,10 +115,7 @@ fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlu
     Ok(false)
 }
 
-fn to_string_fallback<'lua>(
-    _: &'lua Lua,
-    table: Table<'lua>
-) -> mlua::Result<String> {
+fn to_string_fallback<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
     Ok(format!("{:#?}", table))
 }
 
