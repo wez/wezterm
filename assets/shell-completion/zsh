@@ -422,9 +422,10 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (record)
 _arguments "${_arguments_options[@]}" \
+'--cwd=[Start in the specified directory, instead of the default_cwd defined by your wezterm configuration]:CWD:_files' \
 '-h[Print help]' \
 '--help[Print help]' \
-'*::prog:' \
+'*::prog -- Start prog instead of the default_prog defined by your wezterm configuration:' \
 && ret=0
 ;;
 (replay)
