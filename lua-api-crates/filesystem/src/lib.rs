@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Function, Lua};
 use smol::prelude::*;
-use std::path::{Path as StdPath, PathBuf};
+use std::path::PathBuf;
 
 mod metadata;
 mod path;
