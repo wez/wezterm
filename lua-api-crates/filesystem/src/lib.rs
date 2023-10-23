@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Function, Lua};
 use smol::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path as StdPath, PathBuf};
 
 mod metadata;
 mod path;
@@ -13,6 +13,9 @@ pub use path::Path;
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
     wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
+    wezterm_mod.set("basename", lua.create_function(basename)?)?;
+    wezterm_mod.set("dirname", lua.create_function(dirname)?)?;
+    wezterm_mod.set("canonical_path", lua.create_async_function(canonical_path)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     wezterm_mod.set("to_path", lua.create_function(to_path)?)?;
     Ok(())
@@ -134,5 +137,45 @@ async fn glob<'lua>(
 
 fn to_path<'lua>(_: &'lua Lua, string: String) -> mlua::Result<Path> {
     let p = PathBuf::from(string);
+    Ok(Path(p))
+}
+
+// similar (but not equal) to the shell command basename
+fn basename<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
+    let basename = path
+        .0
+        .file_name()
+        // file_name returns None if the path terminates in ..
+        .unwrap_or(std::ffi::OsStr::new(".."))
+        .to_str()
+        .ok_or(mlua::Error::external(format!(
+            "path entry {} is not representable as utf8",
+            path.0.display()
+        )))?;
+    Ok(Path(PathBuf::from(basename)))
+}
+
+// return the path without its final component if there is one
+// similar to the shell command dirname
+fn dirname<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
+    let dirname = path
+        .0
+        .parent()
+        // parent returns None if the path terminates in a root or a prefix
+        .unwrap_or(&path.0)
+        .to_str()
+        .ok_or(mlua::Error::external(format!(
+            "path entry {} is not representable as utf8",
+            path.0.display()
+        )))?;
+    Ok(Path(PathBuf::from(dirname)))
+}
+
+// if path exists return the canonical form of the path with all
+// intermediate components normalized and symbolic links resolved
+async fn canonical_path<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
+    let p = smol::fs::canonicalize(&path).await.map_err(|err| {
+        mlua::Error::external(format!("canonical_path('{}'): {err:#}", path.0.display()))
+    })?;
     Ok(Path(p))
 }

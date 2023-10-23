@@ -116,10 +116,10 @@ impl UserData for Path {
                 .map_err(mlua::Error::external)?;
             Ok(MetaData(m))
         });
-        methods.add_async_method("canonicalize", |_, this, _: ()| async move {
-            let p = smol::fs::canonicalize(&this)
-                .await
-                .map_err(mlua::Error::external)?;
+        methods.add_async_method("canonical_path", |_, this, _: ()| async move {
+            let p = smol::fs::canonicalize(&this).await.map_err(|err| {
+                mlua::Error::external(format!("'{}':canonical_path(): {err:#}", this.0.display()))
+            })?;
             Ok(Path(p))
         });
         methods.add_method_mut("set_extension", |_, this, path: Path| {
@@ -142,31 +142,11 @@ impl UserData for Path {
                 .collect();
             Ok(components)
         });
-        methods.add_method("basename", |_, this, _: ()| {
-            let basename = this
-                .0
-                .file_name()
-                .unwrap_or(std::ffi::OsStr::new("..")) // file_name returns None if the path
-                // terminates in ..
-                .to_str()
-                .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
-                    this.0.display()
-                )))?;
-            Ok(Path(PathBuf::from(basename)))
+        methods.add_method("basename", |lua: &'lua Lua, this, _: ()| {
+            crate::basename(lua, this.clone())
         });
-        methods.add_method("dirname", |_, this, _: ()| {
-            let dirname = this
-                .0
-                .parent()
-                .unwrap_or(&this.0) // parent returns None if the path terminates in a root or a
-                // prefix
-                .to_str()
-                .ok_or(mlua::Error::external(format!(
-                    "path entry is not representable as utf8: {}",
-                    this.0.display()
-                )))?;
-            Ok(Path(PathBuf::from(dirname)))
+        methods.add_method("dirname", |lua: &'lua Lua, this, _: ()| {
+            crate::dirname(lua, this.clone())
         });
         methods.add_method("file_stem", |_, this, _: ()| {
             let file_stem = this
@@ -194,11 +174,15 @@ impl UserData for Path {
                 .to_string();
             Ok(extension)
         });
+        methods.add_method("try_exists", |_, this, _: ()| {
+            let exists = this.0.try_exists().map_err(mlua::Error::external)?;
+            Ok(exists)
+        });
         methods.add_async_method(
             "read_dir",
             |lua: &'lua Lua, this, function: Option<Function<'lua>>| {
                 crate::read_dir(lua, (this.clone(), function))
             },
-        )
+        );
     }
 }
