@@ -14,3 +14,4 @@ The `wezterm.table` module exposes functions that work with Lua tables and array
   - [length](length.md)
   - [merge](merge.md)
   - [to_string](to_string.md)
+  - [to_string_fallback](to_string_fallback.md)
