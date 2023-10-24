@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use config::HOME_DIR;
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Function, Lua};
 use smol::prelude::*;
@@ -16,8 +17,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     wezterm_mod.set("basename", lua.create_function(basename)?)?;
     wezterm_mod.set("dirname", lua.create_function(dirname)?)?;
     wezterm_mod.set("canonical_path", lua.create_async_function(canonical_path)?)?;
+    wezterm_mod.set("try_exists", lua.create_function(try_exists)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     wezterm_mod.set("to_path", lua.create_function(to_path)?)?;
+    wezterm_mod.set("home_path", Path(HOME_DIR.to_path_buf()))?;
     Ok(())
 }
 
@@ -33,64 +36,66 @@ async fn read_dir<'lua>(
     let mut sort_by_vec: Vec<Vec<i64>> = vec![];
     while let Some(entry) = dir.next().await {
         let entry = entry.map_err(mlua::Error::external)?;
-        if let Some(utf8) = entry.path().to_str() {
-            // we need to make utf8 owned
-            let mut utf8 = utf8.to_string();
-            let meta = entry.metadata().await.map_err(mlua::Error::external)?;
+        let mut entry_path = Path(entry.path());
+        let meta = entry.metadata().await.map_err(mlua::Error::external)?;
 
-            // default behavior is include everything in the directory
-            let mut include_entry = true;
-            let mut sort_by: Vec<i64> = vec![];
-            if let Some(func) = &function {
-                match func.call((utf8.clone(), MetaData(meta))) {
-                    Ok(mlua::Value::Boolean(b)) => {
-                        include_entry = b;
-                    }
-                    Ok(mlua::Value::Table(tbl)) => {
-                        let mut iter = tbl.sequence_values();
-                        match iter.next() {
-                            Some(Ok(mlua::Value::Boolean(b))) => {
-                                include_entry = b;
-                            }
-                            _ => (),
-                        };
-                        match iter.next() {
-                            Some(Ok(mlua::Value::String(s))) => {
-                                utf8 = s.to_str().map_err(mlua::Error::external)?.to_string();
-                            }
-                            Some(Ok(mlua::Value::Integer(i))) => {
-                                sort = true;
-                                sort_by.push(i);
-                            }
-                            _ => (),
+        // default behavior is include everything in the directory
+        let mut include_entry = true;
+        let mut sort_by: Vec<i64> = vec![];
+        if let Some(func) = &function {
+            match func.call((entry_path.clone(), MetaData(meta))) {
+                Ok(mlua::Value::Boolean(b)) => {
+                    include_entry = b;
+                }
+                Ok(mlua::Value::Table(tbl)) => {
+                    let mut iter = tbl.sequence_values();
+                    match iter.next() {
+                        Some(Ok(mlua::Value::Boolean(b))) => {
+                            include_entry = b;
                         }
-                        while let Some(Ok(mlua::Value::Integer(i))) = iter.next() {
+                        _ => (),
+                    };
+                    match iter.next() {
+                        Some(Ok(mlua::Value::String(s))) => {
+                            entry_path = Path(PathBuf::from(
+                                s.to_str().map_err(mlua::Error::external)?
+                            ))
+                        }
+                        Some(Ok(mlua::Value::UserData(u))) => {
+                            entry_path = u.take::<Path>().map_err(mlua::Error::external)?;
+                        }
+                        Some(Ok(mlua::Value::Integer(i))) => {
                             sort = true;
                             sort_by.push(i);
                         }
+                        _ => (),
                     }
-                    Err(err) => {
-                        return Err(mlua::Error::external(format!(
-                            "the optional read_dir function returns the error: {}",
-                            err
-                        )));
+                    while let Some(Ok(mlua::Value::Integer(i))) = iter.next() {
+                        sort = true;
+                        sort_by.push(i);
                     }
-                    _ => (),
                 }
+                Err(err) => {
+                    return Err(mlua::Error::external(format!(
+                    "the optional read_dir function returns the error: {}",
+                    err
+                )));
+                }
+                _ => (),
             }
-
-            if include_entry {
-                entries.push(utf8);
-                if sort {
-                    sort_by_vec.push(sort_by);
-                }
-            } // if include_entry is false, don't add entry to entries
-        } else {
-            return Err(mlua::Error::external(anyhow!(
-                "path entry {} is not representable as utf8",
-                entry.path().display()
-            )));
         }
+
+        if include_entry {
+            entries.push(entry_path.0.to_str().ok_or(
+                mlua::Error::external(
+                    format!("the entry {} is not valid utf8", entry_path.0.display())
+                )
+            )?.to_string());
+            if sort {
+                sort_by_vec.push(sort_by);
+            }
+        } // if include_entry is false, don't add entry to entries
+
     }
 
     if sort {
@@ -145,7 +150,8 @@ fn basename<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
     let basename = path
         .0
         .file_name()
-        // file_name returns None if the path terminates in ..
+        // file_name returns None if the path name ends in `..`
+        // but the unix utility return `..` in that case, so we do too
         .unwrap_or(std::ffi::OsStr::new(".."))
         .to_str()
         .ok_or(mlua::Error::external(format!(
@@ -178,4 +184,9 @@ async fn canonical_path<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
         mlua::Error::external(format!("canonical_path('{}'): {err:#}", path.0.display()))
     })?;
     Ok(Path(p))
+}
+
+fn try_exists<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<bool> {
+    let exists = path.0.try_exists().map_err(mlua::Error::external)?;
+    Ok(exists)
 }

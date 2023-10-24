@@ -6,7 +6,7 @@ use std::path::{Path as StdPath, PathBuf};
 
 use crate::MetaData;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Path(pub PathBuf);
 
 impl AsRef<StdPath> for Path {
@@ -58,6 +58,7 @@ impl UserData for Path {
             // Could alternatively, just do:
             // let p = this.0.join(&path);
             // Ok(Path(p))
+            // But we probably want this more string like behavior as an option too.
             let mut p: String = this
                 .0
                 .to_str()
@@ -72,18 +73,22 @@ impl UserData for Path {
             )))?);
             Ok(Path(PathBuf::from(&p)))
         });
-        methods.add_method("is_dir", |_, this, _: ()| {
-            let b = this.0.is_dir();
-            Ok(b)
+        methods.add_meta_method(MetaMethod::Eq, |_, this, path: Path| {
+            Ok(*this == path)
         });
-        methods.add_method("is_file", |_, this, _: ()| {
-            let b = this.0.is_file();
-            Ok(b)
-        });
-        methods.add_method("is_symlink", |_, this, _: ()| {
-            let b = this.0.is_symlink();
-            Ok(b)
-        });
+        // TODO: Should these be included here too?
+        // methods.add_method("is_dir", |_, this, _: ()| {
+        //     let b = this.0.is_dir();
+        //     Ok(b)
+        // });
+        // methods.add_method("is_file", |_, this, _: ()| {
+        //     let b = this.0.is_file();
+        //     Ok(b)
+        // });
+        // methods.add_method("is_symlink", |_, this, _: ()| {
+        //     let b = this.0.is_symlink();
+        //     Ok(b)
+        // });
         methods.add_method("is_absolute", |_, this, _: ()| {
             let b = this.0.is_absolute();
             Ok(b)
@@ -100,8 +105,24 @@ impl UserData for Path {
             this.0.push(&path);
             Ok(())
         });
+        methods.add_method("starts_with", |_, this, path: Path| {
+            let b = this.0.starts_with(&path);
+            Ok(b)
+        });
+        methods.add_method("ends_with", |_, this, path: Path| {
+            let b = this.0.ends_with(&path);
+            Ok(b)
+        });
         methods.add_method("join", |_, this, path: Path| {
             let p = this.0.join(&path);
+            Ok(Path(p))
+        });
+        methods.add_method_mut("strip_prefix", |_, this, base: Path| {
+            let p = this
+                .0
+                .strip_prefix(&base)
+                .unwrap_or(&this.0)
+                .to_path_buf();
             Ok(Path(p))
         });
         methods.add_async_method("metadata", |_, this, _: ()| async move {
@@ -148,6 +169,20 @@ impl UserData for Path {
         methods.add_method("dirname", |lua: &'lua Lua, this, _: ()| {
             crate::dirname(lua, this.clone())
         });
+        // TODO: Add this when stable:
+        // methods.add_method("file_prefix", |_, this, _: ()| {
+        //     let file_stem = this
+        //         .0
+        //         .file_prefix()
+        //         .unwrap_or(std::ffi::OsStr::new(""))
+        //         .to_str()
+        //         .ok_or(mlua::Error::external(format!(
+        //             "path entry {} is not representable as utf8",
+        //             this.0.display()
+        //         )))?
+        //         .to_string();
+        //     Ok(file_stem)
+        // });
         methods.add_method("file_stem", |_, this, _: ()| {
             let file_stem = this
                 .0
@@ -174,9 +209,8 @@ impl UserData for Path {
                 .to_string();
             Ok(extension)
         });
-        methods.add_method("try_exists", |_, this, _: ()| {
-            let exists = this.0.try_exists().map_err(mlua::Error::external)?;
-            Ok(exists)
+        methods.add_method("try_exists", |lua: &'lua Lua, this, _: ()| {
+            crate::try_exists(lua, this.clone())
         });
         methods.add_async_method(
             "read_dir",
@@ -184,5 +218,14 @@ impl UserData for Path {
                 crate::read_dir(lua, (this.clone(), function))
             },
         );
+        methods.add_async_method("read_link", |_, this, _: ()| async move {
+            let link = smol::fs::read_link(&this)
+                .await
+                .map_err(mlua::Error::external)?;
+            Ok(Path(link))
+        });
+        methods.add_method("clone", |_, this, _: ()| {
+            Ok(this.clone())
+        });
     }
 }

@@ -26,21 +26,26 @@ end
 
 `read_dir` accepts an optional callback function that can be used on each entry
 of the directory being read with `read_dir`. The callback function should be of the form
-```
+```lua
 function(filepath, meta)
   -- do things with the filepath and meta
+  return true
 end
 ```
-where `filepath` is a Lua string of the entry's path and meta is a special `MetaData`
-object for the entry.
+where `filepath` is a (`Path`)[../Path/index.markdown] object and `meta` is a
+(`MetaData`)[../MetaData/index.markdown] object for the entry.
+
+*Note:* `meta` is the `MetaData` object you get from `filepath:metadat()`, so symbolic
+links have been traversed to get it. If you want to know if the filepath is a symbolic
+link you can use `filepath:symlink_metadata():is_symlink()`.
 
 If you want to use the function to change the output of read_dir, you should make sure
 to return values in one of the two following forms:
 ```
 bool,
-{ bool, string },
+{ bool, path_or_string },
 { bool, integer... },
-{ bool, string, integer... },
+{ bool, path_or_string, integer... },
 ```
 
 If the function returns `true`, then the given `filepath` will be included in the output
@@ -55,44 +60,21 @@ If the function returns anything other than boolean or an array starting with a 
 or if we don't include the optional function at all, then the default behavior is to include
 all `filepath`s.
 
-The `MetaData` object (and thus`meta`) contains information about the entry (either
-a directory, a file or a symlink), which can be accessed with the following methods:
-
-* `is_dir` - returns true if the entry is a directory and false otherwise
-* `is_file` - returns true if the entry is a file and false otherwise
-* `is_symlink` - returns true if the entry is symlink and false otherwise
-* `is_readonly` - returns true if the entry is readonly and false otherwise
-* `secs_since_modified` - returns an integer with the number of seconds since
-  the entry was last modified
-* `secs_since_accessed` - returns an integer with the number of seconds since
-  the entry was last accessed
-* `secs_since_created` - returns an integer with the number of seconds since
-  the entry was created
-* `bytes` - returns the size of the entry in bytes
-
 ### Examples
 
-If we want `read_only` to return the name (not full path) of all folders and symlinks that
-are not hidden files or folders (i.e., not starting with a `.`) in the home directory,
+If we want `read_only` to return the name (not full path) of all folders that
+are not hidden folders (i.e., not starting with a `.`) in the home directory,
 and then sort them first by the time since we last accessed the entry and thereafter
 by the length of the name, we can do the following:
 
 ```lua
-string.startswith = function(str, start)
-  return str:sub(1, #start) == start
-end
-
-string.basename = function(s)
-  return string.gsub(s, '(.*[/\\])(.*)', '%2')
-end
-
 local wezterm = require 'wezterm'
 local home = wezterm.home_dir
 
 tbl = wezterm.read_dir(home, function(filepath, meta)
   return {
-    (meta:is_symlink() or meta:is_dir())
-      and (not filepath:basename():startswith '.'),
+    meta:is_dir()
+      and (not filepath:basename():starts_with '.'),
     filepath:basename(),
     meta:secs_since_accessed(),
     #(filepath:basename()),
@@ -101,7 +83,7 @@ end)
 wezterm.log_info(tbl)
 ```
 
-Note: The purpose of sorting multiple times is that each sort don't swap equal values,
+*Note:* The purpose of sorting multiple times is that each sort don't swap equal values,
 so if we for example have a lot of entries with the same length names, then we can
 make sure that entries of each length are additionally sorted by when they were last
 accessed.
