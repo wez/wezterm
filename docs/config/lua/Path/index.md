@@ -21,3 +21,28 @@ meta method in this case.
 
 `Path` has the following methods:
 
+
+
+  - [ancestors](ancestors.md)
+  - [basename](basename.md)
+  - [canonical_path](canonical_path.md)
+  - [clone](clone.md)
+  - [components](components.md)
+  - [dirname](dirname.md)
+  - [ends_with](ends_with.md)
+  - [extension](extension.md)
+  - [file_stem](file_stem.md)
+  - [is_absolute](is_absolute.md)
+  - [is_relative](is_relative.md)
+  - [join](join.md)
+  - [metadata](metadata.md)
+  - [pop](pop.md)
+  - [push](push.md)
+  - [read_dir](read_dir.md)
+  - [read_link](read_link.md)
+  - [set_extension](set_extension.md)
+  - [set_filename](set_filename.md)
+  - [starts_with](starts_with.md)
+  - [strip_prefix](strip_prefix.md)
+  - [symlink_metadata](symlink_metadata.md)
+  - [try_exists](try_exists.md)

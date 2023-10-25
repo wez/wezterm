@@ -7,7 +7,7 @@ Updates the extension of `path` to `path_or_string`.
 If `path_or_string` is an empty string or `Path`, then it removes
 the current extension.
 
-Returns `false` and does nothing if `path:basename()` is `..`, and returns
+Returns `false` and does nothing if `path:basename()` is `..` or root, and returns
 true otherwise.
 
 ```lua

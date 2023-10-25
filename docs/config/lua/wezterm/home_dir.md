@@ -14,4 +14,11 @@ local wezterm = require 'wezterm'
 wezterm.log_error('Home ' .. wezterm.home_dir)
 ```
 
-See also (home_path)[home_path.md].
+{{since('nightly')}}
+
+```lua
+local wezterm = require 'wezterm'
+assert(wezterm.home_dir == tostring(wezterm.home_path))
+```
+
+See also [home_path](home_path.md).

@@ -23,9 +23,7 @@ in a different format.
 local wezterm = require 'wezterm'
 local canonical_path = wezterm.canonical_path
 
-assert(
-  wezterm.home_path == canonical_path(wezterm.home_path .. '/.')
-)
+assert(wezterm.home_path == canonical_path(wezterm.home_path .. '/.'))
 ```
 
 Another common use case is to find the absolute path of a symlink. E.g., Dropbox is usually

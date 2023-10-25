@@ -2,7 +2,7 @@
 
 {{since('nightly')}}
 
-Returns true if `path` is an absolute `Path`, i.e., if it is independent
+Returns `true` if `path` is an absolute `Path`, i.e., if it is independent
 of the current directory.
 
 ```lua

@@ -73,9 +73,7 @@ impl UserData for Path {
             )))?);
             Ok(Path(PathBuf::from(&p)))
         });
-        methods.add_meta_method(MetaMethod::Eq, |_, this, path: Path| {
-            Ok(*this == path)
-        });
+        methods.add_meta_method(MetaMethod::Eq, |_, this, path: Path| Ok(*this == path));
         // TODO: Should these be included here too?
         // methods.add_method("is_dir", |_, this, _: ()| {
         //     let b = this.0.is_dir();
@@ -118,11 +116,7 @@ impl UserData for Path {
             Ok(Path(p))
         });
         methods.add_method_mut("strip_prefix", |_, this, base: Path| {
-            let p = this
-                .0
-                .strip_prefix(&base)
-                .unwrap_or(&this.0)
-                .to_path_buf();
+            let p = this.0.strip_prefix(&base).unwrap_or(&this.0).to_path_buf();
             Ok(Path(p))
         });
         methods.add_async_method("metadata", |_, this, _: ()| async move {
@@ -147,7 +141,7 @@ impl UserData for Path {
             let b = this.0.set_extension(&path);
             Ok(b)
         });
-        methods.add_method_mut("set_file_name", |_, this, path: Path| {
+        methods.add_method_mut("set_filename", |_, this, path: Path| {
             this.0.set_file_name(&path);
             Ok(())
         });
@@ -224,8 +218,6 @@ impl UserData for Path {
                 .map_err(mlua::Error::external)?;
             Ok(Path(link))
         });
-        methods.add_method("clone", |_, this, _: ()| {
-            Ok(this.clone())
-        });
+        methods.add_method("clone", |_, this, _: ()| Ok(this.clone()));
     }
 }

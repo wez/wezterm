@@ -1,7 +1,7 @@
 use anyhow::anyhow;
-use config::HOME_DIR;
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Function, Lua};
+use config::HOME_DIR;
 use smol::prelude::*;
 use std::path::PathBuf;
 
@@ -27,11 +27,12 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
 async fn read_dir<'lua>(
     _: &'lua Lua,
     (path, function): (Path, Option<Function<'lua>>),
-) -> mlua::Result<Vec<String>> {
+) -> mlua::Result<Vec<Path>> {
     let mut dir = smol::fs::read_dir(&path)
         .await
         .map_err(mlua::Error::external)?;
-    let mut entries: Vec<String> = vec![];
+    // let mut entries: Vec<String> = vec![];
+    let mut entries: Vec<Path> = vec![];
     let mut sort = false; // assume we are not sorting
     let mut sort_by_vec: Vec<Vec<i64>> = vec![];
     while let Some(entry) = dir.next().await {
@@ -57,9 +58,8 @@ async fn read_dir<'lua>(
                     };
                     match iter.next() {
                         Some(Ok(mlua::Value::String(s))) => {
-                            entry_path = Path(PathBuf::from(
-                                s.to_str().map_err(mlua::Error::external)?
-                            ))
+                            entry_path =
+                                Path(PathBuf::from(s.to_str().map_err(mlua::Error::external)?))
                         }
                         Some(Ok(mlua::Value::UserData(u))) => {
                             entry_path = u.take::<Path>().map_err(mlua::Error::external)?;
@@ -77,34 +77,43 @@ async fn read_dir<'lua>(
                 }
                 Err(err) => {
                     return Err(mlua::Error::external(format!(
-                    "the optional read_dir function returns the error: {}",
-                    err
-                )));
+                        "the optional read_dir function returns the error: {}",
+                        err
+                    )));
                 }
                 _ => (),
             }
         }
 
         if include_entry {
-            entries.push(entry_path.0.to_str().ok_or(
-                mlua::Error::external(
-                    format!("the entry {} is not valid utf8", entry_path.0.display())
-                )
-            )?.to_string());
+            // entries.push(entry_path.0.to_str().ok_or(
+            //     mlua::Error::external(
+            //         format!("the entry {} is not valid utf8", entry_path.0.display())
+            //     )
+            // )?.to_string());
+            entries.push(entry_path);
             if sort {
                 sort_by_vec.push(sort_by);
             }
         } // if include_entry is false, don't add entry to entries
-
     }
 
     if sort {
-        let mut sorted: Vec<String> = vec![];
+        // let mut sorted: Vec<String> = vec![];
+        // for i in 0..sort_by_vec[0].len() {
+        //     let sort_by_ivec: Vec<i64> = sort_by_vec.iter().map(|v| v[i]).collect();
+        //
+        //     let mut zipped: Vec<(&String, &i64)> =
+        //         entries.iter().zip(sort_by_ivec.iter()).collect();
+        //     zipped.sort_by_key(|pair| pair.1);
+        //
+        //     sorted = zipped.iter().map(|pair| pair.0.to_owned()).collect();
+        // }
+        let mut sorted: Vec<Path> = vec![];
         for i in 0..sort_by_vec[0].len() {
             let sort_by_ivec: Vec<i64> = sort_by_vec.iter().map(|v| v[i]).collect();
 
-            let mut zipped: Vec<(&String, &i64)> =
-                entries.iter().zip(sort_by_ivec.iter()).collect();
+            let mut zipped: Vec<(&Path, &i64)> = entries.iter().zip(sort_by_ivec.iter()).collect();
             zipped.sort_by_key(|pair| pair.1);
 
             sorted = zipped.iter().map(|pair| pair.0.to_owned()).collect();
@@ -147,12 +156,20 @@ fn to_path<'lua>(_: &'lua Lua, string: String) -> mlua::Result<Path> {
 
 // similar (but not equal) to the shell command basename
 fn basename<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
+    let b = path.0.ends_with("..");
+    let root_or_dots = match b {
+        true => "..",
+        false => path.0.to_str().ok_or(mlua::Error::external(format!(
+            "path entry {} is not representable as utf8",
+            path.0.display()
+        )))?,
+    };
     let basename = path
         .0
         .file_name()
-        // file_name returns None if the path name ends in `..`
-        // but the unix utility return `..` in that case, so we do too
-        .unwrap_or(std::ffi::OsStr::new(".."))
+        // file_name returns None if the path name ends in `..` or is root
+        // but the unix utility return `..` or root in those cases, so we do too
+        .unwrap_or(std::ffi::OsStr::new(root_or_dots))
         .to_str()
         .ok_or(mlua::Error::external(format!(
             "path entry {} is not representable as utf8",

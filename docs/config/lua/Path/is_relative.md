@@ -2,7 +2,7 @@
 
 {{since('nightly')}}
 
-Returns true if `path` is a relative `Path`, i.e., it depends on the current
+Returns `true` if `path` is a relative `Path`, i.e., it depends on the current
 directory.
 
 ```lua

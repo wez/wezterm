@@ -8,10 +8,11 @@ tags:
 
 {{since('20200503-171512-b13ef15f')}}
 
-This function returns an array containing the absolute file names of the
-directory specified.  Due to limitations in the lua bindings, all of the paths
-must be able to be represented as UTF-8 or this function will generate an
-error.
+This function returns an array containing [`Path`](../Path/index.md) objects
+{{since('nightly', inline=True)}} (strings before that) with the absolute file
+names of the directory specified.
+Due to limitations in the lua bindings, all of the paths must be able to be represented
+as UTF-8 or this function will generate an error.
 
 ```lua
 local wezterm = require 'wezterm'
@@ -26,10 +27,9 @@ end
 
 `read_dir` accepts an optional callback function that can be used on each entry
 of the directory being read with `read_dir`. The callback function should be of the form
-```lua
+```
 function(filepath, meta)
   -- do things with the filepath and meta
-  return true
 end
 ```
 where `filepath` is a (`Path`)[../Path/index.markdown] object and `meta` is a
@@ -73,8 +73,7 @@ local home = wezterm.home_dir
 
 tbl = wezterm.read_dir(home, function(filepath, meta)
   return {
-    meta:is_dir()
-      and (not filepath:basename():starts_with '.'),
+    meta:is_dir() and (not filepath:basename():starts_with '.'),
     filepath:basename(),
     meta:secs_since_accessed(),
     #(filepath:basename()),

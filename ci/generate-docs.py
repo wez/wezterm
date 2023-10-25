@@ -431,6 +431,14 @@ TOC = [
                 "object: Window",
                 "config/lua/window",
             ),
+            Gen(
+                "object: Path",
+                "config/lua/Path",
+            ),
+            Gen(
+                "object: MetaData",
+                "config/lua/MetaData",
+            ),
             Page("object: WslDomain", "config/lua/WslDomain.md"),
             Gen(
                 "events: Gui",
