@@ -54,6 +54,7 @@ impl UserData for Path {
             Ok(s)
         });
         methods.add_meta_method(MetaMethod::Concat, |_, this, path: Path| {
+            // TODO:
             // Could alternatively, just do:
             // let p = this.0.join(&path);
             // Ok(Path(p))
@@ -344,7 +345,7 @@ impl UserData for Path {
 }
 
 fn path_to_lua_str<'lua>(lua: &'lua Lua, path: &Path) -> Result<LuaString<'lua>, mlua::Error> {
-    lua.create_string(&path.0.to_str().ok_or(mlua::Error::external(format!(
+    lua.create_string(path.0.to_str().ok_or(mlua::Error::external(format!(
         "path entry {} is not representable as utf8",
         path.0.display()
     )))?)
