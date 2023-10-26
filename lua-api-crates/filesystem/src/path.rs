@@ -219,22 +219,34 @@ impl UserData for Path {
         });
         methods.add_method("clone", |_, this, _: ()| Ok(this.clone()));
 
-        // String methods:
-        methods.add_method("upper", |lua: &'lua Lua, this, _: ()| {
+        // # String methods:
+        // Lua comes with the following string functions in wezterm:
+        // - byte
+        // - char (first argument not a string)
+        // - dump (first argument not a string)
+        // - find
+        // - format (first argument a format string)
+        // - gmatch
+        // - gsub
+        // - len
+        // - lower
+        // - match
+        // - pack (first argument a format string)
+        // - packsize (first argument a format string)
+        // - rep
+        // - reverse
+        // - sub
+        // - unpack (first argument a format string)
+        // - upper
+        // It doesn't make sense to have methods for the cases where the first
+        // argument is not a string or is a format string.
+        methods.add_method("byte", |lua: &'lua Lua, this, multi: LuaMultiValue| {
             let lua_str = path_to_lua_str(lua, &this)?;
-            let upper = lua
+            let byte = lua
                 .globals()
                 .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("upper")?;
-            upper.call::<_, LuaString>(lua_str)
-        });
-        methods.add_method("lower", |lua: &'lua Lua, this, _: ()| {
-            let lua_str = path_to_lua_str(lua, &this)?;
-            let lower = lua
-                .globals()
-                .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("lower")?;
-            lower.call::<_, LuaString>(lua_str)
+                .get::<_, mlua::Function>("byte")?;
+            byte.call::<_, LuaMultiValue>((lua_str, multi))
         });
         methods.add_method(
             "find",
@@ -256,6 +268,14 @@ impl UserData for Path {
                 find.call::<_, LuaMultiValue>((lua_str, multi))
             },
         );
+        methods.add_method("gmatch", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let gmatch = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("gmatch")?;
+            gmatch.call::<_, mlua::Function>((lua_str, multi))
+        });
         methods.add_method("gsub", |lua: &'lua Lua, this, multi: LuaMultiValue| {
             let lua_str = path_to_lua_str(lua, &this)?;
             let gsub = lua
@@ -263,14 +283,6 @@ impl UserData for Path {
                 .get::<_, mlua::Table>("string")?
                 .get::<_, mlua::Function>("gsub")?;
             gsub.call::<_, LuaString>((lua_str, multi))
-        });
-        methods.add_method("reverse", |lua: &'lua Lua, this, _: ()| {
-            let lua_str = path_to_lua_str(lua, &this)?;
-            let reverse = lua
-                .globals()
-                .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("reverse")?;
-            reverse.call::<_, LuaString>(lua_str)
         });
         methods.add_method("len", |lua: &'lua Lua, this, _: ()| {
             let lua_str = path_to_lua_str(lua, &this)?;
@@ -280,37 +292,53 @@ impl UserData for Path {
                 .get::<_, mlua::Function>("len")?;
             len.call::<_, mlua::Integer>(lua_str)
         });
-        methods.add_method("format", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+        methods.add_method("lower", |lua: &'lua Lua, this, _: ()| {
             let lua_str = path_to_lua_str(lua, &this)?;
-            let format = lua
+            let lower = lua
                 .globals()
                 .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("format")?;
-            format.call::<_, LuaMultiValue>((lua_str, multi))
-        });
-        methods.add_method("byte", |lua: &'lua Lua, this, multi: LuaMultiValue| {
-            let lua_str = path_to_lua_str(lua, &this)?;
-            let format = lua
-                .globals()
-                .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("format")?;
-            format.call::<_, LuaMultiValue>((lua_str, multi))
-        });
-        methods.add_method("gmatch", |lua: &'lua Lua, this, multi: LuaMultiValue| {
-            let lua_str = path_to_lua_str(lua, &this)?;
-            let format = lua
-                .globals()
-                .get::<_, mlua::Table>("string")?
-                .get::<_, mlua::Function>("gmatch")?;
-            format.call::<_, mlua::Function>((lua_str, multi))
+                .get::<_, mlua::Function>("lower")?;
+            lower.call::<_, LuaString>(lua_str)
         });
         methods.add_method("match", |lua: &'lua Lua, this, multi: LuaMultiValue| {
             let lua_str = path_to_lua_str(lua, &this)?;
-            let format = lua
+            let lua_match = lua
                 .globals()
                 .get::<_, mlua::Table>("string")?
                 .get::<_, mlua::Function>("match")?;
-            format.call::<_, bool>((lua_str, multi))
+            lua_match.call::<_, LuaMultiValue>((lua_str, multi))
+        });
+        methods.add_method("rep", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let rep = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("rep")?;
+            rep.call::<_, LuaString>((lua_str, multi))
+        });
+        methods.add_method("reverse", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let reverse = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("reverse")?;
+            reverse.call::<_, LuaString>(lua_str)
+        });
+        methods.add_method("sub", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let sub = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("sub")?;
+            sub.call::<_, LuaString>((lua_str, multi))
+        });
+        methods.add_method("upper", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let upper = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("upper")?;
+            upper.call::<_, LuaString>(lua_str)
         });
     }
 }
