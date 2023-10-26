@@ -73,7 +73,19 @@ impl UserData for Path {
             )))?);
             Ok(Path(PathBuf::from(&p)))
         });
-        methods.add_meta_method(MetaMethod::Eq, |_, this, path: Path| Ok(*this == path));
+        methods.add_meta_method(MetaMethod::Eq, |_, this, maybe_path: LuaValue| {
+            match maybe_path {
+                LuaValue::UserData(u) => {
+                    let p = u.take::<Path>();
+                    match p {
+                        Ok(p) => Ok(this.eq(&p)),
+                        Err(_) => Ok(false),
+                    }
+                }
+                LuaValue::Error(e) => Err(mlua::Error::external(e)),
+                _ => Ok(false),
+            }
+        });
         // TODO: Should these be included here too? They are not async.
         // methods.add_method("is_dir", |_, this, _: ()| {
         //     let b = this.0.is_dir();
