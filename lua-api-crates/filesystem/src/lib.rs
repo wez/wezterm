@@ -20,6 +20,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     wezterm_mod.set("try_exists", lua.create_function(try_exists)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     wezterm_mod.set("to_path", lua.create_function(to_path)?)?;
+    // TODO: Should we include home_path?
     wezterm_mod.set("home_path", Path(HOME_DIR.to_path_buf()))?;
     Ok(())
 }
@@ -34,6 +35,7 @@ async fn read_dir<'lua>(
     // let mut entries: Vec<String> = vec![];
     let mut entries: Vec<Path> = vec![];
     let mut sort = false; // assume we are not sorting
+                          // TODO: Does it make sense to allow multiple sorts?
     let mut sort_by_vec: Vec<Vec<i64>> = vec![];
     while let Some(entry) = dir.next().await {
         let entry = entry.map_err(mlua::Error::external)?;
@@ -86,6 +88,7 @@ async fn read_dir<'lua>(
         }
 
         if include_entry {
+            // TODO: Should we return Strings instead of Paths?
             // entries.push(entry_path.0.to_str().ok_or(
             //     mlua::Error::external(
             //         format!("the entry {} is not valid utf8", entry_path.0.display())
@@ -203,6 +206,7 @@ async fn canonical_path<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<Path> {
     Ok(Path(p))
 }
 
+// NOTE: smol::fs doesn't include an async try_exists
 fn try_exists<'lua>(_: &'lua Lua, path: Path) -> mlua::Result<bool> {
     let exists = path.0.try_exists().map_err(mlua::Error::external)?;
     Ok(exists)

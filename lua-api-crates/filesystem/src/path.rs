@@ -1,5 +1,5 @@
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
-use mlua::{String as LuaString, Value as LuaValue};
+use mlua::{MultiValue as LuaMultiValue, String as LuaString, Value as LuaValue};
 use std::ffi::OsStr;
 use std::path::{Path as StdPath, PathBuf};
 
@@ -73,7 +73,7 @@ impl UserData for Path {
             Ok(Path(PathBuf::from(&p)))
         });
         methods.add_meta_method(MetaMethod::Eq, |_, this, path: Path| Ok(*this == path));
-        // TODO: Should these be included here too?
+        // TODO: Should these be included here too? They are not async.
         // methods.add_method("is_dir", |_, this, _: ()| {
         //     let b = this.0.is_dir();
         //     Ok(b)
@@ -237,41 +237,33 @@ impl UserData for Path {
             lower.call::<_, LuaString>(lua_str)
         });
         methods.add_method(
-            "gsub",
-            |lua: &'lua Lua, this, (pattern, repl, opt_n): (LuaString, LuaValue, Option<mlua::Integer>)| {
-                let lua_str = path_to_lua_str(lua, &this)?;
-                // TODO: Does it make sense to including this?
-                // let repl = match repl {
-                //     LuaValue::String(s) => LuaValue::String(s),
-                //     LuaValue::Table(t) => LuaValue::Table(t),
-                //     LuaValue::Number(n) => LuaValue::Number(n),
-                //     LuaValue::Function(f) => LuaValue::Function(f),
-                //     other => return Err(mlua::Error::external(format!("unexpected type {} in string.gsub", other.type_name())))
-                // };
-                let gsub = lua
-                    .globals()
-                    .get::<_, mlua::Table>("string")?
-                    .get::<_, mlua::Function>("gsub")?;
-                gsub.call::<_, LuaString>((lua_str, pattern, repl, opt_n))
-            },
-        );
-        methods.add_method(
             "find",
             |lua: &'lua Lua,
              this,
-             (find_str, opt_init, opt_plain): (
-                LuaString,
-                Option<mlua::Integer>,
-                Option<bool>,
-            )| {
+             // TODO: We could do this:
+             //  (find_str, opt_init, opt_plain): (
+             //     LuaString,
+             //     Option<mlua::Integer>,
+             //     Option<bool>,
+             // but I prefer the error messages this way:
+             multi: LuaMultiValue| {
                 let lua_str = path_to_lua_str(lua, &this)?;
                 let find = lua
                     .globals()
                     .get::<_, mlua::Table>("string")?
                     .get::<_, mlua::Function>("find")?;
-                find.call::<_, LuaString>((lua_str, find_str, opt_init, opt_plain))
+                // find.call::<_, LuaMultiValue>((lua_str, find_str, opt_init, opt_plain))
+                find.call::<_, LuaMultiValue>((lua_str, multi))
             },
         );
+        methods.add_method("gsub", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let gsub = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("gsub")?;
+            gsub.call::<_, LuaString>((lua_str, multi))
+        });
         methods.add_method("reverse", |lua: &'lua Lua, this, _: ()| {
             let lua_str = path_to_lua_str(lua, &this)?;
             let reverse = lua
@@ -286,7 +278,39 @@ impl UserData for Path {
                 .globals()
                 .get::<_, mlua::Table>("string")?
                 .get::<_, mlua::Function>("len")?;
-            len.call::<_, LuaString>(lua_str)
+            len.call::<_, mlua::Integer>(lua_str)
+        });
+        methods.add_method("format", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let format = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("format")?;
+            format.call::<_, LuaMultiValue>((lua_str, multi))
+        });
+        methods.add_method("byte", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let format = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("format")?;
+            format.call::<_, LuaMultiValue>((lua_str, multi))
+        });
+        methods.add_method("gmatch", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let format = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("gmatch")?;
+            format.call::<_, mlua::Function>((lua_str, multi))
+        });
+        methods.add_method("match", |lua: &'lua Lua, this, multi: LuaMultiValue| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let format = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("match")?;
+            format.call::<_, bool>((lua_str, multi))
         });
     }
 }
