@@ -1,6 +1,5 @@
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
-use luahelper::mlua::Function;
-use mlua::Value as LuaValue;
+use mlua::{String as LuaString, Value as LuaValue};
 use std::ffi::OsStr;
 use std::path::{Path as StdPath, PathBuf};
 
@@ -208,7 +207,7 @@ impl UserData for Path {
         });
         methods.add_async_method(
             "read_dir",
-            |lua: &'lua Lua, this, function: Option<Function<'lua>>| {
+            |lua: &'lua Lua, this, function: Option<mlua::Function<'lua>>| {
                 crate::read_dir(lua, (this.clone(), function))
             },
         );
@@ -219,5 +218,82 @@ impl UserData for Path {
             Ok(Path(link))
         });
         methods.add_method("clone", |_, this, _: ()| Ok(this.clone()));
+
+        // String methods:
+        methods.add_method("upper", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let upper = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("upper")?;
+            upper.call::<_, LuaString>(lua_str)
+        });
+        methods.add_method("lower", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let lower = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("lower")?;
+            lower.call::<_, LuaString>(lua_str)
+        });
+        methods.add_method(
+            "gsub",
+            |lua: &'lua Lua, this, (pattern, repl, opt_n): (LuaString, LuaValue, Option<mlua::Integer>)| {
+                let lua_str = path_to_lua_str(lua, &this)?;
+                // TODO: Does it make sense to including this?
+                // let repl = match repl {
+                //     LuaValue::String(s) => LuaValue::String(s),
+                //     LuaValue::Table(t) => LuaValue::Table(t),
+                //     LuaValue::Number(n) => LuaValue::Number(n),
+                //     LuaValue::Function(f) => LuaValue::Function(f),
+                //     other => return Err(mlua::Error::external(format!("unexpected type {} in string.gsub", other.type_name())))
+                // };
+                let gsub = lua
+                    .globals()
+                    .get::<_, mlua::Table>("string")?
+                    .get::<_, mlua::Function>("gsub")?;
+                gsub.call::<_, LuaString>((lua_str, pattern, repl, opt_n))
+            },
+        );
+        methods.add_method(
+            "find",
+            |lua: &'lua Lua,
+             this,
+             (find_str, opt_init, opt_plain): (
+                LuaString,
+                Option<mlua::Integer>,
+                Option<bool>,
+            )| {
+                let lua_str = path_to_lua_str(lua, &this)?;
+                let find = lua
+                    .globals()
+                    .get::<_, mlua::Table>("string")?
+                    .get::<_, mlua::Function>("find")?;
+                find.call::<_, LuaString>((lua_str, find_str, opt_init, opt_plain))
+            },
+        );
+        methods.add_method("reverse", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let reverse = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("reverse")?;
+            reverse.call::<_, LuaString>(lua_str)
+        });
+        methods.add_method("len", |lua: &'lua Lua, this, _: ()| {
+            let lua_str = path_to_lua_str(lua, &this)?;
+            let len = lua
+                .globals()
+                .get::<_, mlua::Table>("string")?
+                .get::<_, mlua::Function>("len")?;
+            len.call::<_, LuaString>(lua_str)
+        });
     }
+}
+
+fn path_to_lua_str<'lua>(lua: &'lua Lua, path: &Path) -> Result<LuaString<'lua>, mlua::Error> {
+    lua.create_string(&path.0.to_str().ok_or(mlua::Error::external(format!(
+        "path entry {} is not representable as utf8",
+        path.0.display()
+    )))?)
 }
