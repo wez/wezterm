@@ -1,0 +1,185 @@
+Hacking Cairo
+=============
+
+This is a high-level guide to how the cairo distribution is organized
+and how to get started hacking on it.  Make sure you read through the
+file README before continuing.
+
+
+Coding Style
+------------
+
+The easiest way to write code in the cairo style is to follow code close
+to the place you are hacking, but if you want a written down set of
+rules, see file CODING_STYLE.
+
+Files for backends that depend on languages other than C (C++ or
+Objective C for example) may use features specific to those languages.
+For example, "//" comments are allowed, though discouraged, in those files.
+
+
+Contact
+-------
+
+Various ways to get in touch with other cairo developers and maintainers
+have been enumerated at:
+
+	https://cairographics.org/contact/
+
+Most of that information is also reflected in the following sections.
+
+
+Mailing Lists
+-------------
+
+There are various mailing lists that are useful when developing cairo
+code.  A complete list is always available at:
+
+	https://cairographics.org/lists/
+
+It is recommended that cairo developers subscribe to all those lists.
+The cairo list by itself generates much more traffic than the others
+combined, so developers and contributors should not be intimidated by
+the -commit and -bugs lists.
+
+
+Bug Tracking System
+-------------------
+
+We use a standard bugzilla bug tracking system available at:
+
+	https://bugs.freedesktop.org/
+
+See file named BUGS for detailed information on reporting bugs.  In short,
+for straight bug reports, it's best to report them there such that they
+are not lost or forgotten.  For discussion of new features or
+complicated issues, use the mailing list.
+
+
+IRC
+---
+
+It's a great idea to hang around the cairo IRC channel if you have any
+interest in cairo.  We use the #cairo channel on irc.freenode.net.
+
+Make sure you introduce yourself if your nick is not easy to match to
+the name you use on the mailing list.
+
+
+Version Control System
+----------------------
+
+We use /git/ for version control.  See:
+
+	https://cairographics.org/download/
+
+For more information on using git, see:
+
+	https://freedesktop.org/wiki/Infrastructure/git/
+
+
+Build System
+------------
+
+We use the autotools build system with cairo, but with various
+customizations and advanced features.  Reading configure.in is your
+best bet to understanding it, or just ask on IRC.
+
+To bootstrap the build system run ./autogen.sh.  After that the
+regular "./configure; make; make install" sequence can be used.
+See file named INSTALL for more details.
+
+There is limited support for a win32 build system.
+See README.win32 and Makefile.win32 files in various directories.
+
+
+ChangeLog
+---------
+
+We generate ChangeLog files automatically from the git commit log.
+No manual ChangeLog writing is necessary.
+
+
+Copyrights and Licensing
+------------------------
+
+The cairo library is dual-licensed under LGPL and MPL.  See the file
+named COPYING for details.  The test suites are more liberal, and are
+allowed to include GPL code.
+
+When writing new code, update the file headers to add your (or your
+employers) copyright line and contributor line.  If adding new files
+or splitting a file, copy the file header from other files.
+
+
+Source Code
+-----------
+
+The library source code and headers live in the src/ directory.
+See src/README for more information.
+
+
+Regression Test Suite
+---------------------
+
+Cairo has a fairly extensive regression-testing suite.  Indeed, without
+these tests it would be impossible to make a cairo release without
+introducing tens of regressions.  We still manage to introduce
+regressions with each release even with the hundreds of tests we already
+have.
+
+The regression test suite is located under the test/ directory.
+See test/README for more information.
+
+
+Performance Test Suite
+----------------------
+
+There is a performance test suite located under the perf/ directory.
+A collection of traces of real-world behavior are also available in the
+cairo-traces repository, which can be used in isolation or hooked in
+with the main performance test suite.  See perf/README for more
+information.
+
+
+Boilerplate
+-----------
+
+The cairo-boilerplate is a small private library used by the regression
+and performance test suites.  It includes the boilerplace code needed
+to initialize various backends for the test suites, as well as allow
+tweaking some of the internal workings of the backends for more testing.
+
+The boilerplate code is localted under the boilerplate/ directory.
+See boilerplate/README for more information.
+
+
+Documentation
+-------------
+
+Cairo uses the gtk-doc system for reference API documentation.
+
+The reference documentation is located under doc/public.
+See doc/public/README for more information.
+
+For more documentation including frequently asked questions, tutorials,
+samples, roadmap, todo list, etc visit:
+
+	https://cairographics.org/documentation/
+
+Some of those should gradually be moved to doc/.
+
+
+Utilities
+---------
+
+We have developed several utilities useful for writing cairo or code
+that uses cairo.  These tools can be found under the util/ directory.
+See util/README for more information.
+
+
+Releasing
+---------
+
+Now you are a cairo maintainer, so what?  See file named RELEASING.
+

@@ -1,0 +1,69 @@
+Cairo Library Source Code
+=========================
+
+This directory contains the source code of the cairo library.
+
+
+Source Code Listing
+-------------------
+
+The canonical list of source files is the file Makefile.sources.  See that
+file for how it works.
+
+
+New Backends
+------------
+
+The rule of the thumb for adding new backends is to see how other
+backends are integrated.  Pick one of the simpler, unsupported, backends
+and search the entire tree for it, and go from there.
+
+To add new backends you need to basically:
+
+  * Modify $(top_srcdir)/configure.in to add checks for your backend.
+
+  * Modify Makefile.sources to add source files for your backend,
+
+  * Modify $(top_srcdir)/boilerplate/ to add boilerplate code for
+    testing your new backend.
+
+
+New API
+-------
+
+After adding new API, run "make check" in this directory and fix any
+reported issues.  Also add new API to the right location in
+$(top_srcdir)/doc/public/cairo-sections.txt and run "make check"
+in $(top_builddir)/doc/public to make sure that any newly added
+documentation is correctly hooked up.
+
+Do not forget to add tests for the new API.  See next section.
+
+
+Tests
+-----
+
+There are some tests in this directory that check the source code and
+the build for various issues.  The tests are very quick to run, and
+particularly should be run after any documentation or API changes.  It
+does not hurt to run them after any source modification either.  Run
+them simply by calling:
+
+	make check
+
+There are also extensive regression tests in $(top_srcdir)/test.  It is
+a good idea to run that test suite for any changes made to the source
+code.  Moreover, for any new feature, API, or bug fix, new tests should
+be added to the regression test suite to test the new code.
+
+
+Bibliography
+------------
+
+A detailed list of academic publications used in cairo code is available
+in the file $(top_srcdir)/BIBLIOGRAPHY.  Feel free to update as you
+implement more papers.
+
+For more technical publications (eg. Adobe technical reports) just
+point them out in a comment in the header of the file implementing them.
+

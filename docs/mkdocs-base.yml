@@ -72,6 +72,19 @@ plugins:
         - "book.toml"
         - "overrides/**"
 
+exclude_docs: |
+  **/_index.md
+  **/*.markdown
+  generate_toc.py
+  README.markdown
+  build.sh
+  SUMMARY.md
+  book.toml
+  overrides/**
+
+not_in_nav: |
+  tags.md
+
 extra_css:
   - style.css
   - colorschemes/scheme.css
@@ -101,9 +114,6 @@ markdown_extensions:
   - pymdownx.pathconverter:
       base_path: "./docs"
   - pymdownx.inlinehilite
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tabbed:

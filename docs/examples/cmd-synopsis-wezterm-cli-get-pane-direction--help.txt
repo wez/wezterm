@@ -1,4 +1,3 @@
-
 Determine the adjacent pane in the specified direction.
 
 Prints the pane id in that direction, or nothing if there is no pane in that

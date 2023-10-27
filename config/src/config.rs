@@ -109,6 +109,9 @@ pub struct Config {
     /// The DPI to assume
     pub dpi: Option<f64>,
 
+    #[dynamic(default)]
+    pub dpi_by_screen: HashMap<String, f64>,
+
     /// The baseline font to use
     #[dynamic(default)]
     pub font: TextStyle,
@@ -250,6 +253,8 @@ pub struct Config {
     pub font_locator: FontLocatorSelection,
     #[dynamic(default)]
     pub font_rasterizer: FontRasterizerSelection,
+    #[dynamic(default = "default_colr_rasterizer")]
+    pub font_colr_rasterizer: FontRasterizerSelection,
     #[dynamic(default)]
     pub font_shaper: FontShaperSelection,
 
@@ -656,6 +661,9 @@ pub struct Config {
     #[dynamic(default)]
     pub ime_preedit_rendering: ImePreeditRendering,
 
+    #[dynamic(default)]
+    pub notification_handling: NotificationHandling,
+
     #[dynamic(default = "default_true")]
     pub use_dead_keys: bool,
 
@@ -714,6 +722,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub experimental_pixel_positioning: bool,
+
+    #[dynamic(default)]
+    pub ignore_svg_fonts: bool,
 
     #[dynamic(default)]
     pub bidi_enabled: bool,
@@ -1045,7 +1056,7 @@ impl Config {
                     // file. Note that we can't catch this happening for files that are
                     // imported via the lua require function.
                     lua.load(s.trim_start_matches('\u{FEFF}'))
-                        .set_name(p.to_string_lossy())?
+                        .set_name(p.to_string_lossy())
                         .eval_async(),
                 )?;
                 let config = Config::apply_overrides_to(&lua, config)?;
@@ -1138,7 +1149,7 @@ impl Config {
                 "#,
             );
             let chunk = lua.load(&code);
-            let chunk = chunk.set_name(&format!("--config {}={}", key, value))?;
+            let chunk = chunk.set_name(format!("--config {}={}", key, value));
             lua.globals().set("config", config.clone())?;
             log::debug!("Apply {}={} to config", key, value);
             config = chunk.eval()?;
@@ -1643,6 +1654,14 @@ fn default_font_size() -> f64 {
     12.0
 }
 
+pub(crate) fn compute_data_dir() -> anyhow::Result<PathBuf> {
+    if let Some(runtime) = dirs_next::data_dir() {
+        return Ok(runtime.join("wezterm"));
+    }
+
+    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
+}
+
 pub(crate) fn compute_runtime_dir() -> anyhow::Result<PathBuf> {
     if let Some(runtime) = dirs_next::runtime_dir() {
         return Ok(runtime.join("wezterm"));
@@ -1697,7 +1716,7 @@ fn default_max_fps() -> u8 {
 }
 
 fn default_tiling_desktop_environments() -> Vec<String> {
-    ["X11 LG3D", "X11 bspwm", "X11 i3", "X11 dwm"]
+    ["X11 LG3D", "X11 bspwm", "X11 i3", "X11 dwm", "X11 awesome"]
         .iter()
         .map(|s| s.to_string())
         .collect()
@@ -1992,6 +2011,16 @@ pub enum ImePreeditRendering {
     System,
 }
 
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NotificationHandling {
+    #[default]
+    AlwaysShow,
+    NeverShow,
+    SuppressFromFocusedPane,
+    SuppressFromFocusedTab,
+    SuppressFromFocusedWindow,
+}
+
 fn validate_row_or_col(value: &u16) -> Result<(), String> {
     if *value < 1 {
         Err("initial_cols and initial_rows must be non-zero".to_string())
@@ -2027,4 +2056,8 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
 /// <https://github.com/wez/wezterm/issues/2630>
 fn default_macos_forward_mods() -> Modifiers {
     Modifiers::SHIFT
+}
+
+fn default_colr_rasterizer() -> FontRasterizerSelection {
+    FontRasterizerSelection::Harfbuzz
 }

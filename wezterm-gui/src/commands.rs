@@ -797,8 +797,55 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("md_sticker_emoji"),
         },
-        PaneSelect(_) => CommandDef {
+        PaneSelect(PaneSelectArguments {
+            mode: PaneSelectMode::Activate,
+            ..
+        }) => CommandDef {
             brief: "Enter Pane selection mode".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![], // FIXME: find a new assignment
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("cod_multiple_windows"),
+        },
+        PaneSelect(PaneSelectArguments {
+            mode: PaneSelectMode::SwapWithActive,
+            ..
+        }) => CommandDef {
+            brief: "Swap a pane with the active pane".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![], // FIXME: find a new assignment
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("cod_multiple_windows"),
+        },
+        PaneSelect(PaneSelectArguments {
+            mode: PaneSelectMode::SwapWithActiveKeepFocus,
+            ..
+        }) => CommandDef {
+            brief: "Swap a pane with the active pane, keeping focus".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![], // FIXME: find a new assignment
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("cod_multiple_windows"),
+        },
+        PaneSelect(PaneSelectArguments {
+            mode: PaneSelectMode::MoveToNewTab,
+            ..
+        }) => CommandDef {
+            brief: "Move a pane into its own tab".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![], // FIXME: find a new assignment
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("cod_multiple_windows"),
+        },
+        PaneSelect(PaneSelectArguments {
+            mode: PaneSelectMode::MoveToNewWindow,
+            ..
+        }) => CommandDef {
+            brief: "Move a pane into its own window".into(),
             doc: "Activates the pane selection UI".into(),
             keys: vec![], // FIXME: find a new assignment
             args: &[ArgType::ActivePane],
@@ -1971,7 +2018,31 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ToggleFullScreen,
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),
-        PaneSelect(PaneSelectArguments::default()),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::Activate,
+            show_pane_ids: false,
+        }),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::SwapWithActive,
+            show_pane_ids: false,
+        }),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::SwapWithActiveKeepFocus,
+            show_pane_ids: false,
+        }),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::MoveToNewTab,
+            show_pane_ids: false,
+        }),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::MoveToNewWindow,
+            show_pane_ids: false,
+        }),
         RotatePanes(RotationDirection::Clockwise),
         RotatePanes(RotationDirection::CounterClockwise),
         ActivateTab(0),

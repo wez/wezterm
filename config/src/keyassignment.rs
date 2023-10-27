@@ -333,6 +333,9 @@ impl Default for ClipboardPasteSource {
 pub enum PaneSelectMode {
     Activate,
     SwapWithActive,
+    SwapWithActiveKeepFocus,
+    MoveToNewTab,
+    MoveToNewWindow,
 }
 
 impl Default for PaneSelectMode {
@@ -349,6 +352,9 @@ pub struct PaneSelectArguments {
 
     #[dynamic(default)]
     pub mode: PaneSelectMode,
+
+    #[dynamic(default)]
+    pub show_pane_ids: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
@@ -365,6 +371,7 @@ pub enum CharSelectGroup {
     Flags,
     NerdFonts,
     UnicodeNames,
+    ShortCodes,
 }
 
 // next is default, previous is the reverse
@@ -398,7 +405,8 @@ char_select_group_impl_next_prev! (
     Symbols => Flags,
     Flags => NerdFonts,
     NerdFonts => UnicodeNames,
-    UnicodeNames => RecentlyUsed,
+    UnicodeNames => ShortCodes,
+    ShortCodes => RecentlyUsed,
 );
 
 impl Default for CharSelectGroup {
@@ -469,6 +477,27 @@ pub struct InputSelector {
 
     #[dynamic(default)]
     pub fuzzy: bool,
+
+    #[dynamic(default = "default_num_alphabet")]
+    pub alphabet: String,
+
+    #[dynamic(default = "default_description")]
+    pub description: String,
+
+    #[dynamic(default = "default_fuzzy_description")]
+    pub fuzzy_description: String,
+}
+
+fn default_num_alphabet() -> String {
+    "1234567890abcdefghilmnopqrstuvwxyz".to_string()
+}
+
+fn default_description() -> String {
+    "Select an item and press Enter = accept,  Esc = cancel,  / = filter".to_string()
+}
+
+fn default_fuzzy_description() -> String {
+    "Fuzzy matching: ".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]

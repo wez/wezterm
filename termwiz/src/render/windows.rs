@@ -207,7 +207,7 @@ impl ScreenBuffer {
 
                     let idx = self.cursor_idx();
 
-                    let mut cell = &mut self.buf[idx];
+                    let cell = &mut self.buf[idx];
                     cell.Attributes = attr;
                     unsafe {
                         *cell.Char.UnicodeChar_mut() = c as u16;

@@ -714,8 +714,10 @@ impl Tab {
     }
 
     /// Swap the active pane with the specified pane_index
-    pub fn swap_active_with_index(&self, pane_index: usize) -> Option<()> {
-        self.inner.lock().swap_active_with_index(pane_index)
+    pub fn swap_active_with_index(&self, pane_index: usize, keep_focus: bool) -> Option<()> {
+        self.inner
+            .lock()
+            .swap_active_with_index(pane_index, keep_focus)
     }
 
     /// Computes the size of the pane that would result if the specified
@@ -744,6 +746,10 @@ impl Tab {
         self.inner
             .lock()
             .split_and_insert(pane_index, request, pane)
+    }
+
+    pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
+        self.inner.lock().get_zoomed_pane()
     }
 }
 
@@ -1544,7 +1550,6 @@ impl TabInner {
                 best.replace(target);
             }
         }
-        drop(recency);
 
         if let Some((_, target)) = best.take() {
             return Some(target.index);
@@ -1553,8 +1558,26 @@ impl TabInner {
     }
 
     fn prune_dead_panes(&mut self) -> bool {
+        let mux = Mux::get();
         !self
-            .remove_pane_if(|_, pane| pane.is_dead(), true)
+            .remove_pane_if(
+                |_, pane| {
+                    // If the pane is no longer known to the mux, then its liveness
+                    // state isn't guaranteed to be monitored or updated, so let's
+                    // consider the pane effectively dead if it isn't in the mux.
+                    // <https://github.com/wez/wezterm/issues/4030>
+                    let in_mux = mux.get_pane(pane.pane_id()).is_some();
+                    let dead = pane.is_dead();
+                    log::trace!(
+                        "prune_dead_panes: pane_id={} dead={} in_mux={}",
+                        pane.pane_id(),
+                        dead,
+                        in_mux
+                    );
+                    dead || !in_mux
+                },
+                true,
+            )
             .is_empty()
     }
 
@@ -1777,7 +1800,7 @@ impl TabInner {
         cell_dimensions(&self.size)
     }
 
-    fn swap_active_with_index(&mut self, pane_index: usize) -> Option<()> {
+    fn swap_active_with_index(&mut self, pane_index: usize, keep_focus: bool) -> Option<()> {
         let active_idx = self.get_active_idx();
         let mut pane = self.get_active_pane()?;
         log::trace!(
@@ -1823,7 +1846,11 @@ impl TabInner {
         }
 
         // And update focus
-        self.advise_focus_change(Some(pane));
+        if keep_focus {
+            self.set_active_idx(pane_index);
+        } else {
+            self.advise_focus_change(Some(pane));
+        }
         None
     }
 
@@ -2051,6 +2078,10 @@ impl TabInner {
         } else {
             pane_index
         })
+    }
+
+    fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
+        self.zoomed.clone()
     }
 }
 

@@ -11,6 +11,20 @@ and smoother if you have the time and energy to read and follow these suggestion
 
 There's never enough!  Pretty much anything is fair game to improve here.
 
+### Running the doc build yourself
+
+To check your documentation additions, you can optionally build the docs yourself and see how the changes will look on the webpage. 
+
+To serve them up, and then automatically rebuild and refresh the docs in your browser, run:
+```console
+$ ci/build-docs.sh serve
+```
+And then click on the URL that it prints out after it has performed the first build.
+
+Any arguments passed to `build-docs.sh` are passed down to the underlying `mkdocs` utility.
+
+Look at [mkdocs serve](https://www.mkdocs.org/user-guide/cli/#mkdocs-serve) for more information on additional parameters.
+
 ### Operating system specific installation instructions?
 
 There are a lot of targets out there.  Today we have docs that are Ubuntu biased
@@ -44,14 +58,14 @@ I tend to iterate and sanity check as I develop using `cargo check`; it
 will type-check your code without generating code which is much faster
 than building everything in release mode:
 
-```
+```console
 $ cargo check
 ```
 
 Likewise, if you want to quick check that something works, you can run it
 in debug mode using:
 
-```
+```console
 $ cargo run
 ```
 
@@ -60,7 +74,7 @@ give you more detail in the backtrace produced if you run `RUST_BACKTRACE=1 carg
 
 If you get a panic and want to examine local variables, you'll need to use gdb:
 
-```
+```console
 $ cargo build
 $ gdb ./target/debug/wezterm
 $ break rust_panic               # hit tab to complete the name of the panic symbol!
@@ -74,7 +88,7 @@ This will help ensure that your contributions keep working as things change.
 
 You can run the existing tests using:
 
-```
+```console
 $ cargo test --all
 ```
 
@@ -109,7 +123,7 @@ how that process works.
 Make sure that the tests are working and that the code is correctly
 formatted otherwise the continuous integration system will fail your build:
 
-```
+```console
 $ rustup component add rustfmt-preview          # you only need to do this once
 $ cargo test --all
 $ cargo fmt --all

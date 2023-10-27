@@ -10,7 +10,7 @@ use crate::spawn::*;
 use crate::Appearance;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular, NSScreen};
 use cocoa::base::{id, nil};
-use cocoa::foundation::{NSArray, NSInteger, NSRect};
+use cocoa::foundation::{NSArray, NSInteger};
 use objc::runtime::{Object, BOOL, YES};
 use objc::*;
 use serde::Deserialize;
@@ -191,20 +191,14 @@ impl ConnectionOps for Connection {
     }
 }
 
-fn screen_backing_frame(screen: *mut Object) -> NSRect {
-    unsafe {
-        let frame = NSScreen::frame(screen);
-        NSScreen::convertRectToBacking_(screen, frame)
-    }
-}
-
-fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
-    let frame = screen_backing_frame(screen);
+pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
+    let frame = unsafe { NSScreen::frame(screen) };
+    let backing_frame = unsafe { NSScreen::convertRectToBacking_(screen, frame) };
     let rect = euclid::rect(
-        frame.origin.x as isize,
-        frame.origin.y as isize,
-        frame.size.width as isize,
-        frame.size.height as isize,
+        backing_frame.origin.x as isize,
+        backing_frame.origin.y as isize,
+        backing_frame.size.width as isize,
+        backing_frame.size.height as isize,
     );
     let has_name: BOOL = unsafe { msg_send!(screen, respondsToSelector: sel!(localizedName)) };
     let name = if has_name == YES {
@@ -212,7 +206,10 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
     } else {
         format!(
             "{}x{}@{},{}",
-            frame.size.width, frame.size.height, frame.origin.x, frame.origin.y
+            backing_frame.size.width,
+            backing_frame.size.height,
+            backing_frame.origin.x,
+            backing_frame.origin.y
         )
     };
 
@@ -224,11 +221,24 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
     } else {
         None
     };
+
+    let scale = backing_frame.size.width / frame.size.width;
+
+    let config = config::configuration();
+    let effective_dpi = if let Some(dpi) = config.dpi_by_screen.get(&name).copied() {
+        Some(dpi)
+    } else if let Some(dpi) = config.dpi {
+        Some(dpi)
+    } else {
+        Some(crate::DEFAULT_DPI * scale)
+    };
+
     ScreenInfo {
         name,
         rect,
-        scale: 1.0,
+        scale,
         max_fps,
+        effective_dpi,
     }
 }
 

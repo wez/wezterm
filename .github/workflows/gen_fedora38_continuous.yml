@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -71,9 +71,9 @@ jobs:
         with:
           crate: "cargo-nextest"
           cache-key: "fedora38"
-      - name: "Test"
+      - name: "Test (Release mode)"
         shell: bash
-        run: "cargo nextest run --all --no-fail-fast"
+        run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:

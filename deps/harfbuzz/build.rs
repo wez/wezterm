@@ -18,6 +18,7 @@ fn harfbuzz() {
     cfg.flag_if_supported("-fno-threadsafe-statics");
     cfg.flag_if_supported("-std=c++11");
     cfg.flag_if_supported("-fno-stack-check");
+    cfg.flag_if_supported("-Wno-format-overflow");
 
     let build_dir = out_dir.join("harfbuzz-build");
     fs::create_dir_all(&build_dir).unwrap();

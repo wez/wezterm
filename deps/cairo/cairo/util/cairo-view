@@ -1,0 +1,113 @@
+#!/usr/bin/python
+
+import sys
+import cairo
+import pygtk
+pygtk.require('2.0')
+import gtk
+import gtk.gdk
+import pango
+import gobject
+
+class CairoView(gtk.Window):
+    def __init__(self, family="", slant=0, weight=0, size=18, text="The Quick Brown Fox Jumps Over The Lazy Dog!"):
+        gtk.Widget.__init__ (self)
+
+	self.family = family
+	if slant == "italic":
+	    self.slant = cairo.FONT_SLANT_ITALIC
+	elif slant == "oblique":
+	    self.slant = cairo.FONT_SLANT_OBLIQUE
+	else:
+	    self.slant = cairo.FONT_SLANT_NORMAL
+	if weight == "bold":
+	    self.weight = cairo.FONT_WEIGHT_BOLD
+	else:
+	    self.weight = cairo.FONT_WEIGHT_NORMAL
+	self.size = float (size)
+	self.text = text
+
+    def do_realize(self):
+        self.set_flags(self.flags() | gtk.REALIZED)
+
+        self.window = gtk.gdk.Window(
+            self.get_parent_window(),
+            width=self.allocation.width,
+            height=self.allocation.height,
+            window_type=gtk.gdk.WINDOW_CHILD,
+            wclass=gtk.gdk.INPUT_OUTPUT,
+            event_mask=self.get_events() | gtk.gdk.EXPOSURE_MASK)
+
+        self.window.set_user_data(self)
+
+        self.style.attach(self.window)
+
+        self.style.set_background(self.window, gtk.STATE_NORMAL)
+
+	self.width, self.height = self.draw ()
+        self.window.move_resize(0, 0, self.width, self.height)
+
+    def do_unrealize(self):
+        self.window.destroy()
+
+    def do_expose_event(self, event):
+    	self.draw (event)
+
+        return False
+
+    def draw(self, event = None):
+
+        cr = self.window.cairo_create()
+	if event:
+		cr.rectangle(event.area.x, event.area.y,
+			     event.area.width, event.area.height)
+		cr.clip()
+
+    	cr.set_source_rgb (1, 1, 1)
+	cr.paint ()
+
+	cr.select_font_face (self.family, self.slant, self.weight)
+	cr.set_font_size (self.size)
+
+	PAD = 30
+
+        extents = cr.text_extents (self.text)
+	cr.translate (PAD-extents[0], PAD-extents[1])
+
+	font_extents = cr.font_extents ()
+	cr.rectangle (0, -font_extents[0], extents[4], font_extents[2])
+	cr.move_to (-PAD, 0)
+	cr.line_to (extents[2]+PAD, 0)
+	cr.set_source_rgba (1, 0, 0, .7)
+	cr.stroke ()
+
+	cr.rectangle (*extents[:4])
+	cr.set_source_rgba (0, 1, 0, .7)
+	cr.stroke ()
+
+	cr.move_to (0, 0)
+        cr.set_source_rgb (0, 0, 0)
+        cr.show_text (self.text)
+
+	return int (extents[2]) + 2 * PAD, int (extents[3]) + 2 * PAD
+
+    def run(self):
+
+	self.props.allow_shrink = True
+        self.connect("destroy", gtk.main_quit)
+        self.show()
+
+        gtk.main()
+
+gobject.type_register(CairoView)
+
+def main(args):
+
+    if len (args) == 1:
+	print "usage: cairo-view family [slant [weight [size [text]]]]"
+	sys.exit (1)
+    cv= CairoView (*args[1:])
+    cv.run()
+
+if __name__ == "__main__":
+    main(sys.argv)

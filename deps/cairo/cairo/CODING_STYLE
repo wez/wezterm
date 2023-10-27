@@ -1,0 +1,292 @@
+Cairo coding style.
+
+This document is intended to be a short description of the preferred
+coding style for the cairo source code. Good style requires good
+taste, which means this can't all be reduced to automated rules, and
+there are exceptions.
+
+We want the code to be easy to understand and maintain, and consistent
+style plays an important part in that, even if some of the specific
+details seem trivial. If nothing else, this document gives a place to
+put consistent answers for issues that would otherwise be arbitrary.
+
+Most of the guidelines here are demonstrated by examples, (which means
+this document is quicker to read than it might appear given its
+length). Most of the examples are positive examples that you should
+imitate. The few negative examples are clearly marked with a comment
+of /* Yuck! */. Please don't submit code to cairo that looks like any
+of these.
+
+Indentation
+-----------
+Each new level is indented 4 more spaces than the previous level:
+
+	if (condition)
+	    do_something ();
+
+This may be achieved with space characters or a combination of tab
+characters and space characters. It may not be achieved with tab
+characters exclusively (see below).
+
+Tab characters
+--------------
+The tab character must always be interpreted according to its
+traditional meaning:
+
+	Advance to the next column which is a multiple of 8.
+
+With this definition, even levels of indentation can be achieved with
+a sequence of tab characters, while odd levels of indentation may
+begin with a sequence of tab character but must end with 4 space
+characters.
+
+Some programmers have been misled by certain text editors into
+thinking that 4-space indentation can be achieved with tab characters
+exclusively by changing the meaning of tab character to be "advance to
+the next column which is a multiple of 4". Code formatted in this way,
+making an assumption of a fictitious 4-character-tab will not be
+accepted into cairo.
+
+The rationale here is that tabs are used in the code for lining things
+up other than indentation, (see the Whitespace section below), and
+changing the interpretation of tab from its traditional meaning will
+break this alignment.
+
+Braces
+------
+Most of the code in cairo uses bracing in the style of K&R:
+
+	if (condition) {
+	    do_this ();
+	    do_that ();
+	} else {
+	    do_the_other ();
+	}
+
+but some of the code uses an alternate style:
+
+	if (condition)
+	{
+	    do_this ();
+	    do_that ();
+	}
+	else
+	{
+	    do_the_other ();
+	}
+
+and that seems just fine. We won't lay down any strict rule on this
+point, (though there should be some local consistency). If you came
+here hoping to find some guidance, then use the first form above.
+
+If all of the substatements of an if statement are single statements,
+the optional braces should not usually appear:
+
+	if (condition)
+	    do_this ();
+	else
+	    do_that ();
+
+But the braces are mandatory when mixing single statement and compound
+statements in the various clauses. For example, do not do this:
+
+	if (condition) {
+	    do_this ();
+	    do_that ();
+	} else			/* Yuck! */
+	    do_the_other ();
+
+And of course, there are exceptions for when the code just looks
+better with the braces:
+
+	if (condition) {
+	    /* Note that we have to be careful here. */
+	    do_something_dangerous (with_care);
+	}
+
+	if (condition &&
+	    other_condition &&
+	    yet_another)
+	{
+	    do_something ();
+	}
+
+And note that this last example also shows a situation in which the
+opening brace really needs to be on its own line. The following looks awful:
+
+	if (condition &&
+	    other_condition &&
+	    yet_another) {	/* Yuck! */
+	    do_something ();
+	}
+
+As we said above, legible code that is easy to understand and maintain
+is the goal, not adherence to strict rules.
+
+Whitespace
+----------
+Separate logically distinct chunks with a single newline. This
+obviously applies between functions, but also applies within a
+function or block and can even be used to good effect within a
+structure definition:
+
+	struct _cairo_gstate {
+	    cairo_operator_t op;
+
+	    double tolerance;
+
+	    /* stroke style */
+	    double line_width;
+	    cairo_line_cap_t line_cap;
+	    cairo_line_join_t line_join;
+	    double miter_limit;
+
+	    cairo_fill_rule_t fill_rule;
+
+	    double *dash;
+	    int num_dashes;
+	    double dash_offset;
+
+	    ...
+	}
+
+Use a single space before a left parenthesis, except where the
+standard will not allow it, (eg. when defining a parameterized macro).
+
+Don't eliminate newlines just because things would still fit on one
+line. This breaks the expected visual structure of the code making it
+much harder to read and understand:
+
+	if (condition) foo (); else bar ();	/* Yuck! */
+
+Do eliminate trailing whitespace (space or tab characters) on any
+line. Also, avoid putting initial or final blank lines into any file,
+and never use multiple blank lines instead of a single blank line.
+
+Do enable the default git pre-commit hook that detect trailing
+whitespace for you and help you to avoid corrupting cairo's tree with
+it. Do that as follows:
+
+	chmod a+x .git/hooks/pre-commit
+
+You might also find the git-stripspace utility helpful which acts as a
+filter to remove trailing whitespace as well as initial, final, and
+duplicate blank lines.
+
+As a special case of the bracing and whitespace guidelines, function
+definitions should always take the following form:
+
+	void
+	my_function (argument)
+	{
+	    do_my_things ();
+	}
+
+And function prototypes should similarly have the return type (and
+associated specifiers and qualifiers) on a line above the function, so
+that the function name is flush left.
+
+Break up long lines (> ~80 characters) and use whitespace to align
+things nicely. For example the arguments in a long list to a function
+call should all be aligned with each other:
+
+	align_function_arguments (argument_the_first,
+				  argument_the_second,
+				  argument_the_third);
+
+And as a special rule, in a function prototype, (as well as in the
+definition), whitespace should be inserted between the parameter types
+and names so that the names are aligned:
+
+	void
+	align_parameter_names_in_prototypes (const char *char_star_arg,
+					     int	 int_arg,
+					     double	*double_star_arg,
+					     double	 double_arg);
+
+Note that parameters with a * prefix are aligned one character to the
+left so that the actual names are aligned.
+
+Managing nested blocks
+----------------------
+Long blocks that are deeply nested make the code very hard to
+read. Fortunately such blocks often indicate logically distinct chunks
+of functionality that are begging to be split into their own
+functions. Please listen to the blocks when they beg.
+
+In other cases, gratuitous nesting comes about because the primary
+functionality gets buried in a nested block rather than living at the
+primary level where it belongs. Consider the following:
+
+	foo = malloc (sizeof (foo_t));
+	if (foo) {					/* Yuck! */
+	    ...
+	    /* lots of code to initialize foo */
+	    ...
+	    return SUCCESS;
+	}
+	return FAILURE;
+
+This kind of gratuitous nesting can be avoided by following a pattern
+of handling exceptional cases early and returning:
+
+	foo = malloc (sizeof (foo_t));
+	if (foo == NULL)
+	    return FAILURE;
+
+	...
+	/* lots of code to initialize foo */
+	...
+	return SUCCESS;
+
+The return statement is often the best thing to use in a pattern like
+this. If it's not available due to additional nesting above which
+require some cleanup after the current block, then consider splitting
+the current block into a new function before using goto.
+
+Memory allocation
+-----------------
+
+Because much of cairo's data consists of dynamically allocated arrays,
+it's very easy to introduce integer overflow issues whenever malloc()
+is called.  Use the _cairo_malloc2(), _cairo_malloc3(), and
+_cairo_malloc2_add1 macros to avoid these cases; these macros check
+for overflow and will return NULL in that case.
+
+  malloc (n * size) => _cairo_malloc_ab (n, size)
+    e.g. malloc (num_elts * sizeof(some_type)) =>
+         _cairo_malloc2 (num_elts, sizeof(some_type))
+
+  malloc (a * b * size) => _cairo_malloc_abc (a, b, size)
+    e.g. malloc (width * height * 4) =>
+         _cairo_malloc3 (width, height, 4)
+
+  malloc (n * size + k) => _cairo_malloc_ab_plus_c (n, size, k)
+    e.g. malloc (num * sizeof(entry) + sizeof(header)) =>
+         _cairo_malloc2k (num, sizeof(entry), sizeof(header))
+
+In general, be wary of performing any arithmetic operations in an
+argument to malloc.  You should explicitly check for integer overflow
+yourself in any more complex situations.
+
+Mode lines
+----------
+
+So given the rules above, what is the best way to simplify one's life as
+a code monkey? Get your editor to do most of the tedious work of
+beautifying your code!
+
+As a reward for reading this far, here are some mode lines for the more
+popular editors:
+/*
+ * vim:sw=4:sts=4:ts=8:tw=78:fo=tcroq:cindent:cino=\:0,(0
+ * vim:isk=a-z,A-Z,48-57,_,.,-,>
+ * -*- Mode: c; tab-width: 8; c-basic-offset: 4; indent-tabs-mode: t; -*-
+ */
+
+
+TODO
+----
+
+Write rules for common editors to use this style.  Also cleanup/unify
+the modelines in the source files.

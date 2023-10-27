@@ -1,0 +1,115 @@
+Josh Aas <joshmoz@gmail.com> Memory leak fix for quartz backend
+Daniel Amelang <dan@amelang.net> Many (magic) floating-point optimizations
+Shawn T. Amundson <amundson@gtk.org> Build fix
+Olivier Andrieu <oliv__a@users.sourceforge.net> PNG backend
+Peter Dennis Bartok <peter@novonyx.com> Bug fix for clipping
+Dave Beckett <dajobe@debian.org> Build fixes, Debian packaging
+Kai-Uwe Behrmann <ku.b@gmx.de> SVG bug fixes
+Christian Biesinger <cbiesinger@web.de> BeOS backend
+Billy Biggs <vektor@dumbterm.net> Pixman code merge. Optimization. Fixes for subtle rendering bugs.
+Hans Breuer <hans@breuer.org> win32 bug fixes, build fixes, and improvements
+Brian Cameron <brian.cameron@sun.com> Flag bug in Sun's X server
+Carlos Garcia Campos <carlosgc@gnome.org> libspectre integration into the test-suite
+Andrea Canciani <ranma42@gmail.com> Bugs, quartz backend improvements and type 6/7 patterns.
+Damien Carbery <damien.carbery@sun.com> Build fixes
+Andrew Chant <andrew.chant@utoronto.ca> Adding const where needed
+Steve Chaplin <stevech1097@yahoo.com.au> Bug fixes for PNG reading
+Tomasz Cholewo <cholewo@ieee-cis.org> Bug fixes
+Manu Cornet <manu@manucornet.net> SVG build fix
+Frederic Crozat <fcrozat@mandriva.com> Fix test suite for OPD platforms (IA64 or PPC64)
+Julien Danjou <julien@danjou.info> XCB fixes
+Radek Doulík <rodo@novell.com> Bug report and test case
+John Ehresman <jpe@wingide.com> Build fixes for win32
+John Ellson <ellson@research.att.com> First font/glyph extents functions
+Michael Emmel <mike.emmel@gmail.com> DirectFB backend
+Miklós Erdélyi <erdelyim@gmail.com> Fix typo leading to a crash
+Behdad Esfahbod <behdad@behdad.org> Huge piles of bug fixes, improvements, and general maintenance
+Gilles Espinasse <g.esp@free.fr> Font related fixes
+Larry Ewing <lewing@novell.com> Test case for group-clip
+Brian Ewins <Brian.Ewins@gmail.com> ATSUI maintenance (first success at making it really work)
+Bertram Felgenhauer <int-e@gmx.de> Fixes for subtle arithmetic errors
+Damian Frank <damian.frank@gmail.com> Build system improvements for win32
+Bdale Garbee <bdale@gag.com> Provided essential support for cairo architecture sessions
+Jens Granseuer <jensgr@gmx.net> Fixes to generate proper compiler flags
+Laxmi Harikumar <laxmi.harikumar@digital.com> Build fix
+J. Ali Harlow <ali@avrc.city.ac.uk> win32 backend updates
+Bryce Harrington <bryce@osg.samsung.com> Test cases, bug/typo fixes
+Mathias Hasselmann <mathias.hasselmann@gmx.de> Significant reduction of calls to malloc
+Richard Henderson <rth@twiddle.net> "slim" macros for better shared libraries 
+James Henstridge <james@daa.com.au> Build fixes related to freetype
+Graydon Hoare <graydon@redhat.com> Support for non-render X server, first real text support
+Thomas Hunger <info@teh-web.de> Initial version of cairo_in_stroke/fill
+Thomas Jaeger <ThJaeger@gmail.com> Extended repeat modes for X
+Björn Lindqvist <bjourne@gmail.com> Performance test cases
+Kristian Høgsberg <krh@redhat.com> PDF backend, PS backend with meta-surfaces
+Amaury Jacquot <sxpert@esitcom.org> Documentation review, application testing
+Adrian Johnson <ajohnson@redneon.com> PDF backend improvement
+Michael Johnson <ahze@ahze.net> Bug fix for pre-C99 compilers
+Jonathon Jongsma <jonathon.jongsma@gmail.com> Fix documentation typos
+Øyvind Kolås <pippin@freedesktop.org> OpenVG backend, Bug fixes. Better default values.
+Martin Kretzschmar <martink@gnome.org> Arithmetic fix for 64-bit architectures
+Mathieu Lacage <Mathieu.Lacage@sophia.inria.fr> several bug/typo fixes
+Dominic Lachowicz <domlachowicz@gmail.com> PDF conformance fix, fix image surface to zero out contents
+Alexander Larsson <alexl@redhat.com> Profiling and performance fixes.
+Sylvestre Ledru <sylvestre@mozilla.com> Static analysis fixes.
+Tor Lillqvist <tml@novell.com> win32 build fixes, build scripts
+Jinghua Luo <sunmoon1997@gmail.com> Add bitmap glyph transformation, many freetype and glitz fixes
+Luke-Jr <luke-jr@utopios.org> Build fix for cross-compiling
+Kjartan Maraas <kmaraas@gnome.org> Several fixes for sparse, lots of debug help for multi-thread bugs
+Nis Martensen <nis.martensen@web.de> Bug fix for sub paths
+Jordi Mas <jordi@ximian.com> Bug fix for cairo_show_text
+Nicholas Miell <nmiell@gmail.com> Fixes for linking bugs on AMD64
+Eugeniy Meshcheryakov <eugen@debian.org> PS/PDF font subsetting improvements
+Zakharov Mikhail <zmey20000@yahoo.com> Build fix for HP-UX
+Christopher (Monty) Montgomery <xiphmont@gmail.com> Performance fix (subimage_copy), multi-thread testing
+Tim Mooney <enchanter@users.sourceforge.net> Fix test suite to compile with Solaris compiler
+Jeff Muizelaar <jeff@infidigm.net> Patient, painful, pixman code merge. Many fixes for intricacies of dashing.
+Yevgen Muntyan <muntyan@tamu.edu> win32 build fix
+Ravi Nanjundappa <nravi.n@samsung.com> Static analysis fixes, test cases, skia backend update/fixes
+Declan Naughton <piratepenguin@gmail.com> Fix documentation typos
+Peter Nilsson <c99pnn@cs.umu.se> Glitz backend
+Henning Noren <henning.noren.402@student.lu.se> Fix memory leak
+Geoff Norton <gnorton@customerdna.com> Build fixes
+Robert O'Callahan <rocallahan@novell.com> Const-correctness fixes, several new API functions for completeness (and to help mozilla)
+Ian Osgood <iano@quirkster.com> XCB backend maintenance
+Benjamin Otte <otte@gnome.org> Refinements to cairo/perf timing, OpenGL backend fixups, random fixes
+Mike Owens <etc@filespanker.com> Bug fixes
+Emmanuel Pacaud <emmanuel.pacaud@lapp.in2p3.fr> SVG backend
+Keith Packard <keithp@keithp.com> Original concept, polygon tessellation, dashing, font metrics rewrite
+Stuart Parmenter <pavlov@pavlov.net> Original GDI+ backend, win32 fixes
+Alfred Peng <alfred.peng@sun.com> Fixes for Sun compilers and for a memory leak
+Christof Petig <christof@petig-baender.de> Build fixes related to freetype
+Joonas Pihlaja <jpihlaja@cc.helsinki.fi> Huge improvements to the tessellator performance
+Mart Raudsepp <leio@dustbite.net> Build fixes
+David Reveman <davidr@novell.com> New pattern API, glitz backend
+Calum Robinson <calumr@mac.com> Quartz backend
+Pavel Roskin <proski@gnu.org> Several cleanups to eliminate warnings
+Tim Rowley <tim.rowley@gmail.com> Quartz/ATSUI fixes, X server workarounds, win32 glyph path support, test case to expose gradient regression
+Soeren Sandmann <sandmann@daimi.au.dk> Lots of MMX love for pixman compositing
+Uli Schlachter <psychon@znc.in> Some more XCB fixes
+Torsten Schönfeld <kaffeetisch@gmx.de> Build fixes
+Jamey Sharp <jamey@minilop.net> Surface/font backend virtualization, XCB backend
+Jason Dorje Short <jdorje@users.sf.net> Build fixes and bug fixes
+Jeff Smith <whydoubt@yahoo.com> Fixes for intricacies of stroking code
+Travis Spencer <tspencer@cs.pdx.edu> XCB backend fix
+Bill Spitzak <spitzak@d2.com> Build fix to find Xrender.h without xrender.pc, downscaling support
+Zhe Su <james.su@gmail.com> Add support for fontconfig's embeddedbitmap option
+Owen Taylor <otaylor@redhat.com> Font rewrite, documentation, win32 backend
+Pierre Tardy <tardyp@gmail.com> EGL support and testing, OpenVG backend
+Karl Tomlinson <karlt+@karlt.net> Optimisation and obscure bug fixes (mozilla)
+Alp Toker <alp@atoker.com> Fix several code/comment typos
+Malcolm Tredinnick <malcolm@commsecure.com.au> Documentation fixes
+David Turner <david@freetype.org> Optimize gradient calculations
+Kalle Vahlman <kalle.vahlman@gmail.com> Allow perf reports to be compared across different platforms
+Sasha Vasko <sasha@aftercode.net> Build fix to compile without xlib backend
+Vladimir Vukicevic <vladimir@pobox.com> Quartz backend rewrite, win32/quartz maintenance
+Jonathan Watt <jwatt@jwatt.org> win32 fixes
+Peter Weilbacher <pmw@avila.aip.de> OS/2 backend
+Dan Williams <dcbw@redhat.com> Implement MMX function to help OLPC
+Chris Wilson <chris@chris-wilson.co.uk> Large-scale robustness improvements, (warn_unsed_result and malloc failure injection)
+Carl Worth <cworth@isi.edu> Original library, support for paths, images
+Richard D. Worth <richard@theworths.org> Build fixes for cygwin
+Kent Worsnop <kworsnop@accesswave.ca> Fix PDF dashing bug
+Dave Yeo <daveryeo@telus.net> Build fix for win32
+
+(please let us know if we have missed anyone)

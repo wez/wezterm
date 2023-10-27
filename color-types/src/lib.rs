@@ -208,12 +208,50 @@ impl SrgbaPixel {
     pub fn as_srgba32(self) -> u32 {
         self.0
     }
+
+    pub fn as_srgba_tuple(self) -> (f32, f32, f32, f32) {
+        let u8tuple = self.as_rgba();
+        let SrgbaTuple(r, g, b, a) = u8tuple.into();
+        (r, g, b, a)
+    }
 }
 
 /// A pixel value encoded as SRGBA RGBA values in f32 format (range: 0.0-1.0)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct SrgbaTuple(pub f32, pub f32, pub f32, pub f32);
+
+impl SrgbaTuple {
+    pub fn premultiply(self) -> Self {
+        let SrgbaTuple(r, g, b, a) = self;
+        Self(r * a, g * a, b * a, a)
+    }
+
+    pub fn demultiply(self) -> Self {
+        let SrgbaTuple(r, g, b, a) = self;
+        if a != 0. {
+            Self(r / a, g / a, b / a, a)
+        } else {
+            self
+        }
+    }
+
+    pub fn interpolate(self, other: Self, k: f64) -> Self {
+        let k = k as f32;
+
+        let SrgbaTuple(r0, g0, b0, a0) = self.premultiply();
+        let SrgbaTuple(r1, g1, b1, a1) = other.premultiply();
+
+        let r = SrgbaTuple(
+            r0 + k * (r1 - r0),
+            g0 + k * (g1 - g0),
+            b0 + k * (b1 - b0),
+            a0 + k * (a1 - a0),
+        );
+
+        r.demultiply()
+    }
+}
 
 impl ToDynamic for SrgbaTuple {
     fn to_dynamic(&self) -> Value {
@@ -228,6 +266,13 @@ impl FromDynamic for SrgbaTuple {
     ) -> Result<Self, wezterm_dynamic::Error> {
         let s = String::from_dynamic(value, options)?;
         Ok(SrgbaTuple::from_str(&s).map_err(|()| format!("unknown color name: {}", s))?)
+    }
+}
+
+impl From<SrgbaPixel> for SrgbaTuple {
+    fn from(pixel: SrgbaPixel) -> SrgbaTuple {
+        let (r, g, b, a) = pixel.as_srgba_tuple();
+        SrgbaTuple(r, g, b, a)
     }
 }
 

@@ -63,6 +63,7 @@ pub struct XConnection {
     pub(crate) has_randr: bool,
     pub(crate) atom_names: RefCell<HashMap<Atom, String>>,
     pub(crate) supported: RefCell<HashSet<Atom>>,
+    pub(crate) screens: RefCell<Option<Screens>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -216,6 +217,8 @@ impl ConnectionOps for XConnection {
             anyhow::bail!("XRANDR is not available, cannot query screen geometry");
         }
 
+        let config = config::configuration();
+
         let res = self
             .send_and_wait_request(&xcb::randr::GetScreenResources { window: self.root })
             .context("get_screen_resources")?;
@@ -270,11 +273,20 @@ impl ConnectionOps for XConnection {
                     cinfo.height() as isize,
                 );
                 virtual_rect = virtual_rect.union(&bounds);
+
+                let mut effective_dpi = Some(self.default_dpi());
+                if let Some(dpi) = config.dpi_by_screen.get(&name).copied() {
+                    effective_dpi.replace(dpi);
+                } else if let Some(dpi) = config.dpi {
+                    effective_dpi.replace(dpi);
+                }
+
                 let info = ScreenInfo {
                     name: name.clone(),
                     rect: bounds,
                     scale: 1.0,
                     max_fps,
+                    effective_dpi,
                 };
                 by_name.insert(name, info);
             }
@@ -481,6 +493,21 @@ impl XConnection {
         }
     }
 
+    pub(crate) fn get_cached_screens(&self) -> anyhow::Result<Screens> {
+        {
+            let screens = self.screens.borrow();
+            if let Some(cached) = screens.as_ref() {
+                return Ok(cached.clone());
+            }
+        }
+
+        let screens = self.screens()?;
+
+        self.screens.borrow_mut().replace(screens.clone());
+
+        Ok(screens)
+    }
+
     fn process_xcb_event(&self, event: &xcb::Event) -> anyhow::Result<()> {
         match event {
             // Following stuff is not obvious at all.
@@ -497,6 +524,11 @@ impl XConnection {
             xcb::Event::Dri2(dri2::Event::InvalidateBuffers(ev)) => unsafe {
                 self.rewire_event(ev.as_raw())
             },
+            xcb::Event::RandR(randr) => {
+                log::trace!("{randr:?}");
+                // Clear our cache
+                self.screens.borrow_mut().take();
+            }
             _ => {}
         }
 
@@ -651,6 +683,16 @@ impl XConnection {
 
         let root = screen.root();
 
+        if has_randr {
+            conn.check_request(conn.send_request_checked(&xcb::randr::SelectInput {
+                window: root,
+                enable: xcb::randr::NotifyMask::SCREEN_CHANGE
+                    | xcb::randr::NotifyMask::PROVIDER_CHANGE
+                    | xcb::randr::NotifyMask::RESOURCE_CHANGE,
+            }))
+            .context("XRANDR::SelectInput")?;
+        }
+
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
 
@@ -723,6 +765,7 @@ impl XConnection {
             has_randr,
             atom_names: RefCell::new(HashMap::new()),
             supported: RefCell::new(HashSet::new()),
+            screens: RefCell::new(None),
         });
 
         {

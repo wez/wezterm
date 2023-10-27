@@ -265,7 +265,7 @@ pub fn load_last_release_info_and_set_banner() {
         return;
     }
 
-    let update_file_name = config::RUNTIME_DIR.join("check_update");
+    let update_file_name = config::DATA_DIR.join("check_update");
     if let Ok(data) = std::fs::read(update_file_name) {
         let latest: Release = match serde_json::from_slice(&data) {
             Ok(d) => d,
@@ -351,7 +351,7 @@ fn update_checker() {
 
     let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
 
-    let update_file_name = config::RUNTIME_DIR.join("check_update");
+    let update_file_name = config::DATA_DIR.join("check_update");
     let delay = update_file_name
         .metadata()
         .and_then(|metadata| metadata.modified())

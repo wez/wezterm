@@ -85,14 +85,18 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
 
     #[cfg(unix)]
     {
-        env.insert(
-            EnvEntry::map_key("SHELL".into()),
-            EnvEntry {
-                is_from_base_env: true,
-                preferred_key: "SHELL".into(),
-                value: get_shell().into(),
-            },
-        );
+        let key = EnvEntry::map_key("SHELL".into());
+        // Only set the value of SHELL if it isn't already set
+        if !env.contains_key(&key) {
+            env.insert(
+                EnvEntry::map_key("SHELL".into()),
+                EnvEntry {
+                    is_from_base_env: true,
+                    preferred_key: "SHELL".into(),
+                    value: get_shell().into(),
+                },
+            );
+        }
     }
 
     #[cfg(windows)]

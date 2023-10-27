@@ -59,6 +59,8 @@ use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
 
+pub mod probed;
+
 builder! {
     /// Use the `ProbeHints` to configure an instance of
     /// the `ProbeHints` struct.  `ProbeHints` are passed to the `Capabilities`

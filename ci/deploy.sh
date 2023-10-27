@@ -34,6 +34,7 @@ case $OSTYPE in
     mkdir -p $zipdir/WezTerm.app/Contents/MacOS
     mkdir -p $zipdir/WezTerm.app/Contents/Resources
     cp -r assets/shell-integration/* $zipdir/WezTerm.app/Contents/Resources
+    cp -r assets/shell-completion $zipdir/WezTerm.app/Contents/Resources
 
     for bin in wezterm wezterm-mux-server wezterm-gui strip-ansi-escapes ; do
       # If the user ran a simple `cargo build --release`, then we want to allow
@@ -133,10 +134,16 @@ case $OSTYPE in
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
         distroid=$(sh -c "source /etc/os-release && echo \$ID" | tr - _)
         distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID" | tr - _)
+
+        SPEC_RELEASE="1.${distroid}${distver}"
+        if test -n "${COPR_SRPM}" ; then
+          SPEC_RELEASE=0
+        fi
+
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
-Release: 1.${distroid}${distver}
+Release: ${SPEC_RELEASE}
 Packager: Wez Furlong <wez@wezfurlong.org>
 License: MIT
 URL: https://wezfurlong.org/wezterm/
@@ -146,14 +153,60 @@ Requires: dbus-1, fontconfig, openssl, libxcb1, libxkbcommon0, libxkbcommon-x11-
 %else
 Requires: dbus, fontconfig, openssl, libxcb, libxkbcommon, libxkbcommon-x11, libwayland-client, libwayland-egl, libwayland-cursor, mesa-libEGL, xcb-util-keysyms, xcb-util-wm
 %endif
+EOF
 
+        BUILD_COMMAND=<<EOF
+%build
+echo build
+EOF
+
+        if test -n "${COPR_SRPM}" ; then
+
+          TAR_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
+
+          cat >> wezterm.spec <<EOF
+BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
+%if 0%{?suse_version}
+BuildRequires: Mesa-libEGL-devel
+%else
+BuildRequires: mesa-libEGL-devel
+%endif
+Source0: wezterm-${TAR_NAME}.tar.gz
+
+%global debug_package %{nil}
+
+%changelog
+* Mon Oct 2 2023 Wez Furlong
+- See git for full changelog
+
+EOF
+          HERE="."
+          BUILD_COMMAND=$(cat <<EOF
+%prep
+%autosetup
+%build
+
+echo Here I am
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source ~/.cargo/env
+
+cargo build --release \
+      -p wezterm-gui -p wezterm -p wezterm-mux-server \
+      -p strip-ansi-escapes
+
+EOF
+)
+
+        fi
+
+        cat >> wezterm.spec <<EOF
 %description
 wezterm is a terminal emulator with support for modern features
 such as fonts with ligatures, hyperlinks, tabs and multiple
 windows.
 
-%build
-echo "Doing the build bit here"
+${BUILD_COMMAND}
 
 %install
 set -x
@@ -187,7 +240,12 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /etc/profile.d/*
 EOF
 
-        /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
+        if test -n "${COPR_SRPM}" ; then
+          /usr/bin/rpmbuild -bs --rmspec wezterm.spec --verbose
+          mv $(rpm --eval '%{_srcrpmdir}')/wezterm-${TAR_NAME}*.src.rpm "${COPR_SRPM}"/
+        else
+          /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
+        fi
 
         ;;
       Ubuntu*|Debian*)
@@ -248,11 +306,21 @@ EOF
         install -Dm644 assets/shell-completion/bash pkg/debian/usr/share/bash-completion/completions/wezterm
         install -Dm644 assets/shell-completion/zsh pkg/debian/usr/share/zsh/functions/Completion/Unix/_wezterm
         install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
+
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
         else
           debname=wezterm-$TAG_NAME.$distro$distver
         fi
+        arch=$(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
+        case $arch in
+          amd64)
+            ;;
+          *)
+            debname="${debname}.${arch}"
+            ;;
+        esac
+
         fakeroot dpkg-deb --build pkg/debian $debname.deb
 
         if [[ "$BUILD_REASON" != '' ]] ; then

@@ -1,4 +1,3 @@
-
 Send text to a pane as though it were pasted. If bracketed paste mode is enabled
 in the pane, then the text will be sent as a bracketed paste
 

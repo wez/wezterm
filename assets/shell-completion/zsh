@@ -281,6 +281,16 @@ _arguments "${_arguments_options[@]}" \
 ':new_workspace -- The new name for the workspace:' \
 && ret=0
 ;;
+(zoom-pane)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'(--unzoom --toggle)--zoom[Zooms the pane if it wasn'\''t already zoomed]' \
+'(--zoom --toggle)--unzoom[Unzooms the pane if it was zoomed]' \
+'(--zoom --unzoom)--toggle[Toggles the zoom state of the pane]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_wezterm__cli__help_commands" \
@@ -365,6 +375,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(zoom-pane)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -381,14 +395,25 @@ esac
 _arguments "${_arguments_options[@]}" \
 '--width=[Specify the display width; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value \`N\` to specify the number of cells, or \`Npx\` to specify the number of pixels, or \`N%\` to size relative to the terminal width]:WIDTH: ' \
 '--height=[Specify the display height; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value \`N\` to specify the number of cells, or \`Npx\` to specify the number of pixels, or \`N%\` to size relative to the terminal height]:HEIGHT: ' \
+'--position=[Set the cursor position prior to displaying the image. The default is to use the current cursor position. Coordinates are expressed in cells with 0,0 being the top left cell position]:POSITION: ' \
+'--tmux-passthru=[How to manage passing the escape through to tmux]:TMUX_PASSTHRU:(disable enable detect)' \
+'--max-pixels=[Set the maximum number of pixels per image frame. Images will be scaled down so that they do not exceed this size, unless \`--no-resample\` is also used. The default value matches the limit set by wezterm. Note that resampling the image here will reduce any animated images to a single frame]:MAX_PIXELS: ' \
+'--resample-format=[Specify the image format to use to encode resampled/resized images.  The default is to match the input format, but you can choose an alternative format]:RESAMPLE_FORMAT:(png jpeg input)' \
+'--resample-filter=[Specify the filtering technique used when resizing/resampling images.  The default is a reasonable middle ground of speed and quality]:RESAMPLE_FILTER:(nearest triangle catmull-rom gaussian lanczos3)' \
+'--resize=[Pre-process the image to resize it to the specified dimensions, expressed as eg\: 800x600 (width x height). The resize is independent of other parameters that control the image placement and dimensions in the terminal; this is provided as a convenience preprocessing step]:WIDTHxHEIGHT: ' \
 '--no-preserve-aspect-ratio[Do not respect the aspect ratio.  The default is to respect the aspect ratio]' \
-'-h[Print help]' \
-'--help[Print help]' \
+'--no-move-cursor[Do not move the cursor after displaying the image. Note that when used like this from the shell, there is a very high chance that shell prompt will overwrite the image; you may wish to also use \`--hold\` in that case]' \
+'--hold[Wait for enter to be pressed after displaying the image]' \
+'--no-resample[Do not resample images whose frames are larger than the max-pixels value. Note that this will typically result in the image refusing to display in wezterm]' \
+'--show-resample-timing[When resampling or resizing, display some diagnostics around the timing/performance of that operation]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
 '::file_name -- The name of the image file to be displayed. If omitted, will attempt to read it from stdin:_files' \
 && ret=0
 ;;
 (set-working-directory)
 _arguments "${_arguments_options[@]}" \
+'--tmux-passthru=[How to manage passing the escape through to tmux]:TMUX_PASSTHRU:(disable enable detect)' \
 '-h[Print help]' \
 '--help[Print help]' \
 '::cwd -- The directory to specify. If omitted, will use the current directory of the process itself:_files -/' \
@@ -397,9 +422,10 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (record)
 _arguments "${_arguments_options[@]}" \
+'--cwd=[Start in the specified directory, instead of the default_cwd defined by your wezterm configuration]:CWD:_files' \
 '-h[Print help]' \
 '--help[Print help]' \
-'*::prog:' \
+'*::prog -- Start prog instead of the default_prog defined by your wezterm configuration:' \
 && ret=0
 ;;
 (replay)
@@ -536,6 +562,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (rename-workspace)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(zoom-pane)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -678,6 +708,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"
@@ -705,6 +736,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
     )
     _describe -t commands 'wezterm help cli commands' commands "$@"
 }
@@ -771,6 +803,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli help commands' commands "$@"
@@ -1083,6 +1116,21 @@ _wezterm__cli__tlscreds_commands() {
 _wezterm__help__cli__tlscreds_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm help cli tlscreds commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__zoom-pane_commands] )) ||
+_wezterm__cli__help__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help zoom-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__zoom-pane_commands] )) ||
+_wezterm__cli__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli zoom-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__zoom-pane_commands] )) ||
+_wezterm__help__cli__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli zoom-pane commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_wezterm" ]; then

@@ -66,7 +66,7 @@ impl Inner {
     ) {
         log::debug!("handle_zwlr_mode_event {event:?}");
         let id = wl_id(mode.detach());
-        let mut info = self.zwlr_mode_info.entry(id).or_insert_with(|| ModeInfo {
+        let info = self.zwlr_mode_info.entry(id).or_insert_with(|| ModeInfo {
             id,
             ..ModeInfo::default()
         });
@@ -83,7 +83,6 @@ impl Inner {
                 info.preferred = true;
             }
             ZwlrOutputModeEvent::Finished => {
-                drop(info);
                 self.zwlr_mode_info.remove(&id);
                 self.zwlr_modes.remove(&id);
             }
@@ -100,7 +99,7 @@ impl Inner {
     ) {
         log::debug!("handle_zwlr_head_event {event:?}");
         let id = wl_id(head.detach());
-        let mut info = self.zwlr_head_info.entry(id).or_insert_with(|| HeadInfo {
+        let info = self.zwlr_head_info.entry(id).or_insert_with(|| HeadInfo {
             id,
             ..HeadInfo::default()
         });
@@ -154,7 +153,6 @@ impl Inner {
                 info.serial_number = serial_number;
             }
             ZwlrOutputHeadEvent::Finished => {
-                drop(info);
                 log::debug!("remove head with id {id}");
                 self.zwlr_heads.remove(&id);
                 self.zwlr_head_info.remove(&id);
@@ -208,6 +206,7 @@ impl OutputHandler {
 
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        let config = config::configuration();
 
         log::debug!("zwlr_head_info: {:#?}", inner.zwlr_head_info);
 
@@ -229,6 +228,9 @@ impl OutputHandler {
                 height as isize,
             );
             virtual_rect = virtual_rect.union(&rect);
+            // FIXME: teach this how to resolve dpi_by_screen once
+            // dispatch_pending_event knows how to do the same
+            let effective_dpi = Some(config.dpi.unwrap_or(scale * crate::DEFAULT_DPI));
             by_name.insert(
                 name.clone(),
                 ScreenInfo {
@@ -236,6 +238,7 @@ impl OutputHandler {
                     rect,
                     scale,
                     max_fps: None,
+                    effective_dpi,
                 },
             );
         }

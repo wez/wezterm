@@ -108,6 +108,9 @@ _wezterm() {
             wezterm__cli,tlscreds)
                 cmd="wezterm__cli__tlscreds"
                 ;;
+            wezterm__cli,zoom-pane)
+                cmd="wezterm__cli__zoom__pane"
+                ;;
             wezterm__cli__help,activate-pane)
                 cmd="wezterm__cli__help__activate__pane"
                 ;;
@@ -164,6 +167,9 @@ _wezterm() {
                 ;;
             wezterm__cli__help,tlscreds)
                 cmd="wezterm__cli__help__tlscreds"
+                ;;
+            wezterm__cli__help,zoom-pane)
+                cmd="wezterm__cli__help__zoom__pane"
                 ;;
             wezterm__help,cli)
                 cmd="wezterm__help__cli"
@@ -258,6 +264,9 @@ _wezterm() {
             wezterm__help__cli,tlscreds)
                 cmd="wezterm__help__cli__tlscreds"
                 ;;
+            wezterm__help__cli,zoom-pane)
+                cmd="wezterm__help__cli__zoom__pane"
+                ;;
             *)
                 ;;
         esac
@@ -287,7 +296,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli)
-            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace help"
+            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -437,7 +446,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli__help)
-            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace help"
+            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -716,6 +725,20 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wezterm__cli__help__zoom__pane)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wezterm__cli__kill__pane)
             opts="-h --pane-id --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -976,6 +999,24 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wezterm__cli__zoom__pane)
+            opts="-h --pane-id --zoom --unzoom --toggle --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wezterm__connect)
             opts="-h --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -1017,7 +1058,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__help__cli)
-            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace"
+            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1282,6 +1323,20 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wezterm__help__cli__zoom__pane)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wezterm__help__connect)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -1451,7 +1506,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__imgcat)
-            opts="-h --width --height --no-preserve-aspect-ratio --help [FILE_NAME]"
+            opts="-h --width --height --no-preserve-aspect-ratio --position --no-move-cursor --hold --tmux-passthru --max-pixels --no-resample --resample-format --resample-filter --resize --show-resample-timing --help [FILE_NAME]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1462,6 +1517,30 @@ _wezterm() {
                     return 0
                     ;;
                 --height)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --position)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --tmux-passthru)
+                    COMPREPLY=($(compgen -W "disable enable detect" -- "${cur}"))
+                    return 0
+                    ;;
+                --max-pixels)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --resample-format)
+                    COMPREPLY=($(compgen -W "png jpeg input" -- "${cur}"))
+                    return 0
+                    ;;
+                --resample-filter)
+                    COMPREPLY=($(compgen -W "nearest triangle catmull-rom gaussian lanczos3" -- "${cur}"))
+                    return 0
+                    ;;
+                --resize)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1495,12 +1574,16 @@ _wezterm() {
             return 0
             ;;
         wezterm__record)
-            opts="-h --help [PROG]..."
+            opts="-h --cwd --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --cwd)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1549,12 +1632,16 @@ _wezterm() {
             return 0
             ;;
         wezterm__set__working__directory)
-            opts="-h --help [CWD] [HOST]"
+            opts="-h --tmux-passthru --help [CWD] [HOST]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --tmux-passthru)
+                    COMPREPLY=($(compgen -W "disable enable detect" -- "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1665,4 +1752,4 @@ _wezterm() {
     esac
 }
 
-complete -F _wezterm -o bashdefault -o default wezterm
+complete -F _wezterm -o nosort -o bashdefault -o default wezterm

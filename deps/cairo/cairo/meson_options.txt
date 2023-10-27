@@ -1,0 +1,30 @@
+# Cairo font backends
+option('dwrite', type : 'feature', value : 'auto')
+option('fontconfig', type : 'feature', value : 'auto')
+option('freetype', type : 'feature', value : 'auto')
+
+# Cairo surface backends
+option('png', type : 'feature', value : 'auto') # png and svg surfaces
+option('quartz', type : 'feature', value : 'auto')
+option('tee', type : 'feature', value : 'disabled')
+option('xcb', type : 'feature', value : 'auto')
+option('xlib', type : 'feature', value : 'auto')
+option('xlib-xcb', type : 'feature', value : 'disabled')
+option('xml', type : 'feature', value : 'disabled')
+option('zlib', type : 'feature', value : 'auto') # script, ps, pdf, xml surfaces
+
+# Tests
+option('tests', type : 'feature', value : 'auto')
+
+# Util deps
+option('gtk2-utils', type : 'feature', value : 'disabled')
+
+# Misc deps
+option('glib', type : 'feature', value : 'auto')
+option('spectre', type : 'feature', value : 'auto')
+option('symbol-lookup', type: 'feature', value : 'auto',
+       description: 'Symbol lookup in debug utils via binutils/bfd')
+
+# Documentation
+option('gtk_doc', type : 'boolean', value : false,
+       description: 'Build the Cairo API reference (depends on gtk-doc)')

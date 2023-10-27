@@ -4,6 +4,7 @@ use mlua::Value;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
+use url_funcs::Url;
 use wezterm_term::{SemanticZone, StableRowIndex};
 
 #[derive(Clone, Copy, Debug)]
@@ -90,8 +91,7 @@ impl UserData for MuxPane {
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.0));
 
         methods.add_async_method("split", |_, this, args: Option<SplitPane>| async move {
-            let args = args.unwrap_or_default();
-            args.run(this).await
+            args.unwrap_or_default().run(this).await
         });
 
         methods.add_method("send_paste", |_, this, text: String| {
@@ -146,7 +146,7 @@ impl UserData for MuxPane {
         methods.add_method("get_current_working_dir", |_, this, _: ()| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
-            Ok(pane.get_current_working_dir().map(|u| u.to_string()))
+            Ok(pane.get_current_working_dir().map(|url| Url { url }))
         });
 
         methods.add_method("get_metadata", |lua, this, _: ()| {
@@ -432,7 +432,7 @@ fn default_split_size() -> f32 {
 }
 
 impl SplitPane {
-    async fn run(self, pane: MuxPane) -> mlua::Result<MuxPane> {
+    async fn run(&self, pane: &MuxPane) -> mlua::Result<MuxPane> {
         let (command, command_dir) = self.cmd_builder.to_command_builder();
         let source = SplitSource::Spawn {
             command,
@@ -464,7 +464,7 @@ impl SplitPane {
 
         let mux = get_mux()?;
         let (pane, _size) = mux
-            .split_pane(pane.0, request, source, self.domain)
+            .split_pane(pane.0, request, source, self.domain.clone())
             .await
             .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;
 

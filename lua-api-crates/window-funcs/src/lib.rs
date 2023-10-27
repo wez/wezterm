@@ -21,6 +21,7 @@ pub struct ScreenInfo {
     pub height: isize,
     pub scale: f64,
     pub max_fps: Option<usize>,
+    pub effective_dpi: Option<f64>,
 }
 impl_lua_conversion_dynamic!(ScreenInfo);
 
@@ -46,6 +47,7 @@ impl From<window::screen::ScreenInfo> for ScreenInfo {
             height: info.rect.height(),
             scale: info.scale,
             max_fps: info.max_fps,
+            effective_dpi: info.effective_dpi,
         }
     }
 }

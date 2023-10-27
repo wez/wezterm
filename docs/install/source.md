@@ -6,7 +6,7 @@ macOS.
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   [Install rustup](https://www.rust-lang.org/en-US/install.html)
-* Rust version 1.56 or later is required
+* Rust version 1.71 or later is required
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release --bin wezterm` or `target/release/wezterm`
 
@@ -49,7 +49,7 @@ If your distribution has X11 but not Wayland, then you can build WezTerm without
 Wayland support by changing the `build` invocation:
 
 ```console
-$ cargo build --release --no-default-features vendored-fonts
+$ cargo build --release --no-default-features --features vendored-fonts
 ```
 
 Building without X11 is not supported.

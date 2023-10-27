@@ -479,6 +479,7 @@ impl ConnectionOps for WaylandConnection {
 
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        let config = config::configuration();
         for output in self.environment.get_all_outputs() {
             toolkit::output::with_output_info(&output, |info| {
                 let name = if info.name.is_empty() {
@@ -503,6 +504,10 @@ impl ConnectionOps for WaylandConnection {
 
                 let scale = info.scale_factor as f64;
 
+                // FIXME: teach this how to resolve dpi_by_screen once
+                // dispatch_pending_event knows how to do the same
+                let effective_dpi = Some(config.dpi.unwrap_or(scale * crate::DEFAULT_DPI));
+
                 virtual_rect = virtual_rect.union(&rect);
                 by_name.insert(
                     name.clone(),
@@ -511,6 +516,7 @@ impl ConnectionOps for WaylandConnection {
                         rect,
                         scale,
                         max_fps: None,
+                        effective_dpi,
                     },
                 );
             });

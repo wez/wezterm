@@ -55,12 +55,13 @@ impl GoghTheme {
         for s in data.themes {
             let cursor = RgbaColor::try_from(s.cursorColor)?;
             let name = s.name;
+            let background = RgbaColor::try_from(s.background)?;
 
             schemes.push(ColorSchemeFile {
                 colors: Palette {
                     foreground: Some(RgbaColor::try_from(s.foreground)?),
-                    background: Some(RgbaColor::try_from(s.background)?),
-                    cursor_fg: Some(cursor),
+                    background: Some(background),
+                    cursor_fg: Some(background),
                     cursor_bg: Some(cursor),
                     cursor_border: Some(cursor),
                     ansi: Some([

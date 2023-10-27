@@ -1,0 +1,55 @@
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        When asking for help troubleshooting something, please remember
+        to share as much context about what you're trying to do,
+        specifically what configuration you tried, what happened and how it
+        didn't match up to what you expected!
+  - type: dropdown
+    id: os
+    attributes:
+      label: What Operating System(s) are you running on?
+      multiple: true
+      options:
+        - Windows
+        - Linux X11
+        - Linux Wayland
+        - macOS
+        - FreeBSD X11
+        - FreeBSD Wayland
+    validations:
+      required: true
+  - type: textarea
+    id: window_manager
+    attributes:
+      label: Which Wayland compositor or X11 Window manager(s) are you using?
+      description: |
+        If running on a unix system, please include the name and version of the compositor/WM.
+        Windows and macOS typically can leave this blank, but if you are using additional window
+        management software on top of the standard for those systems, please indicate that here.
+      placeholder: "ex: Sway, Mutter, wayfire, i3."
+  - type: input
+    id: version
+    attributes:
+      label: WezTerm version
+      description: |
+        Please run `wezterm -V` and include its output here.
+        If you installed the flatpak version of wezterm, please consider trying
+        the native package format for your system and comparing the behavior,
+        as flatpak runs in an isolated sandbox that can prevent some functionality
+        from working fully.
+      placeholder: "ex: 20210816-085256-935c1f48"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Ask your question!
+      description: |
+        Please remember to share as much context as you can, as that makes it
+        quicker and easier for others to understand and respond
+      placeholder: Tell us what is on your mind!
+    validations:
+      required: true

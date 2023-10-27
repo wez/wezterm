@@ -2,19 +2,24 @@
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
-use config::{FontAttributes, FontStretch, FontStyle, FontWeight};
+use config::FontAttributes;
 use core_foundation::array::CFArray;
-use core_foundation::base::TCFType;
+use core_foundation::base::{CFRange, TCFType};
 use core_foundation::dictionary::CFDictionary;
-use core_foundation::string::CFString;
+use core_foundation::string::{CFString, CFStringRef};
 use core_text::font::*;
 use core_text::font_descriptor::*;
 use rangeset::RangeSet;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
-lazy_static::lazy_static! {
-    static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
+#[link(name = "CoreText", kind = "framework")]
+extern "C" {
+    fn CTFontCreateForString(
+        currentFont: CTFontRef,
+        string: CFStringRef,
+        range: CFRange,
+    ) -> CTFontRef;
 }
 
 /// A FontLocator implemented using the system font loading
@@ -114,18 +119,41 @@ impl FontLocator for CoreTextFontLocator {
         &self,
         codepoints: &[char],
     ) -> anyhow::Result<Vec<ParsedFont>> {
+        let mut matches = vec![];
         let mut wanted = RangeSet::new();
+
+        let menlo =
+            new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+
         for &c in codepoints {
             wanted.add(c as u32);
-        }
-        let mut matches = vec![];
-        for font in FALLBACK.iter() {
-            if let Ok(cov) = font.coverage_intersection(&wanted) {
-                if !cov.is_empty() {
-                    matches.push((cov.len(), font.clone()));
+            let text = CFString::new(&c.to_string());
+
+            let font = unsafe {
+                CTFontCreateForString(
+                    menlo.as_concrete_TypeRef(),
+                    text.as_concrete_TypeRef(),
+                    CFRange::init(0, 1),
+                )
+            };
+
+            if font.is_null() {
+                continue;
+            }
+
+            let font = unsafe { CTFont::wrap_under_create_rule(font) };
+
+            let candidates = handles_from_descriptor(&font.copy_descriptor());
+
+            for font in candidates {
+                if let Ok(cov) = font.coverage_intersection(&wanted) {
+                    if !cov.is_empty() {
+                        matches.push((cov.len(), font));
+                    }
                 }
             }
         }
+
         // Add the handles in order of descending coverage; the idea being
         // that if a font has a large coverage then it is probably a better
         // candidate and more likely to result in other glyphs matching
@@ -138,6 +166,9 @@ impl FontLocator for CoreTextFontLocator {
                 primary
             }
         });
+        matches.dedup();
+
+        log::trace!("fallback candidates for {codepoints:?} is {matches:#?}");
 
         Ok(matches.into_iter().map(|(_len, handle)| handle).collect())
     }
@@ -156,83 +187,4 @@ impl FontLocator for CoreTextFontLocator {
         fonts.dedup();
         Ok(fonts)
     }
-}
-
-fn build_fallback_list() -> Vec<ParsedFont> {
-    build_fallback_list_impl().unwrap_or_else(|err| {
-        log::error!("Error getting system fallback fonts: {:#}", err);
-        Vec::new()
-    })
-}
-
-fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
-    let menlo =
-        new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
-    let lang = "en"
-        .parse::<CFString>()
-        .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
-    let langs = CFArray::from_CFTypes(&[lang]);
-    let cascade = cascade_list_for_languages(&menlo, &langs);
-    let mut fonts = vec![];
-    // Explicitly include Menlo itself, as it appears to be the only
-    // font on macOS that contains U+2718.
-    // <https://github.com/wez/wezterm/issues/849>
-    fonts.append(&mut handles_from_descriptor(&menlo.copy_descriptor()));
-    for descriptor in &cascade {
-        fonts.append(&mut handles_from_descriptor(&descriptor));
-    }
-
-    // Some of the fallback fonts are special fonts that don't exist on
-    // disk, and that we can't open.
-    // In particular, `.AppleSymbolsFB` is one such font.  Let's try
-    // a nearby approximation.
-    let symbols = FontAttributes {
-        family: "Apple Symbols".to_string(),
-        weight: FontWeight::REGULAR,
-        stretch: FontStretch::Normal,
-        style: FontStyle::Normal,
-        is_fallback: true,
-        is_synthetic: true,
-        harfbuzz_features: None,
-        freetype_load_target: None,
-        freetype_render_target: None,
-        freetype_load_flags: None,
-        scale: None,
-        assume_emoji_presentation: None,
-    };
-    if let Ok(descriptors) = descriptor_from_attr(&symbols) {
-        for descriptor in descriptors.iter() {
-            fonts.append(&mut handles_from_descriptor(&descriptor));
-        }
-    }
-
-    // Constrain to default weight/stretch/style
-    fonts.retain(|f| {
-        f.weight() == FontWeight::REGULAR
-            && f.stretch() == FontStretch::Normal
-            && f.style() == FontStyle::Normal
-    });
-
-    let mut seen = HashSet::new();
-    let fonts: Vec<ParsedFont> = fonts
-        .into_iter()
-        .filter_map(|f| {
-            if seen.contains(&f.handle) {
-                None
-            } else {
-                seen.insert(f.handle.clone());
-                Some(f)
-            }
-        })
-        .collect();
-
-    // Pre-compute coverage
-    let empty = RangeSet::new();
-    for font in &fonts {
-        if let Err(err) = font.coverage_intersection(&empty) {
-            log::error!("Error computing coverage for {:?}: {:#}", font, err);
-        }
-    }
-
-    Ok(fonts)
 }

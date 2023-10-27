@@ -245,10 +245,17 @@ pub enum PolyStyle {
 }
 
 impl PolyStyle {
-    fn apply(self, width: f32, paint: &Paint, path: &Path, pixmap: &mut PixmapMut) {
+    fn apply(
+        self,
+        width: f32,
+        paint: &Paint,
+        path: &Path,
+        pixmap: &mut PixmapMut,
+        transform: Transform,
+    ) {
         match self {
             PolyStyle::Fill => {
-                pixmap.fill_path(path, paint, FillRule::Winding, Transform::identity(), None);
+                pixmap.fill_path(path, paint, FillRule::Winding, transform, None);
             }
 
             PolyStyle::OutlineThin | PolyStyle::Outline | PolyStyle::OutlineHeavy => {
@@ -259,7 +266,7 @@ impl PolyStyle {
                 } else if self == PolyStyle::OutlineThin {
                     stroke.width = 1.2;
                 }
-                pixmap.stroke_path(path, paint, &stroke, Transform::identity(), None);
+                pixmap.stroke_path(path, paint, &stroke, transform, None);
             }
         }
     }
@@ -3727,6 +3734,7 @@ impl GlyphCache {
         polys: &[Poly],
         buffer: &mut Image,
         aa: PolyAA,
+        transform: Transform,
     ) {
         let (width, height) = buffer.image_dimensions();
         let mut pixmap =
@@ -3754,7 +3762,13 @@ impl GlyphCache {
                 item.to_skia(width, height, metrics.underline_height as f32, &mut pb);
             }
             let path = pb.finish().expect("poly path to be valid");
-            style.apply(metrics.underline_height as f32, &paint, &path, &mut pixmap);
+            style.apply(
+                metrics.underline_height as f32,
+                &paint,
+                &path,
+                &mut pixmap,
+                transform,
+            );
         }
     }
 
@@ -3768,6 +3782,9 @@ impl GlyphCache {
             return Ok(sprite.clone());
         }
 
+        let x_scale = metrics.native_cell_size.width as f32 / metrics.cell_size.width as f32;
+        let y_scale = metrics.native_cell_size.height as f32 / metrics.cell_size.height as f32;
+
         let mut metrics = metrics.scale_cell_width(width as f64);
         if let Some(d) = &self.fonts.config().cursor_thickness {
             metrics.underline_height = d.evaluate_as_pixels(DimensionContext {
@@ -3777,6 +3794,12 @@ impl GlyphCache {
             }) as isize;
         }
 
+        let thickness_scale = y_scale.max(x_scale);
+        let thickness = ((metrics.underline_height as f32) / thickness_scale).ceil() as isize;
+        let x_translate = thickness - metrics.underline_height;
+
+        metrics.underline_height = thickness;
+
         let mut buffer = Image::new(
             metrics.cell_size.width as usize,
             metrics.cell_size.height as usize,
@@ -3785,12 +3808,23 @@ impl GlyphCache {
         let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
         buffer.clear_rect(cell_rect, black);
 
+        let transform = if metrics.cell_size != metrics.native_cell_size {
+            Transform::from_scale(x_scale, y_scale).post_translate(
+                // No scaled X translation because cell_width just adds blank space
+                // into the right of the bitmap without adjusting any x-coords.
+                // We just need to compensate for the line thickness scaling so
+                // that we don't clip it out the left side of the pixmap
+                x_translate as f32,
+                // Y translation to parallel the centering effect of line_height
+                (metrics.native_cell_size.height as f32 - metrics.cell_size.height as f32) / -2.,
+            )
+        } else {
+            Transform::identity()
+        };
+
         match shape {
             None => {}
             Some(CursorShape::Default) => {
-                buffer.clear_rect(cell_rect, SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff));
-            }
-            Some(CursorShape::BlinkingBlock | CursorShape::SteadyBlock) => {
                 self.draw_polys(
                     &metrics,
                     &[Poly {
@@ -3802,10 +3836,35 @@ impl GlyphCache {
                             PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
                         ],
                         intensity: BlockAlpha::Full,
+                        style: PolyStyle::Fill,
+                    }],
+                    &mut buffer,
+                    PolyAA::MoarPixels,
+                    transform,
+                );
+            }
+            Some(CursorShape::BlinkingBlock | CursorShape::SteadyBlock) => {
+                self.draw_polys(
+                    &metrics,
+                    &[Poly {
+                        path: &[
+                            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
+                            // An extra, seemingly redundant path segment here is
+                            // needed to workaround tiny-skia leaving a single blank
+                            // pixel in the top left corner when the glyph metrics
+                            // are scaled by cell_width and/or line_height
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                        ],
+                        intensity: BlockAlpha::Full,
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
-                    PolyAA::AntiAlias,
+                    PolyAA::MoarPixels,
+                    transform,
                 );
             }
             Some(CursorShape::BlinkingBar | CursorShape::SteadyBar) => {
@@ -3820,7 +3879,8 @@ impl GlyphCache {
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
-                    PolyAA::AntiAlias,
+                    PolyAA::MoarPixels,
+                    transform,
                 );
             }
             Some(CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline) => {
@@ -3835,7 +3895,8 @@ impl GlyphCache {
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
-                    PolyAA::AntiAlias,
+                    PolyAA::MoarPixels,
+                    transform,
                 );
             }
         }
@@ -3862,6 +3923,7 @@ impl GlyphCache {
                 underline_height: *underline_height,
                 strike_row: 0,
                 cell_size: cell_size.clone(),
+                native_cell_size: render_metrics.native_cell_size,
             },
             _ => render_metrics.clone(),
         };
@@ -4037,6 +4099,7 @@ impl GlyphCache {
                     } else {
                         PolyAA::MoarPixels
                     },
+                    Transform::identity(),
                 );
             }
         }

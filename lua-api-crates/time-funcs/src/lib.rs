@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
+use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods, UserDataRef};
 use config::lua::{
     emit_event, get_or_create_module, get_or_create_sub_module, is_event_emission, wrap_callback,
 };
@@ -17,11 +17,12 @@ lazy_static::lazy_static! {
 /// by the user via `wezterm.time.call_after`.
 fn schedule_all(lua: Option<Rc<mlua::Lua>>) -> mlua::Result<()> {
     if let Some(lua) = lua {
-        let scheduled_events: Vec<ScheduledEvent> = lua.named_registry_value(SCHEDULED_EVENTS)?;
+        let scheduled_events: Vec<UserDataRef<ScheduledEvent>> =
+            lua.named_registry_value(SCHEDULED_EVENTS)?;
         lua.set_named_registry_value(SCHEDULED_EVENTS, Vec::<ScheduledEvent>::new())?;
         let generation = config::configuration().generation();
         for event in scheduled_events {
-            event.schedule(generation);
+            event.clone().schedule(generation);
         }
     }
     Ok(())
@@ -160,8 +161,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
                 let generation = config::configuration().generation();
                 event.schedule(generation);
             } else {
-                let mut scheduled_events: Vec<ScheduledEvent> =
+                let scheduled_events: Vec<UserDataRef<ScheduledEvent>> =
                     lua.named_registry_value(SCHEDULED_EVENTS)?;
+                let mut scheduled_events: Vec<ScheduledEvent> =
+                    scheduled_events.into_iter().map(|e| e.clone()).collect();
                 scheduled_events.push(event);
                 lua.set_named_registry_value(SCHEDULED_EVENTS, scheduled_events)?;
             }

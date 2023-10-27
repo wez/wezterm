@@ -17,6 +17,7 @@ pub struct RenderMetrics {
     pub underline_height: IntPixelLength,
     pub strike_row: IntPixelLength,
     pub cell_size: Size,
+    pub native_cell_size: Size,
 }
 
 impl RenderMetrics {
@@ -33,13 +34,15 @@ impl RenderMetrics {
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = descender_row / 2;
+        let cell_size = Size::new(cell_width as isize, cell_height as isize);
 
         Self {
             descender: metrics.descender,
             descender_row,
             descender_plus_two,
             strike_row,
-            cell_size: Size::new(cell_width as isize, cell_height as isize),
+            cell_size,
+            native_cell_size: cell_size,
             underline_height,
         }
     }
@@ -59,6 +62,7 @@ impl RenderMetrics {
             underline_height: self.underline_height,
             strike_row: self.strike_row,
             cell_size: size,
+            native_cell_size: self.native_cell_size,
         }
     }
 
@@ -72,6 +76,11 @@ impl RenderMetrics {
         let metrics = fonts
             .default_font_metrics()
             .context("failed to get font metrics!?")?;
+
+        let native_cell_size = Size::new(
+            metrics.cell_width.get() as isize,
+            metrics.cell_height.get() as isize,
+        );
 
         let line_height = fonts.config().line_height;
         let cell_width = fonts.config().cell_width;
@@ -111,7 +120,10 @@ impl RenderMetrics {
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = match &config.strikethrough_position {
-            None => descender_row / 2,
+            None => {
+                ((cell_height as f64 + (metrics.descender.get() - underline_position)) / 2.)
+                    as isize
+            }
             Some(d) => d
                 .evaluate_as_pixels(DimensionContext {
                     dpi: fonts.get_dpi() as f32,
@@ -128,6 +140,7 @@ impl RenderMetrics {
             strike_row,
             cell_size: Size::new(cell_width as isize, cell_height as isize),
             underline_height,
+            native_cell_size,
         })
     }
 }

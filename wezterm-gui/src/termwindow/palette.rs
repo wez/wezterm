@@ -48,7 +48,7 @@ struct Recent {
 }
 
 fn recent_file_name() -> PathBuf {
-    config::RUNTIME_DIR.join("recent-commands.json")
+    config::DATA_DIR.join("recent-commands.json")
 }
 
 fn load_recents() -> anyhow::Result<Vec<Recent>> {
@@ -151,7 +151,7 @@ fn build_commands(
         match (scores.get(&*a.brief), scores.get(&*b.brief)) {
             // Want descending frecency score, so swap a<->b
             // for the compare here
-            (Some(a), Some(b)) => match b.partial_cmp(&a) {
+            (Some(a), Some(b)) => match b.partial_cmp(a) {
                 Some(Ordering::Equal) | None => {}
                 Some(ordering) => return ordering,
             },

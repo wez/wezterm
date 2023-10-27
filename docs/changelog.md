@@ -23,9 +23,111 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+* The return type of
+  [pane.get_current_working_dir](config/lua/pane/get_current_working_dir.md)
+  and [PaneInformation.current_working_dir](config/lua/PaneInformation.md)
+  has changed to the new [Url](config/lua/wezterm.url/Url.md) object, which
+  makes it easier to handle things like percent-encoding for paths with spaces
+  or non-ASCII characters. Please see the revised example on
+  [set_right_status](config/lua/window/set_right_status.md) for example usage
+  with backwards compatibility in mind. #4000
+* Added split out github short codes from the various charselect sections into
+  their own new Short Codes section.
+* CharSelect now shows emoji variations such as skin tones
+* Improved fuzzy matching performance in CharSelect
+* [PaneSelect](config/lua/keyassignment/PaneSelect.md) new modes `MoveToNewTab`,
+  `MoveToNewWindow`, and `SwapWithActiveKeepFocus`, as well as
+  `show_pane_ids=true` to show the pane ids.  #4147 #3014
 
 #### New
+* [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and
+  `--hold` options. #3716
+* [wezterm set-working-directory](cli/set-working-directory.md) will now wrap
+  its OSC 7 escape sequence in the tmux passthru sequence when necessary. This can be
+  controlled via new `--tmux-passthru` option.
+* [wezterm imgcat](cli/imgcat.md) will now wrap the image transfer OSC escape
+  sequences in the tmux passthru sequence when necessary. This can be
+  controlled via new `--tmux-passthru` option. Note that tmux doesn't natively
+  understand these sequences, and tmux will wipe out the image when it redraws
+  the screen as part of scrolling back through its history. imgcat support in
+  tmux is very basic effort
+* [wezterm imgcat](cli/imgcat.md) will compensate for tmux and conpty, which
+  do not natively understand image protocols, and adjust the cursor position
+  in order to avoid the shell/prompt from mangling the image after it is printing.
+  Support for this has limitations and will not take effect when the new
+  `--position` argument is used. #3624
+* [wezterm imgcat](cli/imgcat.md) will now resample very large images in
+  order to increase the chances of successfully displaying an arbitrary image.
+  In addition, there are now a number of options for explicitly resizing
+  as a preprocessing step, and controlling the filtering and format used
+  by the resizing, along with showing diagnostics around the resize operation. #3264
+* Color schemes: [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
+  [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
+  [Ef-Day](colorschemes/e/index.md#ef-day),
+  [Ef-Deuteranopia-Dark](colorschemes/e/index.md#ef-deuteranopia-dark),
+  [Ef-Deuteranopia-Light](colorschemes/e/index.md#ef-deuteranopia-light),
+  [Ef-Duo-Dark](colorschemes/e/index.md#ef-duo-dark),
+  [Ef-Duo-Light](colorschemes/e/index.md#ef-duo-light),
+  [Ef-Elea-Dark](colorschemes/e/index.md#ef-elea-dark),
+  [Ef-Elea-Light](colorschemes/e/index.md#ef-elea-light),
+  [Ef-Frost](colorschemes/e/index.md#ef-frost),
+  [Ef-Kassio](colorschemes/e/index.md#ef-kassio),
+  [Ef-Light](colorschemes/e/index.md#ef-light),
+  [Ef-Maris-Dark](colorschemes/e/index.md#ef-maris-dark),
+  [Ef-Maris-Light](colorschemes/e/index.md#ef-maris-light),
+  [Ef-Night](colorschemes/e/index.md#ef-night),
+  [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
+  [iTerm2 Dark Background](colorschemes/i/index.md#iterm2-dark-background),
+  [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
+  [iTerm2 Light Background](colorschemes/i/index.md#iterm2-light-background),
+  [iTerm2 Pastel Dark Background](colorschemes/i/index.md#iterm2-pastel-dark-background),
+  [iTerm2 Smoooooth](colorschemes/i/index.md#iterm2-smoooooth),
+  [iTerm2 Tango Dark](colorschemes/i/index.md#iterm2-tango-dark),
+  [iTerm2 Tango Light](colorschemes/i/index.md#iterm2-tango-light),
+  [Modus-Operandi-Deuteranopia](colorschemes/m/index.md#modus-operandi-deuteranopia),
+  [Modus-Operandi-Tinted](colorschemes/m/index.md#modus-operandi-tinted),
+  [Modus-Vivendi-Deuteranopia](colorschemes/m/index.md#modus-vivendi-deuteranopia),
+  [Modus-Vivendi-Tinted](colorschemes/m/index.md#modus-vivendi-tinted),
+  [Modus-Vivendi-Tritanopia](colorschemes/m/index.md#modus-vivendi-tritanopia),
+  [Oxocarbon Dark (Gogh)](colorschemes/o/index.md#oxocarbon-dark-gogh),
+  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
+* Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
+  more recent versions of Noto Color Emoji. #4148
+* [wezterm cli zoom-pane](cli/cli/zoom-pane.md). Thanks to @quantonganh! #4160
+* [InputSelector](config/lua/keyassignment/InputSelector.md) has been
+  enhanced to allow setting an alphabet for quickly launching items beyond
+  the first 10 items, as well as customizing the description/label text.
+  Thanks to @Danielkonge! #4226 #4227
+* [notification_handling](config/lua/config/notification_handling.md) to
+  control whether notifications are suppressed based on focus. #3727
+
 #### Fixed
+* Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
+  keyboard shortcuts. #3988
+* Windows: couldn't use shifted keys like `(` in the Debug Overlay. #3999
+* X11: fd leak on each call to
+  [wezterm.gui.enumerate_gpus](config/lua/wezterm.gui/enumerate_gpus.md). #3612
+* Charselect and repl recency/history were not persisted across restarts. #4047 ?4019
+* macOS: system font fallback didn't always find a workable fallback font. #4099 #849
+* F13-F24 keys are now supported. Thanks to @ovidiu-ionescu! #3937
+* Strikethrough position was not centered when setting `line_height` #4196
+* Text cursor filled the scaled-by `line_height` and `cell_width` dimensions rather
+  than the native font dimensions and looked weird when either config option was
+  not set to `1.0`. #2882
+* Using `CloseCurrentPane` could sometimes leave a stranded pane in a tab. #4030
+* Wayland: wezterm wouldn't start on Plasma 6 or newer versions of sway. Thanks
+  to @hexchain! #3996 #4322.
+* font-config: when resolving a fallback font for a text cluster like `U+3065,U+2686`
+  where no single font contains both glyphs, wezterm would fail to show a glyph
+  for either codepoint.  We now split the fallback query up and query for each
+  individual codepoint separately. #4310
+* Gogh color schemes all had the incorrect cursor foreground color. #4257
+* Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
+
+#### Updated
+* Bundled harfbuzz to 8.2.1
+* Bundled freetype to 2.13.1
+* Bundled Noto Color Emoji font to 2.038
 
 ### 20230712-072601-f4abf8fd
 

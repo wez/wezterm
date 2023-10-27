@@ -1,0 +1,72 @@
+#!/bin/sh
+set -e
+
+if [ $# -lt 1 ]; then
+    argv0=`basename $0`
+    echo "$argv0: Update source code to the latest Cairo API" >&2
+    echo "" >&2
+    echo "Usage: $argv0 file [...]" >&2
+    exit 1
+fi
+
+cairo_api_update() {
+	file=$1
+	backup=$file.bak
+
+	cp $file $backup
+	sed -e '/\(DEPRECATED\|REPLACED\)_BY/! {
+		s/cairo_current_font_extents/cairo_font_extents/g
+		s/cairo_get_font_extents/cairo_font_extents/g
+		s/cairo_current_operator/cairo_get_operator/g
+		s/cairo_current_tolerance/cairo_get_tolerance/g
+		s/cairo_current_point/cairo_get_current_point/g
+		s/cairo_current_fill_rule/cairo_get_fill_rule/g
+		s/cairo_current_line_width/cairo_get_line_width/g
+		s/cairo_current_line_cap/cairo_get_line_cap/g
+		s/cairo_current_line_join/cairo_get_line_join/g
+		s/cairo_current_miter_limit/cairo_get_miter_limit/g
+		s/cairo_current_matrix/cairo_get_matrix/g
+		s/cairo_current_pattern/cairo_get_source/g
+		s/cairo_current_target_surface/cairo_get_target/g
+		s/cairo_get_status/cairo_status/g
+		s/cairo_get_status_string/cairo_status_string/g
+		s/cairo_concat_matrix/cairo_transform/g
+		s/cairo_scale_font/cairo_set_font_size/g
+		s/cairo_select_font\([^_]\)/cairo_select_font_face\1/g
+		s/cairo_transform_font/cairo_set_font_matrix/g
+		s/cairo_transform_point/cairo_user_to_device/g
+		s/cairo_transform_distance/cairo_user_to_device_distance/g
+		s/cairo_inverse_transform_point/cairo_device_to_user/g
+		s/cairo_inverse_transform_distance/cairo_device_to_user_distance/g
+		s/cairo_init_clip/cairo_reset_clip/g
+		s/cairo_surface_create_for_image/cairo_image_surface_create_for_data/g
+		s/cairo_default_matrix/cairo_identity_matrix/g
+		s/cairo_matrix_set_affine/cairo_matrix_init/g
+		s/cairo_matrix_set_identity/cairo_matrix_init_identity/g
+		s/\([^_]\)cairo_pattern_add_color_stop\([^_]\)/\1cairo_pattern_add_color_stop_rgba\2/g
+		s/cairo_set_rgb_color/cairo_set_source_rgb/g
+		s/cairo_set_pattern/cairo_set_source/g
+		s/CAIRO_OPERATOR_SRC/CAIRO_OPERATOR_SOURCE/g
+		s/CAIRO_OPERATOR_DST/CAIRO_OPERATOR_DEST/g
+		s/CAIRO_OPERATOR_OVER_REVERSE/CAIRO_OPERATOR_DEST_OVER/g
+		s/CAIRO_OPERATOR_IN_REVERSE/CAIRO_OPERATOR_DEST_IN/g
+		s/CAIRO_OPERATOR_OUT_REVERSE/CAIRO_OPERATOR_DEST_OUT/g
+		s/CAIRO_OPERATOR_ATOP_REVERSE/CAIRO_OPERATOR_DEST_ATOP/g
+		}
+		' $backup > $file
+
+	grep -n 'cairo_create[ 	]*([ 	]*)' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*/\1 cairo_create must now accept a target surface/'
+	grep -n 'cairo_set_target_image' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*/\1 cairo_set_target_image should be reworked to use cairo_image_surface_create_for_data, likely before cairo_create/'
+	grep -n 'cairo_set_target_surface' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*/\1 cairo_set_target_surface for temporarily changing the target should now be rworked to create a temporary context with cairo_create/'
+	grep -n 'cairo_set_target_png' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*/\1 cairo_set_target_png should be reworked to use cairo_image_surface_create followed by cairo_surface_write_to_png/'
+	grep -n 'cairo_set_target_drawable' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*/\1 cairo_set_target_drawable should be reworked to use cairo_xlib_surface_create, likely before cairo_create/'
+	grep -n 'cairo_set_target_[^dis][^n]' $file /dev/null | sed 's/^\(.*:[0-9]\+:\).*cairo_set_target_\([a-z]*\).*/\1 cairo_set_target_\2 should be reworked to use cairo_\2_surface_create, likely before cairo_create/'
+	grep -n 'cairo_set_alpha' $file /dev/null | sed 's/\(.*:[0-9]\+:\).*/\1 cairo_set_alpha should be replaced by turning a nearby cairo_set_source_rgb into cairo_set_source_rgba or turning a nearby cairo_paint into cairo_paint_with_alpha/'
+}
+
+while [ $# -gt 0 ]; do
+	file=$1
+	shift
+	cairo_api_update $file
+done
+

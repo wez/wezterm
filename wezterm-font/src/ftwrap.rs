@@ -2,6 +2,7 @@
 
 use crate::locator::{FontDataHandle, FontDataSource};
 use crate::parser::ParsedFont;
+use crate::rasterizer::colr::DrawOp;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use freetype::*;
@@ -9,9 +10,10 @@ use memmap2::{Mmap, MmapOptions};
 use rangeset::RangeSet;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::ffi::CStr;
+use std::ffi::{c_int, c_void, CStr};
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::mem::MaybeUninit;
 use std::os::raw::{c_uchar, c_ulong};
 use std::path::Path;
 use std::ptr;
@@ -23,7 +25,7 @@ pub fn succeeded(error: FT_Error) -> bool {
 }
 
 /// Translate an error and value into a result
-fn ft_result<T>(err: FT_Error, t: T) -> anyhow::Result<T> {
+pub fn ft_result<T>(err: FT_Error, t: T) -> anyhow::Result<T> {
     if succeeded(err) {
         Ok(t)
     } else {
@@ -93,6 +95,7 @@ pub struct Face {
     source: FontDataHandle,
     size: Option<FaceSize>,
     lib: FT_Library,
+    palette: Option<&'static mut [FT_Color]>,
 }
 
 impl Drop for Face {
@@ -127,6 +130,14 @@ pub struct SelectedFontSize {
     pub cap_height_to_height_ratio: Option<f64>,
     pub is_scaled: bool,
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("Glyph is SVG")]
+pub struct IsSvg;
+
+#[derive(Debug, thiserror::Error)]
+#[error("Glyph is COLR1 or later")]
+pub struct IsColr1OrLater;
 
 impl Face {
     pub fn family_name(&self) -> String {
@@ -339,18 +350,11 @@ impl Face {
                     let instance = &styles[vidx];
                     let axes = std::slice::from_raw_parts(mm.axis, mm.num_axis as usize);
 
-                    fn ft_make_tag(a: u8, b: u8, c: u8, d: u8) -> FT_ULong {
-                        (a as FT_ULong) << 24
-                            | (b as FT_ULong) << 16
-                            | (c as FT_ULong) << 8
-                            | (d as FT_ULong)
-                    }
-
                     for (i, axis) in axes.iter().enumerate() {
                         let coords =
                             std::slice::from_raw_parts(instance.coords, mm.num_axis as usize);
-                        let value = coords[i] as f64 / (1 << 16) as f64;
-                        let default_value = axis.def as f64 / (1 << 16) as f64;
+                        let value = coords[i].to_num::<f64>();
+                        let default_value = axis.def.to_num::<f64>();
                         let scale = if default_value != 0. {
                             value / default_value
                         } else {
@@ -466,7 +470,7 @@ impl Face {
 
         // Scaling before truncating to integer minimizes the chances of hitting
         // the fallback code for set_pixel_sizes below.
-        let size = (point_size * 64.0) as FT_F26Dot6;
+        let size = FT_F26Dot6::from_num(point_size);
 
         let selected_size = match self.set_char_size(size, size, dpi, dpi) {
             Ok(_) => {
@@ -625,6 +629,299 @@ impl Face {
         }
     }
 
+    pub fn get_color_glyph_paint(
+        &mut self,
+        glyph_index: FT_UInt,
+        root_transform: FT_Color_Root_Transform,
+    ) -> anyhow::Result<FT_Opaque_Paint_> {
+        unsafe {
+            let mut result = MaybeUninit::<FT_Opaque_Paint_>::zeroed();
+            let status = FT_Get_Color_Glyph_Paint(
+                self.face,
+                glyph_index,
+                root_transform,
+                result.as_mut_ptr(),
+            );
+            if status == 1 {
+                Ok(result.assume_init())
+            } else {
+                anyhow::bail!("FT_Get_Color_Glyph_Paint for glyph {glyph_index} failed");
+            }
+        }
+    }
+
+    pub fn get_color_glyph_clip_box(
+        &mut self,
+        glyph_index: FT_UInt,
+    ) -> anyhow::Result<FT_ClipBox_> {
+        unsafe {
+            let mut result = MaybeUninit::<FT_ClipBox_>::zeroed();
+            let status = FT_Get_Color_Glyph_ClipBox(self.face, glyph_index, result.as_mut_ptr());
+            if status == 1 {
+                Ok(result.assume_init())
+            } else {
+                anyhow::bail!("FT_Get_Color_Glyph_ClipBox for glyph {glyph_index} failed");
+            }
+        }
+    }
+
+    pub fn get_paint(&mut self, paint: FT_Opaque_Paint_) -> anyhow::Result<FT_COLR_Paint_> {
+        unsafe {
+            let mut result = MaybeUninit::<FT_COLR_Paint_>::zeroed();
+            let status = FT_Get_Paint(self.face, paint, result.as_mut_ptr());
+            if status == 1 {
+                Ok(result.assume_init())
+            } else {
+                anyhow::bail!("FT_Get_Paint failed");
+            }
+        }
+    }
+
+    /// Replace any palette entry overrides and select the specified palette
+    pub fn select_palette(&mut self, index: FT_UShort) -> anyhow::Result<()> {
+        unsafe {
+            self.palette.take();
+
+            let mut pdata = MaybeUninit::<FT_Palette_Data>::zeroed();
+            ft_result(FT_Palette_Data_Get(self.face, pdata.as_mut_ptr()), ())
+                .context("FT_Palette_Data_Get")?;
+            let pdata = pdata.assume_init();
+
+            let mut palette_ptr = std::ptr::null_mut();
+
+            ft_result(FT_Palette_Select(self.face, index, &mut palette_ptr), ())
+                .with_context(|| format!("FT_Palette_Select for index={index}. Note: {pdata:?}"))?;
+
+            let palette =
+                std::slice::from_raw_parts_mut(palette_ptr, pdata.num_palette_entries as usize);
+
+            self.palette.replace(palette);
+
+            Ok(())
+        }
+    }
+
+    pub fn get_palette_entry(&self, index: u32) -> anyhow::Result<FT_Color> {
+        self.palette
+            .as_ref()
+            .and_then(|slice| slice.get(index as usize))
+            .copied()
+            .ok_or_else(|| anyhow::anyhow!("invalid palette entry {index}"))
+    }
+
+    pub fn get_palette_data(&self) -> anyhow::Result<PaletteInfo> {
+        unsafe {
+            let mut result = MaybeUninit::<FT_Palette_Data>::zeroed();
+            ft_result(FT_Palette_Data_Get(self.face, result.as_mut_ptr()), ())
+                .context("FT_Palette_Data_Get")?;
+
+            let data = result.assume_init();
+            let mut palettes = vec![];
+
+            let name_ids = if data.palette_name_ids.is_null() {
+                &[]
+            } else {
+                std::slice::from_raw_parts(data.palette_name_ids, data.num_palettes as usize)
+            };
+            let flagses = if data.palette_flags.is_null() {
+                &[]
+            } else {
+                std::slice::from_raw_parts(data.palette_flags, data.num_palettes as usize)
+            };
+            let entry_name_ids = if data.palette_entry_name_ids.is_null() {
+                &[]
+            } else {
+                std::slice::from_raw_parts(
+                    data.palette_entry_name_ids,
+                    data.num_palette_entries as usize,
+                )
+            };
+
+            let entry_names: Vec<String> = entry_name_ids
+                .iter()
+                .map(|&id| {
+                    self.get_sfnt_name(id as _)
+                        .map(|rec| rec.name)
+                        .unwrap_or_else(|_| String::new())
+                })
+                .collect();
+
+            for (palette_index, (&name_id, &flags)) in
+                name_ids.iter().zip(flagses.iter()).enumerate()
+            {
+                palettes.push(Palette {
+                    palette_index,
+                    flags,
+                    name: self
+                        .get_sfnt_name(name_id as _)
+                        .map(|rec| rec.name)
+                        .unwrap_or_else(|_| String::new()),
+                    entry_names: entry_names.clone(),
+                });
+            }
+            Ok(PaletteInfo {
+                num_palettes: data.num_palettes as usize,
+                palettes,
+            })
+        }
+    }
+
+    pub fn get_sfnt_name(&self, i: FT_UInt) -> anyhow::Result<NameRecord> {
+        unsafe {
+            let mut sfnt_name = MaybeUninit::<FT_SfntName>::zeroed();
+            ft_result(FT_Get_Sfnt_Name(self.face, i, sfnt_name.as_mut_ptr()), ())
+                .context("FT_Get_Sfnt_Name")?;
+            let sfnt_name = sfnt_name.assume_init();
+            let bytes = std::slice::from_raw_parts(
+                sfnt_name.string as *const u8,
+                sfnt_name.string_len as usize,
+            );
+
+            let encoding = match (sfnt_name.platform_id as u32, sfnt_name.encoding_id as u32) {
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_JAPANESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_SJIS) => encoding_rs::SHIFT_JIS,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_SIMPLIFIED_CHINESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_PRC) => encoding_rs::GBK,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_TRADITIONAL_CHINESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_BIG_5) => encoding_rs::BIG5,
+                (
+                    TT_PLATFORM_MICROSOFT,
+                    TT_MS_ID_UCS_4 | TT_MS_ID_UNICODE_CS | TT_MS_ID_SYMBOL_CS,
+                ) => encoding_rs::UTF_16BE,
+                (TT_PLATFORM_MICROSOFT, TT_MS_ID_WANSUNG) => encoding_rs::EUC_KR,
+                (TT_PLATFORM_APPLE_UNICODE | TT_PLATFORM_ISO, _) => encoding_rs::UTF_16BE,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_ROMAN) => encoding_rs::MACINTOSH,
+                _ => {
+                    anyhow::bail!(
+                        "Skipping name_id={} because platform_id={} encoding_id={}",
+                        sfnt_name.name_id,
+                        sfnt_name.platform_id,
+                        sfnt_name.encoding_id
+                    );
+                }
+            };
+
+            let (name, _) = encoding.decode_with_bom_removal(bytes);
+
+            Ok(NameRecord {
+                platform_id: sfnt_name.platform_id,
+                encoding_id: sfnt_name.encoding_id,
+                name_id: sfnt_name.name_id,
+                language_id: sfnt_name.language_id,
+                name: name.to_string(),
+            })
+        }
+    }
+
+    pub fn get_paint_layers(
+        &mut self,
+        iter: &mut FT_LayerIterator_,
+    ) -> anyhow::Result<FT_Opaque_Paint_> {
+        unsafe {
+            let mut result = MaybeUninit::<FT_Opaque_Paint_>::zeroed();
+            let status = FT_Get_Paint_Layers(self.face, iter, result.as_mut_ptr());
+            if status == 1 {
+                Ok(result.assume_init())
+            } else {
+                anyhow::bail!("FT_Get_Paint_Layers failed");
+            }
+        }
+    }
+
+    pub fn load_glyph_outlines(
+        &mut self,
+        glyph_index: FT_UInt,
+        load_flags: FT_Int32,
+    ) -> anyhow::Result<Vec<DrawOp>> {
+        unsafe {
+            ft_result(FT_Load_Glyph(self.face, glyph_index, load_flags), ())
+                .with_context(|| format!("FT_Load_Glyph {glyph_index}"))?;
+            let slot = &mut *(*self.face).glyph;
+            if slot.format != FT_Glyph_Format_::FT_GLYPH_FORMAT_OUTLINE {
+                anyhow::bail!(
+                    "Expected FT_COLR_PAINTFORMAT_GLYPH to be an outline, got {:?}",
+                    slot.format
+                );
+            }
+
+            let funcs = FT_Outline_Funcs_ {
+                move_to: Some(move_to),
+                line_to: Some(line_to),
+                conic_to: Some(conic_to),
+                cubic_to: Some(cubic_to),
+                shift: 16, // match the same coordinate space as transforms
+                delta: FT_Pos::from_font_units(0),
+            };
+
+            let mut ops = vec![];
+
+            unsafe extern "C" fn move_to(to: *const FT_Vector, user: *mut c_void) -> c_int {
+                let ops = user as *mut Vec<DrawOp>;
+                let (to_x, to_y) = vector_x_y(&*to);
+                (*ops).push(DrawOp::MoveTo { to_x, to_y });
+                0
+            }
+            unsafe extern "C" fn line_to(to: *const FT_Vector, user: *mut c_void) -> c_int {
+                let ops = user as *mut Vec<DrawOp>;
+                let (to_x, to_y) = vector_x_y(&*to);
+                (*ops).push(DrawOp::LineTo { to_x, to_y });
+                0
+            }
+            unsafe extern "C" fn conic_to(
+                control: *const FT_Vector,
+                to: *const FT_Vector,
+                user: *mut c_void,
+            ) -> c_int {
+                let ops = user as *mut Vec<DrawOp>;
+                let (control_x, control_y) = vector_x_y(&*control);
+                let (to_x, to_y) = vector_x_y(&*to);
+                (*ops).push(DrawOp::QuadTo {
+                    control_x,
+                    control_y,
+                    to_x,
+                    to_y,
+                });
+                0
+            }
+            unsafe extern "C" fn cubic_to(
+                control1: *const FT_Vector,
+                control2: *const FT_Vector,
+                to: *const FT_Vector,
+                user: *mut c_void,
+            ) -> c_int {
+                let ops = user as *mut Vec<DrawOp>;
+                let (control1_x, control1_y) = vector_x_y(&*control1);
+                let (control2_x, control2_y) = vector_x_y(&*control2);
+                let (to_x, to_y) = vector_x_y(&*to);
+                (*ops).push(DrawOp::CubicTo {
+                    control1_x,
+                    control1_y,
+                    control2_x,
+                    control2_y,
+                    to_x,
+                    to_y,
+                });
+                0
+            }
+
+            ft_result(
+                FT_Outline_Decompose(
+                    &mut slot.outline,
+                    &funcs,
+                    &mut ops as *mut Vec<DrawOp> as *mut c_void,
+                ),
+                (),
+            )
+            .with_context(|| format!("FT_Outline_Decompose. ops so far: {ops:?}"))?;
+
+            if !ops.is_empty() {
+                ops.push(DrawOp::ClosePath);
+            }
+
+            Ok(ops)
+        }
+    }
+
     pub fn load_and_render_glyph(
         &mut self,
         glyph_index: FT_UInt,
@@ -633,22 +930,49 @@ impl Face {
         synthesize_bold: bool,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
-            ft_result(FT_Load_Glyph(self.face, glyph_index, load_flags), ()).with_context(
-                || {
-                    anyhow!(
-                        "load_and_render_glyph: FT_Load_Glyph glyph_index:{}",
-                        glyph_index
-                    )
-                },
-            )?;
+            ft_result(
+                FT_Load_Glyph(self.face, glyph_index, load_flags | FT_LOAD_NO_SVG as i32),
+                (),
+            )
+            .with_context(|| {
+                format!(
+                    "load_and_render_glyph: FT_Load_Glyph glyph_index:{}",
+                    glyph_index
+                )
+            })?;
             let slot = &mut *(*self.face).glyph;
+
+            if slot.format == FT_Glyph_Format_::FT_GLYPH_FORMAT_SVG {
+                return Err(IsSvg.into());
+            }
 
             if synthesize_bold {
                 FT_GlyphSlot_Embolden(slot as *mut _);
             }
 
+            // Current versions of freetype overload the operation of FT_LOAD_COLOR
+            // and the resulting glyph format such that we cannot determine solely
+            // from the flags whether we got a regular set of outlines,
+            // or its COLR v0 synthesized glyphs, or whether it's COLR v1 or later
+            // and it can't render the result.
+            // So, we probe here to look for color layer information: if we find it,
+            // we don't call freetype's renderer and instead bubble up an error
+            // that the embedding application can trap and decide what to do.
+            if slot.format == FT_Glyph_Format_::FT_GLYPH_FORMAT_OUTLINE {
+                if self
+                    .get_color_glyph_paint(
+                        glyph_index,
+                        FT_Color_Root_Transform::FT_COLOR_NO_ROOT_TRANSFORM,
+                    )
+                    .is_ok()
+                {
+                    return Err(IsColr1OrLater.into());
+                }
+            }
+
             ft_result(FT_Render_Glyph(slot, render_mode), ())
                 .context("load_and_render_glyph: FT_Render_Glyph")?;
+
             Ok(slot)
         }
     }
@@ -778,8 +1102,7 @@ impl Face {
     fn cell_metrics(&mut self) -> ComputedCellMetrics {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
-            let height = (metrics.y_scale as f64 * f64::from((*self.face).height))
-                / (f64::from(0x1_0000) * 64.0);
+            let height = metrics.y_scale.to_num::<f64>() * f64::from((*self.face).height) / 64.0;
 
             let mut width = 0.0;
             let mut num_examined = 0;
@@ -792,8 +1115,8 @@ impl Face {
                 if succeeded(res) {
                     num_examined += 1;
                     let glyph = &(*(*self.face).glyph);
-                    if glyph.metrics.horiAdvance as f64 > width {
-                        width = glyph.metrics.horiAdvance as f64;
+                    if glyph.metrics.horiAdvance.font_units() as f64 > width {
+                        width = glyph.metrics.horiAdvance.font_units() as f64;
                     }
                 }
             }
@@ -805,8 +1128,8 @@ impl Face {
                     if succeeded(res) {
                         num_examined += 1;
                         let glyph = &(*(*self.face).glyph);
-                        if glyph.metrics.horiAdvance as f64 > width {
-                            width = glyph.metrics.horiAdvance as f64;
+                        if glyph.metrics.horiAdvance.font_units() as f64 > width {
+                            width = glyph.metrics.horiAdvance.font_units() as f64;
                         }
                     }
                 }
@@ -917,6 +1240,7 @@ impl Library {
             lib: self.lib,
             source,
             size: None,
+            palette: None,
         })
     }
 
@@ -1143,10 +1467,69 @@ impl FreeTypeStream {
 }
 
 #[derive(Debug)]
+pub struct PaletteInfo {
+    pub num_palettes: usize,
+    /// Note that this may be empty even when num_palettes is non-zero
+    pub palettes: Vec<Palette>,
+}
+
+#[derive(Debug)]
+pub struct Palette {
+    pub palette_index: usize,
+    pub name: String,
+    pub flags: u16,
+    pub entry_names: Vec<String>,
+}
+
+#[derive(Debug)]
 pub struct NameRecord {
     pub platform_id: u16,
     pub encoding_id: u16,
     pub language_id: u16,
     pub name_id: u16,
     pub name: String,
+}
+
+pub fn vector_x_y(vector: &FT_Vector) -> (f32, f32) {
+    (vector.x.f16d16().to_num(), vector.y.f16d16().to_num())
+}
+
+pub fn composite_mode_to_operator(mode: FT_Composite_Mode) -> cairo::Operator {
+    use cairo::Operator;
+    use FT_Composite_Mode::*;
+    match mode {
+        FT_COLR_COMPOSITE_CLEAR => Operator::Clear,
+        FT_COLR_COMPOSITE_SRC => Operator::Source,
+        FT_COLR_COMPOSITE_DEST => Operator::Dest,
+        FT_COLR_COMPOSITE_SRC_OVER => Operator::Over,
+        FT_COLR_COMPOSITE_DEST_OVER => Operator::DestOver,
+        FT_COLR_COMPOSITE_SRC_IN => Operator::In,
+        FT_COLR_COMPOSITE_DEST_IN => Operator::DestIn,
+        FT_COLR_COMPOSITE_SRC_OUT => Operator::Out,
+        FT_COLR_COMPOSITE_DEST_OUT => Operator::DestOut,
+        FT_COLR_COMPOSITE_SRC_ATOP => Operator::Atop,
+        FT_COLR_COMPOSITE_DEST_ATOP => Operator::DestAtop,
+        FT_COLR_COMPOSITE_XOR => Operator::Xor,
+        FT_COLR_COMPOSITE_PLUS => Operator::Add,
+        FT_COLR_COMPOSITE_SCREEN => Operator::Screen,
+        FT_COLR_COMPOSITE_OVERLAY => Operator::Overlay,
+        FT_COLR_COMPOSITE_DARKEN => Operator::Darken,
+        FT_COLR_COMPOSITE_LIGHTEN => Operator::Lighten,
+        FT_COLR_COMPOSITE_COLOR_DODGE => Operator::ColorDodge,
+        FT_COLR_COMPOSITE_COLOR_BURN => Operator::ColorBurn,
+        FT_COLR_COMPOSITE_HARD_LIGHT => Operator::HardLight,
+        FT_COLR_COMPOSITE_SOFT_LIGHT => Operator::SoftLight,
+        FT_COLR_COMPOSITE_DIFFERENCE => Operator::Difference,
+        FT_COLR_COMPOSITE_EXCLUSION => Operator::Exclusion,
+        FT_COLR_COMPOSITE_MULTIPLY => Operator::Multiply,
+        FT_COLR_COMPOSITE_HSL_HUE => Operator::HslHue,
+        FT_COLR_COMPOSITE_HSL_SATURATION => Operator::HslSaturation,
+        FT_COLR_COMPOSITE_HSL_COLOR => Operator::HslColor,
+        FT_COLR_COMPOSITE_HSL_LUMINOSITY => Operator::HslLuminosity,
+        _ => unreachable!(),
+    }
+}
+
+fn ft_make_tag(a: u8, b: u8, c: u8, d: u8) -> FT_ULong {
+    (a as FT_ULong) << 24 | (b as FT_ULong) << 16 | (c as FT_ULong) << 8 | (d as FT_ULong)
 }

@@ -55,6 +55,7 @@ winapi = { version = "0.3", features = [
     "handleapi",
     "imm",
     "libloaderapi",
+    "shellscalingapi",
     "synchapi",
     "sysinfoapi",
     "winerror",
@@ -70,11 +71,11 @@ winreg = "0.10"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 x11 = {version ="2.19", features = ["xlib_xcb", "xlib"]}
-xcb = {version="1.2", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "present"]}
+xcb = {version="1.2", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "present", "as-raw-xcb-connection"]}
 xkbcommon = { version = "0.5.0", features = ["x11", "wayland"] }
 mio = {version="0.8", features=["os-ext"]}
 libc = "0.2"
-smithay-client-toolkit = {version = "0.16", default-features=false, optional=true}
+smithay-client-toolkit = {version = "0.16.1", default-features=false, optional=true}
 wayland-protocols = {version="0.29", optional=true}
 wayland-client = {version="0.29", optional=true}
 wayland-egl = {version="0.29", optional=true}
@@ -85,7 +86,7 @@ futures-util = "0.3"
 futures-lite = "1.12"
 
 [target.'cfg(target_os="macos")'.dependencies]
-cocoa = "0.20"
+cocoa = "0.25"
 objc = "0.2"
 core-foundation = "0.7"
 core-graphics = "0.19"
