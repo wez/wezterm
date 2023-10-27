@@ -76,7 +76,7 @@ impl UserData for Path {
         methods.add_meta_method(MetaMethod::Eq, |_, this, maybe_path: LuaValue| {
             match maybe_path {
                 LuaValue::UserData(u) => {
-                    let p = u.take::<Path>();
+                    let p = u.borrow::<Path>();
                     match p {
                         Ok(p) => Ok(this.eq(&p)),
                         Err(_) => Ok(false),
