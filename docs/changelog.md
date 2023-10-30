@@ -123,6 +123,7 @@ As features stabilize some brief notes about them will accumulate here.
   individual codepoint separately. #4310
 * Gogh color schemes all had the incorrect cursor foreground color. #4257
 * Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
+* macOS: Leak of NSWindow and NSView objects. Thanks to @0f-0b! #4457
 
 #### Updated
 * Bundled harfbuzz to 8.2.1
