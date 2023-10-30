@@ -129,6 +129,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled harfbuzz to 8.2.1
 * Bundled freetype to 2.13.1
 * Bundled Noto Color Emoji font to 2.038
+* wgpu to 0.18, which [improves OpenGL compatibility with older GPUs when using
+  WebGpu with its GL backend on Windows](https://github.com/gfx-rs/wgpu/releases/tag/v0.18.0)
 
 ### 20230712-072601-f4abf8fd
 
