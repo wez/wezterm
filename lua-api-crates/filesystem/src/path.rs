@@ -29,8 +29,8 @@ impl<'lua> mlua::FromLua<'lua> for Path {
                 Ok(Path(PathBuf::from(&string)))
             }
             LuaValue::UserData(u) => {
-                let p = u.take::<Path>().map_err(mlua::Error::external);
-                p
+                let p = u.borrow::<Path>().map_err(mlua::Error::external)?.to_owned();
+                Ok(p)
             }
             other => Err(mlua::Error::external(format!(
                 "Wrong type. Expected string or Path, but got: {}",
