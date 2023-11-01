@@ -73,15 +73,18 @@ class Step(object):
 
 
 class RunStep(Step):
-    def __init__(self, name, run, shell="bash", env=None):
+    def __init__(self, name, run, shell="bash", env=None, condition=None):
         self.name = name
         self.run = run
         self.shell = shell
         self.env = env
+        self.condition = condition
 
     def render(self, f, depth=0):
         indent = "  " * depth
         f.write(f"{indent}- name: {yv(self.name)}\n")
+        if self.condition:
+            f.write(f"{indent}  if: {self.condition}\n")
         if self.env:
             f.write(f"{indent}  env:\n")
             keys = list(self.env.keys())
@@ -98,17 +101,20 @@ class RunStep(Step):
 
 
 class ActionStep(Step):
-    def __init__(self, name, action, params=None, env=None, condition=None):
+    def __init__(self, name, action, params=None, env=None, condition=None, id=None):
         self.name = name
         self.action = action
         self.params = params
         self.env = env
         self.condition = condition
+        self.id = id
 
     def render(self, f, depth=0):
         indent = "  " * depth
         f.write(f"{indent}- name: {yv(self.name)}\n")
         f.write(f"{indent}  uses: {self.action}\n")
+        if self.id:
+            f.write(f"{indent}  id: {self.id}\n")
         if self.condition:
             f.write(f"{indent}  if: {self.condition}\n")
         if self.params:
@@ -122,14 +128,14 @@ class ActionStep(Step):
 
 
 class CacheStep(ActionStep):
-    def __init__(self, name, path, key):
+    def __init__(self, name, path, key, id=None):
         super().__init__(
-            name, action="actions/cache@v3", params={"path": path, "key": key}
+            name, action="actions/cache@v3", params={"path": path, "key": key}, id=id
         )
 
 
-class CacheRustStep(ActionStep):
-    def __init__(self, name, key):
+class SccacheStep(ActionStep):
+    def __init__(self, name):
         super().__init__(name, action="mozilla-actions/sccache-action@v0.0.3")
 
 
@@ -390,9 +396,19 @@ rustup default {toolchain}
             ]
         if cache:
             steps += [
-                CacheRustStep(
-                    name="Cache cargo",
-                    key=f"{key_prefix}-cargo",
+                SccacheStep(name="Compile with sccache"),
+                # Cache vendored dependecies
+                CacheStep(
+                    name="Cache Rust Dependencies",
+                    path="vendor\n.cargo/config",
+                    key="cargo-deps-${{ hashFiles('**/Cargo.lock') }}",
+                    id="cache-cargo-vendor",
+                ),
+                # Vendor dependencies
+                RunStep(
+                    name="Vendor dependecies",
+                    condition="steps.cache-cargo-vendor.outputs.cache-hit != 'true'",
+                    run="cargo vendor --locked --versioned-dirs >> .cargo/config",
                 ),
             ]
         return steps
@@ -850,7 +866,7 @@ cargo build --all --release""",
                     # This holds the xcb bits
                     RunStep(
                         "Install tar",
-                        "zypper install -yl tar",
+                        "zypper install -yl tar gzip",
                     ),
                 ]
 
