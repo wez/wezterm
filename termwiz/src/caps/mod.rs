@@ -219,7 +219,9 @@ impl Capabilities {
                         if has_true_color {
                             ColorLevel::TrueColor
                         } else if let Some(cap::MaxColors(n)) = db.get::<cap::MaxColors>() {
-                            if n >= 256 {
+                            if n >= 16777216 {
+                                ColorLevel::TrueColor
+                            } else if n >= 256 {
                                 ColorLevel::TwoFiftySix
                             } else {
                                 ColorLevel::Sixteen
