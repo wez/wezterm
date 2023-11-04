@@ -148,8 +148,8 @@ on most Linux systems.
 |Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
 |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|[{{ fedora37_rpm_nightly_asset }}]({{ fedora37_rpm_nightly }})|
 |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|[{{ fedora38_rpm_nightly_asset }}]({{ fedora38_rpm_nightly }})|
-|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }})|[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
-|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }})|[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
+|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }})|Use COPR instead|
+|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }})|Use COPR instead|
 
 To download and install from the CLI you can use something like this, which
 shows how to install the Fedora 37 package:
