@@ -46,7 +46,7 @@ _arguments "${_arguments_options[@]}" \
 '--attach[When used with --domain, if the domain already has running panes, wezterm will simply attach and will NOT spawn the specified PROG. If you omit --attach when using --domain, wezterm will attach AND then spawn PROG]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell. \[aliases\: -e\]:_cmdambivalent' \
 && ret=0
 ;;
 (ssh)
@@ -611,7 +611,7 @@ esac
 (( $+functions[_wezterm_commands] )) ||
 _wezterm_commands() {
     local commands; commands=(
-'start:Start the GUI, optionally running an alternative program' \
+'start:Start the GUI, optionally running an alternative program \[aliases\: -e\]' \
 'ssh:Establish an ssh session' \
 'serial:Open a serial port' \
 'connect:Connect to wezterm multiplexer' \
@@ -818,7 +818,7 @@ _wezterm__cli__help__help_commands() {
 (( $+functions[_wezterm__help_commands] )) ||
 _wezterm__help_commands() {
     local commands; commands=(
-'start:Start the GUI, optionally running an alternative program' \
+'start:Start the GUI, optionally running an alternative program \[aliases\: -e\]' \
 'ssh:Establish an ssh session' \
 'serial:Open a serial port' \
 'connect:Connect to wezterm multiplexer' \
