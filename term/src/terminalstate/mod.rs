@@ -546,7 +546,7 @@ impl TerminalState {
             last_mouse_move: None,
             cursor_visible: true,
             g0_charset: CharSet::Ascii,
-            g1_charset: CharSet::DecLineDrawing,
+            g1_charset: CharSet::Ascii,
             shift_out: false,
             newline_mode: false,
             current_mouse_buttons: vec![],
@@ -1253,6 +1253,9 @@ impl TerminalState {
                 self.reverse_video_mode = false;
                 self.bidi_enabled.take();
                 self.bidi_hint.take();
+
+                self.g0_charset = CharSet::Ascii;
+                self.g1_charset = CharSet::Ascii;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -2581,7 +2584,7 @@ impl TerminalState {
                 pen: Default::default(),
                 dec_origin_mode: false,
                 g0_charset: CharSet::Ascii,
-                g1_charset: CharSet::DecLineDrawing,
+                g1_charset: CharSet::Ascii,
             });
         debug!(
             "restore cursor {:?} is_alt={}",
