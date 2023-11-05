@@ -98,7 +98,7 @@ pub struct StartCommand {
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
-    /// as if it were a login shell.
+    /// as if it were a login shell. [aliases: -e]
     #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     pub prog: Vec<OsString>,
 }

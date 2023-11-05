@@ -91,7 +91,7 @@ impl CompletionGenerator for Shell {
 enum SubCommand {
     #[command(
         name = "start",
-        about = "Start the GUI, optionally running an alternative program"
+        about = "Start the GUI, optionally running an alternative program [aliases: -e]"
     )]
     Start(StartCommand),
 
