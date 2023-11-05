@@ -109,6 +109,9 @@ enum SubCommand {
     )]
     Start(StartCommand),
 
+    #[command(short_flag_alias = 'e', hide = true)]
+    BlockingStart(StartCommand),
+
     #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
@@ -1161,6 +1164,16 @@ fn run() -> anyhow::Result<()> {
     let config = config::configuration();
 
     let sub = match opts.cmd.as_ref().cloned() {
+        Some(SubCommand::BlockingStart(start)) => {
+            // Act as if the normal start subcommand was used,
+            // except that we always start a new instance.
+            // This is needed for compatibility, because many tools assume
+            // that "$TERMINAL -e $COMMAND" blocks until the command finished.
+            SubCommand::Start(StartCommand {
+                always_new_process: true,
+                ..start
+            })
+        }
         Some(sub) => sub,
         None => {
             // Need to fake an argv0
@@ -1184,6 +1197,7 @@ fn run() -> anyhow::Result<()> {
             wezterm_blob_leases::clear_storage();
             res
         }
+        SubCommand::BlockingStart(_) => unreachable!(),
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, serial),
         SubCommand::Connect(connect) => run_terminal_gui(
