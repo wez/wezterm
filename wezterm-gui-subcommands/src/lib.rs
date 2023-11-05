@@ -26,7 +26,6 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
 
 #[derive(Debug, Parser, Default, Clone)]
 #[command(trailing_var_arg = true)]
-#[command(visible_short_flag_alias = 'e')]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
