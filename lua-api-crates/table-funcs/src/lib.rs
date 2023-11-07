@@ -72,7 +72,7 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
             LuaValue::Table(tbl) => {
                 let tbl_as_vec = tbl
                     .sequence_values()
-                    .filter_map(|x| x.map_err(mlua::Error::external).ok())
+                    .filter_map(|x| x.ok())
                     .collect();
                 let flat = flatten(lua, tbl_as_vec)?;
                 for j in flat {
