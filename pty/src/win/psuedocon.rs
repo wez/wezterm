@@ -141,8 +141,10 @@ impl PsuedoCon {
                 ptr::null_mut(),
                 0,
                 EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
-                ptr::null_mut(),
-                ptr::null(),
+                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
+                cwd.as_ref()
+                .map(|c| c.as_slice().as_ptr())
+                .unwrap_or(ptr::null()),
                 &mut si.StartupInfo,
                 &mut pi,
             );
@@ -171,7 +173,7 @@ impl PsuedoCon {
         })
     }
 
-    pub fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<WinChild> {
+    pub fn spawn_command(&self, cmd: CommandBuilder, token: Option<HANDLE>) -> anyhow::Result<WinChild> {
         let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
         si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
         // Explicitly set the stdio handles as invalid handles otherwise
@@ -195,9 +197,26 @@ impl PsuedoCon {
         let cmd_os = OsString::from_wide(&cmdline);
 
         let cwd = cmd.current_directory();
-
-        let res = unsafe {
-            CreateProcessW(
+        let mut format_string = "CreateProcessW `{:?}` in cwd `{:?}` failed: {}"; 
+        let res = match token {
+            Some(token) => unsafe { 
+                format_string = "CreateProcessAsUserW `{:?}` in cwd `{:?}` failed: {}";
+                CreateProcessAsUserW(
+                token,
+                exe.as_mut_slice().as_mut_ptr(),
+                cmdline.as_mut_slice().as_mut_ptr(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                0,
+                EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
+                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
+                cwd.as_ref()
+                .map(|c| c.as_slice().as_ptr())
+                .unwrap_or(ptr::null()),
+                &mut si.StartupInfo,
+                &mut pi)
+            }
+            _ => unsafe { CreateProcessW(
                 exe.as_mut_slice().as_mut_ptr(),
                 cmdline.as_mut_slice().as_mut_ptr(),
                 ptr::null_mut(),
@@ -209,17 +228,29 @@ impl PsuedoCon {
                     .map(|c| c.as_slice().as_ptr())
                     .unwrap_or(ptr::null()),
                 &mut si.StartupInfo,
-                &mut pi,
-            )
+                &mut pi)
+            }
         };
         if res == 0 {
             let err = IoError::last_os_error();
-            let msg = format!(
-                "CreateProcessW `{:?}` in cwd `{:?}` failed: {}",
-                cmd_os,
-                cwd.as_ref().map(|c| OsString::from_wide(c)),
-                err
-            );
+            let msg = match token {
+                Some(token) => {
+                    format!(
+                        "CreateProcessAsUserW `{:?}` in cwd `{:?}` failed: {}",
+                        cmd_os,
+                        cwd.as_ref().map(|c| OsString::from_wide(c)),
+                        err
+                    )
+                }
+                _ => {
+                    format!(
+                        "CreateProcessW`{:?}` in cwd `{:?}` failed: {}",
+                        cmd_os,
+                        cwd.as_ref().map(|c| OsString::from_wide(c)),
+                        err
+                    )
+                }
+            };
             log::error!("{}", msg);
             bail!("{}", msg);
         }

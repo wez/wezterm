@@ -21,6 +21,8 @@ use std::io::{Read, Result as IoResult, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+#[cfg(windows)]
+use winapi::um::winnt::HANDLE;
 
 type Handle = Arc<Mutex<SystemPort>>;
 
@@ -107,6 +109,7 @@ struct Slave {
 }
 
 impl SlavePty for Slave {
+    #[cfg(unix)]
     fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         ensure!(
             cmd.is_default_prog(),
@@ -116,16 +119,9 @@ impl SlavePty for Slave {
             port: Arc::clone(&self.port),
         }))
     }
-        /// Spawns a command in the security context of the primary token
     #[cfg(windows)]
-    fn spawn_command_as_user(&self, cmd: CommandBuilder, h_token: &winapi::um::winnt::HANDLE) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
-        ensure!(
-            cmd.is_default_prog(),
-            "can only use default prog commands with serial tty implementations"
-        );
-        Ok(Box::new(SerialChild {
-            port: Arc::clone(&self.port),
-        }))
+    fn spawn_command(&self, _cmd: CommandBuilder, token: Option<HANDLE>) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
+        anyhow::bail!("serial tty not supported on windows");
     }
 }
 
