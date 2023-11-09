@@ -700,6 +700,8 @@ impl<'a> Performer<'a> {
                 self.accumulating_title.take();
 
                 self.screen.full_reset();
+                self.screen.activate_alt_screen(seqno);
+                self.erase_in_display(EraseInDisplay::EraseDisplay);
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
