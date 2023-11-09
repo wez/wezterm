@@ -168,7 +168,7 @@ pub trait SlavePty {
     fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send + Sync>, Error>;
     /// Spawns a command specified by the provided CommandBuilder. 
     /// Accepts an Option<HANDLE> to a primary/impersonation token to spawn the process in the context of a different user. 
-    /// The calling process must have the SeIncreaseQuotaPrivilege and SeAssignPrimaryTokenPrivilege privilege to use this feature.
+    /// The calling process must have the SeIncreaseQuotaPrivilege and SeAssignPrimaryTokenPrivilege privilege enabled to use this feature.
     #[cfg(windows)]
     fn spawn_command(
         &self,
