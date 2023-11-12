@@ -1979,7 +1979,17 @@ impl TerminalState {
                 checksum += u16::from(ch as u8);
             }
         }
-        checksum
+
+        // Treat uninitialized cells as spaces.
+        // The concept of uninitialized cells in wezterm is not the same as that on VT520 or that
+        // on xterm, so, to prevent a lot of noise in esctest, treat them as spaces, at least when
+        // asking for the checksum of a single cell (which is what esctest does).
+        // See: https://github.com/wez/wezterm/pull/4565
+        if checksum == 0 {
+            32u16
+        } else {
+            checksum
+        }
     }
 
     fn perform_csi_window(&mut self, window: Window) {
