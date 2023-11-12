@@ -45,7 +45,6 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::path::PathBuf;
-use std::convert::TryFrom;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
@@ -746,6 +745,7 @@ impl WindowOps for Window {
         });
     }
 
+    #[cfg(target_os = "macos")]
     fn set_level(&self, level: WindowLevel) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_level(level as i64);
@@ -753,9 +753,10 @@ impl WindowOps for Window {
         });
     }
 
+    #[cfg(target_os = "macos")]
     fn level(&self) -> Future<WindowLevel> {
         Connection::with_window_inner(self.id, |inner| {
-            WindowLevel::try_from(inner.level())
+            Ok(inner.level().into())
         })
     }
 
@@ -1084,32 +1085,19 @@ impl WindowInner {
 }
 
 /// @see https://developer.apple.com/documentation/appkit/nswindow/level
+
+#[derive(Debug)]
 pub enum WindowLevel {
-    Floating = 5,
-    MainMenu = 8,
-    ModalPanel = 10,
-    Normal = 4,
-    PopUpMenu = 11,
-    ScreenSaver = 13,
-    StatusBar = 9,
-    TornOffMenuOrSubmenu = 6
+    Normal = 0,
+    Floating = 22,
 }
 
-
-impl TryFrom<i64> for WindowLevel {
-   type Error = anyhow::Error;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
+impl From<i64> for WindowLevel {
+    fn from(value: i64) -> Self {
        match value {
-           int_value if int_value == Self::Floating as i64 => Ok(Self::Floating),
-          int_value if int_value == Self::Normal as i64 => Ok(Self::Normal),
-           int_value if int_value == Self::MainMenu as i64 => Ok(Self::MainMenu),
-           int_value if int_value == Self::ModalPanel as i64 => Ok(Self::ModalPanel),
-           int_value if int_value == Self::PopUpMenu as i64 => Ok(Self::PopUpMenu),
-           int_value if int_value == Self::ScreenSaver as i64 => Ok(Self::ScreenSaver),
-           int_value if int_value == Self::StatusBar as i64 => Ok(Self::StatusBar),
-           int_value if int_value == Self::TornOffMenuOrSubmenu as i64 => Ok(Self::TornOffMenuOrSubmenu),
-           _ => Err(anyhow::Error::msg(format!("Invalid integer value {value}"))),
+           int_value if int_value == Self::Floating as i64 => Self::Floating,
+           int_value if int_value == Self::Normal as i64 => Self::Normal,
+           _ => Self::Normal
        }
     }
 }
