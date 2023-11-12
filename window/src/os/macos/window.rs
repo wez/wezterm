@@ -755,9 +755,7 @@ impl WindowOps for Window {
 
     #[cfg(target_os = "macos")]
     fn level(&self) -> Future<WindowLevel> {
-        Connection::with_window_inner(self.id, |inner| {
-            Ok(inner.level().into())
-        })
+        Connection::with_window_inner(self.id, |inner| Ok(inner.level().into()))
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {
@@ -1094,11 +1092,11 @@ pub enum WindowLevel {
 
 impl From<i64> for WindowLevel {
     fn from(value: i64) -> Self {
-       match value {
-           int_value if int_value == Self::Floating as i64 => Self::Floating,
-           int_value if int_value == Self::Normal as i64 => Self::Normal,
-           _ => Self::Normal
-       }
+        match value {
+            int_value if int_value == Self::Floating as i64 => Self::Floating,
+            int_value if int_value == Self::Normal as i64 => Self::Normal,
+            _ => Self::Normal,
+        }
     }
 }
 
@@ -1183,13 +1181,13 @@ impl WindowInner {
     }
 
     fn set_level(&mut self, level: i64) {
-        unsafe { NSWindow::setLevel_(*self.window, level); }
+        unsafe {
+            NSWindow::setLevel_(*self.window, level);
+        }
     }
 
     fn level(&self) -> i64 {
-        unsafe {
-            NSWindow::level(*self.window)
-        }
+        unsafe { NSWindow::level(*self.window) }
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {

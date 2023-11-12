@@ -2516,15 +2516,18 @@ impl TermWindow {
                         Ok(level) => {
                             match level {
                                 WindowLevel::Floating => window.set_level(WindowLevel::Normal),
-                                _ => window.set_level(WindowLevel::Floating)
+                                _ => window.set_level(WindowLevel::Floating),
                             };
                         }
                         Err(e) => {
-                            log::error!("an error has occurred while retriving current window level: {:?}", e);
+                            log::error!(
+                                "an error has occurred while retriving current window level: {:?}",
+                                e
+                            );
                         }
                     }
                 })
-                    .detach();
+                .detach();
             }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
