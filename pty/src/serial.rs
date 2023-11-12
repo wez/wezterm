@@ -109,7 +109,7 @@ struct Slave {
 }
 
 impl SlavePty for Slave {
-    #[cfg(unix)]
+    #[cfg(not(windows))]
     fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         ensure!(
             cmd.is_default_prog(),

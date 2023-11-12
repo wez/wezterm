@@ -164,7 +164,7 @@ impl_downcast!(ChildKiller);
 /// Can be used to spawn processes into the pty.
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
-    #[cfg(unix)]
+    #[cfg(not(windows))]
     fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send + Sync>, Error>;
     /// Spawns a command specified by the provided CommandBuilder. 
     /// Accepts an Option<HANDLE> to a primary/impersonation token to spawn the process in the context of a different user. 
