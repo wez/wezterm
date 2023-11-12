@@ -2513,11 +2513,15 @@ impl TerminalState {
                     })) as u32,
                 );
                 let col = OneBased::from_zero_based(
-                    (self.cursor.x.saturating_sub(if self.dec_origin_mode {
-                        self.left_and_right_margins.start
-                    } else {
-                        0
-                    })) as u32,
+                    (self
+                        .cursor
+                        .x
+                        .min(self.screen().physical_cols - 1)
+                        .saturating_sub(if self.dec_origin_mode {
+                            self.left_and_right_margins.start
+                        } else {
+                            0
+                        })) as u32,
                 );
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
