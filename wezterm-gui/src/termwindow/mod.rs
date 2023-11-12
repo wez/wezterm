@@ -2507,15 +2507,21 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
+            #[cfg(target_os = "macos")]
             ToggleFloatingWindow => {
                 let window = self.window.clone().unwrap();
 
                 promise::spawn::spawn(async move {
-                    if let Ok(level) = window.level().await {
-                        match level {
-                            WindowLevel::Floating => window.set_level(WindowLevel::Normal),
-                            _ => window.set_level(WindowLevel::Floating)
-                        };
+                    match window.level().await {
+                        Ok(level) => {
+                            match level {
+                                WindowLevel::Floating => window.set_level(WindowLevel::Normal),
+                                _ => window.set_level(WindowLevel::Floating)
+                            };
+                        }
+                        Err(e) => {
+                            log::error!("an error has occurred while retriving current window level: {:?}", e);
+                        }
                     }
                 })
                     .detach();
