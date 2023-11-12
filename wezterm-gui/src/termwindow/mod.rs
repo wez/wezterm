@@ -2507,6 +2507,19 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
+            ToggleFloatingWindow => {
+                let window = self.window.clone().unwrap();
+
+                promise::spawn::spawn(async move {
+                    if let Ok(level) = window.level().await {
+                        match level {
+                            WindowLevel::Floating => window.set_level(WindowLevel::Normal),
+                            _ => window.set_level(WindowLevel::Floating)
+                        };
+                    }
+                })
+                    .detach();
+            }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);

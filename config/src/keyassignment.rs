@@ -505,6 +505,7 @@ pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
+    ToggleFloatingWindow,
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
         text: String,

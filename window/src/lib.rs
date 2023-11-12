@@ -294,6 +294,12 @@ pub trait WindowOps {
     /// Set some text in the clipboard
     fn set_clipboard(&self, clipboard: Clipboard, text: String);
 
+    /// Set window level (macos only!)
+    fn set_level(&self, level: WindowLevel);
+
+    /// Get window level (macos only!)
+    fn level(&self) -> Future<WindowLevel>;
+
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar
     /// and/or in the task manager/task switcher

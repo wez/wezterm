@@ -681,6 +681,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["View"],
             icon: Some("md_fullscreen"),
         },
+        ToggleFloatingWindow => CommandDef {
+            brief: "Toggle floating window".into(),
+            doc: "Toggle between floating and normal window mode".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window"],
+            icon: None,
+        },
         Hide => CommandDef {
             brief: "Hide/Minimize Window".into(),
             doc: "Hides/Mimimizes the current window".into(),
