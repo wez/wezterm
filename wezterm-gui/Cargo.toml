@@ -53,7 +53,7 @@ finl_unicode = "1.2"
 frecency = { path = "../frecency" }
 futures = "0.3"
 fuzzy-matcher = "0.3"
-hdrhistogram = "7.1"
+hdrhistogram = "7.5"
 http_req = "0.10"
 image = "0.24.6"
 lazy_static = "1.4"
