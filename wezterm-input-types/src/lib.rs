@@ -495,6 +495,8 @@ bitflags! {
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
         const ENHANCED_KEY = 1<<12;
+        const HYPER = 1<<13;
+        const META = 1<<14;
     }
 }
 
@@ -516,6 +518,10 @@ impl TryFrom<String> for Modifiers {
                 mods |= Modifiers::CTRL;
             } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
                 mods |= Modifiers::SUPER;
+            } else if ele == "META" {
+                mods |= Modifiers::META;
+            } else if ele == "HYPER" {
+                mods |= Modifiers::HYPER;
             } else if ele == "LEADER" {
                 mods |= Modifiers::LEADER;
             } else if ele == "NONE" || ele == "" {
@@ -1674,6 +1680,12 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
+        if raw_modifiers.contains(Modifiers::HYPER) {
+            modifiers |= 16;
+        }
+        if raw_modifiers.contains(Modifiers::META) {
+            modifiers |= 32;
+        }
         if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
             modifiers |= 64;
         }
@@ -1808,31 +1820,32 @@ impl KeyEvent {
                     *shifted_key
                 };
 
-                if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                let use_legacy = is_legacy_key
                     && event_type.is_empty()
-                    && is_legacy_key
-                    && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
-                        && (self.modifiers.contains(Modifiers::CTRL)
-                            || self.modifiers.contains(Modifiers::ALT)))
-                {
-                    use_legacy = true;
-                }
+                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                    && !flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES);
 
                 if use_legacy {
                     // Legacy text key
+                    // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-text-keys
+
                     let mut output = String::new();
                     if self.modifiers.contains(Modifiers::ALT) {
                         output.push('\x1b');
                     }
+
                     if self.modifiers.contains(Modifiers::CTRL) {
                         csi_u_encode(
                             &mut output,
-                            shifted_key.to_ascii_uppercase(),
+                            shifted_key.to_ascii_uppercase(), // Is this to uppercase intended?
                             self.modifiers,
                         );
+                    } else if self.modifiers.contains(Modifiers::SHIFT) {
+                        output.push(shifted_key.to_ascii_uppercase());
                     } else {
                         output.push(shifted_key);
                     }
+
                     return output;
                 }
 
