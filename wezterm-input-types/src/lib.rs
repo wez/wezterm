@@ -1840,7 +1840,7 @@ impl KeyEvent {
                     if self.modifiers.contains(Modifiers::CTRL) {
                         csi_u_encode(
                             &mut output,
-                            shifted_key.to_ascii_uppercase(), // Is this to uppercase intended?
+                            shifted_key.to_ascii_uppercase(),
                             self.modifiers,
                         );
                     } else {
@@ -3066,6 +3066,56 @@ mod test {
             )
             .encode_kitty(flags),
             "".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_4436() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES;
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('q'),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "q".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('q'),
+                modifiers: Modifiers::SUPER,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "q".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('q'),
+                modifiers: Modifiers::META,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "q".to_string()
         );
     }
 }
