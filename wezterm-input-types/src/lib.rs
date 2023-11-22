@@ -1825,9 +1825,9 @@ impl KeyEvent {
                     && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
                         && (self.modifiers.contains(Modifiers::CTRL)
                             || self.modifiers.contains(Modifiers::ALT)))
-                    && !self.modifiers.contains(Modifiers::SUPER)
-                    && !self.modifiers.contains(Modifiers::META)
-                    && !self.modifiers.contains(Modifiers::HYPER);
+                    && !self
+                        .modifiers
+                        .intersects(Modifiers::SUPER | Modifiers::META | Modifiers::HYPER);
 
                 if use_legacy {
                     // Legacy text key
