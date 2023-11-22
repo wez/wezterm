@@ -518,8 +518,6 @@ impl TryFrom<String> for Modifiers {
                 mods |= Modifiers::CTRL;
             } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
                 mods |= Modifiers::SUPER;
-            } else if ele == "META" {
-                mods |= Modifiers::META;
             } else if ele == "HYPER" {
                 mods |= Modifiers::HYPER;
             } else if ele == "LEADER" {
