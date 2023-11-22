@@ -1821,8 +1821,8 @@ impl KeyEvent {
 
                 let use_legacy = is_legacy_key
                     && event_type.is_empty()
-                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
-                    && !flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES);
+                    && !flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
+                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS);
 
                 if use_legacy {
                     // Legacy text key
