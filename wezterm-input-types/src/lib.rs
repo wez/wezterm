@@ -3100,7 +3100,7 @@ mod test {
                 win32_uni_char: None,
             }
             .encode_kitty(flags),
-            "q".to_string()
+            "\u{1b}[113;9u".to_string()
         );
 
         assert_eq!(
@@ -3115,7 +3115,7 @@ mod test {
                 win32_uni_char: None,
             }
             .encode_kitty(flags),
-            "q".to_string()
+            "\u{1b}[113;33u".to_string()
         );
     }
 }
