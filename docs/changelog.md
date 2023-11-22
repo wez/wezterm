@@ -126,6 +126,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: Leak of NSWindow and NSView objects. Thanks to @0f-0b! #4457
 * Initial G1 state is non-conformant. Thanks to @ninjalj! #4534 #3962
 * Make RIS also clear the alternate screen. Thanks to @ninjalj! #4563
+* DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
 
 #### Updated
 * Bundled harfbuzz to 8.2.1
