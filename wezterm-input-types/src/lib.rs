@@ -1821,13 +1821,17 @@ impl KeyEvent {
 
                 let use_legacy = is_legacy_key
                     && event_type.is_empty()
-                    && !flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
-                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS);
+                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                    && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
+                        && (self.modifiers.contains(Modifiers::CTRL)
+                            || self.modifiers.contains(Modifiers::ALT)))
+                    && !self.modifiers.contains(Modifiers::SUPER)
+                    && !self.modifiers.contains(Modifiers::META)
+                    && !self.modifiers.contains(Modifiers::HYPER);
 
                 if use_legacy {
                     // Legacy text key
                     // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-text-keys
-
                     let mut output = String::new();
                     if self.modifiers.contains(Modifiers::ALT) {
                         output.push('\x1b');
