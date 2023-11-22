@@ -1819,9 +1819,9 @@ impl KeyEvent {
                     *shifted_key
                 };
 
-                let use_legacy = is_legacy_key
+                let use_legacy = !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
                     && event_type.is_empty()
-                    && !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                    && is_legacy_key
                     && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
                         && (self.modifiers.contains(Modifiers::CTRL)
                             || self.modifiers.contains(Modifiers::ALT)))
