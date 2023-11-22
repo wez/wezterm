@@ -127,6 +127,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Initial G1 state is non-conformant. Thanks to @ninjalj! #4534 #3962
 * Make RIS also clear the alternate screen. Thanks to @ninjalj! #4563
 * DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
+* Clamp cursor position reported by CPR. Thanks to @ninjalj! #4564
 
 #### Updated
 * Bundled harfbuzz to 8.2.1
