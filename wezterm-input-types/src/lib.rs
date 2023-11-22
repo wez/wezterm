@@ -1812,7 +1812,6 @@ impl KeyEvent {
                 format!("\x1b[{c};{modifiers}{event_type}~")
             }
             Char(shifted_key) => {
-                let mut use_legacy = false;
                 let shifted_key = if *shifted_key == '\x08' {
                     // Backspace is really VERASE -> ASCII DEL
                     '\x7f'
@@ -1840,8 +1839,6 @@ impl KeyEvent {
                             shifted_key.to_ascii_uppercase(), // Is this to uppercase intended?
                             self.modifiers,
                         );
-                    } else if self.modifiers.contains(Modifiers::SHIFT) {
-                        output.push(shifted_key.to_ascii_uppercase());
                     } else {
                         output.push(shifted_key);
                     }
