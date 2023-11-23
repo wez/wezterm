@@ -148,9 +148,7 @@ pub struct Config {
     #[dynamic(default = "default_command_palette_font_size")]
     pub command_palette_font_size: f64,
 
-    #[dynamic(default = "default_command_palette_rows")]
-    pub command_palette_rows: usize,
-
+    pub command_palette_rows: Option<usize>,
     #[dynamic(default = "default_command_palette_fg_color")]
     pub command_palette_fg_color: RgbaColor,
 
@@ -1571,10 +1569,6 @@ fn default_char_select_bg_color() -> RgbaColor {
 
 fn default_command_palette_font_size() -> f64 {
     14.0
-}
-
-fn default_command_palette_rows() -> usize {
-    0
 }
 
 fn default_command_palette_fg_color() -> RgbaColor {

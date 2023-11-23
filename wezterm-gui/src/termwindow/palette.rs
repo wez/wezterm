@@ -667,10 +667,8 @@ impl Modal for CommandPalette {
         let mut max_rows_on_screen = ((term_window.dimensions.pixel_height * 8 / 10)
             / metrics.cell_size.height as usize)
             - 2;
-        if 0 < term_window.config.command_palette_rows
-            && term_window.config.command_palette_rows < max_rows_on_screen
-        {
-            max_rows_on_screen = term_window.config.command_palette_rows;
+        if let Some(size) = term_window.config.command_palette_rows {
+            max_rows_on_screen = max_rows_on_screen.min(size);
         }
         *self.max_rows_on_screen.borrow_mut() = max_rows_on_screen;
 
