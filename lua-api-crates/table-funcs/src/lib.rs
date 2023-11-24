@@ -70,10 +70,7 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
     for item in arrays {
         match item {
             LuaValue::Table(tbl) => {
-                let tbl_as_vec = tbl
-                    .sequence_values()
-                    .filter_map(|x| x.ok())
-                    .collect();
+                let tbl_as_vec = tbl.sequence_values().filter_map(|x| x.ok()).collect();
                 let flat = flatten(lua, tbl_as_vec)?;
                 for j in flat {
                     flat_vec.push(j);
