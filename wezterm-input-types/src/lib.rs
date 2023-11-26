@@ -495,8 +495,6 @@ bitflags! {
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
         const ENHANCED_KEY = 1<<12;
-        const HYPER = 1<<13;
-        const META = 1<<14;
     }
 }
 
@@ -518,8 +516,6 @@ impl TryFrom<String> for Modifiers {
                 mods |= Modifiers::CTRL;
             } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
                 mods |= Modifiers::SUPER;
-            } else if ele == "HYPER" {
-                mods |= Modifiers::HYPER;
             } else if ele == "LEADER" {
                 mods |= Modifiers::LEADER;
             } else if ele == "NONE" || ele == "" {
@@ -1678,12 +1674,9 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
-        if raw_modifiers.contains(Modifiers::HYPER) {
-            modifiers |= 16;
-        }
-        if raw_modifiers.contains(Modifiers::META) {
-            modifiers |= 32;
-        }
+        // TODO: Hyper and Meta are not handled yet.
+        // We should somehow detect this?
+        // See: https://github.com/wez/wezterm/pull/4605#issuecomment-1823604708
         if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
             modifiers |= 64;
         }
@@ -1823,9 +1816,9 @@ impl KeyEvent {
                     && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
                         && (self.modifiers.contains(Modifiers::CTRL)
                             || self.modifiers.contains(Modifiers::ALT)))
-                    && !self
-                        .modifiers
-                        .intersects(Modifiers::SUPER | Modifiers::META | Modifiers::HYPER);
+                    && !self.modifiers.intersects(
+                        Modifiers::SUPER, /* TODO: Hyper and Meta should be added here. */
+                    );
 
                 if use_legacy {
                     // Legacy text key
@@ -3088,7 +3081,7 @@ mod test {
 
         assert_eq!(
             KeyEvent {
-                key: KeyCode::Char('q'),
+                key: KeyCode::Char('f'),
                 modifiers: Modifiers::SUPER,
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
@@ -3098,13 +3091,13 @@ mod test {
                 win32_uni_char: None,
             }
             .encode_kitty(flags),
-            "\u{1b}[113;9u".to_string()
+            "\u{1b}[102;9u".to_string()
         );
 
         assert_eq!(
             KeyEvent {
-                key: KeyCode::Char('q'),
-                modifiers: Modifiers::META,
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::SUPER | Modifiers::SHIFT,
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
@@ -3113,7 +3106,22 @@ mod test {
                 win32_uni_char: None,
             }
             .encode_kitty(flags),
-            "\u{1b}[113;33u".to_string()
+            "\u{1b}[102;10u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::SUPER | Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[102;14u".to_string()
         );
     }
 }
