@@ -745,7 +745,6 @@ impl WindowOps for Window {
         });
     }
 
-    #[cfg(target_os = "macos")]
     fn set_level(&self, level: WindowLevel) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_level(level as i64);
@@ -753,10 +752,6 @@ impl WindowOps for Window {
         });
     }
 
-    #[cfg(target_os = "macos")]
-    fn level(&self) -> Future<WindowLevel> {
-        Connection::with_window_inner(self.id, |inner| Ok(inner.level().into()))
-    }
 
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.id, move |inner| {
@@ -1184,10 +1179,6 @@ impl WindowInner {
         unsafe {
             NSWindow::setLevel_(*self.window, level);
         }
-    }
-
-    fn level(&self) -> i64 {
-        unsafe { NSWindow::level(*self.window) }
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
