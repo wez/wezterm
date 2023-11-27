@@ -505,7 +505,6 @@ pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
-    #[cfg(target_os = "macos")]
     ToggleFloatingWindow,
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
