@@ -294,9 +294,10 @@ pub trait WindowOps {
     /// Set some text in the clipboard
     fn set_clipboard(&self, clipboard: Clipboard, text: String);
 
-    /// Set window level (macos only!)
-    fn set_level(&self, level: WindowLevel);
-
+    /// Set window level. Depending on the environment and user preferences
+    fn set_window_level(&self, level: WindowLevel) {
+        // default implementation does nothing
+    }
 
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar
