@@ -2024,7 +2024,6 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ScrollToBottom,
         // ----------------- Window
         ToggleFullScreen,
-        #[cfg(target_os = "macos")]
         ToggleFloatingWindow,
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),

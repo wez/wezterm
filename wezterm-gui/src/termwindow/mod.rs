@@ -2514,8 +2514,8 @@ impl TermWindow {
                     match window.level().await {
                         Ok(level) => {
                             match level {
-                                WindowLevel::Floating => window.set_level(WindowLevel::Normal),
-                                _ => window.set_level(WindowLevel::Floating),
+                                WindowLevel::AlwaysOnTop => window.set_level(WindowLevel::Normal),
+                                _ => window.set_level(WindowLevel::AlwaysOnTop),
                             };
                         }
                         Err(e) => {
