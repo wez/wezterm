@@ -2507,7 +2507,6 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
-            #[cfg(target_os = "macos")]
             ToggleFloatingWindow => {
                 let window = self.window.clone().unwrap();
 

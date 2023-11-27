@@ -745,7 +745,7 @@ impl WindowOps for Window {
         });
     }
 
-    fn set_level(&self, level: WindowLevel) {
+    fn set_window_level(&self, level: WindowLevel) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_level(level as i64);
             Ok(())
@@ -1081,19 +1081,11 @@ impl WindowInner {
 
 #[derive(Debug)]
 pub enum WindowLevel {
+    AlwaysOnBottom = -1,
     Normal = 0,
-    Floating = 22,
+    AlwaysOnTop = 3,
 }
 
-impl From<i64> for WindowLevel {
-    fn from(value: i64) -> Self {
-        match value {
-            int_value if int_value == Self::Floating as i64 => Self::Floating,
-            int_value if int_value == Self::Normal as i64 => Self::Normal,
-            _ => Self::Normal,
-        }
-    }
-}
 
 impl WindowInner {
     fn show(&mut self) {
@@ -1175,9 +1167,13 @@ impl WindowInner {
         }
     }
 
-    fn set_level(&mut self, level: i64) {
+    fn set_level(&mut self, level: WindowLevel) {
         unsafe {
-            NSWindow::setLevel_(*self.window, level);
+            NSWindow::setLevel_(*self.window, match level {
+                WindowLevel::AlwaysOnBottom => -1,
+                WindowLevel::Normal => 0,
+                WindowLevel::AlwaysOnTop => 3,
+            });
         }
     }
 
