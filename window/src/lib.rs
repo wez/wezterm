@@ -295,12 +295,8 @@ pub trait WindowOps {
     fn set_clipboard(&self, clipboard: Clipboard, text: String);
 
     /// Set window level (macos only!)
-    #[cfg(target_os = "macos")]
     fn set_level(&self, level: WindowLevel);
 
-    /// Get window level (macos only!)
-    #[cfg(target_os = "macos")]
-    fn level(&self) -> Future<WindowLevel>;
 
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar
