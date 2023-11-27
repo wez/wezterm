@@ -747,9 +747,15 @@ impl WindowOps for Window {
 
     fn set_window_level(&self, level: WindowLevel) {
         Connection::with_window_inner(self.id, move |inner| {
-            inner.set_level(level as i64);
+            inner.set_window_level(level);
             Ok(())
         });
+    }
+
+    fn level(&self) -> Future<WindowLevel> {
+        Connection::with_window_inner(self.id, move |inner| {
+            Ok(inner.level())
+        })
     }
 
 
@@ -1167,7 +1173,13 @@ impl WindowInner {
         }
     }
 
-    fn set_level(&mut self, level: WindowLevel) {
+    fn level(&self) -> WindowLevel {
+        unsafe {
+            NSWindow::level(*self.window).into()
+        }
+    }
+
+    fn set_window_level(&mut self, level: WindowLevel) {
         unsafe {
             NSWindow::setLevel_(*self.window, match level {
                 WindowLevel::AlwaysOnBottom => -1,
