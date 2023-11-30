@@ -8,7 +8,7 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    Clipboard, WindowLevel, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Size, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
@@ -1077,13 +1077,6 @@ impl WindowInner {
 }
 
 /// @see https://developer.apple.com/documentation/appkit/nswindow/level
-
-#[derive(Debug)]
-pub enum WindowLevel {
-    AlwaysOnBottom = -1,
-    Normal = 0,
-    AlwaysOnTop = 3,
-}
 
 
 impl WindowInner {

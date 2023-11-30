@@ -501,13 +501,20 @@ fn default_fuzzy_description() -> String {
     "Fuzzy matching: ".to_string()
 }
 
+// FIXME: this is so ugly we should use `window::WindowLevel` instead
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+pub enum SetWindowLevelLevel {
+    Normal,
+    AlwaysOnTop,
+    AlwaysOnBottom,
+}
+
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
-    ToggleAlwaysOnTop,
-    ToggleAlwaysOnBottom,
+    SetWindowLevel(SetWindowLevelLevel),
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
         text: String,

@@ -681,20 +681,28 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["View"],
             icon: Some("md_fullscreen"),
         },
-        ToggleAlwaysOnTop => CommandDef {
+        SetWindowLevel(SetWindowLevelLevel::AlwaysOnTop) => CommandDef {
             brief: "Always on Top".into(),
             doc: "Toggles the window between floating and non-floating states to stay on top of other windows.".into(),
             keys: vec![],
             args: &[ArgType::ActiveWindow],
-            menubar: &["Window"],
+            menubar: &["Window", "Level"],
             icon: None,
         },
-        ToggleAlwaysOnBottom => CommandDef {
+        SetWindowLevel(SetWindowLevelLevel::Normal) => CommandDef {
+            brief: "Normal".into(),
+            doc: "Set window level to normal".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Level"],
+            icon: None,
+        },
+        SetWindowLevel(SetWindowLevelLevel::AlwaysOnBottom) => CommandDef {
             brief: "Always on Bottom".into(),
             doc: "Toggles the window to remain behind all other windows.".into(),
             keys: vec![],
             args: &[ArgType::ActiveWindow],
-            menubar: &["Window"],
+            menubar: &["Window", "Level"],
             icon: None,
         },
         Hide => CommandDef {
@@ -2032,8 +2040,11 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ScrollToBottom,
         // ----------------- Window
         ToggleFullScreen,
-        ToggleAlwaysOnTop,
-        ToggleAlwaysOnBottom,
+
+        SetWindowLevel(SetWindowLevelLevel::AlwaysOnBottom), 
+        SetWindowLevel(SetWindowLevelLevel::Normal), 
+        SetWindowLevel(SetWindowLevelLevel::AlwaysOnTop), 
+
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),
         PaneSelect(PaneSelectArguments {
