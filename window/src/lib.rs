@@ -71,6 +71,13 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
+#[derive(Debug)]
+pub enum WindowLevel {
+    AlwaysOnBottom = -1,
+    Normal = 0,
+    AlwaysOnTop = 3,
+}
+
 /// Represents the preferred appearance of the windowing
 /// environment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -30,7 +30,7 @@ use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize,
+    RotationDirection, SpawnCommand, SplitSize, SetWindowLevelLevel,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
@@ -2507,45 +2507,33 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
-            // TODO: check what happens if we enable always on top when is always on bottom
-            ToggleAlwaysOnBottom => {
+            SetWindowLevel(level) => {
                 let window = self.window.clone().unwrap();
                 let is_always_on_top = self.window_state.intersects(WindowState::ALWAYS_ON_TOP);
                 let is_always_on_bottom = self.window_state.intersects(WindowState::ALWAYS_ON_BOTTOM);
 
-                // check if always on top is enabled.
-                // if it is, disable it to prevent impossible state.
                 if is_always_on_top {
                     self.window_state -= WindowState::ALWAYS_ON_TOP;
-                }
+                } 
 
                 if is_always_on_bottom {
-                    window.set_window_level(WindowLevel::Normal);
                     self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
-                } else {
-                    window.set_window_level(WindowLevel::AlwaysOnBottom);
-                    self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                }
+
+                match level {
+                    SetWindowLevelLevel::AlwaysOnTop => {
+                        window.set_window_level(WindowLevel::AlwaysOnTop);
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
+                    }
+                    SetWindowLevelLevel::AlwaysOnBottom => {
+                        window.set_window_level(WindowLevel::AlwaysOnBottom);
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                    }
+                    SetWindowLevelLevel::Normal => {
+                        window.set_window_level(WindowLevel::Normal);
+                    }
                 }
             },
-            ToggleAlwaysOnTop => {
-                let window = self.window.clone().unwrap();
-                let is_always_on_top = self.window_state.intersects(WindowState::ALWAYS_ON_TOP);
-                let is_always_on_bottom = self.window_state.intersects(WindowState::ALWAYS_ON_BOTTOM);
-
-                // check if always on bottom is enabled.
-                // if it is, disable it to prevent impossible state.
-                if is_always_on_bottom {
-                    self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
-                }
-
-                if is_always_on_top {
-                    window.set_window_level(WindowLevel::Normal);
-                    self.window_state -= WindowState::ALWAYS_ON_TOP;
-                } else {
-                    window.set_window_level(WindowLevel::AlwaysOnTop);
-                    self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
-                }
-            }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);
