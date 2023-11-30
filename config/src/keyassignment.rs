@@ -357,6 +357,7 @@ pub struct PaneSelectArguments {
     pub show_pane_ids: bool,
 }
 
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CharSelectGroup {
     RecentlyUsed,
@@ -505,7 +506,8 @@ pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
-    ToggleFloatingWindow,
+    ToggleAlwaysOnTop,
+    ToggleAlwaysOnBottom,
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
         text: String,

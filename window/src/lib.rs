@@ -110,6 +110,10 @@ bitflags! {
         /// Minimized or in some kind of off-screen state. Cannot be repainted
         /// while in this state.
         const HIDDEN = 1<<3;
+        /// Always on top (floating) window
+        const ALWAYS_ON_TOP = 1<<4;
+        /// Always on bottom (docked) window
+        const ALWAYS_ON_BOTTOM = 1<<5;
     }
 }
 
@@ -296,10 +300,6 @@ pub trait WindowOps {
 
     /// Set window level. Depending on the environment and user preferences
     fn set_window_level(&self, _level: WindowLevel) {}
-
-    fn get_window_level(&self) -> Future<WindowLevel> {
-        WindowLevel::Normal
-    }
 
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar

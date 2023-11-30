@@ -681,9 +681,17 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["View"],
             icon: Some("md_fullscreen"),
         },
-        ToggleFloatingWindow => CommandDef {
-            brief: "Toggle floating window".into(),
-            doc: "Toggle between floating and normal window mode".into(),
+        ToggleAlwaysOnTop => CommandDef {
+            brief: "Always on Top".into(),
+            doc: "Toggles the window between floating and non-floating states to stay on top of other windows.".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window"],
+            icon: None,
+        },
+        ToggleAlwaysOnBottom => CommandDef {
+            brief: "Always on Bottom".into(),
+            doc: "Toggles the window to remain behind all other windows.".into(),
             keys: vec![],
             args: &[ArgType::ActiveWindow],
             menubar: &["Window"],
@@ -2024,7 +2032,8 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ScrollToBottom,
         // ----------------- Window
         ToggleFullScreen,
-        ToggleFloatingWindow,
+        ToggleAlwaysOnTop,
+        ToggleAlwaysOnBottom,
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),
         PaneSelect(PaneSelectArguments {

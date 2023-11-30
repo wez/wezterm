@@ -752,13 +752,6 @@ impl WindowOps for Window {
         });
     }
 
-    fn level(&self) -> Future<WindowLevel> {
-        Connection::with_window_inner(self.id, move |inner| {
-            Ok(inner.level())
-        })
-    }
-
-
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_inner_size(width, height);
@@ -1170,12 +1163,6 @@ impl WindowInner {
         let title = nsstring(title);
         unsafe {
             NSWindow::setTitle_(*self.window, *title);
-        }
-    }
-
-    fn level(&self) -> WindowLevel {
-        unsafe {
-            NSWindow::level(*self.window).into()
         }
     }
 

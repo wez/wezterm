@@ -2507,26 +2507,44 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
-            ToggleFloatingWindow => {
+            // TODO: check what happens if we enable always on top when is always on bottom
+            ToggleAlwaysOnBottom => {
                 let window = self.window.clone().unwrap();
+                let is_always_on_top = self.window_state.intersects(WindowState::ALWAYS_ON_TOP);
+                let is_always_on_bottom = self.window_state.intersects(WindowState::ALWAYS_ON_BOTTOM);
 
-                promise::spawn::spawn(async move {
-                    match window.level().await {
-                        Ok(level) => {
-                            match level {
-                                WindowLevel::AlwaysOnTop => window.set_level(WindowLevel::Normal),
-                                _ => window.set_level(WindowLevel::AlwaysOnTop),
-                            };
-                        }
-                        Err(e) => {
-                            log::error!(
-                                "an error has occurred while retriving current window level: {:?}",
-                                e
-                            );
-                        }
-                    }
-                })
-                .detach();
+                // check if always on top is enabled.
+                // if it is, disable it to prevent impossible state.
+                if is_always_on_top {
+                    self.window_state -= WindowState::ALWAYS_ON_TOP;
+                }
+
+                if is_always_on_bottom {
+                    window.set_window_level(WindowLevel::Normal);
+                    self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                } else {
+                    window.set_window_level(WindowLevel::AlwaysOnBottom);
+                    self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                }
+            },
+            ToggleAlwaysOnTop => {
+                let window = self.window.clone().unwrap();
+                let is_always_on_top = self.window_state.intersects(WindowState::ALWAYS_ON_TOP);
+                let is_always_on_bottom = self.window_state.intersects(WindowState::ALWAYS_ON_BOTTOM);
+
+                // check if always on bottom is enabled.
+                // if it is, disable it to prevent impossible state.
+                if is_always_on_bottom {
+                    self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                }
+
+                if is_always_on_top {
+                    window.set_window_level(WindowLevel::Normal);
+                    self.window_state -= WindowState::ALWAYS_ON_TOP;
+                } else {
+                    window.set_window_level(WindowLevel::AlwaysOnTop);
+                    self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
+                }
             }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
