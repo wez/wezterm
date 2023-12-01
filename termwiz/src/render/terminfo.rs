@@ -136,8 +136,16 @@ impl TerminfoRenderer {
             }
 
             let has_true_color = self.caps.color_level() == ColorLevel::TrueColor;
-            let terminfo_color: i32 = match self.get_capability::<cap::MaxColors>() {
-                Some(cap::MaxColors(n)) => n,
+            // Whether to use terminfo to render 256 colors. If this is too large (ex. 16777216 from xterm-direct),
+            // then setaf expects the index to be true color, in which case we cannot use it to render 256 (or even 16) colors.
+            let terminfo_256_color: i32 = match self.get_capability::<cap::MaxColors>() {
+                Some(cap::MaxColors(n)) => {
+                    if n > 256 {
+                        0
+                    } else {
+                        n
+                    }
+                }
                 None => 0,
             };
 
@@ -160,7 +168,7 @@ impl TerminfoRenderer {
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         match self.get_capability::<cap::SetAForeground>() {
-                            Some(set) if (idx as i32) < terminfo_color => {
+                            Some(set) if (idx as i32) < terminfo_256_color => {
                                 set.expand().color(idx).to(out.by_ref())?;
                             }
                             _ => {
@@ -194,7 +202,7 @@ impl TerminfoRenderer {
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         match self.get_capability::<cap::SetABackground>() {
-                            Some(set) if (idx as i32) < terminfo_color => {
+                            Some(set) if (idx as i32) < terminfo_256_color => {
                                 set.expand().color(idx).to(out.by_ref())?;
                             }
                             _ => {

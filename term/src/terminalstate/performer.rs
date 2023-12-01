@@ -687,7 +687,7 @@ impl<'a> Performer<'a> {
                 self.current_mouse_buttons.clear();
                 self.cursor_visible = true;
                 self.g0_charset = CharSet::Ascii;
-                self.g1_charset = CharSet::DecLineDrawing;
+                self.g1_charset = CharSet::Ascii;
                 self.shift_out = false;
                 self.newline_mode = false;
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
@@ -700,6 +700,8 @@ impl<'a> Performer<'a> {
                 self.accumulating_title.take();
 
                 self.screen.full_reset();
+                self.screen.activate_alt_screen(seqno);
+                self.erase_in_display(EraseInDisplay::EraseDisplay);
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
