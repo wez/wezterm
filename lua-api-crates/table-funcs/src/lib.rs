@@ -30,15 +30,14 @@ fn merge<'lua>(
     let mut tbl_vec: Vec<(LuaValue, LuaValue)> = vec![];
     for table in array_of_tables {
         for pair in table.pairs::<LuaValue, LuaValue>() {
-            let (key, value) = pair.map_err(mlua::Error::external)?;
+            let (key, value) = pair?;
             tbl_vec.push((key, value));
         }
     }
     let tbl_len = tbl_vec.len();
     // note we might allocate a bit too much here, but in many use cases we will be correct
     let tbl: Table<'lua> = lua
-        .create_table_with_capacity(0, tbl_len)
-        .map_err(mlua::Error::external)?;
+        .create_table_with_capacity(0, tbl_len)?;
 
     let keep_first = match keep_first {
         Some(b) => b,
@@ -49,13 +48,12 @@ fn merge<'lua>(
         // the same key showing up more than once
         if keep_first {
             if !tbl
-                .contains_key(key.clone())
-                .map_err(mlua::Error::external)?
+                .contains_key(key.clone())?
             {
-                tbl.set(key, value).map_err(mlua::Error::external)?;
+                tbl.set(key, value)?;
             }
         } else {
-            tbl.set(key, value).map_err(mlua::Error::external)?;
+            tbl.set(key, value)?;
         }
     }
     Ok(tbl)
@@ -79,7 +77,7 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
             LuaValue::Nil => (),
             LuaValue::Thread(_) => (),
             LuaValue::Error(err) => {
-                return Err(mlua::Error::external(err));
+                return Err(err);
             }
             other => {
                 flat_vec.push(other);
@@ -96,12 +94,12 @@ fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Integer> {
 }
 
 fn has_key<'lua>(_: &'lua Lua, (table, key): (Table<'lua>, LuaValue)) -> mlua::Result<bool> {
-    Ok(table.contains_key(key).map_err(mlua::Error::external)?)
+    Ok(table.contains_key(key)?)
 }
 
 fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlua::Result<bool> {
     for pair in table.pairs::<LuaValue, LuaValue>() {
-        let (_, tbl_value) = pair.map_err(mlua::Error::external)?;
+        let (_, tbl_value) = pair?;
         if tbl_value == value {
             return Ok(true);
         }
