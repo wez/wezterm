@@ -282,7 +282,7 @@ impl WaylandConnection {
                             data.pop();
                         }
                         let s = String::from_utf8(data)?;
-                        match KeyboardWithFallback::new_from_string(s) {
+                        match KeyboardWithFallback::new_from_string(s, true) {
                             Ok(k) => {
                                 self.keyboard_mapper.replace(Some(k));
                             }

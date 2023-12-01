@@ -480,21 +480,27 @@ bitflags! {
     #[cfg_attr(feature="serde", derive(Serialize, Deserialize))]
     #[derive(Default, FromDynamic, ToDynamic)]
     #[dynamic(into="String", try_from="String")]
-    pub struct Modifiers: u16 {
+    pub struct Modifiers: u32 {
         const NONE = 0;
+
         const SHIFT = 1<<1;
-        const ALT = 1<<2;
-        const CTRL = 1<<3;
-        const SUPER = 1<<4;
-        const LEFT_ALT = 1<<5;
-        const RIGHT_ALT = 1<<6;
-        /// This is a virtual modifier used by wezterm
-        const LEADER = 1<<7;
-        const LEFT_CTRL = 1<<8;
-        const RIGHT_CTRL = 1<<9;
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
+        const ALT = 1<<2;
+        const LEFT_ALT = 1<<5;
+        const RIGHT_ALT = 1<<6;
+        const CTRL = 1<<3;
+        const LEFT_CTRL = 1<<8;
+        const RIGHT_CTRL = 1<<9;
+        const SUPER = 1<<4;
+        /// This is a virtual modifier used by wezterm
+        const LEADER = 1<<7;
         const ENHANCED_KEY = 1<<12;
+
+        const META = 1<<13;
+        const HYPER = 1<<14;
+        const CAPS_LOCK = 1<<15;
+        const NUM_LOCK = 1<<16;
     }
 }
 
@@ -1674,13 +1680,16 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
-        // TODO: Hyper and Meta are not handled yet.
-        // We should somehow detect this?
-        // See: https://github.com/wez/wezterm/pull/4605#issuecomment-1823604708
-        if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
+        if raw_modifiers.contains(Modifiers::HYPER) {
+            modifiers |= 16;
+        }
+        if raw_modifiers.contains(Modifiers::META) {
+            modifiers |= 32;
+        }
+        if raw_modifiers.contains(Modifiers::CAPS_LOCK) {
             modifiers |= 64;
         }
-        if self.leds.contains(KeyboardLedStatus::NUM_LOCK) {
+        if raw_modifiers.contains(Modifiers::NUM_LOCK) {
             modifiers |= 128;
         }
         modifiers += 1;
