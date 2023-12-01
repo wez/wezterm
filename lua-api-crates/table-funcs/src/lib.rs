@@ -91,10 +91,7 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
 
 fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Integer> {
     // note that # only works correctly on arrays in Lua
-    let mut len: i64 = 0;
-    for _ in table.pairs::<LuaValue, LuaValue>() {
-        len += 1
-    }
+    let len = table.pairs::<LuaValue, LuaValue>().count() as i64;
     Ok(len)
 }
 
