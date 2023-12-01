@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
-use config::{ConfigHandle, Dimension, GeometryOrigin};
+use config::{ConfigHandle, window::WindowLevel, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
 use std::path::PathBuf;
@@ -71,12 +71,6 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
-#[derive(Debug)]
-pub enum WindowLevel {
-    AlwaysOnBottom = -1,
-    Normal = 0,
-    AlwaysOnTop = 3,
-}
 
 /// Represents the preferred appearance of the windowing
 /// environment.
@@ -131,6 +125,16 @@ impl WindowState {
 
     pub fn can_paint(self) -> bool {
         !self.contains(Self::HIDDEN)
+    }
+
+    pub fn as_window_level(self) -> WindowLevel {
+        if self.contains(Self::ALWAYS_ON_TOP) {
+            WindowLevel::AlwaysOnTop
+        } else if self.contains(Self::ALWAYS_ON_BOTTOM) {
+            WindowLevel::AlwaysOnBottom
+        } else {
+            WindowLevel::Normal
+        }
     }
 }
 

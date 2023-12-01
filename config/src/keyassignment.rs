@@ -1,5 +1,6 @@
 use crate::default_true;
 use crate::keys::KeyNoAction;
+use crate::window::WindowLevel;
 use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
 use portable_pty::CommandBuilder;
@@ -501,20 +502,15 @@ fn default_fuzzy_description() -> String {
     "Fuzzy matching: ".to_string()
 }
 
-// FIXME: this is so ugly we should use `window::WindowLevel` instead
-#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
-pub enum SetWindowLevelLevel {
-    Normal,
-    AlwaysOnTop,
-    AlwaysOnBottom,
-}
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
-    SetWindowLevel(SetWindowLevelLevel),
+    ToggleAlwaysOnTop,
+    ToggleAlwaysOnBottom,
+    SetWindowLevel(WindowLevel),
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
         text: String,

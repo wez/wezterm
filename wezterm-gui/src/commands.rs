@@ -1,6 +1,6 @@
 use crate::inputmap::InputMap;
 use config::keyassignment::*;
-use config::{ConfigHandle, DeferredKeyCode};
+use config::{ConfigHandle, window::WindowLevel, DeferredKeyCode};
 use mux::domain::DomainState;
 use mux::Mux;
 use ordered_float::NotNan;
@@ -681,15 +681,32 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["View"],
             icon: Some("md_fullscreen"),
         },
-        SetWindowLevel(SetWindowLevelLevel::AlwaysOnTop) => CommandDef {
-            brief: "Always on Top".into(),
+        ToggleAlwaysOnTop => CommandDef {
+            brief: "Toggle always on Top".into(),
             doc: "Toggles the window between floating and non-floating states to stay on top of other windows.".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window"],
+            icon: None,
+
+        },
+        ToggleAlwaysOnBottom => CommandDef {
+            brief: "Toggle always on Bottom".into(),
+            doc: "Toggles the window to remain behind all other windows.".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window"],
+            icon: None,
+        },
+        SetWindowLevel(WindowLevel::AlwaysOnTop) => CommandDef {
+            brief: "Always on Top".into(),
+            doc: "Set the window level to be on top of other windows.".into(),
             keys: vec![],
             args: &[ArgType::ActiveWindow],
             menubar: &["Window", "Level"],
             icon: None,
         },
-        SetWindowLevel(SetWindowLevelLevel::Normal) => CommandDef {
+        SetWindowLevel(WindowLevel::Normal) => CommandDef {
             brief: "Normal".into(),
             doc: "Set window level to normal".into(),
             keys: vec![],
@@ -697,9 +714,9 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Window", "Level"],
             icon: None,
         },
-        SetWindowLevel(SetWindowLevelLevel::AlwaysOnBottom) => CommandDef {
+        SetWindowLevel(WindowLevel::AlwaysOnBottom) => CommandDef {
             brief: "Always on Bottom".into(),
-            doc: "Toggles the window to remain behind all other windows.".into(),
+            doc: "Set window to remain behind all other windows.".into(),
             keys: vec![],
             args: &[ArgType::ActiveWindow],
             menubar: &["Window", "Level"],
@@ -2041,9 +2058,12 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Window
         ToggleFullScreen,
 
-        SetWindowLevel(SetWindowLevelLevel::AlwaysOnBottom), 
-        SetWindowLevel(SetWindowLevelLevel::Normal), 
-        SetWindowLevel(SetWindowLevelLevel::AlwaysOnTop), 
+        ToggleAlwaysOnTop,
+        ToggleAlwaysOnBottom,
+
+        SetWindowLevel(WindowLevel::AlwaysOnBottom), 
+        SetWindowLevel(WindowLevel::Normal), 
+        SetWindowLevel(WindowLevel::AlwaysOnTop), 
 
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),
