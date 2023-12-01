@@ -239,8 +239,7 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
 #[cfg(feature = "x11")]
 fn init_modifier_table(keymap: &xkb::Keymap) -> ModifierMap {
     // TODO: This implementation needs to be done with
-    // https://github.com/wez/wezterm/pull/glfw_xkb_update_masks
-    return init_modifier_table_fallback(keymap);
+    // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L321    return init_modifier_table_fallback(keymap);
 }
 
 #[cfg(feature = "wayland")]

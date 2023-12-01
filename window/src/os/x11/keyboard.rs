@@ -201,7 +201,6 @@ impl KeyboardWithFallback {
         let leds = self.get_led_status();
 
         let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
-        log::info!("Symbol: {:?}", xsym);
         let fallback_xsym = self.fallback.state.borrow().key_get_one_sym(xcode);
         let handled = Handled::new();
 
@@ -644,8 +643,6 @@ impl Keyboard {
         mods_locked: u32,
         group: u32,
     ) {
-        log::info!("Update modifier map");
-
         self.state.borrow_mut().update_mask(
             xkb::ModMask::from(mods_depressed),
             xkb::ModMask::from(mods_latched),
