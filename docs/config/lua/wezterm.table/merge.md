@@ -2,7 +2,9 @@
 
 {{since('nightly')}}
 
-This function merges Lua tables passed to it in the form of an array.
+This function merges a list of Lua object-style tables based on their keys.
+
+The tables are passed to it in the form of an array.
 I.e., to merge the Lua tables `tbl1` and `tbl2`, we can pass them to
 the function as `{ tbl1, tbl2 }`. (See below.)
 
