@@ -2,6 +2,7 @@
 pub mod connection;
 pub mod cursor;
 pub mod keyboard;
+mod modifiers;
 pub mod window;
 pub mod xcb_util;
 pub mod xrm;

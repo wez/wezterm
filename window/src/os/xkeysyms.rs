@@ -74,8 +74,12 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
         KEY_Caps_Lock => KeyCode::CapsLock,
         KEY_Num_Lock => KeyCode::NumLock,
         KEY_Scroll_Lock => KeyCode::ScrollLock,
+        KEY_Meta_L => KeyCode::Meta,
+        KEY_Meta_R => KeyCode::Meta,
         KEY_Super_L => KeyCode::Super,
         KEY_Super_R => KeyCode::Super,
+        KEY_Hyper_R => KeyCode::Hyper,
+        KEY_Hyper_L => KeyCode::Hyper,
         KEY_Menu => KeyCode::Applications,
         KEY_Help => KeyCode::Help,
 
