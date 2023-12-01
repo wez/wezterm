@@ -4,7 +4,8 @@ use luahelper::ValuePrinter;
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let table = get_or_create_sub_module(lua, "table")?;
-    table.set("merge", lua.create_function(merge)?)?;
+    table.set("extend", lua.create_function(extend)?)?;
+    table.set("deep_extend", lua.create_function(deep_extend)?)?;
     table.set("clone", lua.create_function(clone)?)?;
     table.set("flatten", lua.create_function(flatten)?)?;
     table.set("length", lua.create_function(length)?)?;
@@ -19,13 +20,40 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ConflictMode {
+   Keep,
+   Force,
+   Error,
+}
+
+impl<'lua> mlua::FromLua<'lua> for ConflictMode {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> mlua::Result<Self> {
+        match value {
+            LuaValue::String(s) => {
+                match s.to_str() {
+                    Ok("Keep") => Ok(ConflictMode::Keep),
+                    Ok("keep") => Ok(ConflictMode::Keep),
+                    Ok("Force") => Ok(ConflictMode::Force),
+                    Ok("force") => Ok(ConflictMode::Force),
+                    Ok("Error") => Ok(ConflictMode::Error),
+                    Ok("error") => Ok(ConflictMode::Error),
+                    _ => Err(mlua::Error::runtime("Unknown string. Expected 'Keep', 'Force' or 'Error'".to_string()))
+                }
+            }
+            LuaValue::Error(err) => Err(err),
+            other => Err(mlua::Error::runtime(format!("Expected a Lua string. Got something of type: {}", other.type_name()))),
+        }
+    }
+}
+
 // merge tables
 // (in case of overlap of the tables, we default to taking the key-value pair from the last table)
 // Note that we don't use a HashMap since we want to keep the order of the tables, which
 // can be useful in some cases
-fn merge<'lua>(
+fn extend<'lua>(
     lua: &'lua Lua,
-    (array_of_tables, keep_first): (Vec<Table<'lua>>, Option<bool>),
+    (array_of_tables, behavior): (Vec<Table<'lua>>, Option<ConflictMode>),
 ) -> mlua::Result<Table<'lua>> {
     let mut tbl_vec: Vec<(LuaValue, LuaValue)> = vec![];
     for table in array_of_tables {
@@ -38,23 +66,94 @@ fn merge<'lua>(
     // note we might allocate a bit too much here, but in many use cases we will be correct
     let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
 
-    let keep_first = match keep_first {
-        Some(b) => b,
-        None => false, // default behavior is to keep_last set value
-    };
-    for (key, value) in tbl_vec {
-        // Note that we override previously set key values if we have
-        // the same key showing up more than once
-        if keep_first {
-            if !tbl.contains_key(key.clone())? {
+    match behavior {
+        Some(ConflictMode::Keep) => {
+            for (key,value) in tbl_vec {
+                if !tbl.contains_key(key.clone())? {
+                    tbl.set(key, value)?;
+                }
+            }
+        }
+        // default behavior is to keep last set value
+        Some(ConflictMode::Force) | None => {
+            for (key, value) in tbl_vec {
                 tbl.set(key, value)?;
             }
-        } else {
-            tbl.set(key, value)?;
         }
-    }
+        Some(ConflictMode::Error) => {
+            for (key, value) in tbl_vec {
+                if tbl.contains_key(key.clone())? {
+                    return Err(mlua::Error::runtime(format!("The key {} is in more than one of the tables.", key.to_string()?)));
+                }
+                tbl.set(key, value)?;
+            }
+        }
+    };
+
     Ok(tbl)
 }
+
+
+// merge tables entrywise recursively
+// (in case of overlap of the tables, we default to taking the key-value pair from the last table)
+// Note that we don't use a HashMap since we want to keep the order of the tables, which
+// can be useful in some cases
+fn deep_extend<'lua>(
+    lua: &'lua Lua,
+    (array_of_tables, behavior): (Vec<Table<'lua>>, Option<ConflictMode>),
+) -> mlua::Result<Table<'lua>> {
+    let mut tbl_vec: Vec<(LuaValue, LuaValue)> = vec![];
+    for table in array_of_tables {
+        for pair in table.pairs::<LuaValue, LuaValue>() {
+            let (key, value) = pair?;
+            tbl_vec.push((key, value));
+        }
+    }
+    let tbl_len = tbl_vec.len();
+    // note we might allocate a bit too much here, but in many use cases we will be correct
+    let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
+
+    match behavior {
+        Some(ConflictMode::Keep) => {
+            for (key,value) in tbl_vec {
+                if !tbl.contains_key(key.clone())? {
+                    tbl.set(key, value)?;
+                } else if let LuaValue::Table(t) = value {
+                    let inner_tbl = deep_extend(lua, (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Keep)))?;
+                    tbl.set(key, inner_tbl)?;
+                }
+            }
+        }
+        // default behavior is to keep last set value
+        Some(ConflictMode::Force) | None => {
+            for (key, value) in tbl_vec {
+                if !tbl.contains_key(key.clone())? {
+                    tbl.set(key, value)?;
+                } else if let LuaValue::Table(t) = value {
+                    let inner_tbl = deep_extend(lua, (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Force)))?;
+                    tbl.set(key, inner_tbl)?;
+                } else {
+                    tbl.set(key, value)?;
+                }
+            }
+        }
+        Some(ConflictMode::Error) => {
+            for (key, value) in tbl_vec {
+                if !tbl.contains_key(key.clone())? {
+                    tbl.set(key, value)?;
+                } else if let LuaValue::Table(t) = value {
+                    let inner_tbl = deep_extend(lua, (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Keep)))?;
+                    tbl.set(key, inner_tbl)?;
+                } else {
+                    return Err(mlua::Error::runtime(format!("The key {} is in more than one of the tables.", key.to_string()?)));
+                }
+            }
+        }
+    };
+
+    Ok(tbl)
+}
+
 
 fn clone<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Table<'lua>> {
     Ok(table.clone())
