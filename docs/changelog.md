@@ -128,6 +128,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Make RIS also clear the alternate screen. Thanks to @ninjalj! #4563
 * DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
 * Clamp cursor position reported by CPR. Thanks to @ninjalj! #4564
+* Correct `SUPER` modifier key handling in kitty protocol. Thanks to @gabyx! #4605
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
