@@ -1695,12 +1695,6 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::NUM_LOCK) {
             modifiers |= 128;
         }
-        if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
-            modifiers |= 64;
-        }
-        if self.leds.contains(KeyboardLedStatus::NUM_LOCK) {
-            modifiers |= 128;
-        }
         modifiers += 1;
 
         let event_type =
