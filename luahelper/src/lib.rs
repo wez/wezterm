@@ -390,6 +390,23 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                 }
             }
             LuaValue::Error(e) => fmt.write_fmt(format_args!("error {}", e)),
+            LuaValue::String(s) => match s.to_str() {
+                Ok(s) => fmt.write_fmt(format_args!("\"{}\"", s.escape_default())),
+                Err(_) => {
+                    let mut binary_string = "b\"".to_string();
+                    for &b in s.as_bytes() {
+                        if let Some(c) = char::from_u32(b as u32) {
+                            if c.is_ascii_alphanumeric() || c.is_ascii_punctuation() || c == ' ' {
+                                binary_string.push(c);
+                                continue;
+                            }
+                        }
+                        binary_string.push_str(&format!("\\x{b:02x}"));
+                    }
+                    binary_string.push('"');
+                    fmt.write_str(&binary_string)
+                }
+            },
             _ => match self.value.to_string() {
                 Ok(s) => fmt.write_str(&s),
                 Err(err) => write!(fmt, "({err:#})"),
