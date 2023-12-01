@@ -8,7 +8,7 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, WindowLevel, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Size, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
@@ -26,7 +26,7 @@ use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
     NSUInteger,
 };
-use config::ConfigHandle;
+use config::{ConfigHandle, window::WindowLevel};
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};

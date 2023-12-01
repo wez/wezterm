@@ -30,11 +30,12 @@ use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize, SetWindowLevelLevel,
+    RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
     GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
+    window::WindowLevel
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
@@ -2507,29 +2508,71 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
+            ToggleAlwaysOnTop => {
+                let window = self.window.clone().unwrap();
+                let current_level = self.window_state.as_window_level();
+
+                match current_level {
+                    WindowLevel::AlwaysOnTop => {
+                        self.window_state -= WindowState::ALWAYS_ON_TOP;
+                        window.set_window_level(WindowLevel::Normal);
+                    }
+                    WindowLevel::AlwaysOnBottom => {
+                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
+                        window.set_window_level(WindowLevel::AlwaysOnTop);
+                    }
+                    WindowLevel::Normal => {
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
+                        window.set_window_level(WindowLevel::AlwaysOnTop);
+                    }
+                }
+            }
+            ToggleAlwaysOnBottom => {
+                let window = self.window.clone().unwrap();
+                let current_level = self.window_state.as_window_level();
+
+                match current_level {
+                    WindowLevel::AlwaysOnTop => {
+                        self.window_state -= WindowState::ALWAYS_ON_TOP;
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                        window.set_window_level(WindowLevel::AlwaysOnBottom);
+                    }
+                    WindowLevel::AlwaysOnBottom => {
+                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                        window.set_window_level(WindowLevel::Normal);
+                    }
+                    WindowLevel::Normal => {
+                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                        window.set_window_level(WindowLevel::AlwaysOnBottom);
+                    }
+                }
+            }
             SetWindowLevel(level) => {
                 let window = self.window.clone().unwrap();
-                let is_always_on_top = self.window_state.intersects(WindowState::ALWAYS_ON_TOP);
-                let is_always_on_bottom = self.window_state.intersects(WindowState::ALWAYS_ON_BOTTOM);
+                let current_level = self.window_state.as_window_level();
 
-                if is_always_on_top {
-                    self.window_state -= WindowState::ALWAYS_ON_TOP;
-                } 
-
-                if is_always_on_bottom {
-                    self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                // reset level state if needed
+                match current_level {
+                    WindowLevel::AlwaysOnTop => {
+                        self.window_state -= WindowState::ALWAYS_ON_TOP;
+                    }
+                    WindowLevel::AlwaysOnBottom => {
+                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
+                    }
+                    _ => {}
                 }
 
                 match level {
-                    SetWindowLevelLevel::AlwaysOnTop => {
+                    WindowLevel::AlwaysOnTop => {
                         window.set_window_level(WindowLevel::AlwaysOnTop);
                         self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
                     }
-                    SetWindowLevelLevel::AlwaysOnBottom => {
+                    WindowLevel::AlwaysOnBottom => {
                         window.set_window_level(WindowLevel::AlwaysOnBottom);
                         self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
                     }
-                    SetWindowLevelLevel::Normal => {
+                    WindowLevel::Normal => {
                         window.set_window_level(WindowLevel::Normal);
                     }
                 }
