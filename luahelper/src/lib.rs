@@ -262,6 +262,7 @@ impl<'lua> std::fmt::Debug for ValuePrinter<'lua> {
         ValuePrinterHelper {
             visited,
             value: self.0.clone(),
+            is_cycle: false,
         }
         .fmt(fmt)
     }
@@ -270,6 +271,7 @@ impl<'lua> std::fmt::Debug for ValuePrinter<'lua> {
 struct ValuePrinterHelper<'lua> {
     visited: Rc<RefCell<HashSet<usize>>>,
     value: LuaValue<'lua>,
+    is_cycle: bool,
 }
 
 impl<'lua> PartialEq for ValuePrinterHelper<'lua> {
@@ -307,6 +309,9 @@ impl<'lua> ValuePrinterHelper<'lua> {
 impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         match &self.value {
+            LuaValue::Table(_) if self.is_cycle => {
+                fmt.write_fmt(format_args!("table: {:?}", self.value.to_pointer()))
+            }
             LuaValue::Table(t) => {
                 self.visited
                     .borrow_mut()
@@ -314,17 +319,15 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                 if let Ok(true) = t.contains_key(1) {
                     // Treat as list
                     let mut list = fmt.debug_list();
-                    for (idx, value) in t.clone().sequence_values().enumerate() {
+                    for value in t.clone().sequence_values() {
                         match value {
                             Ok(value) => {
-                                if !self.has_cycle(&value) {
-                                    list.entry(&Self {
-                                        visited: Rc::clone(&self.visited),
-                                        value,
-                                    });
-                                } else {
-                                    log::warn!("Ignoring value at ordinal position {} which has cyclical reference", idx);
-                                }
+                                let is_cycle = self.has_cycle(&value);
+                                list.entry(&Self {
+                                    visited: Rc::clone(&self.visited),
+                                    value,
+                                    is_cycle,
+                                });
                             }
                             Err(err) => {
                                 list.entry(&err);
@@ -341,26 +344,19 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                     for pair in t.clone().pairs::<LuaValue, LuaValue>() {
                         match pair {
                             Ok(pair) => {
-                                if !self.has_cycle(&pair.1) {
-                                    map.insert(
-                                        Self {
-                                            visited: Rc::clone(&self.visited),
-                                            value: pair.0,
-                                        },
-                                        Self {
-                                            visited: Rc::clone(&self.visited),
-                                            value: pair.1,
-                                        },
-                                    );
-                                } else {
-                                    log::warn!(
-                                        "Ignoring field {:?} which has cyclical reference",
-                                        Self {
-                                            visited: Rc::clone(&self.visited),
-                                            value: pair.0
-                                        }
-                                    );
-                                }
+                                let is_cycle = self.has_cycle(&pair.1);
+                                map.insert(
+                                    Self {
+                                        visited: Rc::clone(&self.visited),
+                                        value: pair.0,
+                                        is_cycle: false,
+                                    },
+                                    Self {
+                                        visited: Rc::clone(&self.visited),
+                                        value: pair.1,
+                                        is_cycle,
+                                    },
+                                );
                             }
                             Err(err) => {
                                 log::error!("error while retrieving map entry: {}", err);
@@ -371,6 +367,9 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                     fmt.debug_map().entries(&map).finish()
                 }
             }
+            LuaValue::UserData(_) if self.is_cycle => {
+                fmt.write_fmt(format_args!("userdata: {:?}", self.value.to_pointer()))
+            }
             LuaValue::UserData(ud) => {
                 if let Ok(mt) = ud.get_metatable() {
                     if let Ok(to_dynamic) = mt.get::<mlua::Function>("__wezterm_to_dynamic") {
@@ -378,6 +377,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                             Ok(value) => Self {
                                 visited: Rc::clone(&self.visited),
                                 value,
+                                is_cycle: false,
                             }
                             .fmt(fmt),
                             Err(err) => write!(fmt, "Error calling __wezterm_to_dynamic: {err}"),
