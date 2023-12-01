@@ -43,7 +43,119 @@ impl WaylandConnection {
             wayland_state: RefCell::new(wayland_state),
         };
 
-        Ok(wayland_connection)
+    fn keyboard_event(
+        &self,
+        keyboard: Main<WlKeyboard>,
+        event: WlKeyboardEvent,
+    ) -> anyhow::Result<()> {
+        match &event {
+            WlKeyboardEvent::Enter {
+                serial, surface, ..
+            } => {
+                // update global active surface id
+                *self.active_surface_id.borrow_mut() = surface.as_ref().id();
+
+                *self.last_serial.borrow_mut() = *serial;
+                if let Some(&window_id) = self
+                    .surface_to_window_id
+                    .borrow()
+                    .get(&surface.as_ref().id())
+                {
+                    self.keyboard_window_id.borrow_mut().replace(window_id);
+                    self.environment.with_inner(|env| {
+                        if let Some(input) =
+                            env.input_handler.get_text_input_for_keyboard(&keyboard)
+                        {
+                            input.enable();
+                            input.commit();
+                        }
+                        env.input_handler.advise_surface(&surface, &keyboard);
+                    });
+                } else {
+                    log::warn!("{:?}, no known surface", event);
+                }
+            }
+            WlKeyboardEvent::Leave { serial, .. } => {
+                if let Some(input) = self
+                    .environment
+                    .with_inner(|env| env.input_handler.get_text_input_for_keyboard(&keyboard))
+                {
+                    input.disable();
+                    input.commit();
+                }
+                *self.last_serial.borrow_mut() = *serial;
+            }
+            WlKeyboardEvent::Key { serial, .. } | WlKeyboardEvent::Modifiers { serial, .. } => {
+                *self.last_serial.borrow_mut() = *serial;
+            }
+            WlKeyboardEvent::RepeatInfo { rate, delay } => {
+                *self.key_repeat_rate.borrow_mut() = *rate;
+                *self.key_repeat_delay.borrow_mut() = *delay;
+            }
+            WlKeyboardEvent::Keymap { format, fd, size } => {
+                let mut file = unsafe { std::fs::File::from_raw_fd(*fd) };
+                match format {
+                    KeymapFormat::XkbV1 => {
+                        let mut data = vec![0u8; *size as usize];
+                        // If we weren't passed a pipe, be sure to explicitly
+                        // read from the start of the file
+                        match file.read_exact_at(&mut data, 0) {
+                            Ok(_) => {}
+                            Err(err) => {
+                                // ideally: we check for:
+                                // err.kind() == std::io::ErrorKind::NotSeekable
+                                // but that is not yet in stable rust
+                                if err.raw_os_error() == Some(libc::ESPIPE) {
+                                    // It's a pipe, which cannot be seeked, so we
+                                    // just try reading from the current pipe position
+                                    file.read(&mut data).context("read from Keymap fd/pipe")?;
+                                } else {
+                                    return Err(err).context("read_exact_at from Keymap fd");
+                                }
+                            }
+                        }
+                        // Dance around CString panicing on the NUL terminator
+                        // in the xkbcommon crate
+                        while let Some(0) = data.last() {
+                            data.pop();
+                        }
+                        let s = String::from_utf8(data)?;
+                        match KeyboardWithFallback::new_from_string(s, true) {
+                            Ok(k) => {
+                                self.keyboard_mapper.replace(Some(k));
+                            }
+                            Err(err) => {
+                                log::error!("Error processing keymap change: {:#}", err);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        if let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() {
+            if let Some(win) = self.window_by_id(window_id) {
+                let mut inner = win.borrow_mut();
+                inner.keyboard_event(event);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn dispatch_to_focused_window(&self, event: WindowEvent) {
+        if let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() {
+            if let Some(win) = self.window_by_id(window_id) {
+                let mut inner = win.borrow_mut();
+                inner.events.dispatch(event);
+            }
+        }
+    }
+
+    pub(crate) fn next_window_id(&self) -> usize {
+        self.next_window_id
+            .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
     }
 
     pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {

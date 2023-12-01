@@ -1,4 +1,7 @@
 use crate::os::xkeysyms::keysym_to_keycode;
+use crate::x11::modifiers::{
+    init_modifier_table_wayland, init_modifier_table_x11, ModifierIndex, ModifierMap,
+};
 use crate::{
     DeadKeyStatus, Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent,
     WindowEventSender, WindowKeyEvent,
@@ -12,8 +15,7 @@ use std::os::unix::ffi::OsStrExt;
 use wezterm_input_types::{KeyboardLedStatus, PhysKeyCode};
 use xcb::x::KeyButMask;
 use xkb::compose::Status as ComposeStatus;
-use xkbcommon::xkb;
-use xkbcommon::xkb::{LayoutIndex, ModMask};
+use xkbcommon::xkb::{self};
 
 pub struct Keyboard {
     context: xkb::Context,
@@ -22,6 +24,7 @@ pub struct Keyboard {
 
     state: RefCell<xkb::State>,
     compose_state: RefCell<Compose>,
+    mod_map: ModifierMap,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
     mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
     last_xcb_state: RefCell<StateFromXcbStateNotify>,
@@ -168,16 +171,16 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
 }
 
 impl KeyboardWithFallback {
-    pub fn new(selected: Keyboard) -> anyhow::Result<Self> {
+    pub fn new(selected: Keyboard, using_wayland: bool) -> anyhow::Result<Self> {
         Ok(Self {
             selected,
-            fallback: Keyboard::new_default()?,
+            fallback: Keyboard::new_default(using_wayland)?,
         })
     }
 
-    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
-        let selected = Keyboard::new_from_string(s)?;
-        Self::new(selected)
+    pub fn new_from_string(s: String, using_wayland: bool) -> anyhow::Result<Self> {
+        let selected = Keyboard::new_from_string(s, using_wayland)?;
+        Self::new(selected, using_wayland)
     }
 
     pub fn process_wayland_key(
@@ -457,12 +460,16 @@ impl KeyboardWithFallback {
         }
     }
 
-    fn mod_is_active(&self, modifier: &str) -> bool {
+    fn mod_is_active(&self, modifier: ModifierIndex) -> bool {
         // [TODO] consider state  Depressed & consumed mods
+        if modifier.idx == xkb::MOD_INVALID {
+            return false;
+        }
+
         self.selected
             .state
             .borrow()
-            .mod_name_is_active(modifier, xkb::STATE_MODS_EFFECTIVE)
+            .mod_index_is_active(modifier.idx, xkb::STATE_MODS_EFFECTIVE)
     }
     fn led_is_active(&self, led: &str) -> bool {
         self.selected.state.borrow().led_name_is_active(led)
@@ -484,20 +491,39 @@ impl KeyboardWithFallback {
     pub fn get_key_modifiers(&self) -> Modifiers {
         let mut res = Modifiers::default();
 
-        if self.mod_is_active(xkb::MOD_NAME_SHIFT) {
+        if self.mod_is_active(self.selected.mod_map.shift) {
             res |= Modifiers::SHIFT;
         }
-        if self.mod_is_active(xkb::MOD_NAME_CTRL) {
+
+        if self.mod_is_active(self.selected.mod_map.ctrl) {
             res |= Modifiers::CTRL;
         }
-        if self.mod_is_active(xkb::MOD_NAME_ALT) {
-            // Mod1
+
+        if self.mod_is_active(self.selected.mod_map.alt) {
             res |= Modifiers::ALT;
         }
-        if self.mod_is_active(xkb::MOD_NAME_LOGO) {
-            // Mod4
+
+        if self.mod_is_active(self.selected.mod_map.meta) {
+            res |= Modifiers::META;
+        }
+
+        if self.mod_is_active(self.selected.mod_map.supr) {
             res |= Modifiers::SUPER;
         }
+
+        if self.mod_is_active(self.selected.mod_map.hyper) {
+            res |= Modifiers::HYPER;
+        }
+
+        if self.mod_is_active(self.selected.mod_map.caps_lock) {
+            res |= Modifiers::CAPS_LOCK;
+        }
+
+        if self.mod_is_active(self.selected.mod_map.num_lock) {
+            res |= Modifiers::NUM_LOCK;
+        }
+
+        log::debug!("Modifiers detected: {:?}", res);
         res
     }
 
@@ -563,7 +589,7 @@ impl KeyboardWithFallback {
 }
 
 impl Keyboard {
-    pub fn new_default() -> anyhow::Result<Self> {
+    pub fn new_default(using_wayland: bool) -> anyhow::Result<Self> {
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let keymap = default_keymap(&context)
             .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
@@ -579,6 +605,12 @@ impl Keyboard {
         let phys_code_map = build_physkeycode_map(&keymap);
         let label = "fallback";
 
+        let mod_map = if using_wayland {
+            init_modifier_table_wayland(&keymap)
+        } else {
+            init_modifier_table_x11(&keymap)
+        };
+
         Ok(Self {
             context,
             device_id: -1,
@@ -589,6 +621,7 @@ impl Keyboard {
                 composition: String::new(),
                 label,
             }),
+            mod_map,
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
@@ -596,7 +629,7 @@ impl Keyboard {
         })
     }
 
-    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
+    pub fn new_from_string(s: String, using_wayland: bool) -> anyhow::Result<Self> {
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let keymap = xkb::Keymap::new_from_string(
             &context,
@@ -617,6 +650,12 @@ impl Keyboard {
         let phys_code_map = build_physkeycode_map(&keymap);
         let label = "selected";
 
+        let mod_map = if using_wayland {
+            init_modifier_table_wayland(&keymap)
+        } else {
+            init_modifier_table_x11(&keymap)
+        };
+
         Ok(Self {
             context,
             device_id: -1,
@@ -627,6 +666,7 @@ impl Keyboard {
                 composition: String::new(),
                 label,
             }),
+            mod_map,
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
@@ -634,7 +674,10 @@ impl Keyboard {
         })
     }
 
-    pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
+    pub fn new(
+        connection: &xcb::Connection,
+        using_wayland: bool,
+    ) -> anyhow::Result<(Keyboard, u8)> {
         let first_ev = xcb::xkb::get_extension_data(connection)
             .ok_or_else(|| anyhow!("could not get xkb extension data"))?
             .first_event;
@@ -687,7 +730,13 @@ impl Keyboard {
         let phys_code_map = build_physkeycode_map(&keymap);
         let label = "selected";
 
-        let kbd = Keyboard {
+        let mod_map = if using_wayland {
+            init_modifier_table_wayland(&keymap)
+        } else {
+            init_modifier_table_x11(&keymap)
+        };
+
+        let kbd = Self {
             context,
             device_id,
             keymap: RefCell::new(keymap),
@@ -697,6 +746,7 @@ impl Keyboard {
                 composition: String::new(),
                 label,
             }),
+            mod_map,
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
