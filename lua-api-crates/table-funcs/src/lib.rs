@@ -36,8 +36,7 @@ fn merge<'lua>(
     }
     let tbl_len = tbl_vec.len();
     // note we might allocate a bit too much here, but in many use cases we will be correct
-    let tbl: Table<'lua> = lua
-        .create_table_with_capacity(0, tbl_len)?;
+    let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
 
     let keep_first = match keep_first {
         Some(b) => b,
@@ -47,9 +46,7 @@ fn merge<'lua>(
         // Note that we override previously set key values if we have
         // the same key showing up more than once
         if keep_first {
-            if !tbl
-                .contains_key(key.clone())?
-            {
+            if !tbl.contains_key(key.clone())? {
                 tbl.set(key, value)?;
             }
         } else {
@@ -111,10 +108,7 @@ fn to_string_fallback<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<St
     Ok(format!("{:#?}", table))
 }
 
-fn to_string<'lua>(
-    _: &'lua Lua,
-    table: Table<'lua>,
-) -> mlua::Result<String> {
+fn to_string<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
     let res = ValuePrinter(LuaValue::Table(table));
     Ok(format!("{:#?}", res).to_string())
 }
