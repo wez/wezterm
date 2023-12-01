@@ -100,6 +100,9 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @Danielkonge! #4226 #4227
 * [notification_handling](config/lua/config/notification_handling.md) to
   control whether notifications are suppressed based on focus. #3727
+* [command_palette_rows](config/lua/config/command_palette_rows.md) to
+  control how many rows are displayed in the command palette. Thanks to
+  @exastone! #4595
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
