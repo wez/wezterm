@@ -483,28 +483,25 @@ bitflags! {
     pub struct Modifiers: u32 {
         const NONE = 0;
 
-        const CTRL = 1<<1;
-        const LEFT_CTRL = 1<<2;
-        const RIGHT_CTRL = 1<<3;
-
-        const SHIFT = 1<<4;
-        const LEFT_SHIFT = 1<<5;
-        const RIGHT_SHIFT = 1<<6;
-
-        const ALT = 1<<7;
-        const LEFT_ALT = 1<<8;
-        const RIGHT_ALT = 1<<9;
-
-        const META = 1<<10;
-        const SUPER = 1<<11;
-        const HYPER = 1<<12;
-        const CAPS_LOCK= 1<<13;
-        const NUM_LOCK= 1<<14;
-
+        const SHIFT = 1<<1;
+        const LEFT_SHIFT = 1<<10;
+        const RIGHT_SHIFT = 1<<11;
+        const ALT = 1<<2;
+        const LEFT_ALT = 1<<5;
+        const RIGHT_ALT = 1<<6;
+        const CTRL = 1<<3;
+        const LEFT_CTRL = 1<<8;
+        const RIGHT_CTRL = 1<<9;
+        const SUPER = 1<<4;
         /// This is a virtual modifier used by wezterm
-        const LEADER = 1<<15;
-        const ENHANCED_KEY = 1<<16;
-   }
+        const LEADER = 1<<7;
+        const ENHANCED_KEY = 1<<12;
+
+        const META = 1<<13;
+        const HYPER = 1<<14;
+        const CAPS_LOCK = 1<<15;
+        const NUM_LOCK = 1<<16;
+    }
 }
 
 impl TryFrom<String> for Modifiers {
