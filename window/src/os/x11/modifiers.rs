@@ -214,7 +214,7 @@ fn get_mapper_algo<'a>(
 }
 
 fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
-    let mut mod_map = ModifierMap::new();
+    let mut mod_map = ModifierMap::default();
 
     macro_rules! assign {
         ($mod:ident, $n:expr) => {
