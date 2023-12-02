@@ -10,24 +10,21 @@ Accepted values:
  * `"AlwaysOnTop"`
 
 ```lua
-local act = wezterm.action
-local config = {}
-
 config.keys = {
     {
         key = '[',
         mods = 'CMD',
-        action = act.SetWindowLevel("AlwaysOnBottom")
+        action = wezterm.action.SetWindowLevel("AlwaysOnBottom")
     }, 
     {
         key = '0',
         mods = 'CMD|SHIFT',
-        action = act.SetWindowLevel("Normal")
+        action = wezterm.action.SetWindowLevel("Normal")
     }, 
     {
         key = ']',
         mods = 'CMD',
-        action = act.SetWindowLevel("AlwaysOnTop")
+        action = wezterm.action.SetWindowLevel("AlwaysOnTop")
     }, 
 }
 ```
