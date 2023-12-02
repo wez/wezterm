@@ -1,13 +1,13 @@
 use xkbcommon::xkb::{self};
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ModifierIndex {
     pub idx: xkb::ModIndex,
     pub mask: u32,
 }
 
-impl ModifierIndex {
-    fn new() -> Self {
+impl Default for ModifierIndex {
+    fn default() -> Self {
         return Self {
             idx: xkb::MOD_INVALID,
             mask: 0,
