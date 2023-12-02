@@ -22,10 +22,14 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
 enum ConflictMode {
+    /// Retain the existing value
     Keep,
+    /// Take the latest value
+    #[default]
     Force,
+    /// Raise an error
     Error,
 }
 impl_lua_conversion_dynamic!(ConflictMode);
@@ -152,14 +156,12 @@ fn deep_extend<'lua>(
 }
 
 fn clone<'lua>(lua: &'lua Lua, table: Table<'lua>) -> mlua::Result<Table<'lua>> {
-    let table_len = table.clone().pairs::<LuaValue, LuaValue>().count();
-    let res: Table<'lua> = lua.create_table_with_capacity(0, table_len)?;
+    let res: Table<'lua> = lua.create_table()?;
 
     for pair in table.pairs::<LuaValue, LuaValue>() {
         let (key, value) = pair?;
         if let LuaValue::Table(tbl) = value {
-            let inner_res = clone(lua, tbl)?;
-            res.set(key, inner_res)?;
+            res.set(key, clone(lua, tbl)?)?;
         } else {
             res.set(key, value)?;
         }
@@ -173,16 +175,10 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
         match item {
             LuaValue::Table(tbl) => {
                 let tbl_as_vec = tbl.sequence_values().filter_map(|x| x.ok()).collect();
-                let flat = flatten(lua, tbl_as_vec)?;
-                for j in flat {
-                    flat_vec.push(j);
-                }
+                let mut flat = flatten(lua, tbl_as_vec)?;
+                flat_vec.append(&mut flat);
             }
             LuaValue::Nil => (),
-            LuaValue::Thread(_) => (),
-            LuaValue::Error(err) => {
-                return Err(err);
-            }
             other => {
                 flat_vec.push(other);
             }
@@ -191,10 +187,9 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
     Ok(flat_vec)
 }
 
-fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Integer> {
-    // note that # only works correctly on arrays in Lua
-    let len = table.pairs::<LuaValue, LuaValue>().count() as i64;
-    Ok(len)
+/// note that the `#` operator only works correctly on arrays in Lua
+fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
+    Ok(table.pairs::<LuaValue, LuaValue>().count())
 }
 
 fn has_key<'lua>(_: &'lua Lua, (table, key): (Table<'lua>, LuaValue)) -> mlua::Result<bool> {
