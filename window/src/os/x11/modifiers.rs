@@ -3,14 +3,12 @@ use xkbcommon::xkb::{self};
 #[derive(Debug, Clone, Copy)]
 pub struct ModifierIndex {
     pub idx: xkb::ModIndex,
-    pub mask: u32,
 }
 
 impl Default for ModifierIndex {
     fn default() -> Self {
         return Self {
             idx: xkb::MOD_INVALID,
-            mask: 0,
         };
     }
 }
@@ -305,10 +303,7 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
                     && (used_bits & shifted == 0)
                     && algo.$mod == shifted
                 {
-                    mod_map.$mod = ModifierIndex {
-                        idx: $i,
-                        mask: shifted,
-                    };
+                    mod_map.$mod = ModifierIndex { idx: $i };
                     used_bits |= shifted;
                 }
             };
