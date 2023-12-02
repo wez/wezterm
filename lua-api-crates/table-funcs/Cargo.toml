@@ -9,3 +9,4 @@ edition = "2021"
 anyhow = "1.0"
 config = { path = "../../config" }
 luahelper = { path = "../../luahelper" }
+wezterm-dynamic = { path = "../../wezterm-dynamic" }

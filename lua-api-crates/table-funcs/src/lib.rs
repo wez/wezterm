@@ -1,6 +1,7 @@
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Integer, Lua, Table, Value as LuaValue};
-use luahelper::ValuePrinter;
+use luahelper::{impl_lua_conversion_dynamic, ValuePrinter};
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let table = get_or_create_sub_module(lua, "table")?;
@@ -21,35 +22,13 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
 enum ConflictMode {
     Keep,
     Force,
     Error,
 }
-
-impl<'lua> mlua::FromLua<'lua> for ConflictMode {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> mlua::Result<Self> {
-        match value {
-            LuaValue::String(s) => match s.to_str() {
-                Ok("Keep") => Ok(ConflictMode::Keep),
-                Ok("keep") => Ok(ConflictMode::Keep),
-                Ok("Force") => Ok(ConflictMode::Force),
-                Ok("force") => Ok(ConflictMode::Force),
-                Ok("Error") => Ok(ConflictMode::Error),
-                Ok("error") => Ok(ConflictMode::Error),
-                _ => Err(mlua::Error::runtime(
-                    "Unknown string. Expected 'Keep', 'Force' or 'Error'".to_string(),
-                )),
-            },
-            LuaValue::Error(err) => Err(err),
-            other => Err(mlua::Error::runtime(format!(
-                "Expected a Lua string. Got something of type: {}",
-                other.type_name()
-            ))),
-        }
-    }
-}
+impl_lua_conversion_dynamic!(ConflictMode);
 
 // merge tables
 // (in case of overlap of the tables, we default to taking the key-value pair from the last table)

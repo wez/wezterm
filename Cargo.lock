@@ -5327,6 +5327,7 @@ dependencies = [
  "anyhow",
  "config",
  "luahelper",
+ "wezterm-dynamic",
 ]
 
 [[package]]
