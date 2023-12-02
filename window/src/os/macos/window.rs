@@ -1160,12 +1160,15 @@ impl WindowInner {
     }
 
     fn set_window_level(&mut self, level: WindowLevel) {
+
         unsafe {
             NSWindow::setLevel_(*self.window, match level {
                 WindowLevel::AlwaysOnBottom => -1,
                 WindowLevel::Normal => 0,
                 WindowLevel::AlwaysOnTop => 3,
             });
+
+            WindowView::did_resize(&mut** self.view, sel!(windowDidResize:), nil);
         }
     }
 
@@ -2772,6 +2775,20 @@ impl WindowView {
                     unsafe { msg_send![*window, isZoomed] }
                 });
 
+            let window_level = inner.window.as_ref().map_or(WindowLevel::Normal, |w| unsafe { w.load().level().into() });
+
+            let level_state = match window_level {
+                WindowLevel::AlwaysOnBottom => WindowState::ALWAYS_ON_BOTTOM,
+                WindowLevel::AlwaysOnTop => WindowState::ALWAYS_ON_TOP,
+                WindowLevel::Normal => WindowState::default(),
+            };
+
+            let screen_state = match (is_full_screen, is_zoomed) {
+                (true, _) => WindowState::FULL_SCREEN,
+                (_, true) => WindowState::MAXIMIZED,
+                _ => WindowState::default(),
+            };
+
             let dpi = inner
                 .window
                 .as_ref()
@@ -2788,13 +2805,7 @@ impl WindowView {
                     pixel_height: height as usize,
                     dpi,
                 },
-                window_state: if is_full_screen {
-                    WindowState::FULL_SCREEN
-                } else if is_zoomed {
-                    WindowState::MAXIMIZED
-                } else {
-                    WindowState::default()
-                },
+                window_state: screen_state | level_state,
                 live_resizing,
             });
         }

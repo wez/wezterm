@@ -2514,16 +2514,9 @@ impl TermWindow {
 
                 match current_level {
                     WindowLevel::AlwaysOnTop => {
-                        self.window_state -= WindowState::ALWAYS_ON_TOP;
                         window.set_window_level(WindowLevel::Normal);
                     }
-                    WindowLevel::AlwaysOnBottom => {
-                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
-                        window.set_window_level(WindowLevel::AlwaysOnTop);
-                    }
-                    WindowLevel::Normal => {
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
+                    WindowLevel::AlwaysOnBottom | WindowLevel::Normal => {
                         window.set_window_level(WindowLevel::AlwaysOnTop);
                     }
                 }
@@ -2533,49 +2526,17 @@ impl TermWindow {
                 let current_level = self.window_state.as_window_level();
 
                 match current_level {
-                    WindowLevel::AlwaysOnTop => {
-                        self.window_state -= WindowState::ALWAYS_ON_TOP;
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
-                        window.set_window_level(WindowLevel::AlwaysOnBottom);
-                    }
                     WindowLevel::AlwaysOnBottom => {
-                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
                         window.set_window_level(WindowLevel::Normal);
                     }
-                    WindowLevel::Normal => {
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
+                    WindowLevel::AlwaysOnTop | WindowLevel::Normal => {
                         window.set_window_level(WindowLevel::AlwaysOnBottom);
                     }
                 }
             }
             SetWindowLevel(level) => {
                 let window = self.window.clone().unwrap();
-                let current_level = self.window_state.as_window_level();
-
-                // reset level state if needed
-                match current_level {
-                    WindowLevel::AlwaysOnTop => {
-                        self.window_state -= WindowState::ALWAYS_ON_TOP;
-                    }
-                    WindowLevel::AlwaysOnBottom => {
-                        self.window_state -= WindowState::ALWAYS_ON_BOTTOM;
-                    }
-                    _ => {}
-                }
-
-                match level {
-                    WindowLevel::AlwaysOnTop => {
-                        window.set_window_level(WindowLevel::AlwaysOnTop);
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_TOP;
-                    }
-                    WindowLevel::AlwaysOnBottom => {
-                        window.set_window_level(WindowLevel::AlwaysOnBottom);
-                        self.window_state = self.window_state | WindowState::ALWAYS_ON_BOTTOM;
-                    }
-                    WindowLevel::Normal => {
-                        window.set_window_level(WindowLevel::Normal);
-                    }
-                }
+                window.set_window_level(level.clone());
             },
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
