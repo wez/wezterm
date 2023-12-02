@@ -232,32 +232,37 @@ fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlu
     Ok(false)
 }
 
-fn equal<'lua>(lua: &'lua Lua, (table1, table2): (Table<'lua>, Table<'lua>)) -> mlua::Result<bool> {
-    let mut res = true;
-
-    // check if the tables are the same length to ensure we don't miss anything in table2
-    // when we only loop through table1
-    let table1_len = table2.clone().pairs::<LuaValue, LuaValue>().count();
-    let table2_len = table2.clone().pairs::<LuaValue, LuaValue>().count();
-    if table1_len != table2_len {
-        return Ok(false);
+fn lua_value_eq(value1: &LuaValue, value2: &LuaValue) -> mlua::Result<bool> {
+    match (value1, value2) {
+        (LuaValue::Table(a), LuaValue::Table(b)) => lua_table_eq(a, b),
+        (a, b) => Ok(a.eq(b)),
     }
+}
 
-    for pair in table1.pairs::<LuaValue, LuaValue>() {
-        let (key, value1) = pair?;
-        let value2 = table2.get(key.clone())?;
-        if let LuaValue::Table(tbl1) = value1.clone() {
-            if let LuaValue::Table(tbl2) = value2 {
-                res = equal(lua, (tbl1, tbl2))?;
-            } else {
-                return Ok(false);
+fn lua_table_eq(table1: &Table, table2: &Table) -> mlua::Result<bool> {
+    let mut table1_len = 0;
+    for pair in table1.clone().pairs::<LuaValue, LuaValue>() {
+        match pair {
+            Ok((key, value)) => {
+                table1_len += 1;
+                match table2.get(key.clone()) {
+                    Ok(value2) => {
+                        if !lua_value_eq(&value, &value2)? {
+                            return Ok(false);
+                        }
+                    }
+                    Err(_) => return Ok(false),
+                }
             }
-        } else {
-            res = value1.eq(&value2);
+            Err(_) => return Ok(false),
         }
     }
+    let table2_len = table2.clone().pairs::<LuaValue, LuaValue>().count();
+    Ok(table1_len == table2_len)
+}
 
-    Ok(res)
+fn equal<'lua>(_: &'lua Lua, (table1, table2): (Table<'lua>, Table<'lua>)) -> mlua::Result<bool> {
+    lua_table_eq(&table1, &table2)
 }
 
 fn to_string_fallback<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
