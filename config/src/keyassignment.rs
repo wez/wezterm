@@ -358,7 +358,6 @@ pub struct PaneSelectArguments {
     pub show_pane_ids: bool,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CharSelectGroup {
     RecentlyUsed,
@@ -501,7 +500,6 @@ fn default_description() -> String {
 fn default_fuzzy_description() -> String {
     "Fuzzy matching: ".to_string()
 }
-
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {

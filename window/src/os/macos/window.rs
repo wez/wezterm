@@ -26,7 +26,8 @@ use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
     NSUInteger,
 };
-use config::{ConfigHandle, window::WindowLevel};
+use config::window::WindowLevel;
+use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
@@ -664,7 +665,6 @@ unsafe impl HasRawWindowHandle for Window {
     }
 }
 
-
 pub type NSWindowLevel = i64;
 
 pub fn nswindow_level_to_window_level(nswindow_level: NSWindowLevel) -> WindowLevel {
@@ -680,7 +680,7 @@ pub fn window_level_to_nswindow_level(level: WindowLevel) -> NSWindowLevel {
     match level {
         WindowLevel::AlwaysOnBottom => -1,
         WindowLevel::Normal => 0,
-        WindowLevel::AlwaysOnTop => 3
+        WindowLevel::AlwaysOnTop => 3,
     }
 }
 
@@ -1098,7 +1098,6 @@ impl WindowInner {
 
 /// @see https://developer.apple.com/documentation/appkit/nswindow/level
 
-
 impl WindowInner {
     fn show(&mut self) {
         unsafe {
@@ -1182,7 +1181,7 @@ impl WindowInner {
     fn set_window_level(&mut self, level: WindowLevel) {
         unsafe {
             NSWindow::setLevel_(*self.window, window_level_to_nswindow_level(level));
-            WindowView::did_resize(&mut** self.view, sel!(windowDidResize:), nil);
+            WindowView::did_resize(&mut **self.view, sel!(windowDidResize:), nil);
         }
     }
 
@@ -2789,10 +2788,14 @@ impl WindowView {
                     unsafe { msg_send![*window, isZoomed] }
                 });
 
-            let window_level = inner.window.as_ref().map(|window| { 
-                let level = unsafe { window.load().level() };
-                nswindow_level_to_window_level(level)
-            }).unwrap_or_default();
+            let window_level = inner
+                .window
+                .as_ref()
+                .map(|window| {
+                    let level = unsafe { window.load().level() };
+                    nswindow_level_to_window_level(level)
+                })
+                .unwrap_or_default();
 
             let level_state = match window_level {
                 WindowLevel::AlwaysOnBottom => WindowState::ALWAYS_ON_BOTTOM,

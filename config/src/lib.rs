@@ -19,7 +19,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, UnknownFieldAction, Value};
 
-pub mod window;
 mod background;
 mod bell;
 mod color;
@@ -40,6 +39,7 @@ mod tls;
 mod units;
 mod unix;
 mod version;
+pub mod window;
 mod wsl;
 
 pub use crate::config::*;

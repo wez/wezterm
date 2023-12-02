@@ -1,6 +1,7 @@
 use crate::inputmap::InputMap;
 use config::keyassignment::*;
-use config::{ConfigHandle, window::WindowLevel, DeferredKeyCode};
+use config::window::WindowLevel;
+use config::{ConfigHandle, DeferredKeyCode};
 use mux::domain::DomainState;
 use mux::Mux;
 use ordered_float::NotNan;
@@ -2057,14 +2058,11 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ScrollToBottom,
         // ----------------- Window
         ToggleFullScreen,
-
         ToggleAlwaysOnTop,
         ToggleAlwaysOnBottom,
-
-        SetWindowLevel(WindowLevel::AlwaysOnBottom), 
-        SetWindowLevel(WindowLevel::Normal), 
-        SetWindowLevel(WindowLevel::AlwaysOnTop), 
-
+        SetWindowLevel(WindowLevel::AlwaysOnBottom),
+        SetWindowLevel(WindowLevel::Normal),
+        SetWindowLevel(WindowLevel::AlwaysOnTop),
         Hide,
         Search(Pattern::CurrentSelectionOrEmptyString),
         PaneSelect(PaneSelectArguments {

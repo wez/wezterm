@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
-use config::{ConfigHandle, window::WindowLevel, Dimension, GeometryOrigin};
+use config::window::WindowLevel;
+use config::{ConfigHandle, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
 use std::path::PathBuf;
@@ -70,7 +71,6 @@ pub enum MouseCursor {
     SizeUpDown,
     SizeLeftRight,
 }
-
 
 /// Represents the preferred appearance of the windowing
 /// environment.

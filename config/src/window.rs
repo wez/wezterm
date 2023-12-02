@@ -1,5 +1,4 @@
-use wezterm_dynamic::{ToDynamic, FromDynamic};
-
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[derive(Debug, Default, Clone, ToDynamic, PartialEq, Eq, FromDynamic)]
 pub enum WindowLevel {
@@ -8,4 +7,3 @@ pub enum WindowLevel {
     Normal = 0,
     AlwaysOnTop = 3,
 }
-
