@@ -211,22 +211,22 @@ fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlu
     Ok(false)
 }
 
-fn lua_value_eq(value1: &LuaValue, value2: &LuaValue) -> mlua::Result<bool> {
+fn lua_value_eq(value1: LuaValue, value2: LuaValue) -> mlua::Result<bool> {
     match (value1, value2) {
         (LuaValue::Table(a), LuaValue::Table(b)) => lua_table_eq(a, b),
-        (a, b) => Ok(a.eq(b)),
+        (a, b) => Ok(a.eq(&b)),
     }
 }
 
-fn lua_table_eq(table1: &Table, table2: &Table) -> mlua::Result<bool> {
+fn lua_table_eq(table1: Table, table2: Table) -> mlua::Result<bool> {
     let mut table1_len = 0;
-    for pair in table1.clone().pairs::<LuaValue, LuaValue>() {
+    for pair in table1.pairs::<LuaValue, LuaValue>() {
         match pair {
             Ok((key, value)) => {
                 table1_len += 1;
                 match table2.get(key.clone()) {
                     Ok(value2) => {
-                        if !lua_value_eq(&value, &value2)? {
+                        if !lua_value_eq(value, value2)? {
                             return Ok(false);
                         }
                     }
@@ -236,12 +236,12 @@ fn lua_table_eq(table1: &Table, table2: &Table) -> mlua::Result<bool> {
             Err(_) => return Ok(false),
         }
     }
-    let table2_len = table2.clone().pairs::<LuaValue, LuaValue>().count();
+    let table2_len = table2.pairs::<LuaValue, LuaValue>().count();
     Ok(table1_len == table2_len)
 }
 
 fn equal<'lua>(_: &'lua Lua, (table1, table2): (Table<'lua>, Table<'lua>)) -> mlua::Result<bool> {
-    lua_table_eq(&table1, &table2)
+    lua_table_eq(table1, table2)
 }
 
 fn to_string_fallback<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
