@@ -132,6 +132,8 @@ As features stabilize some brief notes about them will accumulate here.
 * DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
 * Clamp cursor position reported by CPR. Thanks to @ninjalj! #4564
 * Correct `SUPER` modifier key handling in kitty protocol. Thanks to @gabyx! #4605
+* macOS: honor the `window_close_confirmation` config option when quitting the
+  application. Thanks to @quantonganh! #4420 #4362
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
