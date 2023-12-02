@@ -1,6 +1,6 @@
 use config::lua::get_or_create_sub_module;
-use config::lua::mlua::{self, Integer, Lua, Table, Value as LuaValue};
-use luahelper::{impl_lua_conversion_dynamic, ValuePrinter};
+use config::lua::mlua::{self, Lua, Table, Value as LuaValue};
+use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
@@ -9,20 +9,15 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     table.set("deep_extend", lua.create_function(deep_extend)?)?;
     table.set("clone", lua.create_function(clone)?)?;
     table.set("flatten", lua.create_function(flatten)?)?;
-    table.set("length", lua.create_function(length)?)?;
+    table.set("count", lua.create_function(count)?)?;
     table.set("has_key", lua.create_function(has_key)?)?;
     table.set("has_value", lua.create_function(has_value)?)?;
     table.set("equal", lua.create_function(equal)?)?;
-    table.set("to_string", lua.create_function(to_string)?)?;
-    table.set(
-        "to_string_fallback",
-        lua.create_function(to_string_fallback)?,
-    )?;
 
     Ok(())
 }
 
-#[derive(Default, Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq, Copy)]
 enum ConflictMode {
     /// Retain the existing value
     Keep,
@@ -53,32 +48,19 @@ fn extend<'lua>(
     // note we might allocate a bit too much here, but in many use cases we will be correct
     let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
 
-    match behavior {
-        Some(ConflictMode::Keep) => {
-            for (key, value) in tbl_vec {
-                if !tbl.contains_key(key.clone())? {
-                    tbl.set(key, value)?;
-                }
-            }
+    let behavior = behavior.unwrap_or_default();
+    for (key, value) in tbl_vec {
+        if !tbl.contains_key(key.clone())? {
+            tbl.set(key, value)?;
+        } else if behavior == ConflictMode::Force {
+            tbl.set(key, value)?;
+        } else if behavior == ConflictMode::Error {
+            return Err(mlua::Error::runtime(format!(
+                "The key {} is in more than one of the tables.",
+                key.to_string()?
+            )));
         }
-        // default behavior is to keep last set value
-        Some(ConflictMode::Force) | None => {
-            for (key, value) in tbl_vec {
-                tbl.set(key, value)?;
-            }
-        }
-        Some(ConflictMode::Error) => {
-            for (key, value) in tbl_vec {
-                if tbl.contains_key(key.clone())? {
-                    return Err(mlua::Error::runtime(format!(
-                        "The key {} is in more than one of the tables.",
-                        key.to_string()?
-                    )));
-                }
-                tbl.set(key, value)?;
-            }
-        }
-    };
+    }
 
     Ok(tbl)
 }
@@ -102,55 +84,22 @@ fn deep_extend<'lua>(
     // note we might allocate a bit too much here, but in many use cases we will be correct
     let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
 
-    match behavior {
-        Some(ConflictMode::Keep) => {
-            for (key, value) in tbl_vec {
-                if !tbl.contains_key(key.clone())? {
-                    tbl.set(key, value)?;
-                } else if let LuaValue::Table(t) = value {
-                    let inner_tbl = deep_extend(
-                        lua,
-                        (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Keep)),
-                    )?;
-                    tbl.set(key, inner_tbl)?;
-                }
-            }
+    let behavior = behavior.unwrap_or_default();
+    for (key, value) in tbl_vec {
+        if !tbl.contains_key(key.clone())? {
+            tbl.set(key, value)?;
+        } else if let LuaValue::Table(t) = value {
+            let inner_tbl = deep_extend(lua, (vec![tbl.get(key.clone())?, t], Some(behavior)))?;
+            tbl.set(key, inner_tbl)?;
+        } else if behavior == ConflictMode::Force {
+            tbl.set(key, value)?;
+        } else if behavior == ConflictMode::Error {
+            return Err(mlua::Error::runtime(format!(
+                "The key {} is in more than one of the tables.",
+                key.to_string()?
+            )));
         }
-        // default behavior is to keep last set value
-        Some(ConflictMode::Force) | None => {
-            for (key, value) in tbl_vec {
-                if !tbl.contains_key(key.clone())? {
-                    tbl.set(key, value)?;
-                } else if let LuaValue::Table(t) = value {
-                    let inner_tbl = deep_extend(
-                        lua,
-                        (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Force)),
-                    )?;
-                    tbl.set(key, inner_tbl)?;
-                } else {
-                    tbl.set(key, value)?;
-                }
-            }
-        }
-        Some(ConflictMode::Error) => {
-            for (key, value) in tbl_vec {
-                if !tbl.contains_key(key.clone())? {
-                    tbl.set(key, value)?;
-                } else if let LuaValue::Table(t) = value {
-                    let inner_tbl = deep_extend(
-                        lua,
-                        (vec![tbl.get(key.clone())?, t], Some(ConflictMode::Keep)),
-                    )?;
-                    tbl.set(key, inner_tbl)?;
-                } else {
-                    return Err(mlua::Error::runtime(format!(
-                        "The key {} is in more than one of the tables.",
-                        key.to_string()?
-                    )));
-                }
-            }
-        }
-    };
+    }
 
     Ok(tbl)
 }
@@ -188,7 +137,7 @@ fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Ve
 }
 
 /// note that the `#` operator only works correctly on arrays in Lua
-fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
+fn count<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
     Ok(table.pairs::<LuaValue, LuaValue>().count())
 }
 
@@ -237,13 +186,4 @@ fn lua_table_eq(table1: Table, table2: Table) -> mlua::Result<bool> {
 
 fn equal<'lua>(_: &'lua Lua, (table1, table2): (Table<'lua>, Table<'lua>)) -> mlua::Result<bool> {
     lua_table_eq(table1, table2)
-}
-
-fn to_string_fallback<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
-    Ok(format!("{:#?}", table))
-}
-
-fn to_string<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<String> {
-    let res = ValuePrinter(LuaValue::Table(table));
-    Ok(format!("{:#?}", res).to_string())
 }
