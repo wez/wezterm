@@ -1,3 +1,18 @@
+#![allow(dead_code)]
+use super::pointer::*;
+use super::window::*;
+use crate::connection::ConnectionOps;
+use crate::os::wayland::inputhandler::InputHandler;
+use crate::os::wayland::output::OutputHandler;
+use crate::os::x11::keyboard::KeyboardWithFallback;
+use crate::screen::{ScreenInfo, Screens};
+use crate::spawn::*;
+use crate::x11::ModifierInit;
+use crate::{Appearance, Connection, ScreenRect, WindowEvent};
+use anyhow::{bail, Context};
+use mio::unix::SourceFd;
+use mio::{Events, Interest, Poll, Token};
+use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::fd::AsRawFd;
@@ -120,7 +135,7 @@ impl WaylandConnection {
                             data.pop();
                         }
                         let s = String::from_utf8(data)?;
-                        match KeyboardWithFallback::new_from_string(s, true) {
+                        match KeyboardWithFallback::new_from_string(s, ModifierInit::Wayland) {
                             Ok(k) => {
                                 self.keyboard_mapper.replace(Some(k));
                             }
