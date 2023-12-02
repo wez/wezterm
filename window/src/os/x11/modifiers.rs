@@ -326,23 +326,7 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
     }
 
     log::info!(
-        "Modifier map:\n
-          - ctrl: {:?}
-          - shift: {:?}
-          - alt: {:?}
-          - meta: {:?}
-          - caps_lock: {:?}
-          - num_lock: {:?}
-          - super: {:?}
-          - hyper: {:?}",
-        mod_map.ctrl,
-        mod_map.shift,
-        mod_map.alt,
-        mod_map.meta,
-        mod_map.caps_lock,
-        mod_map.num_lock,
-        mod_map.supr,
-        mod_map.hyper,
+        "Modifier map {mod_map:#?}"
     );
 
     return mod_map;
