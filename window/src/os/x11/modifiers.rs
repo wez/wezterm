@@ -44,7 +44,7 @@ struct Algorithm<'a> {
 }
 
 impl<'a> Algorithm<'a> {
-    fn new(state: &mut xkb::State) -> Algorithm<'a> {
+    fn new(state: &'a mut xkb::State) -> Algorithm<'a> {
         return Algorithm {
             failed: false,
             try_shift: false,
@@ -331,9 +331,7 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
         mod_map = init_modifier_table_fallback(keymap);
     }
 
-    log::info!(
-        "Modifier map {mod_map:#?}"
-    );
+    log::info!("Modifier map {mod_map:#?}");
 
     return mod_map;
 }
