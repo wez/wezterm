@@ -664,6 +664,26 @@ unsafe impl HasRawWindowHandle for Window {
     }
 }
 
+
+pub type NSWindowLevel = i64;
+
+pub fn nswindow_level_to_window_level(nswindow_level: NSWindowLevel) -> WindowLevel {
+    match nswindow_level {
+        -1 => WindowLevel::AlwaysOnBottom,
+        0 => WindowLevel::Normal,
+        3 => WindowLevel::AlwaysOnTop,
+        _ => panic!("Invalid window level: {}", nswindow_level),
+    }
+}
+
+pub fn window_level_to_nswindow_level(level: WindowLevel) -> NSWindowLevel {
+    match level {
+        WindowLevel::AlwaysOnBottom => -1,
+        WindowLevel::Normal => 0,
+        WindowLevel::AlwaysOnTop => 3
+    }
+}
+
 #[async_trait(?Send)]
 impl WindowOps for Window {
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
@@ -1160,14 +1180,8 @@ impl WindowInner {
     }
 
     fn set_window_level(&mut self, level: WindowLevel) {
-
         unsafe {
-            NSWindow::setLevel_(*self.window, match level {
-                WindowLevel::AlwaysOnBottom => -1,
-                WindowLevel::Normal => 0,
-                WindowLevel::AlwaysOnTop => 3,
-            });
-
+            NSWindow::setLevel_(*self.window, window_level_to_nswindow_level(level));
             WindowView::did_resize(&mut** self.view, sel!(windowDidResize:), nil);
         }
     }
@@ -2775,7 +2789,10 @@ impl WindowView {
                     unsafe { msg_send![*window, isZoomed] }
                 });
 
-            let window_level = inner.window.as_ref().map_or(WindowLevel::Normal, |w| unsafe { w.load().level().into() });
+            let window_level = inner.window.as_ref().map(|window| { 
+                let level = unsafe { window.load().level() };
+                nswindow_level_to_window_level(level)
+            }).unwrap_or_default();
 
             let level_state = match window_level {
                 WindowLevel::AlwaysOnBottom => WindowState::ALWAYS_ON_BOTTOM,
