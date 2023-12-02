@@ -482,19 +482,18 @@ bitflags! {
     #[dynamic(into="String", try_from="String")]
     pub struct Modifiers: u32 {
         const NONE = 0;
-
         const SHIFT = 1<<1;
-        const LEFT_SHIFT = 1<<10;
-        const RIGHT_SHIFT = 1<<11;
         const ALT = 1<<2;
+        const CTRL = 1<<3;
+        const SUPER = 1<<4;
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
-        const CTRL = 1<<3;
-        const LEFT_CTRL = 1<<8;
-        const RIGHT_CTRL = 1<<9;
-        const SUPER = 1<<4;
         /// This is a virtual modifier used by wezterm
         const LEADER = 1<<7;
+        const LEFT_CTRL = 1<<8;
+        const RIGHT_CTRL = 1<<9;
+        const LEFT_SHIFT = 1<<10;
+        const RIGHT_SHIFT = 1<<11;
         const ENHANCED_KEY = 1<<12;
 
         const META = 1<<13;
