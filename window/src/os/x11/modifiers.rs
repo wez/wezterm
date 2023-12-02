@@ -27,22 +27,7 @@ pub struct ModifierMap {
     pub hyper: ModifierIndex,
 }
 
-impl ModifierMap {
-    fn new() -> Self {
-        Self {
-            ctrl: ModifierIndex::new(),
-            shift: ModifierIndex::new(),
-            alt: ModifierIndex::new(),
-            meta: ModifierIndex::new(),
-            caps_lock: ModifierIndex::new(),
-            num_lock: ModifierIndex::new(),
-            supr: ModifierIndex::new(),
-            hyper: ModifierIndex::new(),
-        }
-    }
-}
-
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct Algorithm {
     failed: bool,
 
@@ -59,8 +44,8 @@ struct Algorithm {
     hyper: u32,
 }
 
-impl Algorithm {
-    fn new() -> Algorithm {
+impl Default for Algorithm {
+    fn default() -> Algorithm {
         return Algorithm {
             failed: false,
             try_shift: false,
@@ -134,7 +119,7 @@ fn get_mapper_algo<'a>(
             let keysyms = state.key_get_syms(key);
             log::debug!("Keysym: {:x?}", keysyms);
 
-            macro_rules! S2 {
+            macro_rules! assign_left_right {
                 ($key_l:expr, $key_r:expr, $mod:ident) => {
                     if keysyms[0] == $key_l || keysyms[0] == $key_r {
                         if algo.$mod == 0 {
@@ -158,7 +143,7 @@ fn get_mapper_algo<'a>(
                 };
             }
 
-            macro_rules! S1 {
+            macro_rules! assign {
                 ($key:expr, $mod:ident) => {
                     if keysyms[0] == $key && algo.$mod == 0 {
                         log::debug!(
@@ -177,19 +162,18 @@ fn get_mapper_algo<'a>(
             // for each modifier in case there are some modifiers that are only present in
             // combination with others, but it is not worth the effort.
             if keysyms.len() == 1 && mods.is_power_of_two() {
-                S2!(xkb::keysyms::KEY_Shift_L, xkb::KEY_Shift_R, shift);
-                S2!(xkb::KEY_Control_L, xkb::KEY_Control_R, ctrl);
-                S1!(xkb::KEY_Caps_Lock, caps_lock);
-                S1!(xkb::KEY_Shift_Lock, num_lock);
-                S2!(xkb::KEY_Alt_L, xkb::KEY_Alt_R, alt);
-                S2!(xkb::KEY_Meta_L, xkb::KEY_Meta_R, meta);
-                S2!(xkb::KEY_Super_L, xkb::KEY_Super_R, supr);
-                S2!(xkb::KEY_Hyper_L, xkb::KEY_Hyper_R, hyper);
+                assign_left_right!(xkb::KEY_Shift_L, xkb::KEY_Shift_R, shift);
+                assign_left_right!(xkb::KEY_Control_L, xkb::KEY_Control_R, ctrl);
+                assign!(xkb::KEY_Caps_Lock, caps_lock);
+                assign!(xkb::KEY_Shift_Lock, num_lock);
+                assign_left_right!(xkb::KEY_Alt_L, xkb::KEY_Alt_R, alt);
+                assign_left_right!(xkb::KEY_Meta_L, xkb::KEY_Meta_R, meta);
+                assign_left_right!(xkb::KEY_Super_L, xkb::KEY_Super_R, supr);
+                assign_left_right!(xkb::KEY_Hyper_L, xkb::KEY_Hyper_R, hyper);
             }
 
             if algo.shift_keycode == 0
-                && (keysyms[0] == xkb::keysyms::KEY_Shift_L
-                    || keysyms[0] == xkb::keysyms::KEY_Shift_R)
+                && (keysyms[0] == xkb::KEY_Shift_L || keysyms[0] == xkb::KEY_Shift_R)
             {
                 log::debug!("Found shift keycode.");
                 algo.shift_keycode = key;
@@ -208,11 +192,17 @@ fn get_mapper_algo<'a>(
         if algo.try_shift {
             state.update_key(algo.shift_keycode, xkb::KeyDirection::Up);
         }
-
-        return;
     };
 }
 
+/// This function initializes wezterm internal modifiers depending
+/// on a default mapping.
+/// This function simply queries the index for the xkb modifiers
+/// `Control`, `Lock`, `Shift`, `Mod1`, `Mod2`, `Mod4`
+/// and treats them as default (assumption) to
+/// `Ctrl`, `Caps_Lock`, `Shift`, `Alt`, `Num_Lock`, `Super`
+///
+/// Modifiers `Hyper` and `Meta` are not detected.
 fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
     let mut mod_map = ModifierMap::default();
 
@@ -236,16 +226,35 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
     return mod_map;
 }
 
-#[cfg(feature = "x11")]
-fn init_modifier_table(keymap: &xkb::Keymap) -> ModifierMap {
+/// This function initializes wezterm internal modifiers
+/// by looking up virtual modifiers (e.g. run `xmodmap -pm`)
+/// and
+/// This function initializes `xkb` modifier indices for
+/// all modifiers
+/// `Ctrl`, `Shift`, `Alt`, `Num_Lock`, `Caps_Lock`, `Super`,
+/// `Hyper`, `Meta`.
+pub fn init_modifier_table_x11(keymap: &xkb::Keymap) -> ModifierMap {
     // TODO: This implementation needs to be done with
     // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L321    return init_modifier_table_fallback(keymap);
+    return init_modifier_table_fallback(keymap);
 }
 
-#[cfg(feature = "wayland")]
-pub fn init_modifier_table(keymap: &xkb::Keymap) -> ModifierMap {
-    // Implementation taken from
-    // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L523
+/// This function initializes wezterm internal modifiers
+/// by probing the keyboard state for each keypress.
+///
+/// This is a workaround because under Wayland the code in
+/// [init_modifier_table_x11](init_modifier_table_x11)
+/// does not work.
+///
+/// This function tries to initialize `xkb` modifier indices for
+/// all modifiers
+/// `Ctrl`, `Shift`, `Alt`, `Num_Lock`, `Caps_Lock`, `Super`,
+/// `Hyper`, `Meta` and if it fails it uses the fallback method
+/// [init_modifier_table_fallback](init_modifier_table_fallback).
+///
+/// Implementation is taken from Kitty:
+/// https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L523
+pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
     //
     // This is a client side hack for wayland, once
     // https://github.com/xkbcommon/libxkbcommon/pull/36
@@ -256,9 +265,9 @@ pub fn init_modifier_table(keymap: &xkb::Keymap) -> ModifierMap {
 
     log::info!("Detect modifiers on Wayland [with key press iterations].");
 
-    let mut algo = Algorithm::new();
+    let mut algo = Algorithm::default();
     let mut state: xkb::State = xkb::State::new(keymap);
-    let mut mod_map = ModifierMap::new();
+    let mut mod_map = ModifierMap::default();
 
     keymap.key_for_each(get_mapper_algo(&mut algo, &mut state));
 
