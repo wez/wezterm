@@ -303,7 +303,9 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
         let mut shifted: u32 = 1;
         let mut used_bits: u32 = 0;
 
-        macro_rules! assign {
+        // Algorithm can detect the same index for multiple modifiers
+        // but we only want one assigned to each of our modifiers.
+        macro_rules! try_assign_unique_index {
             ($mod:ident, $i:ident) => {
                 if mod_map.$mod.idx == xkb::MOD_INVALID
                     && (used_bits & shifted == 0)
@@ -316,14 +318,14 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
         }
 
         for i in 0..32 {
-            assign!(ctrl, i);
-            assign!(shift, i);
-            assign!(alt, i);
-            assign!(meta, i);
-            assign!(caps_lock, i);
-            assign!(num_lock, i);
-            assign!(supr, i);
-            assign!(hyper, i);
+            try_assign_unique_index!(ctrl, i);
+            try_assign_unique_index!(shift, i);
+            try_assign_unique_index!(alt, i);
+            try_assign_unique_index!(meta, i);
+            try_assign_unique_index!(caps_lock, i);
+            try_assign_unique_index!(num_lock, i);
+            try_assign_unique_index!(supr, i);
+            try_assign_unique_index!(hyper, i);
             shifted <<= 1;
         }
     } else {
