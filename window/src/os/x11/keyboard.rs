@@ -28,6 +28,12 @@ pub struct Keyboard {
     mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
 }
 
+#[derive(Clone, Copy)]
+pub enum ModifierInit {
+    X11,
+    Wayland,
+}
+
 pub struct KeyboardWithFallback {
     selected: Keyboard,
     fallback: Keyboard,
@@ -151,16 +157,16 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
 }
 
 impl KeyboardWithFallback {
-    pub fn new(selected: Keyboard, using_wayland: bool) -> anyhow::Result<Self> {
+    pub fn new(selected: Keyboard, modifier_init: ModifierInit) -> anyhow::Result<Self> {
         Ok(Self {
             selected,
-            fallback: Keyboard::new_default(using_wayland)?,
+            fallback: Keyboard::new_default(modifier_init)?,
         })
     }
 
-    pub fn new_from_string(s: String, using_wayland: bool) -> anyhow::Result<Self> {
-        let selected = Keyboard::new_from_string(s, using_wayland)?;
-        Self::new(selected, using_wayland)
+    pub fn new_from_string(s: String, modifier_init: ModifierInit) -> anyhow::Result<Self> {
+        let selected = Keyboard::new_from_string(s, modifier_init)?;
+        Self::new(selected, modifier_init)
     }
 
     pub fn process_wayland_key(
@@ -479,7 +485,7 @@ impl KeyboardWithFallback {
 }
 
 impl Keyboard {
-    pub fn new_default(using_wayland: bool) -> anyhow::Result<Self> {
+    pub fn new_default(modifier_init: ModifierInit) -> anyhow::Result<Self> {
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let keymap = default_keymap(&context)
             .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
@@ -494,10 +500,9 @@ impl Keyboard {
 
         let phys_code_map = build_physkeycode_map(&keymap);
 
-        let mod_map = if using_wayland {
-            init_modifier_table_wayland(&keymap)
-        } else {
-            init_modifier_table_x11(&keymap)
+        let mod_map = match modifier_init {
+            ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
+            ModifierInit::X11 => init_modifier_table_x11(&keymap),
         };
 
         Ok(Self {
@@ -515,7 +520,7 @@ impl Keyboard {
         })
     }
 
-    pub fn new_from_string(s: String, using_wayland: bool) -> anyhow::Result<Self> {
+    pub fn new_from_string(s: String, modifier_init: ModifierInit) -> anyhow::Result<Self> {
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let keymap = xkb::Keymap::new_from_string(
             &context,
@@ -535,10 +540,9 @@ impl Keyboard {
 
         let phys_code_map = build_physkeycode_map(&keymap);
 
-        let mod_map = if using_wayland {
-            init_modifier_table_wayland(&keymap)
-        } else {
-            init_modifier_table_x11(&keymap)
+        let mod_map = match modifier_init {
+            ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
+            ModifierInit::X11 => init_modifier_table_x11(&keymap),
         };
 
         Ok(Self {
@@ -558,7 +562,7 @@ impl Keyboard {
 
     pub fn new(
         connection: &xcb::Connection,
-        using_wayland: bool,
+        modifier_init: ModifierInit,
     ) -> anyhow::Result<(Keyboard, u8)> {
         let first_ev = xcb::xkb::get_extension_data(connection)
             .ok_or_else(|| anyhow!("could not get xkb extension data"))?
@@ -611,10 +615,9 @@ impl Keyboard {
 
         let phys_code_map = build_physkeycode_map(&keymap);
 
-        let mod_map = if using_wayland {
-            init_modifier_table_wayland(&keymap)
-        } else {
-            init_modifier_table_x11(&keymap)
+        let mod_map = match modifier_init {
+            ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
+            ModifierInit::X11 => init_modifier_table_x11(&keymap),
         };
 
         let kbd = Self {
