@@ -1,5 +1,5 @@
 use config::lua::get_or_create_sub_module;
-use config::lua::mlua::{self, Lua, Table, Value as LuaValue};
+use config::lua::mlua::{self, Lua, Table, Value as LuaValue, MultiValue as LuaMultiValue};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
@@ -28,6 +28,16 @@ enum ConflictMode {
     Error,
 }
 impl_lua_conversion_dynamic!(ConflictMode);
+
+#[derive(Default, Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq, Copy)]
+enum DepthMode {
+    /// Take the latest value
+    #[default]
+    Top,
+    /// Raise an error
+    Deep,
+}
+impl_lua_conversion_dynamic!(DepthMode);
 
 // merge tables
 // (in case of overlap of the tables, we default to taking the key-value pair from the last table)
@@ -104,28 +114,41 @@ fn deep_extend<'lua>(
     Ok(tbl)
 }
 
-fn clone<'lua>(lua: &'lua Lua, table: Table<'lua>) -> mlua::Result<Table<'lua>> {
+fn clone<'lua>(lua: &'lua Lua, (table, behavior): (Table<'lua>, Option<DepthMode>)) -> mlua::Result<Table<'lua>> {
     let res: Table<'lua> = lua.create_table()?;
 
+    let behavior = behavior.unwrap_or_default();
     for pair in table.pairs::<LuaValue, LuaValue>() {
         let (key, value) = pair?;
-        if let LuaValue::Table(tbl) = value {
-            res.set(key, clone(lua, tbl)?)?;
-        } else {
-            res.set(key, value)?;
+        match behavior {
+            DepthMode::Top => {
+                res.set(key, value)?
+            }
+            DepthMode::Deep => {
+                if let LuaValue::Table(tbl) = value {
+                    res.set(key, clone(lua, (tbl, Some(behavior)))?)?
+                } else {
+                    res.set(key, value)?;
+                }
+            }
         }
     }
     Ok(res)
 }
 
-fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Vec<LuaValue<'lua>>> {
+fn flatten<'lua>(lua: &'lua Lua, (arrays, behavior): (Vec<LuaValue<'lua>>, Option<DepthMode>)) -> mlua::Result<Vec<LuaValue<'lua>>> {
     let mut flat_vec: Vec<LuaValue> = vec![];
+    let behavior = behavior.unwrap_or_default();
     for item in arrays {
         match item {
             LuaValue::Table(tbl) => {
-                let tbl_as_vec = tbl.sequence_values().filter_map(|x| x.ok()).collect();
-                let mut flat = flatten(lua, tbl_as_vec)?;
-                flat_vec.append(&mut flat);
+                if behavior == DepthMode::Deep {
+                    let tbl_as_vec = tbl.sequence_values().filter_map(|x| x.ok()).collect();
+                    let mut flat = flatten(lua, (tbl_as_vec, Some(behavior)))?;
+                    flat_vec.append(&mut flat);
+                } else {
+                    flat_vec.push(LuaValue::Table(tbl));
+                }
             }
             LuaValue::Nil => (),
             other => {
