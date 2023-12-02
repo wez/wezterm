@@ -25,8 +25,7 @@ pub struct ModifierMap {
     pub hyper: ModifierIndex,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Algorithm {
+struct Algorithm<'a> {
     failed: bool,
 
     try_shift: bool,
@@ -40,10 +39,12 @@ struct Algorithm {
     num_lock: u32,
     supr: u32,
     hyper: u32,
+
+    state: &'a mut xkb::State,
 }
 
-impl Default for Algorithm {
-    fn default() -> Algorithm {
+impl<'a> Algorithm<'a> {
+    fn new(state: &mut xkb::State) -> Algorithm<'a> {
         return Algorithm {
             failed: false,
             try_shift: false,
@@ -57,85 +58,85 @@ impl Default for Algorithm {
             num_lock: 0,
             supr: 0,
             hyper: 0,
+
+            state,
         };
     }
 }
 
-// Algorithm for mapping virtual modifiers to real modifiers:
-//   1. create new state
-//   2. for each key in keymap
-//      a. send key down to state
-//      b. if it affected exactly one bit in modifier map
-//         i) get keysym
-//         ii) if keysym matches one of the known modifiers, save it for that modifier
-//         iii) if modifier is latched, send key up and key down to toggle again
-//      c. send key up to reset the state
-//   3. if shift key found in step 2, run step 2 with all shift+key for each key
-//   4. if shift, control, alt and super are not all found, declare failure
-//   5. if failure, use static mapping from xkbcommon-names.h
-//
-// Step 3 is needed because many popular keymaps map meta to alt+shift.
-//
-// We could do better by constructing a system of linear equations, but it should not be
-// needed in any sane system. We could also use this algorithm with X11, but X11
-// provides XkbVirtualModsToReal which is guaranteed to be accurate, while this
-// algorithm is only a heuristic.
-//
-// We don't touch level3 or level5 modifiers.
-//
-fn get_mapper_algo<'a>(
-    algo: &'a mut Algorithm,
-    state: &'a mut xkb::State,
-) -> impl FnMut(&xkb::Keymap, xkb::Keycode) + 'a {
-    return move |_: &xkb::Keymap, key: xkb::Keycode| {
+impl<'a> Algorithm<'a> {
+    /// Algorithm for mapping virtual modifiers to real modifiers:
+    ///   1. create new state
+    ///   2. for each key in keymap
+    ///      a. send key down to state
+    ///      b. if it affected exactly one bit in modifier map
+    ///         i) get keysym
+    ///         ii) if keysym matches one of the known modifiers, save it for that modifier
+    ///         iii) if modifier is latched, send key up and key down to toggle again
+    ///      c. send key up to reset the state
+    ///   3. if shift key found in step 2, run step 2 with all shift+key for each key
+    ///   4. if shift, control, alt and super are not all found, declare failure
+    ///   5. if failure, use static mapping from xkbcommon-names.h
+    ///
+    /// Step 3 is needed because many popular keymaps map meta to alt+shift.
+    ///
+    /// We could do better by constructing a system of linear equations, but it should not be
+    /// needed in any sane system. We could also use this algorithm with X11, but X11
+    /// provides XkbVirtualModsToReal which is guaranteed to be accurate, while this
+    /// algorithm is only a heuristic.
+    ///
+    /// We don't touch level3 or level5 modifiers.
+    ///
+    fn visit_key(&mut self, key: xkb::Keycode) {
         log::debug!("Key: {:?}", key);
 
-        if algo.failed {
+        if self.failed {
             return;
         }
 
-        if algo.try_shift {
-            if key == algo.shift_keycode {
+        if self.try_shift {
+            if key == self.shift_keycode {
                 return;
             }
 
-            state.update_key(algo.shift_keycode, xkb::KeyDirection::Down);
+            self.state
+                .update_key(self.shift_keycode, xkb::KeyDirection::Down);
         }
 
-        let changed_type = state.update_key(key, xkb::KeyDirection::Down);
+        let changed_type = self.state.update_key(key, xkb::KeyDirection::Down);
 
         if changed_type
             & (xkb::STATE_MODS_DEPRESSED | xkb::STATE_MODS_LATCHED | xkb::STATE_MODS_LOCKED)
             != 0
         {
-            let mods = state.serialize_mods(if algo.try_shift {
+            let mods = self.state.serialize_mods(if self.try_shift {
                 xkb::STATE_MODS_EFFECTIVE
             } else {
                 xkb::STATE_MODS_DEPRESSED | xkb::STATE_MODS_LATCHED | xkb::STATE_MODS_LOCKED
             });
 
-            let keysyms = state.key_get_syms(key);
+            let keysyms = self.state.key_get_syms(key);
             log::debug!("Keysym: {:x?}", keysyms);
 
             macro_rules! assign_left_right {
                 ($key_l:expr, $key_r:expr, $mod:ident) => {
                     if keysyms[0] == $key_l || keysyms[0] == $key_r {
-                        if algo.$mod == 0 {
+                        if self.$mod == 0 {
                             log::debug!(
                                 "Keycode {:?} triggered keysym '{:x?}' for {:?}' modifier.",
                                 key,
                                 keysyms[0],
                                 stringify!($mod)
                             );
-                            algo.$mod = mods;
-                        } else if algo.$mod != mods {
+                            self.$mod = mods;
+                        } else if self.$mod != mods {
                             log::debug!(
                                 "Keycode {:?} triggered again keysym '{:x?}' for {:?}' modifier.",
                                 key,
                                 keysyms[0],
                                 stringify!($mod)
                             );
-                            algo.failed = true;
+                            self.failed = true;
                         }
                     }
                 };
@@ -143,14 +144,14 @@ fn get_mapper_algo<'a>(
 
             macro_rules! assign {
                 ($key:expr, $mod:ident) => {
-                    if keysyms[0] == $key && algo.$mod == 0 {
+                    if keysyms[0] == $key && self.$mod == 0 {
                         log::debug!(
                             "Key {:?} triggered keysym '{:?}' for '{:?}' modifier.",
                             key,
                             keysyms[0],
                             stringify!($mod)
                         );
-                        algo.$mod = mods;
+                        self.$mod = mods;
                     }
                 };
             }
@@ -170,27 +171,34 @@ fn get_mapper_algo<'a>(
                 assign_left_right!(xkb::KEY_Hyper_L, xkb::KEY_Hyper_R, hyper);
             }
 
-            if algo.shift_keycode == 0
+            if self.shift_keycode == 0
                 && (keysyms[0] == xkb::KEY_Shift_L || keysyms[0] == xkb::KEY_Shift_R)
             {
                 log::debug!("Found shift keycode.");
-                algo.shift_keycode = key;
+                self.shift_keycode = key;
             }
 
             // If this is a lock, then up and down to remove lock state
             if changed_type & xkb::STATE_MODS_LOCKED != 0 {
-                log::debug!("Found lock state. Set up/down to remove lock state.");
-                state.update_key(key, xkb::KeyDirection::Up);
-                state.update_key(key, xkb::KeyDirection::Down);
+                log::debug!("Found lock self.state. Set up/down to remove lock self.state.");
+                self.state.update_key(key, xkb::KeyDirection::Up);
+                self.state.update_key(key, xkb::KeyDirection::Down);
             }
         }
 
-        state.update_key(key, xkb::KeyDirection::Up);
+        self.state.update_key(key, xkb::KeyDirection::Up);
 
-        if algo.try_shift {
-            state.update_key(algo.shift_keycode, xkb::KeyDirection::Up);
+        if self.try_shift {
+            self.state
+                .update_key(self.shift_keycode, xkb::KeyDirection::Up);
         }
-    };
+    }
+
+    fn visit_keymap(&mut self, keymap: &xkb::Keymap) {
+        keymap.key_for_each(|_, key| {
+            self.visit_key(key);
+        });
+    }
 }
 
 /// This function initializes wezterm internal modifiers depending
@@ -207,10 +215,7 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
     macro_rules! assign {
         ($mod:ident, $n:expr) => {
             let idx = keymap.mod_get_index($n);
-            mod_map.$mod = ModifierIndex {
-                idx: idx,
-                mask: 1 << idx,
-            };
+            mod_map.$mod = ModifierIndex { idx: idx };
         };
     }
 
@@ -263,11 +268,11 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
 
     log::info!("Detect modifiers on Wayland [with key press iterations].");
 
-    let mut algo = Algorithm::default();
     let mut state: xkb::State = xkb::State::new(keymap);
+    let mut algo = Algorithm::new(&mut state);
     let mut mod_map = ModifierMap::default();
 
-    keymap.key_for_each(get_mapper_algo(&mut algo, &mut state));
+    algo.visit_keymap(&keymap);
 
     if algo.shift_keycode == 0 {
         algo.failed = true;
@@ -283,8 +288,9 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
         && !algo.failed
     {
         algo.try_shift = true;
+
         log::debug!("Detect modifiers on Wayland [with Shift+key press iterations].");
-        keymap.key_for_each(get_mapper_algo(&mut algo, &mut state));
+        algo.visit_keymap(&keymap);
     }
 
     // We must have found a least those 4 modifiers.
