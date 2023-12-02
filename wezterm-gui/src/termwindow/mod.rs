@@ -32,10 +32,10 @@ use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
     RotationDirection, SpawnCommand, SplitSize,
 };
+use config::window::WindowLevel;
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
     GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
-    window::WindowLevel
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
@@ -2537,7 +2537,7 @@ impl TermWindow {
             SetWindowLevel(level) => {
                 let window = self.window.clone().unwrap();
                 window.set_window_level(level.clone());
-            },
+            }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);
