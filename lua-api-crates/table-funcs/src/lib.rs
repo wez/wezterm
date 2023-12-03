@@ -1,5 +1,5 @@
 use config::lua::get_or_create_sub_module;
-use config::lua::mlua::{self, Lua, Table, Value as LuaValue, MultiValue as LuaMultiValue};
+use config::lua::mlua::{self, Lua, MultiValue as LuaMultiValue, Table, Value as LuaValue};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
@@ -114,16 +114,17 @@ fn deep_extend<'lua>(
     Ok(tbl)
 }
 
-fn clone<'lua>(lua: &'lua Lua, (table, behavior): (Table<'lua>, Option<DepthMode>)) -> mlua::Result<Table<'lua>> {
+fn clone<'lua>(
+    lua: &'lua Lua,
+    (table, behavior): (Table<'lua>, Option<DepthMode>),
+) -> mlua::Result<Table<'lua>> {
     let res: Table<'lua> = lua.create_table()?;
 
     let behavior = behavior.unwrap_or_default();
     for pair in table.pairs::<LuaValue, LuaValue>() {
         let (key, value) = pair?;
         match behavior {
-            DepthMode::Top => {
-                res.set(key, value)?
-            }
+            DepthMode::Top => res.set(key, value)?,
             DepthMode::Deep => {
                 if let LuaValue::Table(tbl) = value {
                     res.set(key, clone(lua, (tbl, Some(behavior)))?)?
@@ -136,7 +137,10 @@ fn clone<'lua>(lua: &'lua Lua, (table, behavior): (Table<'lua>, Option<DepthMode
     Ok(res)
 }
 
-fn flatten<'lua>(lua: &'lua Lua, (arrays, behavior): (Vec<LuaValue<'lua>>, Option<DepthMode>)) -> mlua::Result<Vec<LuaValue<'lua>>> {
+fn flatten<'lua>(
+    lua: &'lua Lua,
+    (arrays, behavior): (Vec<LuaValue<'lua>>, Option<DepthMode>),
+) -> mlua::Result<Vec<LuaValue<'lua>>> {
     let mut flat_vec: Vec<LuaValue> = vec![];
     let behavior = behavior.unwrap_or_default();
     for item in arrays {
@@ -164,8 +168,31 @@ fn count<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
     Ok(table.pairs::<LuaValue, LuaValue>().count())
 }
 
-fn has_key<'lua>(_: &'lua Lua, (table, key): (Table<'lua>, LuaValue)) -> mlua::Result<bool> {
-    Ok(table.contains_key(key)?)
+fn has_key<'lua>(
+    _: &'lua Lua,
+    (table, key, mut extra_keys): (Table<'lua>, LuaValue, LuaMultiValue),
+) -> mlua::Result<bool> {
+    if extra_keys.is_empty() {
+        return Ok(table.contains_key(key)?);
+    }
+
+    let mut value_has_key = table.contains_key(key.clone())?;
+
+    let mut value = match table.get::<_, Table>(key) {
+        Ok(t) => t,
+        Err(_) => return Ok(value_has_key && extra_keys.len() == 0),
+    };
+
+    while let Some(next_key) = extra_keys.pop_front() {
+        value_has_key = value.contains_key(next_key.clone())?;
+        let new_val = value.get::<_, Table>(next_key);
+        value = match new_val {
+            Ok(t) => t,
+            Err(_) => return Ok(value_has_key && extra_keys.len() == 0),
+        };
+    }
+
+    Ok(value_has_key)
 }
 
 fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlua::Result<bool> {
