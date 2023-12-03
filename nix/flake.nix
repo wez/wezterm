@@ -4,6 +4,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
 
     freetype2 = {
       url = "github:wez/freetype2/de8b92dd7ec634e9e2b25ef534c54a3537555c11";
@@ -29,6 +36,7 @@
   outputs = {
     self,
     flake-utils,
+    rust-overlay,
     nixpkgs,
     freetype2,
     harfbuzz,
@@ -37,7 +45,8 @@
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
+      overlays = [(import rust-overlay)];
+      pkgs = import nixpkgs {inherit system overlays;};
 
       inherit (nixpkgs) lib;
       inherit (pkgs) stdenv;
@@ -48,6 +57,12 @@
           ncurses # tic for terminfo
           pkg-config
           python3
+
+          rust-bin.stable.latest.minimal
+          rust-bin.stable.latest.clippy
+
+          rust-bin.nightly.latest.rustfmt
+          rust-bin.nightly.latest.rust-analyzer
         ]
         ++ lib.optional stdenv.isDarwin perl;
 
@@ -76,8 +91,13 @@
         ];
 
       libPath = lib.makeLibraryPath (with pkgs; [libGL vulkan-loader]);
+
+      rustPlatform = pkgs.makeRustPlatform {
+        cargo = pkgs.rust-bin.stable.latest.minimal;
+        rustc = pkgs.rust-bin.stable.latest.minimal;
+      };
     in {
-      packages.default = pkgs.rustPlatform.buildRustPackage rec {
+      packages.default = rustPlatform.buildRustPackage rec {
         inherit buildInputs nativeBuildInputs;
 
         name = "wezterm";
@@ -120,16 +140,7 @@
 
       devShell = pkgs.mkShell {
         name = "wezterm-shell";
-
-        inherit nativeBuildInputs;
-        buildInputs =
-          buildInputs
-          ++ (with pkgs; [
-            cargo
-            rustc
-            rustfmt
-            rustPackages.clippy
-          ]);
+        inherit buildInputs nativeBuildInputs;
 
         LD_LIBRARY_PATH = libPath;
       };
