@@ -31,7 +31,7 @@ local tbl = {
     d = 1,
   },
 }
-local tbl_copy = tbl -- copy the table address
+local tbl_ref = tbl -- reference the table; no copy is made
 local tbl_top_clone = clone(tbl) -- same as clone(tbl1, 'Top')
 local tbl_deep_clone = clone(tbl, 'Deep')
 

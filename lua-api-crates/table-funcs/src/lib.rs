@@ -34,7 +34,7 @@ impl_lua_conversion_dynamic!(ConflictMode);
 enum DepthMode {
     /// Only look at the top level of tables
     #[default]
-    Top,
+    Shallow,
     /// Recursively go through tables
     Deep,
 }

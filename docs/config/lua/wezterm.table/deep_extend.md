@@ -2,29 +2,24 @@
 
 {{since('nightly')}}
 
-This function merges a list of Lua object-style tables based on their keys in
-each nested table.
+This function merges a list of Lua object-style tables, producing a single object-style table comprised of the keys of each of the tables in the input list, making a deep, recursive copy of the corresponding value.  For a shallow copy, see [wezterm.table.extend](extend.md).
 
-The tables are passed to it in the form of an array.
-I.e., to merge the Lua tables `tbl1` and `tbl2`, we can pass them to
-the function as `{ tbl1, tbl2 }`. (See below.)
+For each table in the `array_of_tables` parameter, the keys are iterated and set in
+the return value.
 
-By default this function merges tables with identical keys for non-table values
-by taking the value from the last table in the array with each given key.
 
-The function accepts an optional string of the form `'Keep'`, `'Force'` or
-`'Error` describing its behavior. Any other string passed to the function will
-result in an error. The default behavior is equavalent to passing the string
-`'Force'`as the behavior.
+The optional `behavior` parameter controls how repeated keys are handled; the
+values are accepted:
 
-When `deep_extend` is run with the `'Keep'` behavior, it will prefer values from the
-first table in the array where we see the key. (In contrast to `'Force'` that
-prefers later values.)
-
-When `extend` is run with the `'Error'` behavior, it will return an error if
-any of the tables passed to it contain the same key for a non-table value, and it
-will not try to merge the tables in this case. Otherwise, it will cleanly merge the
-tables with no ambiguity, since there are no duplicate keys with non-table values.
+* `"Force"` (this is the default) - always take the latest value for a key, even if
+  the same key has already been populated into the return value, forcing the
+  existing value to be updated with a later value.
+  
+* `"Keep"` - keep the first value of the key. Subsequent values for that same key
+  are ignored.
+  
+* `"Error"` - when a key is seen more than once, raise an error.  This mode will
+  only return if no keys are in conflict across the set of input tables.
 
 ```lua
 local wezterm = require 'wezterm'
@@ -88,4 +83,4 @@ assert(
 )
 ```
 
-See also [flatten](flatten.md) and [deep_extend](deep_extend.md).
+See also [wezterm.table.flatten](flatten.md) and [wezterm.table.deep_extend](deep_extend.md).
