@@ -51,16 +51,41 @@ local tbl3 = {
   b = {
     a = 1,
     b = 2,
-  }
+  },
 }
 
-assert(equal(deep_extend({tbl1, tbl2}), { a = 2, b = { d = 4, e = 5 }, c = 3, d = 4 }))
-assert(equal(deep_extend({tbl1, tbl2}, 'Keep'), { a = 1, b = { d = 4, e = 5 }, c = 3, d = 4 }))
+assert(
+  equal(
+    deep_extend { tbl1, tbl2 },
+    { a = 2, b = { d = 4, e = 5 }, c = 3, d = 4 }
+  )
+)
+assert(
+  equal(
+    deep_extend({ tbl1, tbl2 }, 'Keep'),
+    { a = 1, b = { d = 4, e = 5 }, c = 3, d = 4 }
+  )
+)
 -- This will return an error: deep_extend({tbl1, tbl2}, 'Error')
 
-assert(equal(deep_extend({tbl2, tbl3}), { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }))
-assert(equal(deep_extend({tbl2, tbl3}, 'Keep'), { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }))
-assert(equal(deep_extend({tbl2, tbl3}, 'Error'), { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }))
+assert(
+  equal(
+    deep_extend { tbl2, tbl3 },
+    { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }
+  )
+)
+assert(
+  equal(
+    deep_extend({ tbl2, tbl3 }, 'Keep'),
+    { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }
+  )
+)
+assert(
+  equal(
+    deep_extend({ tbl2, tbl3 }, 'Error'),
+    { a = 2, b = { a = 1, b = 2, e = 5 }, d = 4 }
+  )
+)
 ```
 
 See also [flatten](flatten.md) and [deep_extend](deep_extend.md).

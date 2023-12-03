@@ -29,11 +29,13 @@ local arr1 = { { 1, 2 }, 3 }
 local arr2 = { 'a', { 'b', { 'c' } } }
 local arr3 = { 1, { a = 1, 2 }, { b = 2 } }
 
-assert(equal(flatten({ arr1, arr2 }), { { 1, 2 }, 3, 'a', { 'b', { 'c' } } }))
+assert(equal(flatten { arr1, arr2 }, { { 1, 2 }, 3, 'a', { 'b', { 'c' } } }))
 assert(equal(flatten({ arr1, arr2 }, 'Deep'), { 1, 2, 3, 'a', 'b', 'c' }))
 
-assert(equal(flatten({arr1, arr3}), { { 1, 2 }, 3, 1, { a = 1, 2 }, { b = 2 } }))
-assert(equal(flatten({arr1, arr3}, 'Deep'), { 1, 2, 3, 1, 2 }))
+assert(
+  equal(flatten { arr1, arr3 }, { { 1, 2 }, 3, 1, { a = 1, 2 }, { b = 2 } })
+)
+assert(equal(flatten({ arr1, arr3 }, 'Deep'), { 1, 2, 3, 1, 2 }))
 ```
 
-See also [merge](merge.md).
+See also [extend](extend.md).

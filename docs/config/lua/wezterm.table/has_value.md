@@ -28,8 +28,8 @@ local tbl1 = {
   a = 1,
   b = {
     c = {
-      d = 4
-    }
+      d = 4,
+    },
   },
 }
 local arr1 = { 'a', 'b', 'c' }

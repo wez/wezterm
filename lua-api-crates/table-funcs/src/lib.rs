@@ -231,7 +231,10 @@ fn has_key<'lua>(
     Ok(value_has_key)
 }
 
-fn has_value<'lua>(lua: &'lua Lua, (table, value, behavior): (Table<'lua>, LuaValue, Option<DepthMode>)) -> mlua::Result<bool> {
+fn has_value<'lua>(
+    lua: &'lua Lua,
+    (table, value, behavior): (Table<'lua>, LuaValue, Option<DepthMode>),
+) -> mlua::Result<bool> {
     let behavior = behavior.unwrap_or_default();
     match behavior {
         DepthMode::Top => {
