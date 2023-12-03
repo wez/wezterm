@@ -665,6 +665,7 @@ unsafe impl HasRawWindowHandle for Window {
     }
 }
 
+/// @see https://developer.apple.com/documentation/appkit/nswindow/level
 pub type NSWindowLevel = i64;
 
 pub fn nswindow_level_to_window_level(nswindow_level: NSWindowLevel) -> WindowLevel {
@@ -1095,8 +1096,6 @@ impl WindowInner {
         }
     }
 }
-
-/// @see https://developer.apple.com/documentation/appkit/nswindow/level
 
 impl WindowInner {
     fn show(&mut self) {
