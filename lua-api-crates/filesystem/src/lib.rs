@@ -78,7 +78,7 @@ async fn read_dir<'lua>(
                     }
                 }
                 Err(err) => {
-                    return Err(mlua::Error::external(format!(
+                    return Err(mlua::Error::runtime(format!(
                         "the optional read_dir function returns the error: {}",
                         err
                     )));
@@ -90,7 +90,7 @@ async fn read_dir<'lua>(
         if include_entry {
             // TODO: Should we return Strings instead of Paths?
             // entries.push(entry_path.0.to_str().ok_or(
-            //     mlua::Error::external(
+            //     mlua::Error::runtime(
             //         format!("the entry {} is not valid utf8", entry_path.0.display())
             //     )
             // )?.to_string());

@@ -360,7 +360,7 @@ impl UserData for Path {
     }
 }
 
-fn path_to_lua_str<'lua>(lua: &'lua Lua, path: &Path) -> Result<LuaString<'lua>, mlua::Error> {
+fn path_to_lua_str<'lua>(lua: &'lua Lua, path: &Path) -> mlua::Result<LuaString<'lua>> {
     lua.create_string(path.0.to_str().ok_or(mlua::Error::external(format!(
         "path entry {} is not representable as utf8",
         path.0.display()
