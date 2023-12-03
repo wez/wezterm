@@ -180,7 +180,7 @@ fn has_key<'lua>(
 
     let mut value = match table.get::<_, Table>(key) {
         Ok(t) => t,
-        Err(_) => return Ok(value_has_key && extra_keys.len() == 0),
+        Err(_) => return Ok(false), // if extra_keys were empty, we wouldn't get here
     };
 
     while let Some(next_key) = extra_keys.pop_front() {
@@ -188,7 +188,7 @@ fn has_key<'lua>(
         let new_val = value.get::<_, Table>(next_key);
         value = match new_val {
             Ok(t) => t,
-            Err(_) => return Ok(value_has_key && extra_keys.len() == 0),
+            Err(_) => return Ok(value_has_key && extra_keys.is_empty()),
         };
     }
 
