@@ -10,6 +10,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     table.set("clone", lua.create_function(clone)?)?;
     table.set("flatten", lua.create_function(flatten)?)?;
     table.set("count", lua.create_function(count)?)?;
+    table.set("get", lua.create_function(get)?)?;
     table.set("has_key", lua.create_function(has_key)?)?;
     table.set("has_value", lua.create_function(has_value)?)?;
     table.set("equal", lua.create_function(equal)?)?;
@@ -166,6 +167,39 @@ fn flatten<'lua>(
 /// note that the `#` operator only works correctly on arrays in Lua
 fn count<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
     Ok(table.pairs::<LuaValue, LuaValue>().count())
+}
+
+fn get<'lua>(
+    _: &'lua Lua,
+    (table, key, mut extra_keys): (Table<'lua>, LuaValue<'lua>, LuaMultiValue<'lua>),
+) -> mlua::Result<LuaValue<'lua>> {
+    if extra_keys.is_empty() {
+        return Ok(table.get::<_, LuaValue>(key)?);
+    }
+
+    let mut value: LuaValue = table.get(key.clone())?;
+
+    let mut value_tbl = match table.get::<_, Table>(key) {
+        Ok(t) => t,
+        Err(_) => return Ok(LuaValue::Nil), // if extra_keys were empty, we wouldn't get here
+    };
+
+    while let Some(next_key) = extra_keys.pop_front() {
+        value = value_tbl.get(next_key.clone())?;
+        let new_val_tbl = value_tbl.get::<_, Table>(next_key);
+        value_tbl = match new_val_tbl {
+            Ok(t) => t,
+            Err(_) => {
+                if extra_keys.is_empty() {
+                    return Ok(value);
+                } else {
+                    return Ok(LuaValue::Nil);
+                }
+            }
+        }
+    }
+
+    Ok(value)
 }
 
 fn has_key<'lua>(
