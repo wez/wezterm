@@ -100,6 +100,9 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @Danielkonge! #4226 #4227
 * [notification_handling](config/lua/config/notification_handling.md) to
   control whether notifications are suppressed based on focus. #3727
+* [command_palette_rows](config/lua/config/command_palette_rows.md) to
+  control how many rows are displayed in the command palette. Thanks to
+  @exastone! #4595
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
@@ -123,11 +126,22 @@ As features stabilize some brief notes about them will accumulate here.
   individual codepoint separately. #4310
 * Gogh color schemes all had the incorrect cursor foreground color. #4257
 * Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
+* macOS: Leak of NSWindow and NSView objects. Thanks to @0f-0b! #4457
+* Initial G1 state is non-conformant. Thanks to @ninjalj! #4534 #3962
+* Make RIS also clear the alternate screen. Thanks to @ninjalj! #4563
+* DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
+* Clamp cursor position reported by CPR. Thanks to @ninjalj! #4564
+* Correct `SUPER` modifier key handling in kitty protocol. Thanks to @gabyx! #4605
+* macOS: honor the `window_close_confirmation` config option when quitting the
+  application. Thanks to @quantonganh! #4420 #4362
+* terminfo: added missing terminator to Sync capability. Thanks to @gpanders! #4578
 
 #### Updated
-* Bundled harfbuzz to 8.2.1
+* Bundled harfbuzz to 8.3.0
 * Bundled freetype to 2.13.1
 * Bundled Noto Color Emoji font to 2.038
+* wgpu to 0.18, which [improves OpenGL compatibility with older GPUs when using
+  WebGpu with its GL backend on Windows](https://github.com/gfx-rs/wgpu/releases/tag/v0.18.0)
 
 ### 20230712-072601-f4abf8fd
 

@@ -946,15 +946,10 @@ TARGETS = [
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-11"),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
-    Target(container="fedora:36"),
     Target(container="fedora:37"),
     Target(container="fedora:38"),
+    Target(container="fedora:39"),
     # Target(container="alpine:3.15"),
-    Target(name="opensuse_leap", container="registry.opensuse.org/opensuse/leap:15.4"),
-    Target(
-        name="opensuse_tumbleweed",
-        container="registry.opensuse.org/opensuse/tumbleweed",
-    ),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
 

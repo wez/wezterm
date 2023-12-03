@@ -111,10 +111,12 @@ impl crate::TermWindow {
                                         a: 0.,
                                     })
                                 },
-                                store: true,
+                                store: wgpu::StoreOp::Store,
                             },
                         })],
                         depth_stencil_attachment: None,
+                        occlusion_query_set: None,
+                        timestamp_writes: None,
                     });
                     cleared = true;
 

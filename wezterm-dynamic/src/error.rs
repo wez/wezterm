@@ -136,7 +136,7 @@ impl Error {
                         errors.push(Self::UnknownFieldForStruct {
                             field_name: s.to_string(),
                             type_name,
-                            possible: possible.clone(),
+                            possible,
                         });
                     }
                 }

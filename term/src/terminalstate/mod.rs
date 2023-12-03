@@ -546,7 +546,7 @@ impl TerminalState {
             last_mouse_move: None,
             cursor_visible: true,
             g0_charset: CharSet::Ascii,
-            g1_charset: CharSet::DecLineDrawing,
+            g1_charset: CharSet::Ascii,
             shift_out: false,
             newline_mode: false,
             current_mouse_buttons: vec![],
@@ -1253,6 +1253,9 @@ impl TerminalState {
                 self.reverse_video_mode = false;
                 self.bidi_enabled.take();
                 self.bidi_hint.take();
+
+                self.g0_charset = CharSet::Ascii;
+                self.g1_charset = CharSet::Ascii;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -1976,7 +1979,17 @@ impl TerminalState {
                 checksum += u16::from(ch as u8);
             }
         }
-        checksum
+
+        // Treat uninitialized cells as spaces.
+        // The concept of uninitialized cells in wezterm is not the same as that on VT520 or that
+        // on xterm, so, to prevent a lot of noise in esctest, treat them as spaces, at least when
+        // asking for the checksum of a single cell (which is what esctest does).
+        // See: https://github.com/wez/wezterm/pull/4565
+        if checksum == 0 {
+            32u16
+        } else {
+            checksum
+        }
     }
 
     fn perform_csi_window(&mut self, window: Window) {
@@ -2510,11 +2523,15 @@ impl TerminalState {
                     })) as u32,
                 );
                 let col = OneBased::from_zero_based(
-                    (self.cursor.x.saturating_sub(if self.dec_origin_mode {
-                        self.left_and_right_margins.start
-                    } else {
-                        0
-                    })) as u32,
+                    (self
+                        .cursor
+                        .x
+                        .min(self.screen().physical_cols - 1)
+                        .saturating_sub(if self.dec_origin_mode {
+                            self.left_and_right_margins.start
+                        } else {
+                            0
+                        })) as u32,
                 );
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
@@ -2581,7 +2598,7 @@ impl TerminalState {
                 pen: Default::default(),
                 dec_origin_mode: false,
                 g0_charset: CharSet::Ascii,
-                g1_charset: CharSet::DecLineDrawing,
+                g1_charset: CharSet::Ascii,
             });
         debug!(
             "restore cursor {:?} is_alt={}",

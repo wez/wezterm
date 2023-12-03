@@ -1674,6 +1674,9 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
+        // TODO: Hyper and Meta are not handled yet.
+        // We should somehow detect this?
+        // See: https://github.com/wez/wezterm/pull/4605#issuecomment-1823604708
         if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
             modifiers |= 64;
         }
@@ -1800,7 +1803,6 @@ impl KeyEvent {
                 format!("\x1b[{c};{modifiers}{event_type}~")
             }
             Char(shifted_key) => {
-                let mut use_legacy = false;
                 let shifted_key = if *shifted_key == '\x08' {
                     // Backspace is really VERASE -> ASCII DEL
                     '\x7f'
@@ -1808,22 +1810,24 @@ impl KeyEvent {
                     *shifted_key
                 };
 
-                if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                let use_legacy = !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
                     && event_type.is_empty()
                     && is_legacy_key
                     && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
                         && (self.modifiers.contains(Modifiers::CTRL)
                             || self.modifiers.contains(Modifiers::ALT)))
-                {
-                    use_legacy = true;
-                }
+                    && !self.modifiers.intersects(
+                        Modifiers::SUPER, /* TODO: Hyper and Meta should be added here. */
+                    );
 
                 if use_legacy {
                     // Legacy text key
+                    // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-text-keys
                     let mut output = String::new();
                     if self.modifiers.contains(Modifiers::ALT) {
                         output.push('\x1b');
                     }
+
                     if self.modifiers.contains(Modifiers::CTRL) {
                         csi_u_encode(
                             &mut output,
@@ -1833,6 +1837,7 @@ impl KeyEvent {
                     } else {
                         output.push(shifted_key);
                     }
+
                     return output;
                 }
 
@@ -3052,6 +3057,71 @@ mod test {
             )
             .encode_kitty(flags),
             "".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_4436() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES;
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('q'),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "q".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::SUPER,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[102;9u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::SUPER | Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[102;10u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::SUPER | Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[102;14u".to_string()
         );
     }
 }

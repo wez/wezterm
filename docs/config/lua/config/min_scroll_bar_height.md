@@ -16,4 +16,4 @@ The value can be a number to specify the number of pixels, or a string with a un
 * `"1cell"` - the `cell` suffix indicates the height of the terminal cell, which in turn depends on the font size, font scaling and dpi.
 * `"1%"` - the `%` suffix indicates the size of the terminal portion of the display, which is computed based on the number of rows and the size of the cell.
 
-You may use a fractional number such as `"0.5cell"` or numbers large than one such as `"72pt"`.
+You may use a fractional number such as `"0.5cell"` or numbers larger than one such as `"72pt"`.

@@ -1,4 +1,4 @@
-name: fedora36_tag
+name: fedora39_tag
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:36"
+    container: "fedora:39"
 
     steps:
       - name: "Install config manager"
@@ -38,7 +38,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "fedora36-None-2-${{ runner.os }}-cargo"
+          key: "fedora39-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -49,7 +49,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora36"
+          cache-key: "fedora39"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
@@ -62,7 +62,7 @@ jobs:
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora36"
+          name: "fedora39"
           path: "wezterm-*.rpm"
 
   upload:
@@ -78,7 +78,7 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "fedora36"
+          name: "fedora39"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
