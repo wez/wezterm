@@ -81,12 +81,12 @@
         inherit buildInputs nativeBuildInputs;
 
         name = "wezterm";
-        src = ./.;
+        src = ./..;
         PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
         version = self.shortRev or "dev";
 
         cargoLock = {
-          lockFile = ./Cargo.lock;
+          lockFile = ../Cargo.lock;
           outputHashes = {
             "xcb-imdkit-0.2.0" = "sha256-L+NKD0rsCk9bFABQF4FZi9YoqBHr4VAZeKAWgsaAegw=";
             "xcb-1.2.1" = "sha256-zkuW5ATix3WXBAj2hzum1MJ5JTX3+uVQ01R1vL6F1rY=";
@@ -101,9 +101,6 @@
           ln -s ${libpng} deps/freetype/libpng
           ln -s ${zlib} deps/freetype/zlib
           ln -s ${harfbuzz} deps/harfbuzz/harfbuzz
-
-          echo "==> harfbuzz"
-          ls deps/harfbuzz/harfbuzz/src
         '';
 
         postPatch = ''
