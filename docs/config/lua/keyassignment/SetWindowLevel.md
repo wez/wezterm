@@ -1,6 +1,7 @@
 # `SetWindowLevel`
 
 {{since('nightly')}}
+
 Set window level sepcified by the argument value. eg: `AlwaysOnTop` keeps the current window on top of other windows.
 
 Accepted values: 
@@ -28,3 +29,7 @@ config.keys = {
     }, 
 }
 ```
+
+> Note: 
+> This functionality is currently only implemented on macOS. 
+> The assigned values for window level will have no effect on other operating systems.
