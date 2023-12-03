@@ -1181,6 +1181,7 @@ impl WindowInner {
     fn set_window_level(&mut self, level: WindowLevel) {
         unsafe {
             NSWindow::setLevel_(*self.window, window_level_to_nswindow_level(level));
+            // Dispatch a resize event with the updated window state
             WindowView::did_resize(&mut **self.view, sel!(windowDidResize:), nil);
         }
     }
