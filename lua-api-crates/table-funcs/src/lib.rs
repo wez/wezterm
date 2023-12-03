@@ -125,7 +125,7 @@ fn clone<'lua>(
     for pair in table.pairs::<LuaValue, LuaValue>() {
         let (key, value) = pair?;
         match behavior {
-            DepthMode::Top => res.set(key, value)?,
+            DepthMode::Shallow => res.set(key, value)?,
             DepthMode::Deep => {
                 if let LuaValue::Table(tbl) = value {
                     res.set(key, clone(lua, (tbl, Some(behavior)))?)?
@@ -235,32 +235,20 @@ fn has_value<'lua>(
     lua: &'lua Lua,
     (table, value, behavior): (Table<'lua>, LuaValue, Option<DepthMode>),
 ) -> mlua::Result<bool> {
-    let behavior = behavior.unwrap_or_default();
-    match behavior {
-        DepthMode::Top => {
-            // we don't need a clone in this case
-            for pair in table.pairs::<LuaValue, LuaValue>() {
-                let (_, tbl_value) = pair?;
-                if tbl_value == value {
-                    return Ok(true);
-                }
-            }
+    for pair in table.pairs::<LuaValue, LuaValue>() {
+        let (_, tbl_value) = pair?;
+        if tbl_value.eq(&value) {
+            return Ok(true);
         }
-        DepthMode::Deep => {
-            for pair in table.clone().pairs::<LuaValue, LuaValue>() {
-                let (key, tbl_value) = pair?;
-                if tbl_value == value {
+        if behavior == Some(DepthMode::Deep) {
+            if let LuaValue::Table(tbl) = tbl_value {
+                if has_value(lua, (tbl, value.clone(), behavior))? {
                     return Ok(true);
-                }
-                if tbl_value.is_table() {
-                    let tbl = table.get::<_, Table>(key)?;
-                    if let Ok(true) = has_value(lua, (tbl, value.clone(), Some(behavior))) {
-                        return Ok(true);
-                    }
                 }
             }
         }
     }
+
     Ok(false)
 }
 
