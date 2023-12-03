@@ -32,10 +32,10 @@ impl_lua_conversion_dynamic!(ConflictMode);
 
 #[derive(Default, Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq, Copy)]
 enum DepthMode {
-    /// Take the latest value
+    /// Only look at the top level of tables
     #[default]
     Top,
-    /// Raise an error
+    /// Recursively go through tables
     Deep,
 }
 impl_lua_conversion_dynamic!(DepthMode);
@@ -152,7 +152,9 @@ fn flatten<'lua>(
                     let mut flat = flatten(lua, (tbl_as_vec, Some(behavior)))?;
                     flat_vec.append(&mut flat);
                 } else {
-                    flat_vec.push(LuaValue::Table(tbl));
+                    for elem in tbl.sequence_values::<LuaValue>() {
+                        flat_vec.push(elem?);
+                    }
                 }
             }
             LuaValue::Nil => (),

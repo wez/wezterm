@@ -2,7 +2,7 @@
 
 {{since('nightly')}}
 
-This function accepts a Lua table (or array) `table` and a value `value`.
+This function accepts a Lua table `table` and a value `value`.
 It returns `true` if `table` contains an entry with value equal to `value`
 and false otherwise.
 
@@ -22,3 +22,5 @@ assert(not has_value(tbl1, 'a'))
 assert(has_value(arr1, 'a'))
 assert(not has_value(arr1, '1'))
 ```
+
+See also [has_key](has_key.md) and [get](get.md).
