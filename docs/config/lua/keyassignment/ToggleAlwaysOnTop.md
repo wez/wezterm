@@ -1,6 +1,7 @@
 # `ToggleAlwaysOnTop`
 
 {{since('nightly')}}
+
 Toggles the window between floating and non-floating states to stay on top of other windows.
 
 ```lua
