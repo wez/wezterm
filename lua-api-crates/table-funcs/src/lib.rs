@@ -92,14 +92,19 @@ fn deep_extend<'lua>(
                 tbl.set(key, value)?;
             } else if let LuaValue::Table(t) = value {
                 let cur_val_as_tbl = tbl.get::<_, Table>(key.clone());
+                let mut update_bool = true;
                 let inner_tbl = if cur_val_as_tbl.is_ok() {
                     deep_extend(lua, (vec![cur_val_as_tbl?, t], Some(behavior)))?
                 } else {
-                    // if the currently set value is not a table, we will replace it
-                    // with the table we just received (prefering nesting)
+                    // Note: we can get here in modes Force and Keep
+                    if behavior == ConflictMode::Keep {
+                        update_bool = false;
+                    }
                     t
                 };
-                tbl.set(key, inner_tbl)?;
+                if update_bool {
+                    tbl.set(key, inner_tbl)?;
+                }
             } else if behavior == ConflictMode::Force {
                 tbl.set(key, value)?;
             }
