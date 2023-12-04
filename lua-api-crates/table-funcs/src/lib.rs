@@ -1,6 +1,7 @@
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua, MultiValue as LuaMultiValue, Table, Value as LuaValue};
 use luahelper::impl_lua_conversion_dynamic;
+use luahelper::mlua::AnyUserDataExt;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
@@ -172,30 +173,29 @@ fn count<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<usize> {
 
 fn get<'lua>(
     _: &'lua Lua,
-    (table, key, mut extra_keys): (Table<'lua>, LuaValue<'lua>, LuaMultiValue<'lua>),
+    (table, keys): (Table<'lua>, LuaMultiValue<'lua>),
 ) -> mlua::Result<LuaValue<'lua>> {
-    if extra_keys.is_empty() {
-        return Ok(table.get::<_, LuaValue>(key)?);
+    if keys.is_empty() {
+        return Err(mlua::Error::runtime(
+            "wezterm.table.get(<table>, <keys..>) expects at least one key, but it was called with no keys."
+        ));
     }
 
-    let mut value: LuaValue = table.get(key.clone())?;
-
-    let mut value_tbl = match table.get::<_, Table>(key) {
-        Ok(t) => t,
-        Err(_) => return Ok(LuaValue::Nil), // if extra_keys were empty, we wouldn't get here
-    };
-
-    while let Some(next_key) = extra_keys.pop_front() {
-        value = value_tbl.get(next_key.clone())?;
-        let new_val_tbl = value_tbl.get::<_, Table>(next_key);
-        value_tbl = match new_val_tbl {
-            Ok(t) => t,
-            Err(_) => {
-                if extra_keys.is_empty() {
-                    return Ok(value);
-                } else {
-                    return Ok(LuaValue::Nil);
-                }
+    let mut value = LuaValue::Table(table);
+    for key in keys {
+        match value {
+            LuaValue::Table(tbl) => {
+                value = tbl.get(key)?;
+            }
+            LuaValue::UserData(ud) => {
+                value = match ud.get(key) {
+                    Ok(v) => v,
+                    Err(_) => return Ok(LuaValue::Nil),
+                };
+            }
+            _ => {
+                // cannot index non-table structures
+                return Ok(LuaValue::Nil);
             }
         }
     }
@@ -204,30 +204,16 @@ fn get<'lua>(
 }
 
 fn has_key<'lua>(
-    _: &'lua Lua,
-    (table, key, mut extra_keys): (Table<'lua>, LuaValue, LuaMultiValue),
+    lua: &'lua Lua,
+    (table, keys): (Table<'lua>, LuaMultiValue),
 ) -> mlua::Result<bool> {
-    if extra_keys.is_empty() {
-        return Ok(table.contains_key(key)?);
+    if keys.is_empty() {
+        return Err(mlua::Error::runtime(
+            "wezterm.table.has_key(<table>, <keys..>) expects at least one key, but it was called with no keys."
+        ));
     }
 
-    let mut value_has_key = table.contains_key(key.clone())?;
-
-    let mut value = match table.get::<_, Table>(key) {
-        Ok(t) => t,
-        Err(_) => return Ok(false), // if extra_keys were empty, we wouldn't get here
-    };
-
-    while let Some(next_key) = extra_keys.pop_front() {
-        value_has_key = value.contains_key(next_key.clone())?;
-        let new_val = value.get::<_, Table>(next_key);
-        value = match new_val {
-            Ok(t) => t,
-            Err(_) => return Ok(value_has_key && extra_keys.is_empty()),
-        };
-    }
-
-    Ok(value_has_key)
+    Ok(!get(lua, (table, keys))?.is_nil())
 }
 
 fn has_value<'lua>(
@@ -235,13 +221,22 @@ fn has_value<'lua>(
     (table, value, behavior): (Table<'lua>, LuaValue, Option<DepthMode>),
 ) -> mlua::Result<bool> {
     for pair in table.pairs::<LuaValue, LuaValue>() {
-        let (_, tbl_value) = pair?;
-        if tbl_value.eq(&value) {
+        let (_, table_val) = pair?;
+        let table_has_value = match (table_val.clone(), value.clone()) {
+            // for tables, compare by values using our equal function
+            (LuaValue::Table(table_val_tbl), LuaValue::Table(value_tbl)) => {
+                lua_table_eq(table_val_tbl, value_tbl)?
+            }
+            // oterwise, compare using Lua '=='
+            _ => table_val.eq(&value),
+        };
+        if table_has_value {
             return Ok(true);
         }
+
         if behavior == Some(DepthMode::Deep) {
-            if let LuaValue::Table(tbl) = tbl_value {
-                if has_value(lua, (tbl, value.clone(), behavior))? {
+            if let LuaValue::Table(new_tbl) = table_val {
+                if has_value(lua, (new_tbl, value.clone(), behavior))? {
                     return Ok(true);
                 }
             }
