@@ -9,7 +9,7 @@ assert(wezterm.table.get(tbl, key) == tbl[key])
 ```
 You may pass a sequence of keys that will be used to successively resolve
 nested tables:
-```lua
+```
 wezterm.table.get(tbl, 'a', 'b', 'c') == tbl['a']['b']['c']
 ```
 

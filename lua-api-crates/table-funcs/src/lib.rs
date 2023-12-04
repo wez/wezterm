@@ -42,34 +42,26 @@ impl_lua_conversion_dynamic!(DepthMode);
 
 // merge tables
 // (in case of overlap of the tables, we default to taking the key-value pair from the last table)
-// Note that we don't use a HashMap since we want to keep the order of the tables, which
-// can be useful in some cases
 fn extend<'lua>(
     lua: &'lua Lua,
     (array_of_tables, behavior): (Vec<Table<'lua>>, Option<ConflictMode>),
 ) -> mlua::Result<Table<'lua>> {
-    let mut tbl_vec: Vec<(LuaValue, LuaValue)> = vec![];
+    let behavior = behavior.unwrap_or_default();
+    let tbl: Table<'lua> = lua.create_table()?;
     for table in array_of_tables {
         for pair in table.pairs::<LuaValue, LuaValue>() {
             let (key, value) = pair?;
-            tbl_vec.push((key, value));
-        }
-    }
-    let tbl_len = tbl_vec.len();
-    // note we might allocate a bit too much here, but in many use cases we will be correct
-    let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
 
-    let behavior = behavior.unwrap_or_default();
-    for (key, value) in tbl_vec {
-        if !tbl.contains_key(key.clone())? {
-            tbl.set(key, value)?;
-        } else if behavior == ConflictMode::Force {
-            tbl.set(key, value)?;
-        } else if behavior == ConflictMode::Error {
-            return Err(mlua::Error::runtime(format!(
-                "The key '{}' is in more than one of the tables.",
-                key.to_string()?
-            )));
+            if !tbl.contains_key(key.clone())? {
+                tbl.set(key, value)?;
+            } else if behavior == ConflictMode::Force {
+                tbl.set(key, value)?;
+            } else if behavior == ConflictMode::Error {
+                return Err(mlua::Error::runtime(format!(
+                    "The key '{}' is in more than one of the tables.",
+                    key.to_string()?
+                )));
+            }
         }
     }
 
@@ -78,37 +70,39 @@ fn extend<'lua>(
 
 // merge tables entrywise recursively
 // (in case of overlap of the tables, we default to taking the key-value pair from the last table)
-// Note that we don't use a HashMap since we want to keep the order of the tables, which
-// can be useful in some cases
 fn deep_extend<'lua>(
     lua: &'lua Lua,
     (array_of_tables, behavior): (Vec<Table<'lua>>, Option<ConflictMode>),
 ) -> mlua::Result<Table<'lua>> {
-    let mut tbl_vec: Vec<(LuaValue, LuaValue)> = vec![];
+    let behavior = behavior.unwrap_or_default();
+    let tbl: Table<'lua> = lua.create_table()?;
     for table in array_of_tables {
         for pair in table.pairs::<LuaValue, LuaValue>() {
             let (key, value) = pair?;
-            tbl_vec.push((key, value));
-        }
-    }
-    let tbl_len = tbl_vec.len();
-    // note we might allocate a bit too much here, but in many use cases we will be correct
-    let tbl: Table<'lua> = lua.create_table_with_capacity(0, tbl_len)?;
+            let contains_key = tbl.contains_key(key.clone())?;
 
-    let behavior = behavior.unwrap_or_default();
-    for (key, value) in tbl_vec {
-        if !tbl.contains_key(key.clone())? {
-            tbl.set(key, value)?;
-        } else if let LuaValue::Table(t) = value {
-            let inner_tbl = deep_extend(lua, (vec![tbl.get(key.clone())?, t], Some(behavior)))?;
-            tbl.set(key, inner_tbl)?;
-        } else if behavior == ConflictMode::Force {
-            tbl.set(key, value)?;
-        } else if behavior == ConflictMode::Error {
-            return Err(mlua::Error::runtime(format!(
-                "The key '{}' is in more than one of the tables.",
-                key.to_string()?
-            )));
+            if behavior == ConflictMode::Error && contains_key {
+                return Err(mlua::Error::runtime(format!(
+                    "The key '{}' is in more than one of the tables.",
+                    key.to_string()?
+                )));
+            }
+
+            if !contains_key && !value.is_table() {
+                tbl.set(key, value)?;
+            } else if let LuaValue::Table(t) = value {
+                let cur_val_as_tbl = tbl.get::<_, Table>(key.clone());
+                let inner_tbl = if cur_val_as_tbl.is_ok() {
+                    deep_extend(lua, (vec![cur_val_as_tbl?, t], Some(behavior)))?
+                } else {
+                    // if the currently set value is not a table, we will replace it
+                    // with the table we just received (prefering nesting)
+                    t
+                };
+                tbl.set(key, inner_tbl)?;
+            } else if behavior == ConflictMode::Force {
+                tbl.set(key, value)?;
+            }
         }
     }
 

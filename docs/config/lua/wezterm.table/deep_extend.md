@@ -63,9 +63,15 @@ assert(
   )
 )
 
-local ok, msg = pcall(function() extend({tbl1, tbl2}, 'Error') end)
+local ok, msg = pcall(function()
+  extend({ tbl1, tbl2 }, 'Error')
+end)
 local msg_string = wezterm.to_string(msg)
-wezterm.log_info(not ok and  msg_string:find "The key 'a' is in more than one of the tables." ~= nil)
+wezterm.log_info(
+  not ok
+    and msg_string:find "The key 'a' is in more than one of the tables."
+      ~= nil
+)
 
 assert(
   equal(
