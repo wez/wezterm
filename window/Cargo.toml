@@ -46,6 +46,7 @@ wezterm-bidi = { path = "../bidi" }
 wezterm-color-types = { path = "../color-types" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
+scopeguard = "1.2.0"
 
 [target."cfg(windows)".dependencies]
 clipboard-win = "2.2"

@@ -29,8 +29,8 @@ pub struct Keyboard {
 }
 
 #[derive(Clone, Copy)]
-pub enum ModifierInit {
-    X11,
+pub enum ModifierInit<'a> {
+    X11(&'a xcb::Connection),
     Wayland,
 }
 
@@ -502,7 +502,7 @@ impl Keyboard {
 
         let mod_map = match modifier_init {
             ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
-            ModifierInit::X11 => init_modifier_table_x11(&keymap),
+            ModifierInit::X11(conn) => init_modifier_table_x11(&conn, &keymap),
         };
 
         Ok(Self {
@@ -542,7 +542,7 @@ impl Keyboard {
 
         let mod_map = match modifier_init {
             ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
-            ModifierInit::X11 => init_modifier_table_x11(&keymap),
+            ModifierInit::X11(conn) => init_modifier_table_x11(&conn, &keymap),
         };
 
         Ok(Self {
@@ -617,7 +617,7 @@ impl Keyboard {
 
         let mod_map = match modifier_init {
             ModifierInit::Wayland => init_modifier_table_wayland(&keymap),
-            ModifierInit::X11 => init_modifier_table_x11(&keymap),
+            ModifierInit::X11(conn) => init_modifier_table_x11(&conn, &keymap),
         };
 
         let kbd = Self {
