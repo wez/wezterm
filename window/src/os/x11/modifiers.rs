@@ -31,7 +31,7 @@ pub struct ModifierMap {
     pub hyper: ModifierIndex,
 }
 
-struct Algorithm<'a> {
+struct KeyProbingAlgorithm<'a> {
     failed: bool,
 
     try_shift: bool,
@@ -49,9 +49,9 @@ struct Algorithm<'a> {
     state: &'a mut xkb::State,
 }
 
-impl<'a> Algorithm<'a> {
-    fn new(state: &'a mut xkb::State) -> Algorithm<'a> {
-        return Algorithm {
+impl<'a> KeyProbingAlgorithm<'a> {
+    fn new(state: &'a mut xkb::State) -> KeyProbingAlgorithm<'a> {
+        return KeyProbingAlgorithm {
             failed: false,
             try_shift: false,
             shift_keycode: 0,
@@ -70,7 +70,7 @@ impl<'a> Algorithm<'a> {
     }
 }
 
-impl<'a> Algorithm<'a> {
+impl<'a> KeyProbingAlgorithm<'a> {
     /// Algorithm for mapping virtual modifiers to real modifiers:
     ///   1. create new state
     ///   2. for each key in keymap
@@ -209,6 +209,7 @@ impl<'a> Algorithm<'a> {
 
 /// This function initializes wezterm internal modifiers depending
 /// on a default mapping.
+///
 /// This function simply queries the index for the xkb modifiers
 /// `Control`, `Lock`, `Shift`, `Mod1`, `Mod2`, `Mod4`
 /// and treats them as default (assumption) to
@@ -238,11 +239,13 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
 
 /// This function initializes wezterm internal modifiers
 /// by looking up virtual modifiers (e.g. run `xmodmap -pm`)
-/// and
-/// This function initializes `xkb` modifier indices for
+/// over the functionality exposed by X11.
+/// This function tries to initialize `xkb` modifier indices for
 /// all modifiers
 /// `Ctrl`, `Shift`, `Alt`, `Num_Lock`, `Caps_Lock`, `Super`,
 /// `Hyper`, `Meta`.
+/// If not successful it uses [init_modifier_table_fallback](init_modifier_table_fallback)
+/// to initialize the default.
 pub fn init_modifier_table_x11(connection: &xcb::Connection, keymap: &xkb::Keymap) -> ModifierMap {
     // TODO: This implementation needs to be done with
     // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L321
@@ -433,7 +436,7 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
     log::info!("Detect modifiers on Wayland [with key press iterations].");
 
     let mut state: xkb::State = xkb::State::new(keymap);
-    let mut algo = Algorithm::new(&mut state);
+    let mut algo = KeyProbingAlgorithm::new(&mut state);
     let mut mod_map = ModifierMap::default();
 
     algo.visit_keymap(&keymap);
