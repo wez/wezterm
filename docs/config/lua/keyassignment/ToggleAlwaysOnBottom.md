@@ -14,6 +14,6 @@ config.keys = {
 }
 ```
 
-> Note: 
-> This functionality is currently only implemented on macOS. 
-> The assigned values for window level will have no effect on other operating systems.
+!!! note
+    This functionality is currently only implemented on macOS. 
+    The assigned values for window level will have no effect on other operating systems.
