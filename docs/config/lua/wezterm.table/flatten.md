@@ -2,23 +2,26 @@
 
 {{since('nightly')}}
 
-This function flattens Lua arrays passed to it in the form of an array.
-I.e., to flatten the Lua arrays `arr1` and `arr2` into one array,
-we can pass them to the function as `{ arr1, arr2 }`. (See below.)
+This function flattens a list of Lua arrya-style tables, producing a single array-style
+table comprised of the values of each of the tables in the input list.
 
-The function accepts an optional string of the form `'Top'` or `'Deep'`
-describing its behavior. Any other string passed to the function will result
-in an error. The default behavior is equavalent to passing the string `'Top'`
-as the behavior.
+For each table in the `array_of_arrays` parameter, the values are iterated over and put
+into the return array.
 
-When `flatten` is run with the `'Top'` behavior, it will only go through the
-top-level of the arrays and flatten the values into a new array. In particular
-this means that for any table at the top-level in one of the arrays, it will
-not try to flatten the table and instead will just add the table to the top-level
-of the flattened array.
+The optional `behavior` parameter controls how deeply we flatten the array-like lists;
+the accepted values are:
 
-When `flatten` is run with the `'Deep'` behavior, it will recursively go through
-all nested tables and treat them like array-like tables that it then flattens.
+* `"Shallow"` (this is the default) - always take the latest value for a key, even if
+  the same key has already been populated into the return value, forcing the
+  existing value to be updated with a later value.
+
+* `"Deep"` - keep the first value of the key. Subsequent values for that same key
+  are ignored.
+
+*Note:* `flatten` will ignore non-array like keys when going through the tables. I.e.,
+it goes through contiguous integer keys starting with index `1`. This is similar to the
+behavior of `ipairs`, and not `pairs`. For behavior like `pairs`, see
+[wezterm.table.extend](extend.md).
 
 ```lua
 local wezterm = require 'wezterm'
@@ -38,4 +41,4 @@ assert(
 assert(equal(flatten({ arr1, arr3 }, 'Deep'), { 1, 2, 3, 1, 2 }))
 ```
 
-See also [extend](extend.md).
+See also [wezterm.table.extend](extend.md).
