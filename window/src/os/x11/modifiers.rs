@@ -1,3 +1,9 @@
+use libc::c_uint;
+use scopeguard::defer;
+use std::ffi::CStr;
+use std::os::raw::{c_char, c_int};
+use x11::xlib;
+use xcb;
 use xkbcommon::xkb::{self};
 
 #[derive(Debug, Clone, Copy)]
@@ -214,8 +220,9 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
 
     macro_rules! assign {
         ($mod:ident, $n:expr) => {
-            let idx = keymap.mod_get_index($n);
-            mod_map.$mod = ModifierIndex { idx: idx };
+            mod_map.$mod = ModifierIndex {
+                idx: keymap.mod_get_index($n),
+            };
         };
     }
 
@@ -236,10 +243,166 @@ fn init_modifier_table_fallback(keymap: &xkb::Keymap) -> ModifierMap {
 /// all modifiers
 /// `Ctrl`, `Shift`, `Alt`, `Num_Lock`, `Caps_Lock`, `Super`,
 /// `Hyper`, `Meta`.
-pub fn init_modifier_table_x11(keymap: &xkb::Keymap) -> ModifierMap {
+pub fn init_modifier_table_x11(connection: &xcb::Connection, keymap: &xkb::Keymap) -> ModifierMap {
     // TODO: This implementation needs to be done with
-    // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L321    return init_modifier_table_fallback(keymap);
-    return init_modifier_table_fallback(keymap);
+    // https://github.com/kovidgoyal/kitty/blob/0248edbdb98cc3ae80d98bf5ad17fbf497a24a43/glfw/xkb_glfw.c#L321
+
+    let mut mod_map = ModifierMap::default();
+
+    // Keeping track of used real modifiers (bits).
+    let mut used_real_mod_bits: u32 = 0;
+
+    // Shift, Ctrl, CapsLock are special they cannot be identified reliably on X11
+    macro_rules! assign {
+        ($mod:ident, $n:expr) => {{
+            mod_map.$mod = ModifierIndex {
+                idx: keymap.mod_get_index($n),
+            };
+            used_real_mod_bits |= 1 << mod_map.$mod.idx;
+        }};
+    }
+    assign!(ctrl, xkb::MOD_NAME_CTRL);
+    assign!(shift, xkb::MOD_NAME_SHIFT);
+    assign!(caps_lock, xkb::MOD_NAME_CAPS);
+
+    // Mask variables for all modifiers not yet set.
+    // The value stored here represents the same as `used_real_mod_bits`
+    // Each bit is a real modifier (only 8 modifiers).
+    let mut alt: u32 = 0;
+    let mut supr: u32 = 0;
+    let mut num_lock: u32 = 0;
+    let mut meta: u32 = 0;
+    let mut hyper: u32 = 0;
+
+    let success = || -> bool {
+        let xkb_ptr = unsafe {
+            xlib::XkbGetMap(
+                connection.get_raw_dpy(),
+                (xcb::xkb::MapPart::VIRTUAL_MODS | xcb::xkb::MapPart::VIRTUAL_MOD_MAP).bits(),
+                xcb::xkb::Id::UseCoreKbd as c_uint,
+            )
+        };
+
+        if xkb_ptr.is_null() {
+            log::warn!("Could not initialize moidifiers from virtual modifiers table.");
+            return false;
+        }
+
+        defer! {
+            unsafe { xlib::XkbFreeKeyboard(xkb_ptr, 0, xlib::True); }
+        }
+
+        let status = unsafe {
+            xlib::XkbGetNames(
+                connection.get_raw_dpy(),
+                xcb::xkb::NameDetail::VIRTUAL_MOD_NAMES.bits(),
+                xkb_ptr,
+            )
+        };
+
+        if status != xlib::Success as c_int {
+            return false;
+        }
+
+        defer! {
+            unsafe {
+                xlib::XkbFreeNames(
+                xkb_ptr,
+                xcb::xkb::NameDetail::VIRTUAL_MOD_NAMES.bits() as c_uint,
+                xlib::True,
+            )};
+        }
+
+        // Iterate over all virtual modifiers and get its map to the real modifiers
+        // (variable `mask`) and check if the virtual modifier name
+        // matches a wezterm internal modifier we handle.
+        for i in 0..xlib::XkbNumVirtualMods {
+            let atom = unsafe { (*(*xkb_ptr).names).vmods[i] };
+
+            if atom == 0 {
+                continue;
+            }
+
+            let mut mask: c_uint = 0;
+            let mask_ptr: *mut c_uint = &mut mask;
+
+            if unsafe { xlib::XkbVirtualModsToReal(xkb_ptr, (1 << i) as c_uint, mask_ptr) }
+                == xlib::Success as c_int
+            {
+                log::debug!("Could not map virtual modifier index '{i}' to real modifier mask.");
+                continue;
+            }
+
+            if used_real_mod_bits & mask != 0 {
+                // The variable `mask` (multiple bits can be set, which means
+                // this virtual modifier maps to multiple real modifiers) and overlaps
+                // already used bits.
+                continue;
+            }
+
+            let name: *mut c_char = unsafe { xlib::XGetAtomName(connection.get_raw_dpy(), atom) };
+            let virtual_modifier_name = match unsafe { CStr::from_ptr(name).to_str() } {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
+
+            match virtual_modifier_name {
+                // Note that the order matters here; earlier is higher priority.
+                "Alt" => {
+                    alt = mask;
+                    used_real_mod_bits |= mask;
+                }
+                "Super" => {
+                    supr = mask;
+                    used_real_mod_bits |= mask;
+                }
+                "NumLock" => {
+                    num_lock = mask;
+                    used_real_mod_bits |= mask;
+                }
+                "Meta" => {
+                    meta = mask;
+                    used_real_mod_bits |= mask;
+                }
+                "Hyper" => {
+                    hyper = mask;
+                    used_real_mod_bits |= mask;
+                }
+                _ => (),
+            }
+        }
+
+        return true;
+    }();
+
+    if !success || used_real_mod_bits == 0 {
+        return init_modifier_table_fallback(keymap);
+    }
+
+    macro_rules! assign {
+        ($mod:ident, $i:ident) => {
+            if $mod & ($i << 1) != 0 {
+                mod_map.$mod = ModifierIndex { idx: $i };
+            }
+        };
+    }
+
+    // We could assign the bit index also above in the match statement, but
+    // this is more efficient and we can do it together by traversing
+    // the used bits.
+    let mut idx = 0;
+    while used_real_mod_bits != 0 {
+        assign!(alt, idx);
+        assign!(supr, idx);
+        assign!(hyper, idx);
+        assign!(meta, idx);
+        assign!(num_lock, idx);
+
+        idx += 1;
+        used_real_mod_bits >>= 1;
+    }
+
+    return mod_map;
 }
 
 /// This function initializes wezterm internal modifiers
@@ -261,6 +424,7 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
     //
     // This is a client side hack for wayland, once
     // https://github.com/xkbcommon/libxkbcommon/pull/36
+    // or https://github.com/xkbcommon/libxkbcommon/pull/353
     // is implemented or some other solution exists
     // this code iterates through key presses to find the
     // activated modifiers.
@@ -301,18 +465,18 @@ pub fn init_modifier_table_wayland(keymap: &xkb::Keymap) -> ModifierMap {
 
     if !algo.failed {
         let mut shifted: u32 = 1;
-        let mut used_bits: u32 = 0;
+        let mut used_real_mod_bits: u32 = 0;
 
         // Algorithm can detect the same index for multiple modifiers
         // but we only want one assigned to each of our modifiers.
         macro_rules! try_assign_unique_index {
             ($mod:ident, $i:ident) => {
                 if mod_map.$mod.idx == xkb::MOD_INVALID
-                    && (used_bits & shifted == 0)
+                    && (used_real_mod_bits & shifted == 0)
                     && algo.$mod == shifted
                 {
                     mod_map.$mod = ModifierIndex { idx: $i };
-                    used_bits |= shifted;
+                    used_real_mod_bits |= shifted;
                 }
             };
         }

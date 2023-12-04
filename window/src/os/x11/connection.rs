@@ -712,8 +712,8 @@ impl XConnection {
             visual.green_mask(),
             visual.blue_mask()
         );
-        let (keyboard, kbd_ev) = Keyboard::new(&conn, ModifierInit::X11)?;
-        let keyboard = KeyboardWithFallback::new(keyboard, ModifierInit::X11)?;
+        let (keyboard, kbd_ev) = Keyboard::new(&conn, ModifierInit::X11(&conn))?;
+        let keyboard = KeyboardWithFallback::new(keyboard, ModifierInit::X11(&conn))?;
 
         let cursor_font_id = conn.generate_id();
         let cursor_font_name = "cursor";
