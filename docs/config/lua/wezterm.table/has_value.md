@@ -43,4 +43,4 @@ assert(has_value(arr1, 'a'))
 assert(not has_value(arr1, '1'))
 ```
 
-See also [has_key](has_key.md) and [get](get.md).
+See also [wezterm.table.has_key](has_key.md) and [wezterm.table.get](get.md).

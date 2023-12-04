@@ -81,4 +81,4 @@ assert(
 )
 ```
 
-See also [flatten](flatten.md) and [deep_extend](deep_extend.md).
+See also [wezterm.table.flatten](flatten.md) and [wezterm.table.deep_extend](deep_extend.md).

@@ -1,4 +1,4 @@
-# `wezterm.table.get(table, key [, ...])`
+# `wezterm.table.get(table, keys..)`
 
 {{since('nightly')}}
 
@@ -13,8 +13,12 @@ nested tables:
 wezterm.table.get(tbl, 'a', 'b', 'c') == tbl['a']['b']['c']
 ```
 
-*Note:* In the above `tbl['a']['b']['c']` might cause an error, since we might be indexing a nil value,
-but `wezterm.table.get(tbl, 'a', 'b', 'c')` won't error in this case; instead it will return nil.
+*Note:*
+
+* In the above `tbl['a']['b']['c']` might cause an error, since we might be indexing a nil value,
+  but `wezterm.table.get(tbl, 'a', 'b', 'c')` won't error in this case; instead it will return `nil`.
+* This function can also be used on `Userdata` objects that implement an `__index`
+  metamethod.
 
 
 ```lua
@@ -42,4 +46,4 @@ assert(get(arr1, 4) == nil)
 assert(get(arr1, 1, 2) == nil)
 ```
 
-See also [has_key](has_key.md) and [has_value](has_value.md).
+See also [wezterm.table.has_key](has_key.md) and [wezterm.table.has_value](has_value.md).
