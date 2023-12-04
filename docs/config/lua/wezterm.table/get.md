@@ -9,16 +9,16 @@ assert(wezterm.table.get(tbl, key) == tbl[key])
 ```
 You may pass a sequence of keys that will be used to successively resolve
 nested tables:
-```
-wezterm.table.get(tbl, 'a', 'b', 'c') == tbl['a']['b']['c']
+```lua
+local tbl = { a = { b = { c = true } } }
+assert(wezterm.table.get(tbl, 'a', 'b', 'c') == tbl['a']['b']['c'])
 ```
 
 *Note:*
 
-* In the above `tbl['a']['b']['c']` might cause an error, since we might be indexing a nil value,
-  but `wezterm.table.get(tbl, 'a', 'b', 'c')` won't error in this case; instead it will return `nil`.
-* This function can also be used on `Userdata` objects that implement an `__index`
-  metamethod.
+* In the above `tbl['a']['a']['a']` would cause an error, since we are indexing a nil value,
+  but `wezterm.table.get(tbl, 'a', 'a', 'a')` won't error in this case; instead it will return `nil`.
+* This function can also be used on `Userdata` objects that implement an `__index` metamethod.
 
 
 ```lua

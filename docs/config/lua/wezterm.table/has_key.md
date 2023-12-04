@@ -2,20 +2,23 @@
 
 {{since('nightly')}}
 
-This function accepts a Lua table `table` and an arbitrary number of keys `keys..`.
-It returns `true` if `table` contains a non-nil value at the position specified by
-`keys..` and `false` otherwise.
-
-The arbitrary number of extra arguments will all be intepreted as extra keys to check
-for recursively in the table. I.e., to check whether `table` has any non-nil value at
-`table['a']['b']['c']`, we can use `wezterm.table.has_key(table, 'a', 'b', 'c')`.
+This function can be used to check if a key in a table has a non-nil value. In its most
+basic form it is equivalent to:
+```lua
+assert(wezterm.table.has_key(tbl, key) == (tbl[key] ~= nil))
+```
+You may pass a sequence of keys that will be used to successively check nested tables:
+```lua
+local tbl = { a = { b = { c = true } } }
+assert(wezterm.table.has_key(tbl, 'a', 'b', 'c') == (tbl['a']['b']['c'] ~= nil))
+```
 
 *Note:*
 
-* In the above `table['a']['b']['c']` might cause an error, since we might be indexing a nil value,
-  but `wezterm.table.has_key(table, 'a', 'b', 'c')` won't error in this case; instead it will return `false`.
-* This function can also be used on `Userdata` objects that implement an `__index`
-  metamethod.
+* In the above `tbl['a']['a']['a']` would cause an error, since we are indexing a nil value,
+  but `wezterm.table.has_key(tbl, 'a', 'a', 'a')` won't error in this case; instead it will return
+  `false`.
+* This function can also be used on `Userdata` objects that implement an `__index` metamethod.
 
 ```lua
 local wezterm = require 'wezterm'
