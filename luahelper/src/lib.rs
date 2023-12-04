@@ -3,7 +3,7 @@
 pub use mlua;
 use mlua::{IntoLua, Value as LuaValue};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::rc::Rc;
 use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
@@ -306,6 +306,33 @@ impl<'lua> ValuePrinterHelper<'lua> {
     }
 }
 
+fn is_array_style_table(t: &mlua::Table) -> bool {
+    let mut keys = BTreeSet::new();
+    for pair in t.clone().pairs::<LuaValue, LuaValue>() {
+        match pair {
+            Ok((key, _)) => match key {
+                LuaValue::Integer(i) if i >= 1 => {
+                    keys.insert(i);
+                }
+                _ => return false,
+            },
+            Err(_) => return false,
+        }
+    }
+
+    // Now see if we have contiguous keys.
+    // The BTreeSet will iterate the keys in ascending order.
+    let mut expect = 1;
+    for key in keys {
+        if key != expect {
+            return false;
+        }
+        expect += 1;
+    }
+
+    true
+}
+
 impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         match &self.value {
@@ -316,7 +343,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                 self.visited
                     .borrow_mut()
                     .insert(self.value.to_pointer() as usize);
-                if let Ok(true) = t.contains_key(1) {
+                if is_array_style_table(&t) {
                     // Treat as list
                     let mut list = fmt.debug_list();
                     for value in t.clone().sequence_values() {
