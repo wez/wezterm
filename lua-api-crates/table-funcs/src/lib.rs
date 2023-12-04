@@ -67,7 +67,7 @@ fn extend<'lua>(
             tbl.set(key, value)?;
         } else if behavior == ConflictMode::Error {
             return Err(mlua::Error::runtime(format!(
-                "The key {} is in more than one of the tables.",
+                "The key '{}' is in more than one of the tables.",
                 key.to_string()?
             )));
         }
@@ -106,7 +106,7 @@ fn deep_extend<'lua>(
             tbl.set(key, value)?;
         } else if behavior == ConflictMode::Error {
             return Err(mlua::Error::runtime(format!(
-                "The key {} is in more than one of the tables.",
+                "The key '{}' is in more than one of the tables.",
                 key.to_string()?
             )));
         }

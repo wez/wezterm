@@ -2,18 +2,24 @@
 
 {{since('nightly')}}
 
-This function accepts a Lua table `table` and a key `key`.
-It returns the value at the table entry `key` if `table` contains a key equal
-to `key` (with non-nil value) and it returns `nil` otherwise.
+This function can be used to resolve the value for a key in a table. In its most basic form
+it is equivalent to the built-in table indexing operator:
+```lua
+assert(wezterm.table.get(tbl, key) == tbl[key])
+```
+You may pass a sequence of keys that will be used to successively resolve
+nested tables:
+```lua
+wezterm.table.get(tbl, 'a', 'b', 'c') == tbl['a']['b']['c']
+```
 
-The function accepts an optional arbitrary number of extra arguments, that will
-all be intepreted as extra keys to check for recursively in the table. I.e., to
-get the value of `table` at `table.a.b.c`, we can use
-`wezterm.table.get(table, 'a', 'b', 'c')`.
+*Note:* In the above `tbl['a']['b']['c']` might cause an error, since we might be indexing a nil value,
+but `wezterm.table.get(tbl, 'a', 'b', 'c')` won't error in this case; instead it will return nil.
+
 
 ```lua
 local wezterm = require 'wezterm'
-local has_key = wezterm.table.has_key
+local get = wezterm.table.get
 
 local tbl1 = {
   a = 1,
@@ -27,7 +33,7 @@ local tbl1 = {
 local arr1 = { 'a', 'b', 'c' }
 
 assert(get(tbl1, 'a') == 1)
-assert(get(tbl1, 'b') == tbl1.b) -- note: we get the table address of tbl1.b here
+assert(get(tbl1, 'b') == tbl1.b) -- note: we get the table reference of tbl1.b here
 assert(get(tbl1, 'b', 'c', 'd') == 4)
 assert(get(tbl1, 'c') == nil)
 

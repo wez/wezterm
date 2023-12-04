@@ -42,6 +42,8 @@ assert(equal(tbl, tbl_top_clone))
 assert(equal(tbl, tbl_deep_clone))
 
 tbl.a = 2
+assert(equal(tbl, tbl_ref))
+assert(tbl_ref.a == 2)
 assert(not equal(tbl, tbl_top_clone))
 assert(tbl_top_clone.a == 1)
 assert(not equal(tbl, tbl_deep_clone))

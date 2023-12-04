@@ -36,7 +36,7 @@ local tbl1 = {
   b = {
     d = 4,
   },
-  c = 3,
+  e = 3,
 }
 
 local tbl2 = {
@@ -51,14 +51,16 @@ local tbl3 = {
   e = 5,
 }
 
-assert(equal(extend { tbl1, tbl2 }, { a = 2, b = { e = 5 }, c = 3, d = 4 }))
+assert(equal(extend { tbl1, tbl2 }, { a = 2, b = { e = 5 }, e = 3, d = 4 }))
 assert(
   equal(
     extend({ tbl1, tbl2 }, 'Keep'),
-    { a = 1, b = { d = 4 }, c = 3, d = 4 }
+    { a = 1, b = { d = 4 }, e = 3, d = 4 }
   )
 )
--- This will return an error: extend({tbl1, tbl2}, 'Error')
+local ok, msg = pcall(function() extend({tbl1, tbl3}, 'Error') end)
+assert(not ok and
+  msg == "error runtime error: The key 'e' is in more than one of the tables.")
 
 assert(equal(extend { tbl2, tbl3 }, { a = 2, b = { e = 5 }, d = 4, e = 5 }))
 assert(
