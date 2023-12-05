@@ -55,5 +55,5 @@ features = [
 version = "0.3"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
+embed-resource = "2.4"
 cc = "1.0"

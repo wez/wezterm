@@ -29,7 +29,7 @@ dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
+embed-resource = "2.4"
 cc = "1.0"
 
 [dependencies]
@@ -121,7 +121,7 @@ winapi = { version = "0.3", features = [
     "synchapi",
     "winsock2",
 ]}
-windows = { version="0.33.0", features = [
+windows = { version="0.52.0", features = [
     "Win32_UI_Shell",
 ]}
 

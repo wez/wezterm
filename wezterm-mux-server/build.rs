@@ -33,6 +33,6 @@ fn main() {
                 std::env::set_var(key, value);
             }
         }
-        embed_resource::compile(rcfile_name);
+        embed_resource::compile(rcfile_name, embed_resource::NONE);
     }
 }

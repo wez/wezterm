@@ -106,10 +106,12 @@ impl WglWrapper {
             }
         }
 
-        let lib = libloading::Library::new("opengl32.dll").map_err(|e| {
-            log::error!("{:?}", e);
-            e
-        })?;
+        let lib = unsafe {
+            libloading::Library::new("opengl32.dll").map_err(|e| {
+                log::error!("{:?}", e);
+                e
+            })?
+        };
         log::trace!("loaded {:?}", lib);
 
         let get_proc_address: libloading::Symbol<GetProcAddressFunc> =
