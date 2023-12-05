@@ -80,34 +80,50 @@ fn deep_extend<'lua>(
     for table in array_of_tables {
         for pair in table.pairs::<LuaValue, LuaValue>() {
             let (key, value) = pair?;
-            let contains_key = tbl.contains_key(key.clone())?;
+            let tbl_value = tbl.get::<_, LuaValue>(key.clone())?;
 
-            if behavior == ConflictMode::Error && contains_key {
-                return Err(mlua::Error::runtime(format!(
-                    "The key '{}' is in more than one of the tables.",
-                    key.to_string()?
-                )));
-            }
-
-            if !contains_key && !value.is_table() {
-                tbl.set(key, value)?;
-            } else if let LuaValue::Table(t) = value {
-                let cur_val_as_tbl = tbl.get::<_, Table>(key.clone());
-                let mut update_bool = true;
-                let inner_tbl = if cur_val_as_tbl.is_ok() {
-                    deep_extend(lua, (vec![cur_val_as_tbl?, t], Some(behavior)))?
-                } else {
-                    // Note: we can get here in modes Force and Keep
-                    if behavior == ConflictMode::Keep {
-                        update_bool = false;
-                    }
-                    t
-                };
-                if update_bool {
+            match (tbl_value, value) {
+                (LuaValue::Table(tbl_value_table), LuaValue::Table(value_table)) => {
+                    let inner_tbl = deep_extend(lua, (vec![tbl_value_table, value_table], Some(behavior)))?;
                     tbl.set(key, inner_tbl)?;
-                }
-            } else if behavior == ConflictMode::Force {
-                tbl.set(key, value)?;
+                },
+                (tbl_val, LuaValue::Table(value_tbl)) => {
+                    // if tbl[key] is set to a non-table value, but we get a table
+                    if tbl_val.is_nil() {
+                        tbl.set(key, clone(lua, (value_tbl, Some(DepthMode::Deep)))?)?;
+                    } else if behavior == ConflictMode::Force {
+                        tbl.set(key, clone(lua, (value_tbl, Some(DepthMode::Deep)))?)?;
+                    } else if behavior == ConflictMode::Error {
+                        return Err(mlua::Error::runtime(format!(
+                            "The key '{}' is in more than one of the tables.",
+                            key.to_string()?
+                        )));
+                    }
+                },
+                (LuaValue::Table(_), val) => {
+                    // if tbl[key] is set to a table, but we get a non-table value
+                    if behavior == ConflictMode::Force {
+                        tbl.set(key, val)?;
+                    } else if behavior == ConflictMode::Error {
+                        return Err(mlua::Error::runtime(format!(
+                            "The key '{}' is in more than one of the tables.",
+                            key.to_string()?
+                        )));
+                    }
+                },
+                (tbl_val, val) => {
+                    // tbl_val and val are not tables
+                    if tbl_val.is_nil() {
+                        tbl.set(key, val)?;
+                    } else if behavior == ConflictMode::Force {
+                        tbl.set(key, val)?;
+                    } else if behavior == ConflictMode::Error {
+                        return Err(mlua::Error::runtime(format!(
+                            "The key '{}' is in more than one of the tables.",
+                            key.to_string()?
+                        )));
+                    }
+                },
             }
         }
     }
