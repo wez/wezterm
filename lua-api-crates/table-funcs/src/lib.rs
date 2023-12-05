@@ -83,10 +83,12 @@ fn deep_extend<'lua>(
             let tbl_value = tbl.get::<_, LuaValue>(key.clone())?;
 
             match (tbl_value, value) {
+                // if tbl[key] is set to a table value and we get a table
                 (LuaValue::Table(tbl_value_table), LuaValue::Table(value_table)) => {
-                    let inner_tbl = deep_extend(lua, (vec![tbl_value_table, value_table], Some(behavior)))?;
+                    let inner_tbl =
+                        deep_extend(lua, (vec![tbl_value_table, value_table], Some(behavior)))?;
                     tbl.set(key, inner_tbl)?;
-                },
+                }
                 (tbl_val, LuaValue::Table(value_tbl)) => {
                     // if tbl[key] is set to a non-table value, but we get a table
                     if tbl_val.is_nil() {
@@ -99,7 +101,7 @@ fn deep_extend<'lua>(
                             key.to_string()?
                         )));
                     }
-                },
+                }
                 (LuaValue::Table(_), val) => {
                     // if tbl[key] is set to a table, but we get a non-table value
                     if behavior == ConflictMode::Force {
@@ -110,7 +112,7 @@ fn deep_extend<'lua>(
                             key.to_string()?
                         )));
                     }
-                },
+                }
                 (tbl_val, val) => {
                     // tbl_val and val are not tables
                     if tbl_val.is_nil() {
@@ -123,7 +125,7 @@ fn deep_extend<'lua>(
                             key.to_string()?
                         )));
                     }
-                },
+                }
             }
         }
     }
@@ -168,9 +170,8 @@ fn flatten<'lua>(
                     let mut flat = flatten(lua, (tbl_as_vec, Some(behavior)))?;
                     flat_vec.append(&mut flat);
                 } else {
-                    for elem in tbl.sequence_values::<LuaValue>() {
-                        flat_vec.push(elem?);
-                    }
+                    let mut tbl_as_vec = tbl.sequence_values().filter_map(|x| x.ok()).collect();
+                    flat_vec.append(&mut tbl_as_vec);
                 }
             }
             LuaValue::Nil => (),
