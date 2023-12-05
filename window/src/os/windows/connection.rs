@@ -10,22 +10,28 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
-use std::ptr::null_mut;
 use std::rc::Rc;
-use winapi::shared::minwindef::*;
-use winapi::shared::windef::*;
-use winapi::um::shellscalingapi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
-use winapi::um::winbase::INFINITE;
-use winapi::um::wingdi::{DEVMODEW, DISPLAY_DEVICEW, DM_DISPLAYFREQUENCY};
-use winapi::um::winnt::HANDLE;
-use winapi::um::winuser::*;
+use windows::core::PCWSTR;
 use windows::Win32::Devices::Display::{
     DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QueryDisplayConfig,
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
     DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
     DISPLAYCONFIG_TARGET_DEVICE_NAME, QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE,
 };
-use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
+use windows::Win32::Foundation::*;
+use windows::Win32::Graphics::Gdi::{
+    EnumDisplayDevicesW, EnumDisplayMonitors, EnumDisplaySettingsW, GetMonitorInfoW,
+    MonitorFromWindow, DEVMODEW, DEVMODE_FIELD_FLAGS, DISPLAY_DEVICEW, DM_DISPLAYFREQUENCY,
+    ENUM_CURRENT_SETTINGS, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+};
+use windows::Win32::System::Diagnostics::Debug::MessageBeep;
+use windows::Win32::System::Threading::INFINITE;
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows::Win32::UI::Input::KeyboardAndMouse::GetFocus;
+use windows::Win32::UI::WindowsAndMessaging::{
+    DispatchMessageW, MsgWaitForMultipleObjects, PeekMessageW, PostQuitMessage, MB_OK,
+    MONITORINFOF_PRIMARY, MSG, PM_REMOVE, QS_ALLEVENTS, QS_ALLINPUT, QS_ALLPOSTMESSAGE, WM_QUIT,
+};
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -70,8 +76,8 @@ impl ConnectionOps for Connection {
         loop {
             SPAWN_QUEUE.run();
 
-            let res = unsafe { PeekMessageW(&mut msg, null_mut(), 0, 0, PM_REMOVE) };
-            if res != 0 {
+            let res = unsafe { PeekMessageW(&mut msg, HWND::default(), 0, 0, PM_REMOVE) };
+            if res.into() {
                 if msg.message == WM_QUIT {
                     // Clear our state before we exit, otherwise we can
                     // trigger `drop` handlers during shutdown and that
@@ -92,10 +98,12 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn beep(&self) {
+    fn beep(&self) -> anyhow::Result<()> {
         unsafe {
-            MessageBeep(MB_OK);
+            MessageBeep(MB_OK)?;
         }
+
+        Ok(())
     }
 
     fn screens(&self) -> anyhow::Result<Screens> {
@@ -129,9 +137,8 @@ impl Connection {
     fn wait_message(&self) {
         unsafe {
             MsgWaitForMultipleObjects(
-                1,
-                &self.event_handle,
-                0,
+                Some(&[self.event_handle]),
+                false,
                 INFINITE,
                 QS_ALLEVENTS | QS_ALLINPUT | QS_ALLPOSTMESSAGE,
             );
@@ -200,24 +207,26 @@ impl ScreenInfoHelper {
             _hdc: HDC,
             _rect: *mut RECT,
             data: LPARAM,
-        ) -> i32 {
-            let info: &mut ScreenInfoHelper = &mut *(data as *mut ScreenInfoHelper);
+        ) -> BOOL {
+            let info: &mut ScreenInfoHelper = &mut *(data.0 as *mut ScreenInfoHelper);
             let mut mi: MONITORINFOEXW = std::mem::zeroed();
-            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
-            GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+            mi.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            GetMonitorInfoW(mon, &mut mi.monitorInfo as *mut MONITORINFO);
 
             let mut devmode: DEVMODEW = std::mem::zeroed();
             devmode.dmSize = std::mem::size_of::<DEVMODEW>() as u16;
-            let max_fps =
-                if EnumDisplaySettingsW(mi.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut devmode)
-                    != 0
-                    && (devmode.dmFields & DM_DISPLAYFREQUENCY) != 0
-                    && devmode.dmDisplayFrequency > 1
-                {
-                    Some(devmode.dmDisplayFrequency as usize)
-                } else {
-                    None
-                };
+            let max_fps = if EnumDisplaySettingsW(
+                PCWSTR::from_raw(mi.szDevice.as_ptr()),
+                ENUM_CURRENT_SETTINGS,
+                &mut devmode,
+            ) == TRUE
+                && (devmode.dmFields & DM_DISPLAYFREQUENCY) != DEVMODE_FIELD_FLAGS(0)
+                && devmode.dmDisplayFrequency > 1
+            {
+                Some(devmode.dmDisplayFrequency as usize)
+            } else {
+                None
+            };
 
             let monitor_name = info.monitor_name(&mi);
 
@@ -230,7 +239,9 @@ impl ScreenInfoHelper {
             } else {
                 let mut dpi_x = 0;
                 let mut dpi_y = 0;
-                GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y);
+                if GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y).is_err() {
+                    return FALSE;
+                }
                 if dpi_x != 0 {
                     effective_dpi.replace(dpi_x as f64);
                 }
@@ -239,10 +250,12 @@ impl ScreenInfoHelper {
             let screen_info = ScreenInfo {
                 name: monitor_name.clone(),
                 rect: euclid::rect(
-                    mi.rcMonitor.left as isize,
-                    mi.rcMonitor.top as isize,
-                    mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
-                    mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
+                    mi.monitorInfo.rcMonitor.left as isize,
+                    mi.monitorInfo.rcMonitor.top as isize,
+                    mi.monitorInfo.rcMonitor.right as isize
+                        - mi.monitorInfo.rcMonitor.left as isize,
+                    mi.monitorInfo.rcMonitor.bottom as isize
+                        - mi.monitorInfo.rcMonitor.top as isize,
                 ),
                 scale: 1.0,
                 max_fps,
@@ -251,7 +264,7 @@ impl ScreenInfoHelper {
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
 
-            if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
+            if mi.monitorInfo.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
                 info.primary.replace(screen_info.clone());
             }
             if mon == info.active_handle {
@@ -260,15 +273,15 @@ impl ScreenInfoHelper {
 
             info.by_name.insert(monitor_name, screen_info);
 
-            winapi::shared::ntdef::TRUE.into()
+            TRUE
         }
 
         unsafe {
             EnumDisplayMonitors(
-                std::ptr::null_mut(),
-                std::ptr::null(),
+                HDC::default(),
+                None,
                 Some(callback),
-                self as *mut _ as LPARAM,
+                LPARAM(self as *mut _ as isize),
             );
         }
     }
@@ -284,7 +297,13 @@ impl ScreenInfoHelper {
                     let mut display_device: DISPLAY_DEVICEW = std::mem::zeroed();
                     display_device.cb = std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
 
-                    if EnumDisplayDevicesW(mi.szDevice.as_ptr(), 0, &mut display_device, 0) != 0 {
+                    if EnumDisplayDevicesW(
+                        PCWSTR::from_raw(mi.szDevice.as_ptr()),
+                        0,
+                        &mut display_device,
+                        0,
+                    ) == true
+                    {
                         wstr(&display_device.DeviceString)
                     } else {
                         "Unknown".to_string()
@@ -328,7 +347,7 @@ fn gdi_display_name_to_adapter_names() -> HashMap<String, String> {
     display_device.cb = std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
 
     for n in 0.. {
-        if unsafe { EnumDisplayDevicesW(std::ptr::null(), n, &mut display_device, 0) } == 0 {
+        if unsafe { EnumDisplayDevicesW(PCWSTR::null(), n, &mut display_device, 0) } == false {
             break;
         }
         let adapter_name = wstr(&display_device.DeviceString);

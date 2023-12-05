@@ -53,7 +53,7 @@ impl WslDistro {
         cmd.arg("-l");
         cmd.arg("-v");
         #[cfg(windows)]
-        cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
+        cmd.creation_flags(windows::Win32::System::Threading::CREATE_NO_WINDOW.0);
         let output = cmd.output()?;
 
         let stderr = String::from_utf8_lossy(&output.stderr);

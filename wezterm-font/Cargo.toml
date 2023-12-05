@@ -44,7 +44,12 @@ fontconfig = { path = "../deps/fontconfig" }
 
 [target."cfg(windows)".dependencies]
 dwrote = "0.11"
-winapi = "0.3"
+windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_DirectWrite",
+    "Win32_System_WindowsProgramming",
+]}
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"

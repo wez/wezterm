@@ -64,12 +64,32 @@ winapi = { version = "0.3", features = [
 windows = { version="0.52.0", features = [
     "UI_ViewManagement",
     "Win32_Devices_Display",
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_Security",
+    "Win32_System_Diagnostics",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_SystemServices",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_UI_Controls",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_Ime",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_TextServices",
+    "Win32_UI_WindowsAndMessaging",
 ]}
 winreg = "0.51"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 dirs-next = "2.0"
-filedescriptor = { version="0.8", path = "../filedescriptor" }
+filedescriptor = { version="0.9", path = "../filedescriptor" }
 x11 = {version ="2.19", features = ["xlib_xcb", "xlib"]}
 xcb = {version="1.2", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "present", "as-raw-xcb-connection"]}
 xkbcommon = { version = "0.5.0", features = ["x11", "wayland"] }

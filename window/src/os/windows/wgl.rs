@@ -3,11 +3,21 @@ use glium::backend::Backend;
 use std::ffi::CStr;
 use std::io::Error as IoError;
 use std::os::raw::c_void;
-use std::ptr::{null, null_mut};
-use winapi::shared::windef::*;
-use winapi::um::libloaderapi::{GetModuleHandleW, *};
-use winapi::um::wingdi::*;
-use winapi::um::winuser::*;
+use std::ptr::null;
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::*;
+use windows::Win32::Graphics::Gdi::{GetDC, HBRUSH, HDC};
+use windows::Win32::Graphics::OpenGL::{
+    ChoosePixelFormat, DescribePixelFormat, SetPixelFormat, SwapBuffers, PFD_DOUBLEBUFFER,
+    PFD_DRAW_TO_WINDOW, PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL, PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR,
+};
+use windows::Win32::System::LibraryLoader::{
+    AddDllDirectory, GetModuleHandleW, SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
+};
+use windows::Win32::UI::WindowsAndMessaging::{
+    CreateWindowExW, DefWindowProcW, RegisterClassW, CS_HREDRAW, CS_OWNDC, CS_VREDRAW,
+    CW_USEDEFAULT, HCURSOR, HICON, HMENU, WINDOW_EX_STYLE, WNDCLASSW, WS_OVERLAPPEDWINDOW,
+};
 
 pub mod ffi {
     include!(concat!(env!("OUT_DIR"), "/wgl_bindings.rs"));
@@ -34,46 +44,45 @@ impl Drop for WglWrapper {
 impl WglWrapper {
     fn load() -> anyhow::Result<Self> {
         let class_name = wide_string("wezterm wgl extension probing window");
-        let h_inst = unsafe { GetModuleHandleW(null()) };
+        let h_inst = unsafe { GetModuleHandleW(PCWSTR::null())? };
         let class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
-            lpfnWndProc: Some(DefWindowProcW),
+            lpfnWndProc: Some(wnd_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
-            hInstance: h_inst,
-            hIcon: null_mut(),
-            hCursor: null_mut(),
-            hbrBackground: null_mut(),
-            lpszMenuName: null(),
-            lpszClassName: class_name.as_ptr(),
+            hInstance: h_inst.into(),
+            hIcon: HICON::default(),
+            hCursor: HCURSOR::default(),
+            hbrBackground: HBRUSH::default(),
+            lpszMenuName: PCWSTR::null(),
+            lpszClassName: PCWSTR(class_name.as_ptr()),
         };
 
         if unsafe { RegisterClassW(&class) } == 0 {
             let err = IoError::last_os_error();
             match err.raw_os_error() {
-                Some(code)
-                    if code == winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS as i32 => {}
+                Some(code) if code == ERROR_CLASS_ALREADY_EXISTS.0 as i32 => {}
                 _ => return Err(err.into()),
             }
         }
 
         let hwnd = unsafe {
             CreateWindowExW(
-                0,
-                class_name.as_ptr(),
-                class_name.as_ptr(),
+                WINDOW_EX_STYLE::default(),
+                PCWSTR(class_name.as_ptr()),
+                PCWSTR(class_name.as_ptr()),
                 WS_OVERLAPPEDWINDOW,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 1024,
                 768,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-                null_mut(),
+                HWND::default(),
+                HMENU::default(),
+                HINSTANCE::default(),
+                None,
             )
         };
-        if hwnd.is_null() {
+        if hwnd.0 == 0 {
             let err = IoError::last_os_error();
             anyhow::bail!("CreateWindowExW: {}", err);
         }
@@ -101,8 +110,8 @@ impl WglWrapper {
             let mesa_dir = wide_string(mesa_dir.to_str().unwrap());
 
             unsafe {
-                AddDllDirectory(mesa_dir.as_ptr());
-                SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+                AddDllDirectory(PCWSTR(mesa_dir.as_ptr()));
+                SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)?;
             }
         }
 
@@ -147,6 +156,15 @@ impl WglWrapper {
     }
 }
 
+unsafe extern "system" fn wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    DefWindowProcW(hwnd, msg, wparam, lparam)
+}
+
 pub struct GlState {
     wgl: Option<WglWrapper>,
     hdc: HDC,
@@ -175,7 +193,7 @@ impl GlState {
             }
 
             let extensions = if ext.GetExtensionsStringARB.is_loaded() {
-                unsafe { cstr(ext.GetExtensionsStringARB(hdc as *const _)) }
+                unsafe { cstr(ext.GetExtensionsStringARB(hdc.0 as *const _)) }
             } else if ext.GetExtensionsStringEXT.is_loaded() {
                 unsafe { cstr(ext.GetExtensionsStringEXT()) }
             } else {
@@ -245,7 +263,7 @@ impl GlState {
 
         let res = unsafe {
             wgl.ext.as_ref().unwrap().ChoosePixelFormatARB(
-                hdc as _,
+                hdc.0 as _,
                 attribs.as_ptr(),
                 null(),
                 1,
@@ -268,7 +286,7 @@ impl GlState {
                 hdc,
                 format_id,
                 std::mem::size_of::<PIXELFORMATDESCRIPTOR>() as _,
-                &mut pfd,
+                Some(&mut pfd),
             )
         };
         if res == 0 {
@@ -279,10 +297,11 @@ impl GlState {
         }
 
         let res = unsafe { SetPixelFormat(hdc, format_id, &pfd) };
-        if res == 0 {
+        if res.is_err() {
             anyhow::bail!(
-                "SetPixelFormat function failed: {}",
-                std::io::Error::last_os_error()
+                "SetPixelFormat function failed: {} {:?}",
+                std::io::Error::last_os_error(),
+                res,
             );
         }
 
@@ -308,20 +327,16 @@ impl GlState {
             wgl.ext
                 .as_ref()
                 .unwrap()
-                .CreateContextAttribsARB(hdc as _, null(), attribs.as_ptr())
+                .CreateContextAttribsARB(hdc.0 as _, null(), attribs.as_ptr())
         };
 
         if rc.is_null() {
-            let err = unsafe { winapi::um::errhandlingapi::GetLastError() };
-            anyhow::bail!(
-                "CreateContextAttribsARB failed, GetLastError={} {:x}",
-                err,
-                err
-            );
+            let err = unsafe { GetLastError() };
+            anyhow::bail!("CreateContextAttribsARB failed, GetLastError={:?}", err);
         }
 
         unsafe {
-            wgl.wgl.MakeCurrent(hdc as *mut _, rc);
+            wgl.wgl.MakeCurrent(hdc.0 as *mut _, rc);
         }
 
         Ok(Self {
@@ -356,7 +371,7 @@ impl GlState {
             cDepthBits: 24,
             cStencilBits: 8,
             cAuxBuffers: 0,
-            iLayerType: PFD_MAIN_PLANE,
+            iLayerType: PFD_MAIN_PLANE.0 as u8,
             bReserved: 0,
             dwLayerMask: 0,
             dwVisibleMask: 0,
@@ -364,12 +379,12 @@ impl GlState {
         };
         let format = unsafe { ChoosePixelFormat(hdc, &pfd) };
         unsafe {
-            SetPixelFormat(hdc, format, &pfd);
+            SetPixelFormat(hdc, format, &pfd)?;
         }
 
-        let rc = unsafe { wgl.wgl.CreateContext(hdc as *mut _) };
+        let rc = unsafe { wgl.wgl.CreateContext(hdc.0 as *mut _) };
         unsafe {
-            wgl.wgl.MakeCurrent(hdc as *mut _, rc);
+            wgl.wgl.MakeCurrent(hdc.0 as *mut _, rc);
         }
 
         Ok(Self {
@@ -382,7 +397,7 @@ impl GlState {
     fn make_not_current(&self) {
         if let Some(wgl) = self.wgl.as_ref() {
             unsafe {
-                wgl.wgl.MakeCurrent(self.hdc as *mut _, std::ptr::null());
+                wgl.wgl.MakeCurrent(self.hdc.0 as *mut _, null());
             }
         }
     }
@@ -406,7 +421,7 @@ impl Drop for GlState {
 unsafe impl glium::backend::Backend for GlState {
     fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
         unsafe {
-            SwapBuffers(self.hdc);
+            let _ = SwapBuffers(self.hdc);
         }
         Ok(())
     }
@@ -446,6 +461,6 @@ unsafe impl glium::backend::Backend for GlState {
             .as_ref()
             .unwrap()
             .wgl
-            .MakeCurrent(self.hdc as *mut _, self.rc);
+            .MakeCurrent(self.hdc.0 as *mut _, self.rc);
     }
 }

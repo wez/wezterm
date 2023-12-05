@@ -27,7 +27,10 @@ wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-term = { path = "../term" }
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = [ "winuser" ]}
+windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+]}
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "2.4"

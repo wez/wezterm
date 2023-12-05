@@ -146,6 +146,8 @@ pub enum Error {
     FdValueOutsideFdSetSize(i64),
     #[error("Only socket descriptors can change their non-blocking mode on Windows")]
     OnlySocketsNonBlocking,
+    #[error("GetStdHandle failed")]
+    GetStdHandle(#[source] std::io::Error),
     #[error("SetStdHandle failed")]
     SetStdHandle(#[source] std::io::Error),
 

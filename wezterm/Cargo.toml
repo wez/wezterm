@@ -15,7 +15,7 @@ clap_complete_fig = "4.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
-filedescriptor = { version="0.8", path = "../filedescriptor" }
+filedescriptor = { version="0.9", path = "../filedescriptor" }
 hostname = "0.3"
 image = "0.24.6"
 libc = "0.2"
@@ -41,18 +41,12 @@ wezterm-term = { path = "../term" }
 [target."cfg(unix)".dependencies]
 termios = "0.3"
 
-[target."cfg(windows)".dependencies.winapi]
-features = [
-    "winbase",
-    "winerror",
-    "winnls",
-    "winuser",
-    "consoleapi",
-    "handleapi",
-    "fileapi",
-    "synchapi",
-]
-version = "0.3"
+[target."cfg(windows)".dependencies]
+windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_System_Console",
+]}
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "2.4"

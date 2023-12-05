@@ -7,7 +7,9 @@ use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
 use std::os::windows::io::AsRawHandle;
 #[cfg(windows)]
-use winapi::um::consoleapi::GetConsoleMode;
+use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
+use windows::Win32::System::Console::{GetConsoleMode, CONSOLE_MODE};
 
 /// Adds the is_tty method to types that might represent a terminal
 pub trait IsTty {
@@ -30,8 +32,7 @@ impl<S: AsRawFd> IsTty for S {
 #[cfg(windows)]
 impl<S: AsRawHandle> IsTty for S {
     fn is_tty(&self) -> bool {
-        let mut mode = 0;
-        let ok = unsafe { GetConsoleMode(self.as_raw_handle() as *mut _, &mut mode) };
-        ok == 1
+        let mut mode = CONSOLE_MODE::default();
+        unsafe { GetConsoleMode(HANDLE(self.as_raw_handle() as isize), &mut mode).is_ok() }
     }
 }

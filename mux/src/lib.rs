@@ -8,7 +8,7 @@ use config::{configuration, ExitBehavior, GuiPosition};
 use domain::{Domain, DomainId, DomainState, SplitSource};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 #[cfg(unix)]
-use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
+use libc::{setsockopt, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
 use parking_lot::{
@@ -28,7 +28,7 @@ use termwiz::escape::{Action, CSI};
 use thiserror::*;
 use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
 #[cfg(windows)]
-use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
+use windows::Win32::Networking::WinSock::{setsockopt, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
 pub mod activity;
 pub mod client;
@@ -241,14 +241,21 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
 }
 
 fn set_socket_buffer(fd: &mut FileDescriptor, option: i32, size: usize) -> anyhow::Result<()> {
-    let socklen = std::mem::size_of_val(&size);
     unsafe {
-        let res = libc::setsockopt(
+        #[cfg(unix)]
+        let res = setsockopt(
             fd.as_socket_descriptor(),
             SOL_SOCKET,
             option,
             &size as *const usize as *const _,
-            socklen as _,
+            std::mem::size_of_val(&size) as _,
+        );
+        #[cfg(windows)]
+        let res = setsockopt(
+            fd.as_socket_descriptor(),
+            SOL_SOCKET,
+            option,
+            Some(&(size as u32).to_be_bytes()),
         );
         if res == 0 {
             Ok(())

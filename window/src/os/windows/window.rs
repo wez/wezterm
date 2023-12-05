@@ -21,53 +21,73 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::ffi::OsString;
+use std::ffi::{c_void, OsString};
+use std::hash::Hash;
 use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::path::PathBuf;
-use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::sync::Mutex;
 use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::KeyboardLedStatus;
-use winapi::shared::minwindef::*;
-use winapi::shared::ntdef::*;
-use winapi::shared::windef::*;
-use winapi::shared::winerror::S_OK;
-use winapi::um::imm::*;
-use winapi::um::libloaderapi::GetModuleHandleW;
-use winapi::um::shellapi::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
-use winapi::um::sysinfoapi::{GetTickCount, GetVersionExW};
-use winapi::um::uxtheme::{
-    CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
+use winapi::um::wingdi::MAKEPOINTS;
+use winapi::um::winuser::{GET_WHEEL_DELTA_WPARAM, WHEEL_DELTA};
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::*;
+use windows::Win32::Globalization::HIMC;
+use windows::Win32::Graphics::Dwm::{
+    DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
 };
-use winapi::um::wingdi::{LOGFONTW, MAKEPOINTS};
-use winapi::um::winnt::OSVERSIONINFOW;
-use winapi::um::winuser::*;
+use windows::Win32::Graphics::Gdi::{
+    BeginPaint, ClientToScreen, CreateRectRgn, DeleteObject, EndPaint, GetDC, GetMonitorInfoW,
+    InvalidateRect, MonitorFromWindow, ReleaseDC, ScreenToClient, HBRUSH, HDC, LOGFONTW,
+    MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY, PAINTSTRUCT,
+};
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::SystemInformation::{GetTickCount, GetVersionExW, OSVERSIONINFOW};
+use windows::Win32::System::SystemServices::{
+    MK_CONTROL, MK_LBUTTON, MK_MBUTTON, MK_RBUTTON, MK_SHIFT,
+};
+use windows::Win32::UI::Controls::{
+    CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
+    THEME_PROPERTY_SYMBOL_ID, WM_MOUSELEAVE,
+};
+use windows::Win32::UI::HiDpi::{GetDpiForWindow, GetSystemMetricsForDpi};
+use windows::Win32::UI::Input::Ime::{
+    ImmGetCompositionStringW, ImmGetContext, ImmReleaseContext, ImmSetCandidateWindow,
+    ImmSetCompositionWindow, CANDIDATEFORM, CFS_EXCLUDE, CFS_POINT, COMPOSITIONFORM, GCS_COMPSTR,
+    GCS_RESULTSTR, IME_COMPOSITION_STRING, ISC_SHOWUICOMPOSITIONWINDOW,
+};
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
+use windows::Win32::UI::Shell::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
+use windows::Win32::UI::TextServices::HKL;
+use windows::Win32::UI::WindowsAndMessaging::{
+    AdjustWindowRect, CreateWindowExW, DefWindowProcW, DestroyWindow, GetClientRect,
+    GetWindowLongPtrW, GetWindowLongW, GetWindowPlacement, GetWindowRect, LoadCursorW, LoadIconW,
+    MoveWindow, RegisterClassW, SetCursor, SetForegroundWindow, SetWindowLongPtrW, SetWindowLongW,
+    SetWindowPlacement, SetWindowPos, SetWindowTextW, ShowWindow, TranslateMessage, CREATESTRUCTW,
+    CS_HREDRAW, CS_OWNDC, CS_VREDRAW, CW_USEDEFAULT, GWLP_USERDATA, GWL_STYLE, HCURSOR, HMENU,
+    HTBOTTOM, HTBOTTOMLEFT, HTBOTTOMRIGHT, HTCAPTION, HTCLIENT, HTLEFT, HTMAXBUTTON, HTNOWHERE,
+    HTRIGHT, HTTOP, HTTOPLEFT, HTTOPRIGHT, HWND_TOP, IDC_ARROW, IDC_HAND, IDC_IBEAM, IDC_SIZENS,
+    IDC_SIZEWE, MSG, NCCALCSIZE_PARAMS, SHOW_WINDOW_CMD, SM_CXFRAME, SM_CXPADDEDBORDER, SM_CYFRAME,
+    SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER,
+    SW_MAXIMIZE, SW_MINIMIZE, SW_NORMAL, SW_SHOWMAXIMIZED, SW_SHOWMINIMIZED, WINDOWPLACEMENT,
+    WINDOW_EX_STYLE, WINDOW_STYLE, WM_CHAR, WM_CLOSE, WM_DEADCHAR, WM_DROPFILES,
+    WM_DWMCOMPOSITIONCHANGED, WM_ENTERSIZEMOVE, WM_ERASEBKGND, WM_EXITSIZEMOVE, WM_IME_CHAR,
+    WM_IME_COMPOSITION, WM_IME_ENDCOMPOSITION, WM_IME_SETCONTEXT, WM_KEYDOWN, WM_KEYUP,
+    WM_KILLFOCUS, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDBLCLK, WM_MBUTTONDOWN,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_NCCALCSIZE, WM_NCCREATE,
+    WM_NCDESTROY, WM_NCHITTEST, WM_NCLBUTTONDBLCLK, WM_NCLBUTTONDOWN, WM_NCMOUSELEAVE,
+    WM_NCMOUSEMOVE, WM_PAINT, WM_RBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
+    WM_SETTINGCHANGE, WM_SIZING, WM_SYSCHAR, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_WINDOWPOSCHANGED,
+    WNDCLASSW, WS_CAPTION, WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_POPUP,
+    WS_SYSMENU,
+};
 use windows::UI::Color as WUIColor;
 use windows::UI::ViewManagement::{UIColorType, UISettings};
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
-
-const GCS_RESULTSTR: DWORD = 0x800;
-const GCS_COMPSTR: DWORD = 0x8;
-const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
-
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct CANDIDATEFORM {
-    dwIndex: DWORD,
-    dwStyle: DWORD,
-    ptCurrentPos: POINT,
-    rcArea: RECT,
-}
-pub type LPCANDIDATEFORM = *mut CANDIDATEFORM;
-
-extern "system" {
-    pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
-    pub fn ImmSetCandidateWindow(himc: HIMC, lpCandidate: LPCANDIDATEFORM) -> BOOL;
-}
 
 lazy_static! {
     static ref IS_WIN10: bool = {
@@ -76,7 +96,7 @@ lazy_static! {
             ..Default::default()
         };
 
-        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == Ok(()) {
             osver.dwBuildNumber < 22000
         } else {
             true
@@ -88,7 +108,7 @@ lazy_static! {
             ..Default::default()
         };
 
-        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == Ok(()) {
             osver.dwBuildNumber >= 22621
         } else {
             true
@@ -97,10 +117,28 @@ lazy_static! {
     static ref TITLE_FONT: Mutex<Option<parameters::FontAndSize>> = Mutex::new(None);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HWindow(HWND);
 unsafe impl Send for HWindow {}
 unsafe impl Sync for HWindow {}
+
+impl Hash for HWindow {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0 .0.hash(state);
+    }
+}
+
+impl Ord for HWindow {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0 .0.cmp(&other.0 .0)
+    }
+}
+
+impl PartialOrd for HWindow {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.0 .0.cmp(&other.0 .0))
+    }
+}
 
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
@@ -142,16 +180,20 @@ fn rect_height(r: &RECT) -> i32 {
     r.bottom - r.top
 }
 
-fn adjust_client_to_window_dimensions(style: u32, width: usize, height: usize) -> (i32, i32) {
+fn adjust_client_to_window_dimensions(
+    style: WINDOW_STYLE,
+    width: usize,
+    height: usize,
+) -> anyhow::Result<(i32, i32)> {
     let mut rect = RECT {
         left: 0,
         top: 0,
         right: width as _,
         bottom: height as _,
     };
-    unsafe { AdjustWindowRect(&mut rect, style, 0) };
+    unsafe { AdjustWindowRect(&mut rect, style, false)? };
 
-    (rect_width(&rect), rect_height(&rect))
+    Ok((rect_width(&rect), rect_height(&rect)))
 }
 
 fn rc_to_pointer(arc: &Rc<RefCell<WindowInner>>) -> *const RefCell<WindowInner> {
@@ -159,7 +201,7 @@ fn rc_to_pointer(arc: &Rc<RefCell<WindowInner>>) -> *const RefCell<WindowInner> 
     Rc::into_raw(cloned)
 }
 
-fn rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
+fn rc_from_pointer(lparam: *const c_void) -> Rc<RefCell<WindowInner>> {
     // Turn it into an Rc
     let arc = unsafe { Rc::from_raw(std::mem::transmute(lparam)) };
     // Add a ref for the caller
@@ -172,15 +214,15 @@ fn rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
 }
 
 fn rc_from_hwnd(hwnd: HWND) -> Option<Rc<RefCell<WindowInner>>> {
-    let raw = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID };
-    if raw.is_null() {
+    let raw = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) };
+    if raw == 0 {
         None
     } else {
-        Some(rc_from_pointer(raw))
+        Some(rc_from_pointer(raw as *const c_void))
     }
 }
 
-fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
+fn take_rc_from_pointer(lparam: *mut c_void) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
@@ -203,8 +245,8 @@ unsafe impl HasRawDisplayHandle for WindowInner {
 unsafe impl HasRawWindowHandle for WindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = Win32WindowHandle::empty();
-        handle.hwnd = self.hwnd.0 as *mut _;
-        handle.hinstance = unsafe { GetModuleHandleW(null()) } as _;
+        handle.hwnd = self.hwnd.0 .0 as *mut _;
+        handle.hinstance = unsafe { GetModuleHandleW(PCWSTR::null()).unwrap().0 } as *mut _;
         RawWindowHandle::Win32(handle)
     }
 }
@@ -260,7 +302,7 @@ impl WindowInner {
 
         unsafe {
             let mut mi: MONITORINFOEXW = std::mem::zeroed();
-            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            mi.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
             let mon = MonitorFromWindow(self.hwnd.0, MONITOR_DEFAULTTONEAREST);
             GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
 
@@ -278,7 +320,7 @@ impl WindowInner {
     /// Check if we need to generate a resize callback.
     /// Calls resize if needed.
     /// Returns true if we did.
-    fn check_and_call_resize_if_needed(&mut self) -> bool {
+    fn check_and_call_resize_if_needed(&mut self) -> anyhow::Result<bool> {
         /*
         if self.gl_state.is_none() {
             // Don't cache state or generate resize callbacks until
@@ -298,7 +340,7 @@ impl WindowInner {
             top: 0,
         };
         unsafe {
-            GetClientRect(self.hwnd.0, &mut rect);
+            GetClientRect(self.hwnd.0, &mut rect)?;
         }
         let pixel_width = rect_width(&rect) as usize;
         let pixel_height = rect_height(&rect) as usize;
@@ -321,12 +363,12 @@ impl WindowInner {
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
-                window_state: get_window_state(self.hwnd.0),
+                window_state: get_window_state(self.hwnd.0)?,
                 live_resizing: self.in_size_move,
             });
         }
 
-        !same
+        Ok(!same)
     }
 
     fn apply_decoration(&mut self) {
@@ -354,13 +396,13 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
     };
 
     unsafe {
-        let orig_style = GetWindowLongW(hwnd, GWL_STYLE);
+        let orig_style = WINDOW_STYLE(GetWindowLongW(hwnd, GWL_STYLE) as u32);
         let style = decorations_to_style(decorations);
-        let new_style = (orig_style & !(WS_OVERLAPPEDWINDOW as i32)) | style as i32;
-        SetWindowLongW(hwnd, GWL_STYLE, new_style);
-        SetWindowPos(
+        let new_style = (orig_style & !WS_OVERLAPPEDWINDOW) | style;
+        SetWindowLongW(hwnd, GWL_STYLE, new_style.0 as i32);
+        if SetWindowPos(
             hwnd,
-            std::ptr::null_mut(),
+            HWND::default(),
             0,
             0,
             0,
@@ -371,12 +413,16 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
                 | SWP_NOZORDER
                 | SWP_NOOWNERZORDER
                 | SWP_FRAMECHANGED,
-        );
+        )
+        .is_err()
+        {
+            return;
+        }
         apply_theme(hwnd);
     }
 }
 
-fn decorations_to_style(decorations: WindowDecorations) -> u32 {
+fn decorations_to_style(decorations: WindowDecorations) -> WINDOW_STYLE {
     if decorations == WindowDecorations::RESIZE {
         WS_OVERLAPPEDWINDOW
     } else if decorations == WindowDecorations::TITLE {
@@ -399,28 +445,28 @@ impl Window {
         lparam: *const RefCell<WindowInner>,
     ) -> anyhow::Result<HWND> {
         let class_name = wide_string(class_name);
-        let h_inst = unsafe { GetModuleHandleW(null()) };
+        let class_name_ptr = PCWSTR(class_name.as_ptr());
+        let h_inst = unsafe { GetModuleHandleW(PCWSTR::null())? };
         let class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
             lpfnWndProc: Some(wnd_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
-            hInstance: h_inst,
+            hInstance: h_inst.into(),
             // FIXME: this resource is specific to the wezterm build and this should
             // really be made generic for other sorts of windows.
             // The ID is defined in assets/windows/resource.rc
-            hIcon: unsafe { LoadIconW(h_inst, MAKEINTRESOURCEW(0x101)) },
-            hCursor: null_mut(),
-            hbrBackground: null_mut(),
-            lpszMenuName: null(),
-            lpszClassName: class_name.as_ptr(),
+            hIcon: unsafe { LoadIconW(h_inst, PCWSTR(0x101u32 as _))? },
+            hCursor: HCURSOR::default(),
+            hbrBackground: HBRUSH::default(),
+            lpszMenuName: PCWSTR::null(),
+            lpszClassName: class_name_ptr,
         };
 
         if unsafe { RegisterClassW(&class) } == 0 {
             let err = IoError::last_os_error();
             match err.raw_os_error() {
-                Some(code)
-                    if code == winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS as i32 => {}
+                Some(code) if code == ERROR_CLASS_ALREADY_EXISTS.0 as i32 => {}
                 _ => return Err(err.into()),
             }
         }
@@ -428,12 +474,12 @@ impl Window {
         let decorations = config.window_decorations;
         let style = decorations_to_style(decorations);
         let (width, height) =
-            adjust_client_to_window_dimensions(style, geometry.width, geometry.height);
+            adjust_client_to_window_dimensions(style, geometry.width, geometry.height)?;
 
         let (x, y) = match (geometry.x, geometry.y) {
             (Some(x), Some(y)) => (x, y),
             _ => {
-                if (style & WS_POPUP) == 0 {
+                if (style & WS_POPUP) == WINDOW_STYLE(0) {
                     (CW_USEDEFAULT, CW_USEDEFAULT)
                 } else {
                     // WS_POPUP windows need to specify the initial position.
@@ -443,7 +489,7 @@ impl Window {
                         let mut mi: MONITORINFO = std::mem::zeroed();
                         mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
                         GetMonitorInfoW(
-                            MonitorFromWindow(std::ptr::null_mut(), MONITOR_DEFAULTTOPRIMARY),
+                            MonitorFromWindow(HWND::default(), MONITOR_DEFAULTTOPRIMARY),
                             &mut mi,
                         );
 
@@ -462,22 +508,22 @@ impl Window {
         let name = wide_string(name);
         let hwnd = unsafe {
             CreateWindowExW(
-                0,
-                class_name.as_ptr(),
-                name.as_ptr(),
+                WINDOW_EX_STYLE::default(),
+                class_name_ptr,
+                PCWSTR(name.as_ptr()),
                 style,
                 x,
                 y,
                 width,
                 height,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-                std::mem::transmute(lparam),
+                HWND::default(),
+                HMENU::default(),
+                HINSTANCE::default(),
+                Some(std::mem::transmute(lparam)),
             )
         };
 
-        if hwnd.is_null() {
+        if hwnd.0 == 0 {
             let err = IoError::last_os_error();
             bail!("CreateWindowExW: {}", err);
         }
@@ -509,7 +555,7 @@ impl Window {
         let appearance = get_appearance();
 
         let inner = Rc::new(RefCell::new(WindowInner {
-            hwnd: HWindow(null_mut()),
+            hwnd: HWindow(HWND::default()),
             appearance,
             events,
             gl_state: None,
@@ -550,11 +596,11 @@ impl Window {
             .assign_window(window_handle.clone());
 
         apply_theme(hwnd.0);
-        enable_blur_behind(hwnd.0);
+        enable_blur_behind(hwnd.0)?;
 
         // Make window capable of accepting drag and drop
         unsafe {
-            DragAcceptFiles(hwnd.0, winapi::shared::minwindef::TRUE);
+            DragAcceptFiles(hwnd.0, TRUE);
         }
 
         conn.windows
@@ -597,14 +643,16 @@ impl WindowInner {
         let hwnd = self.hwnd;
         promise::spawn::spawn(async move {
             unsafe {
-                DestroyWindow(hwnd.0);
+                DestroyWindow(hwnd.0)?;
             }
+            Ok::<(), anyhow::Error>(())
         })
         .detach();
     }
 
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        apply_mouse_cursor(cursor);
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> anyhow::Result<()> {
+        apply_mouse_cursor(cursor)?;
+        Ok(())
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -619,7 +667,7 @@ impl WindowInner {
                 top: 0,
             };
             unsafe {
-                GetWindowRect(hwnd, &mut rect);
+                GetWindowRect(hwnd, &mut rect)?;
 
                 let origin = client_to_screen(hwnd, Point::new(0, 0));
                 let delta_x = origin.x as i32 - rect.left;
@@ -631,9 +679,10 @@ impl WindowInner {
                     coords.y as i32 - delta_y,
                     rect_width(&rect),
                     rect_height(&rect),
-                    1,
-                );
+                    TRUE,
+                )?;
             }
+            Ok::<(), anyhow::Error>(())
         })
         .detach();
     }
@@ -641,7 +690,7 @@ impl WindowInner {
     fn set_title(&mut self, title: &str) {
         let title = wide_string(title);
         unsafe {
-            SetWindowTextW(self.hwnd.0, title.as_ptr());
+            SetWindowTextW(self.hwnd.0, PCWSTR(title.as_ptr())).unwrap();
         }
     }
 
@@ -662,7 +711,7 @@ impl WindowInner {
         self.apply_decoration();
     }
 
-    fn toggle_fullscreen(&mut self) {
+    fn toggle_fullscreen(&mut self) -> anyhow::Result<()> {
         unsafe {
             let hwnd = self.hwnd.0;
             let style = GetWindowLongW(hwnd, GWL_STYLE);
@@ -670,11 +719,11 @@ impl WindowInner {
             if let Some(placement) = self.saved_placement.take() {
                 promise::spawn::spawn(async move {
                     let style = decorations_to_style(config.window_decorations);
-                    SetWindowLongW(hwnd, GWL_STYLE, style as i32);
-                    SetWindowPlacement(hwnd, &placement);
+                    SetWindowLongW(hwnd, GWL_STYLE, style.0 as i32);
+                    SetWindowPlacement(hwnd, &placement)?;
                     SetWindowPos(
                         hwnd,
-                        std::ptr::null_mut(),
+                        HWND::default(),
                         0,
                         0,
                         0,
@@ -684,19 +733,20 @@ impl WindowInner {
                             | SWP_NOZORDER
                             | SWP_NOOWNERZORDER
                             | SWP_FRAMECHANGED,
-                    );
+                    )?;
+                    Ok::<(), anyhow::Error>(())
                 })
                 .detach();
             } else {
                 let mut placement: WINDOWPLACEMENT = std::mem::zeroed();
-                GetWindowPlacement(hwnd, &mut placement);
+                GetWindowPlacement(hwnd, &mut placement)?;
 
                 self.saved_placement.replace(placement);
                 promise::spawn::spawn(async move {
                     let mut mi: MONITORINFO = std::mem::zeroed();
                     mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
                     GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mut mi);
-                    SetWindowLongW(hwnd, GWL_STYLE, style & !(WS_OVERLAPPEDWINDOW as i32));
+                    SetWindowLongW(hwnd, GWL_STYLE, style & !(WS_OVERLAPPEDWINDOW.0 as i32));
                     SetWindowPos(
                         hwnd,
                         HWND_TOP,
@@ -705,11 +755,13 @@ impl WindowInner {
                         mi.rcMonitor.right - mi.rcMonitor.left,
                         mi.rcMonitor.bottom - mi.rcMonitor.top,
                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
-                    );
+                    )?;
+                    Ok::<(), anyhow::Error>(())
                 })
                 .detach();
             }
         }
+        Ok(())
     }
 }
 
@@ -780,27 +832,27 @@ impl WindowOps for Window {
             // We only call this function in the window creation, so it should be fine.
             // See : https://stackoverflow.com/questions/10740346/setforegroundwindow-only-working-while-visual-studio-is-open
             unsafe {
-                let alt_sc = MapVirtualKeyW(VK_MENU as u32, MAPVK_VK_TO_VSC);
+                let alt_sc = MapVirtualKeyW(VK_MENU.0 as u32, MAPVK_VK_TO_VSC);
 
                 let mut inputs: [INPUT; 2] = [
                     INPUT {
-                        type_: INPUT_KEYBOARD,
-                        u: Default::default(),
+                        r#type: INPUT_KEYBOARD,
+                        Anonymous: Default::default(),
                     },
                     INPUT {
-                        type_: INPUT_KEYBOARD,
-                        u: Default::default(),
+                        r#type: INPUT_KEYBOARD,
+                        Anonymous: Default::default(),
                     },
                 ];
-                *inputs[0].u.ki_mut() = KEYBDINPUT {
-                    wVk: VK_LMENU as u16,
+                inputs[0].Anonymous.ki = KEYBDINPUT {
+                    wVk: VK_LMENU,
                     wScan: alt_sc as u16,
                     dwFlags: KEYEVENTF_EXTENDEDKEY,
                     dwExtraInfo: 0,
                     time: 0,
                 };
-                *inputs[1].u.ki_mut() = KEYBDINPUT {
-                    wVk: VK_LMENU as u16,
+                inputs[1].Anonymous.ki = KEYBDINPUT {
+                    wVk: VK_LMENU,
                     wScan: alt_sc as u16,
                     dwFlags: KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
                     dwExtraInfo: 0,
@@ -808,11 +860,7 @@ impl WindowOps for Window {
                 };
 
                 // Simulate a key press and release
-                SendInput(
-                    inputs.len() as u32,
-                    inputs.as_mut_ptr(),
-                    std::mem::size_of::<INPUT>() as i32,
-                );
+                SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
 
                 SetForegroundWindow(handle);
             }
@@ -830,7 +878,7 @@ impl WindowOps for Window {
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) {
         Connection::with_window_inner(self.0, move |inner| {
-            inner.set_cursor(cursor);
+            inner.set_cursor(cursor)?;
             Ok(())
         });
     }
@@ -839,7 +887,7 @@ impl WindowOps for Window {
         let hwnd = self.0 .0;
         log::trace!("WindowOps::invalidate calling InvalidateRect");
         unsafe {
-            InvalidateRect(hwnd, null(), 0);
+            InvalidateRect(hwnd, None, FALSE);
         }
     }
 
@@ -853,7 +901,7 @@ impl WindowOps for Window {
 
     fn toggle_fullscreen(&self) {
         Connection::with_window_inner(self.0, move |inner| {
-            inner.toggle_fullscreen();
+            inner.toggle_fullscreen()?;
             Ok(())
         });
     }
@@ -883,8 +931,8 @@ impl WindowOps for Window {
                     decorations_to_style(decorations),
                     width,
                     height,
-                );
-                let window_state = get_window_state(hwnd.0);
+                )?;
+                let window_state = get_window_state(hwnd.0)?;
                 if window_state.can_resize() {
                     log::trace!("set_inner_size now calling SetWindowPos with {width}x{height}");
                     unsafe {
@@ -896,8 +944,8 @@ impl WindowOps for Window {
                             width,
                             height,
                             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
-                        );
-                        wm_paint(hwnd.0, 0, 0, 0);
+                        )?;
+                        wm_paint(hwnd.0, 0, WPARAM(0), LPARAM(0));
                     }
                 } else {
                     log::trace!(
@@ -905,6 +953,8 @@ impl WindowOps for Window {
                                 because window_state is {window_state:?}"
                     );
                 }
+
+                Ok::<(), anyhow::Error>(())
             })
             .detach();
             Ok(())
@@ -951,7 +1001,7 @@ impl WindowOps for Window {
         window_state: WindowState,
     ) -> anyhow::Result<Option<Parameters>> {
         let hwnd = self.0 .0;
-        anyhow::ensure!(!hwnd.is_null(), "HWND is null");
+        anyhow::ensure!(hwnd.0 != 0, "HWND is null");
 
         let has_focus = unsafe { GetFocus() } == hwnd;
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
@@ -1015,8 +1065,8 @@ impl WindowOps for Window {
 
 unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
     let mut log_font = LOGFONTW::default();
-    let theme = OpenThemeData(hwnd, wide_string("HEADER").as_ptr());
-    if !theme.is_null() {
+    let theme = OpenThemeData(hwnd, PCWSTR(wide_string("HEADER").as_ptr()));
+    if !theme.is_invalid() {
         let res = GetThemeFont(
             theme,
             hdc,
@@ -1025,18 +1075,22 @@ unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
             extra_constants::TMT_CAPTIONFONT,
             &mut log_font,
         );
-        if res == S_OK {
-            CloseThemeData(theme);
+        if res.is_ok() {
+            CloseThemeData(theme).ok()?;
             return Some(log_font);
         }
     }
 
-    let res = GetThemeSysFont(theme, extra_constants::TMT_CAPTIONFONT, &mut log_font);
-    if !theme.is_null() {
-        CloseThemeData(theme);
+    let res = GetThemeSysFont(
+        theme,
+        THEME_PROPERTY_SYMBOL_ID(extra_constants::TMT_CAPTIONFONT as u32),
+        &mut log_font,
+    );
+    if !theme.is_invalid() {
+        CloseThemeData(theme).unwrap();
     }
 
-    if res == S_OK {
+    if res.is_ok() {
         Some(log_font)
     } else {
         None
@@ -1045,7 +1099,7 @@ unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
 
 unsafe fn update_title_font(hwnd: HWND) {
     let hdc = GetDC(hwnd);
-    if hdc.is_null() {
+    if hdc.is_invalid() {
         return;
     }
 
@@ -1060,8 +1114,8 @@ unsafe fn update_title_font(hwnd: HWND) {
 /// Set up bidirectional pointers:
 /// hwnd.USERDATA -> WindowInner
 /// WindowInner.hwnd -> hwnd
-unsafe fn wm_nccreate(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    let create: &CREATESTRUCTW = &*(lparam as *const CREATESTRUCTW);
+unsafe fn wm_nccreate(hwnd: HWND, _msg: u32, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    let create: &CREATESTRUCTW = &*(lparam.0 as *const CREATESTRUCTW);
     let inner = rc_from_pointer(create.lpCreateParams);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, create.lpCreateParams as _);
     inner.borrow_mut().hwnd = HWindow(hwnd);
@@ -1072,18 +1126,13 @@ unsafe fn wm_nccreate(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -
 /// Called when the window is being destroyed.
 /// Goal is to release the WindowInner reference that was stashed
 /// in the window by wm_nccreate.
-unsafe fn wm_ncdestroy(
-    hwnd: HWND,
-    _msg: UINT,
-    _wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
-    let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID;
+unsafe fn wm_ncdestroy(hwnd: HWND, _msg: u32, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut c_void;
     if !raw.is_null() {
         let inner = take_rc_from_pointer(raw);
         let mut inner = inner.borrow_mut();
         inner.events.dispatch(WindowEvent::Destroyed);
-        inner.hwnd = HWindow(null_mut());
+        inner.hwnd = HWindow(HWND::default());
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
 
@@ -1095,7 +1144,7 @@ fn no_native_title_bar(decorations: WindowDecorations) -> bool {
         || decorations.contains(WindowDecorations::INTEGRATED_BUTTONS)
 }
 
-unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_nccalcsize(hwnd: HWND, _msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = match inner.try_borrow() {
         Ok(inner) => inner,
@@ -1108,7 +1157,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
     let no_native_title_bar = no_native_title_bar(inner.config.window_decorations);
 
-    if !(wparam == 1 && no_native_title_bar) {
+    if !(wparam == WPARAM(1) && no_native_title_bar) {
         return None;
     }
 
@@ -1118,14 +1167,14 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
         let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
         let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
 
-        let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
+        let params = (lparam.0 as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
 
         let requested_client_rect = &mut params.rgrc[0];
 
         requested_client_rect.right -= frame_x + padding;
         requested_client_rect.left += frame_x + padding;
 
-        let is_maximized = get_window_state(hwnd) == WindowState::MAXIMIZED;
+        let is_maximized = get_window_state(hwnd).ok()? == WindowState::MAXIMIZED;
 
         // Handle bugged top window border on Windows 10
         if *IS_WIN10 {
@@ -1145,10 +1194,10 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
         }
     }
 
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_nchittest(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = match inner.try_borrow() {
         Ok(inner) => inner,
@@ -1168,7 +1217,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let result = DefWindowProcW(hwnd, msg, wparam, lparam);
 
     if matches!(
-        result,
+        result.0 as u32,
         HTNOWHERE
             | HTRIGHT
             | HTLEFT
@@ -1192,13 +1241,12 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let coords = mouse_coords(lparam);
     let screen_point = ScreenPoint::new(coords.x, coords.y);
     let cursor_point = screen_to_client(hwnd, screen_point);
-    let is_maximized = get_window_state(hwnd) == WindowState::MAXIMIZED;
+    let is_maximized = get_window_state(hwnd).ok()? == WindowState::MAXIMIZED;
 
     // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
 
     let mut client_rect = RECT::default();
-    let client_rect_is_valid =
-        GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE;
+    let client_rect_is_valid = GetClientRect(hwnd, &mut client_rect).is_ok();
 
     // Since we are eating the bottom window frame to deal with a Windows 10 bug,
     // we detect resizing in the window client area as a workaround
@@ -1208,27 +1256,27 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
     {
         if cursor_point.x <= (frame_x + padding) {
-            return Some(HTBOTTOMLEFT);
+            return Some(LRESULT(HTBOTTOMLEFT as isize));
         } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-            return Some(HTBOTTOMRIGHT);
+            return Some(LRESULT(HTBOTTOMRIGHT as isize));
         } else {
-            return Some(HTBOTTOM);
+            return Some(LRESULT(HTBOTTOM as isize));
         }
     }
 
     if !is_maximized && cursor_point.y >= 0 && cursor_point.y < frame_y {
         if cursor_point.x <= (frame_x + padding) {
-            return Some(HTTOPLEFT);
+            return Some(LRESULT(HTTOPLEFT as isize));
         } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-            return Some(HTTOPRIGHT);
+            return Some(LRESULT(HTTOPRIGHT as isize));
         } else {
-            return Some(HTTOP);
+            return Some(LRESULT(HTTOP as isize));
         }
     }
 
     if let Some(coords) = inner.window_drag_position {
         if coords == screen_point && inner.saved_placement.is_none() {
-            return Some(HTCAPTION);
+            return Some(LRESULT(HTCAPTION as isize));
         }
     }
 
@@ -1236,33 +1284,34 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     if use_snap_layouts {
         if let Some(max) = inner.maximize_button_position {
             if max.contains(screen_point) {
-                return Some(HTMAXBUTTON);
+                return Some(LRESULT(HTMAXBUTTON as isize));
             }
         }
     }
 
-    Some(HTCLIENT)
+    Some(LRESULT(HTCLIENT as isize))
 }
 
-fn get_window_state(hwnd: HWND) -> WindowState {
+fn get_window_state(hwnd: HWND) -> anyhow::Result<WindowState> {
     let mut placement = WINDOWPLACEMENT {
         length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
         ..Default::default()
     };
 
-    let placement =
-        if unsafe { GetWindowPlacement(hwnd, &mut placement) } == winapi::shared::minwindef::TRUE {
-            placement.showCmd as i32
-        } else {
-            0
-        };
+    let res = unsafe { GetWindowPlacement(hwnd, &mut placement) };
 
-    match placement {
+    let placement = if res.is_ok() {
+        SHOW_WINDOW_CMD(placement.showCmd as i32)
+    } else {
+        SHOW_WINDOW_CMD::default()
+    };
+
+    let window_state = match placement {
         SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
         SW_SHOWMINIMIZED => WindowState::HIDDEN,
         _ => unsafe {
             let mut rect = std::mem::zeroed();
-            GetWindowRect(hwnd, &mut rect);
+            GetWindowRect(hwnd, &mut rect)?;
 
             let mut mi: MONITORINFO = std::mem::zeroed();
             mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
@@ -1278,7 +1327,9 @@ fn get_window_state(hwnd: HWND) -> WindowState {
                 WindowState::default()
             }
         },
-    }
+    };
+
+    Ok(window_state)
 }
 
 /// "Blur behind" is the old vista term for a cool blurring
@@ -1286,11 +1337,7 @@ fn get_window_state(hwnd: HWND) -> WindowState {
 /// versions have removed the blurring.  We use this call
 /// to tell DWM that we set proper alpha channel info as
 /// a result of rendering our window content.
-fn enable_blur_behind(hwnd: HWND) {
-    use winapi::shared::minwindef::*;
-    use winapi::um::dwmapi::*;
-    use winapi::um::wingdi::*;
-
+fn enable_blur_behind(hwnd: HWND) -> anyhow::Result<()> {
     unsafe {
         let region = CreateRectRgn(0, 0, -1, -1);
 
@@ -1301,18 +1348,23 @@ fn enable_blur_behind(hwnd: HWND) {
             fTransitionOnMaximized: FALSE,
         };
 
-        DwmEnableBlurBehindWindow(hwnd, &bb);
+        DwmEnableBlurBehindWindow(hwnd, &bb)?;
 
-        DeleteObject(region as _);
+        DeleteObject(region);
     }
+
+    Ok(())
 }
 
 fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
-    use winapi::um::dwmapi::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute};
-    use winapi::um::uxtheme::MARGINS;
+    use windows::Win32::Graphics::Dwm::{
+        DwmExtendFrameIntoClientArea, DwmSetWindowAttribute, DWMWA_SYSTEMBACKDROP_TYPE,
+        DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE,
+    };
+    use windows::Win32::UI::Controls::MARGINS;
 
     #[allow(non_snake_case)]
     type WINDOWCOMPOSITIONATTRIB = u32;
@@ -1322,17 +1374,15 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     #[repr(C)]
     pub struct WINDOWCOMPOSITIONATTRIBDATA {
         Attrib: WINDOWCOMPOSITIONATTRIB,
-        pvData: PVOID,
-        cbData: winapi::shared::basetsd::SIZE_T,
+        pvData: *mut c_void,
+        cbData: usize,
     }
 
     shared_library!(User32,
         pub fn SetWindowCompositionAttribute(hwnd: HWND, attrib: *mut WINDOWCOMPOSITIONATTRIBDATA) -> BOOL,
     );
 
-    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 20;
-    const DWMWA_MICA_EFFECT: DWORD = 1029;
-    const DWMWA_SYSTEMBACKDROP_TYPE: DWORD = 38;
+    const DWMWA_MICA_EFFECT: DWMWINDOWATTRIBUTE = DWMWINDOWATTRIBUTE(1029);
 
     #[allow(non_camel_case_types)]
     #[allow(dead_code)]
@@ -1344,6 +1394,7 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
         ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
     }
 
+    #[allow(non_camel_case_types)]
     #[allow(non_snake_case)]
     #[repr(C)]
     struct ACCENT_POLICY {
@@ -1375,18 +1426,24 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
         };
 
         SetWindowTheme(
-            hwnd as _,
-            wide_string(theme_string).as_slice().as_ptr(),
-            std::ptr::null_mut(),
-        );
+            hwnd,
+            PCWSTR(wide_string(theme_string).as_slice().as_ptr()),
+            PCWSTR::null(),
+        )
+        .ok()?;
 
-        let mut enabled: BOOL = if appearance == Appearance::Dark { 1 } else { 0 };
+        let mut enabled: BOOL = if appearance == Appearance::Dark {
+            TRUE
+        } else {
+            FALSE
+        };
         DwmSetWindowAttribute(
-            hwnd as _,
+            hwnd,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             &enabled as *const _ as *const _,
             std::mem::size_of_val(&enabled) as u32,
-        );
+        )
+        .ok()?;
 
         if let Ok(user) = User32::open(std::path::Path::new("user32.dll")) {
             (user.SetWindowCompositionAttribute)(
@@ -1424,7 +1481,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                     cyTopHeight: margins,
                     cyBottomHeight: margins,
                 },
-            );
+            )
+            .ok()?;
 
             // Apply Acrylic or Mica Backdrop
             if *IS_WIN11_22H2 {
@@ -1433,7 +1491,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                     DWMWA_SYSTEMBACKDROP_TYPE,
                     &pv_attribute as *const _ as _,
                     std::mem::size_of_val(&pv_attribute) as u32,
-                );
+                )
+                .ok()?;
             } else {
                 let mut colour = inner.config.win32_acrylic_accent_color.to_srgb_u8();
                 colour.3 = if colour.3 == 0 { 1 } else { colour.3 }; // acrylic doesn't like to have 0 alpha
@@ -1480,7 +1539,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                         DWMWA_MICA_EFFECT,
                         &mica_enabled as *const _ as _,
                         std::mem::size_of_val(&mica_enabled) as u32,
-                    );
+                    )
+                    .ok()?;
                 }
             }
 
@@ -1498,7 +1558,7 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
 
 unsafe fn wm_enter_exit_size_move(
     hwnd: HWND,
-    msg: UINT,
+    msg: u32,
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
@@ -1510,10 +1570,10 @@ unsafe fn wm_enter_exit_size_move(
     }
 
     if should_size {
-        wm_size(hwnd, 0, 0, 0)?;
+        wm_size(hwnd, 0, WPARAM(0), LPARAM(0))?;
     }
 
-    Some(0)
+    Some(LRESULT(0))
 }
 
 /// We handle WM_WINDOWPOSCHANGED and dispatch directly to our wm_size as it
@@ -1521,27 +1581,27 @@ unsafe fn wm_enter_exit_size_move(
 /// trigger WM_SIZE.
 unsafe fn wm_windowposchanged(
     hwnd: HWND,
-    _msg: UINT,
+    _msg: u32,
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     // let pos = &*(lparam as *const WINDOWPOS);
-    wm_size(hwnd, 0, 0, 0)?;
-    Some(0)
+    wm_size(hwnd, 0, WPARAM(0), LPARAM(0))?;
+    Some(LRESULT(0))
 }
 
-unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_size(hwnd: HWND, _msg: u32, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let mut should_paint = false;
     let mut should_pump = false;
 
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let mut inner = inner.borrow_mut();
-        should_paint = inner.check_and_call_resize_if_needed();
+        should_paint = inner.check_and_call_resize_if_needed().ok()?;
         should_pump = inner.in_size_move;
     }
 
     if should_paint {
-        wm_paint(hwnd, 0, 0, 0)?;
+        wm_paint(hwnd, 0, WPARAM(0), LPARAM(0))?;
         if should_pump {
             crate::spawn::SPAWN_QUEUE.run();
         }
@@ -1550,12 +1610,7 @@ unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> O
     None
 }
 
-unsafe fn wm_set_focus(
-    hwnd: HWND,
-    _msg: UINT,
-    _wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn wm_set_focus(hwnd: HWND, _msg: u32, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     rc_from_hwnd(hwnd)?
         .borrow_mut()
         .events
@@ -1565,7 +1620,7 @@ unsafe fn wm_set_focus(
 
 unsafe fn wm_kill_focus(
     hwnd: HWND,
-    _msg: UINT,
+    _msg: u32,
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
@@ -1576,20 +1631,20 @@ unsafe fn wm_kill_focus(
     None
 }
 
-unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_paint(hwnd: HWND, _msg: u32, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
     if inner.paint_throttled {
         inner.invalidated = true;
-        return Some(0);
+        return Some(LRESULT(0));
     }
 
     let mut ps = PAINTSTRUCT {
-        fErase: 0,
-        fIncUpdate: 0,
-        fRestore: 0,
-        hdc: std::ptr::null_mut(),
+        hdc: HDC::default(),
+        fErase: FALSE,
+        fIncUpdate: FALSE,
+        fRestore: FALSE,
         rcPaint: RECT {
             left: 0,
             top: 0,
@@ -1614,35 +1669,35 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         Connection::with_window_inner(window_id, move |inner| {
             inner.paint_throttled = false;
             if inner.invalidated {
-                InvalidateRect(inner.hwnd.0, null(), 0);
+                InvalidateRect(inner.hwnd.0, None, FALSE);
             }
             Ok(())
         });
     })
     .detach();
 
-    Some(0)
+    Some(LRESULT(0))
 }
 
 fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
     let mut modifiers = Modifiers::default();
     let mut buttons = MouseButtons::default();
-    if wparam & MK_CONTROL != 0 {
+    if wparam.0 as u32 & MK_CONTROL.0 != 0 {
         modifiers |= Modifiers::CTRL;
     }
-    if wparam & MK_SHIFT != 0 {
+    if wparam.0 as u32 & MK_SHIFT.0 != 0 {
         modifiers |= Modifiers::SHIFT;
     }
-    if unsafe { GetKeyState(VK_MENU) } as u16 & 0x8000 != 0 {
+    if unsafe { GetKeyState(VK_MENU.0 as i32) } as u16 & 0x8000 != 0 {
         modifiers |= Modifiers::ALT;
     }
-    if wparam & MK_LBUTTON != 0 {
+    if wparam.0 as u32 & MK_LBUTTON.0 != 0 {
         buttons |= MouseButtons::LEFT;
     }
-    if wparam & MK_MBUTTON != 0 {
+    if wparam.0 as u32 & MK_MBUTTON.0 != 0 {
         buttons |= MouseButtons::MIDDLE;
     }
-    if wparam & MK_RBUTTON != 0 {
+    if wparam.0 as u32 & MK_RBUTTON.0 != 0 {
         buttons |= MouseButtons::RIGHT;
     }
     // TODO: XBUTTON1 and XBUTTON2?
@@ -1650,12 +1705,12 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
 }
 
 fn mouse_coords(lparam: LPARAM) -> Point {
-    let point = MAKEPOINTS(lparam as _);
+    let point = MAKEPOINTS(lparam.0 as _);
     Point::new(point.x as _, point.y as _)
 }
 
 fn nc_mouse_coords(hwnd: HWND, lparam: LPARAM) -> Point {
-    let point = MAKEPOINTS(lparam as _);
+    let point = MAKEPOINTS(lparam.0 as _);
     let point = ScreenPoint::new(point.x as _, point.y as _);
     screen_to_client(hwnd, point)
 }
@@ -1665,7 +1720,7 @@ fn screen_to_client(hwnd: HWND, point: ScreenPoint) -> Point {
         x: point.x.try_into().unwrap(),
         y: point.y.try_into().unwrap(),
     };
-    unsafe { ScreenToClient(hwnd, &mut point as *mut _) };
+    unsafe { ScreenToClient(hwnd, &mut point) };
     Point::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
 }
 
@@ -1678,14 +1733,14 @@ fn client_to_screen(hwnd: HWND, point: Point) -> ScreenPoint {
     ScreenPoint::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
 }
 
-fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
+fn apply_mouse_cursor(cursor: Option<MouseCursor>) -> anyhow::Result<()> {
     match cursor {
         None => unsafe {
-            SetCursor(null_mut());
+            SetCursor(HCURSOR::default());
         },
         Some(cursor) => unsafe {
             SetCursor(LoadCursorW(
-                null_mut(),
+                HINSTANCE::default(),
                 match cursor {
                     MouseCursor::Arrow => IDC_ARROW,
                     MouseCursor::Hand => IDC_HAND,
@@ -1693,12 +1748,14 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
                     MouseCursor::SizeUpDown => IDC_SIZENS,
                     MouseCursor::SizeLeftRight => IDC_SIZEWE,
                 },
-            ));
+            )?);
         },
     }
+
+    Ok(())
 }
 
-unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn mouse_button(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     // To support dragging the window, capture when the left
     // button goes down and release when it goes up.
@@ -1707,7 +1764,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     if msg == WM_LBUTTONDOWN {
         SetCapture(hwnd);
     } else if msg == WM_LBUTTONUP {
-        ReleaseCapture();
+        ReleaseCapture().ok()?;
     }
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
     let coords = mouse_coords(lparam);
@@ -1730,15 +1787,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         .borrow_mut()
         .events
         .dispatch(WindowEvent::MouseEvent(event));
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn nc_mouse_button(
-    hwnd: HWND,
-    msg: UINT,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn nc_mouse_button(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
 
     let no_native_title_bar = no_native_title_bar(inner.borrow().config.window_decorations);
@@ -1756,14 +1808,14 @@ unsafe fn nc_mouse_button(
     if msg == WM_LBUTTONDOWN {
         SetCapture(hwnd);
     } else if msg == WM_LBUTTONUP {
-        ReleaseCapture();
+        ReleaseCapture().ok()?;
     }
 
-    if wparam != HTMAXBUTTON as usize {
+    if wparam.0 != HTMAXBUTTON as usize {
         return None;
     }
 
-    let (modifiers, mouse_buttons) = mods_and_buttons(0);
+    let (modifiers, mouse_buttons) = mods_and_buttons(WPARAM(0));
     let coords = nc_mouse_coords(hwnd, lparam);
 
     let event = MouseEvent {
@@ -1780,10 +1832,10 @@ unsafe fn nc_mouse_button(
         .borrow_mut()
         .events
         .dispatch(WindowEvent::MouseEvent(event));
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn mouse_move(hwnd: HWND, _msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
@@ -1797,7 +1849,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             dwHoverTime: 0,
         };
 
-        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk).is_ok();
     }
 
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
@@ -1811,10 +1863,10 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     };
 
     inner.events.dispatch(WindowEvent::MouseEvent(event));
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn nc_mouse_move(hwnd: HWND, _msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
@@ -1828,14 +1880,14 @@ unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
             dwHoverTime: 0,
         };
 
-        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk).is_ok();
     }
 
-    if wparam != HTMAXBUTTON as usize {
+    if wparam.0 != HTMAXBUTTON as usize {
         return None;
     }
 
-    let (modifiers, mouse_buttons) = mods_and_buttons(0);
+    let (modifiers, mouse_buttons) = mods_and_buttons(WPARAM(0));
     let coords = nc_mouse_coords(hwnd, lparam);
 
     let event = MouseEvent {
@@ -1849,17 +1901,17 @@ unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     inner.events.dispatch(WindowEvent::MouseEvent(event));
     inner.events.dispatch(WindowEvent::NeedRepaint);
 
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn mouse_leave(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn mouse_leave(hwnd: HWND, _msg: u32, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
     inner.track_mouse_leave = false;
     inner.events.dispatch(WindowEvent::MouseLeave);
 
-    Some(0)
+    Some(LRESULT(0))
 }
 
 lazy_static! {
@@ -1875,14 +1927,14 @@ fn read_scroll_speed(name: &str) -> io::Result<i16> {
         .and_then(|v| v.parse().map_err(|_| io::ErrorKind::InvalidData.into()))
 }
 
-unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn mouse_wheel(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
     // Wheel events return screen coordinates!
     let coords = mouse_coords(lparam);
     let screen_coords = ScreenPoint::new(coords.x, coords.y);
     let coords = screen_to_client(hwnd, screen_coords);
-    let delta = GET_WHEEL_DELTA_WPARAM(wparam);
+    let delta = GET_WHEEL_DELTA_WPARAM(wparam.0);
     let scaled_delta = if msg == WM_MOUSEWHEEL {
         delta * (*WHEEL_SCROLL_LINES)
     } else {
@@ -1908,7 +1960,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 position
             );
             if position == 0 {
-                return Some(0);
+                return Some(LRESULT(0));
             }
             MouseEventKind::HorzWheel(position)
         } else {
@@ -1928,7 +1980,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 position
             );
             if position == 0 {
-                return Some(0);
+                return Some(LRESULT(0));
             }
             MouseEventKind::VertWheel(position)
         },
@@ -1941,7 +1993,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         .borrow_mut()
         .events
         .dispatch(WindowEvent::MouseEvent(event));
-    Some(0)
+    Some(LRESULT(0))
 }
 
 /// Helper for managing the IME Manager
@@ -1962,7 +2014,7 @@ impl ImmContext {
 
     /// Set the position of the IME candidate window relative to the cursor.
     pub fn set_candidate_window_position(&self, cursor: Rect) {
-        let mut cf = CANDIDATEFORM {
+        let cf = CANDIDATEFORM {
             dwIndex: 0,
             // Don't draw the IME candidate window on the cursor
             // to prevent the window from hiding composition (preedit) string
@@ -1981,7 +2033,7 @@ impl ImmContext {
             },
         };
         unsafe {
-            ImmSetCandidateWindow(self.imc, &mut cf);
+            ImmSetCandidateWindow(self.imc, &cf);
         }
     }
 
@@ -2000,10 +2052,9 @@ impl ImmContext {
         }
     }
 
-    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
+    pub fn get_str(&self, which: IME_COMPOSITION_STRING) -> Result<String, OsString> {
         // This returns a size in bytes even though it is for a buffer of u16!
-        let byte_size =
-            unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
+        let byte_size = unsafe { ImmGetCompositionStringW(self.imc, which, None, 0) };
         if byte_size > 0 {
             let word_size = byte_size as usize / 2;
             let mut wide_buf = vec![0u16; word_size];
@@ -2011,7 +2062,7 @@ impl ImmContext {
                 ImmGetCompositionStringW(
                     self.imc,
                     which,
-                    wide_buf.as_mut_ptr() as *mut _,
+                    Some(wide_buf.as_mut_ptr() as *mut _),
                     byte_size as u32,
                 )
             };
@@ -2030,12 +2081,7 @@ impl Drop for ImmContext {
     }
 }
 
-unsafe fn ime_set_context(
-    hwnd: HWND,
-    msg: UINT,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn ime_set_context(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
 
@@ -2044,14 +2090,14 @@ unsafe fn ime_set_context(
     }
 
     // Don't show system CompositionWindow because application itself draws it
-    let lparam = lparam & !(ISC_SHOWUICOMPOSITIONWINDOW as LPARAM);
+    let lparam = LPARAM(lparam.0 & !(ISC_SHOWUICOMPOSITIONWINDOW as isize));
     let result = DefWindowProcW(hwnd, msg, wparam, lparam);
     Some(result)
 }
 
 unsafe fn ime_end_composition(
     hwnd: HWND,
-    _msg: UINT,
+    _msg: u32,
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
@@ -2066,12 +2112,12 @@ unsafe fn ime_end_composition(
     inner
         .events
         .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-    Some(1)
+    Some(LRESULT(1))
 }
 
 unsafe fn ime_composition(
     hwnd: HWND,
-    _msg: UINT,
+    _msg: u32,
     _wparam: WPARAM,
     lparam: LPARAM,
 ) -> Option<LRESULT> {
@@ -2084,17 +2130,17 @@ unsafe fn ime_composition(
 
     let imc = ImmContext::get(hwnd);
 
-    let lparam = lparam as DWORD;
+    let lparam = lparam.0 as u32;
 
     if lparam == 0 {
         // IME was cancelled
         inner
             .events
             .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-        return Some(1);
+        return Some(LRESULT(1));
     }
 
-    if lparam & GCS_RESULTSTR == 0 {
+    if lparam & GCS_RESULTSTR.0 == 0 {
         // No finished result; continue with the default
         // processing
         if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
@@ -2106,7 +2152,7 @@ unsafe fn ime_composition(
         }
         // We will show the composing string ourselves.
         // Suppress the default composition display.
-        return Some(1);
+        return Some(LRESULT(1));
     }
 
     match imc.get_str(GCS_RESULTSTR) {
@@ -2125,7 +2171,7 @@ unsafe fn ime_composition(
                 .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
             inner.events.dispatch(WindowEvent::KeyEvent(key));
 
-            return Some(1);
+            return Some(LRESULT(1));
         }
         Ok(_) => {}
         Err(_) => eprintln!("cannot represent IME as unicode string!?"),
@@ -2161,7 +2207,7 @@ enum ResolvedDeadKey {
 impl KeyboardLayoutInfo {
     pub fn new() -> Self {
         Self {
-            layout: std::ptr::null_mut(),
+            layout: HKL::default(),
             has_alt_gr: false,
             dead_keys: HashMap::new(),
         }
@@ -2170,17 +2216,9 @@ impl KeyboardLayoutInfo {
     unsafe fn clear_key_state() {
         let mut out = [0u16; 16];
         let state = [0u8; 256];
-        let scan = MapVirtualKeyW(VK_DECIMAL as _, MAPVK_VK_TO_VSC);
+        let scan = MapVirtualKeyW(VK_DECIMAL.0 as u32, MAPVK_VK_TO_VSC);
         // keep clocking the state to clear out its effects
-        while ToUnicode(
-            VK_DECIMAL as _,
-            scan,
-            state.as_ptr(),
-            out.as_mut_ptr(),
-            out.len() as i32,
-            0,
-        ) < 0
-        {}
+        while ToUnicode(VK_DECIMAL.0 as u32, scan, Some(&state), &mut out, 0) < 0 {}
     }
 
     /// Probe to detect whether an AltGr key is present.
@@ -2192,17 +2230,17 @@ impl KeyboardLayoutInfo {
         self.has_alt_gr = false;
 
         let mut state = [0u8; 256];
-        state[VK_CONTROL as usize] = 0x80;
-        state[VK_MENU as usize] = 0x80;
+        state[VK_CONTROL.0 as usize] = 0x80;
+        state[VK_MENU.0 as usize] = 0x80;
 
         for vk in 0..=255u32 {
-            if vk == VK_PACKET as u32 {
+            if vk == VK_PACKET.0 as u32 {
                 // Avoid false positives
                 continue;
             }
 
             let mut out = [0u16; 16];
-            let ret = ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0);
+            let ret = ToUnicode(vk, 0, Some(&state), &mut out, 0);
             if ret == 1 {
                 self.has_alt_gr = true;
                 break;
@@ -2211,20 +2249,20 @@ impl KeyboardLayoutInfo {
             if ret == -1 {
                 // Dead key.
                 // keep clocking the state to clear out its effects
-                while ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0) < 0 {}
+                while ToUnicode(vk, 0, Some(&state), &mut out, 0) < 0 {}
             }
         }
     }
 
     fn apply_mods(mods: Modifiers, state: &mut [u8; 256]) {
         if mods.contains(Modifiers::SHIFT) {
-            state[VK_SHIFT as usize] = 0x80;
+            state[VK_SHIFT.0 as usize] = 0x80;
         }
         if mods.contains(Modifiers::CTRL) || mods.contains(Modifiers::RIGHT_ALT) {
-            state[VK_CONTROL as usize] = 0x80;
+            state[VK_CONTROL.0 as usize] = 0x80;
         }
         if mods.contains(Modifiers::RIGHT_ALT) || mods.contains(Modifiers::ALT) {
-            state[VK_MENU as usize] = 0x80;
+            state[VK_MENU.0 as usize] = 0x80;
         }
     }
 
@@ -2245,7 +2283,7 @@ impl KeyboardLayoutInfo {
             Self::apply_mods(mods, &mut state);
 
             for vk in 0..=255u32 {
-                if vk == VK_PACKET as u32 {
+                if vk == VK_PACKET.0 as u32 {
                     // Avoid false positives
                     continue;
                 }
@@ -2254,14 +2292,7 @@ impl KeyboardLayoutInfo {
 
                 Self::clear_key_state();
                 let mut out = [0u16; 16];
-                let ret = ToUnicode(
-                    vk,
-                    scan,
-                    state.as_ptr(),
-                    out.as_mut_ptr(),
-                    out.len() as i32,
-                    0,
-                );
+                let ret = ToUnicode(vk, scan, Some(&state), &mut out, 0);
 
                 if ret != -1 {
                     continue;
@@ -2279,41 +2310,19 @@ impl KeyboardLayoutInfo {
                     for ik in 0..=255u32 {
                         // Re-initiate the dead key starting state
                         Self::clear_key_state();
-                        if ToUnicode(
-                            vk,
-                            scan,
-                            state.as_ptr(),
-                            out.as_mut_ptr(),
-                            out.len() as i32,
-                            0,
-                        ) != -1
-                        {
+                        if ToUnicode(vk, scan, Some(&state), &mut out, 0) != -1 {
                             continue;
                         }
 
                         let scan = MapVirtualKeyW(ik, MAPVK_VK_TO_VSC);
 
-                        let ret = ToUnicode(
-                            ik,
-                            scan,
-                            second_state.as_ptr(),
-                            out.as_mut_ptr(),
-                            out.len() as i32,
-                            0,
-                        );
+                        let ret = ToUnicode(ik, scan, Some(&second_state), &mut out, 0);
 
                         if ret == 1 {
                             // Found a combination
                             let c = std::char::from_u32_unchecked(out[0] as u32);
                             // clock through again to get the base
-                            ToUnicode(
-                                ik,
-                                scan,
-                                second_state.as_ptr(),
-                                out.as_mut_ptr(),
-                                out.len() as i32,
-                                0,
-                            );
+                            ToUnicode(ik, scan, Some(&second_state), &mut out, 0);
                             let base = std::char::from_u32_unchecked(out[0] as u32);
 
                             if ((smod == Modifiers::CTRL)
@@ -2354,31 +2363,31 @@ impl KeyboardLayoutInfo {
         Self::clear_key_state();
     }
 
-    unsafe fn update(&mut self) {
+    unsafe fn update(&mut self) -> anyhow::Result<()> {
         let current_layout = GetKeyboardLayout(0);
         if current_layout == self.layout {
             // Avoid recomputing this if the layout hasn't changed
-            return;
+            return Ok(());
         }
 
         let mut saved_state = [0u8; 256];
-        if GetKeyboardState(saved_state.as_mut_ptr()) == 0 {
-            return;
-        }
+        GetKeyboardState(&mut saved_state)?;
 
         self.probe_alt_gr();
         self.probe_dead_keys();
         log::trace!("dead_keys: {:#x?}", self.dead_keys);
 
-        SetKeyboardState(saved_state.as_mut_ptr());
+        SetKeyboardState(&saved_state)?;
         self.layout = current_layout;
+
+        Ok(())
     }
 
-    pub fn has_alt_gr(&mut self) -> bool {
+    pub fn has_alt_gr(&mut self) -> anyhow::Result<bool> {
         unsafe {
-            self.update();
+            self.update()?;
         }
-        self.has_alt_gr
+        Ok(self.has_alt_gr)
     }
 
     /// Similar to Modifiers::remove_positional_mods except that it preserves
@@ -2393,7 +2402,7 @@ impl KeyboardLayoutInfo {
 
     pub fn is_dead_key_leader(&mut self, mods: Modifiers, vk: u32) -> Option<char> {
         unsafe {
-            self.update();
+            self.update().ok()?;
         }
         if vk <= (u8::MAX as u32) {
             self.dead_keys
@@ -2410,7 +2419,9 @@ impl KeyboardLayoutInfo {
         key: (Modifiers, u32),
     ) -> ResolvedDeadKey {
         unsafe {
-            self.update();
+            if self.update().is_err() {
+                return ResolvedDeadKey::InvalidDeadKey;
+            }
         }
         if leader.1 <= (u8::MAX as u32) && key.1 <= (u8::MAX as u32) {
             if let Some(dead) = self
@@ -2436,7 +2447,7 @@ impl KeyboardLayoutInfo {
 }
 
 /// Generate a MSG and call TranslateMessage upon it
-unsafe fn translate_message(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) {
+unsafe fn translate_message(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) {
     TranslateMessage(&MSG {
         hwnd,
         message: msg,
@@ -2447,18 +2458,18 @@ unsafe fn translate_message(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARA
     });
 }
 
-unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn key(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
-    let repeat = (lparam & 0xffff) as u16;
-    let scan_code = ((lparam >> 16) & 0xff) as u8;
-    let releasing = (lparam & (1 << 31)) != 0;
-    let ime_active = wparam == VK_PROCESSKEY as WPARAM;
-    let phys_code = super::keycodes::vkey_to_phys(wparam);
+    let repeat = (lparam.0 & 0xffff) as u16;
+    let scan_code = ((lparam.0 >> 16) & 0xff) as u8;
+    let releasing = (lparam.0 & (1 << 31)) != 0;
+    let ime_active = wparam == WPARAM(VK_PROCESSKEY.0 as usize);
+    let phys_code = super::keycodes::vkey_to_phys(wparam.0 as u16);
 
-    let alt_pressed = (lparam & (1 << 29)) != 0;
-    let is_extended = (lparam & (1 << 24)) != 0;
-    let was_down = (lparam & (1 << 30)) != 0;
+    let alt_pressed = (lparam.0 & (1 << 29)) != 0;
+    let is_extended = (lparam.0 & (1 << 24)) != 0;
+    let was_down = (lparam.0 & (1 << 30)) != 0;
     let label = match msg {
         WM_CHAR => "WM_CHAR",
         WM_IME_CHAR => "WM_IME_CHAR",
@@ -2474,7 +2485,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
              releasing={} IME={} dead_pending={:?}",
         label,
-        wparam,
+        wparam.0,
         repeat,
         scan_code,
         is_extended,
@@ -2493,7 +2504,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         if msg == WM_KEYDOWN {
             // Explicitly allow the built-in translation to occur for the IME
             translate_message(hwnd, msg, wparam, lparam);
-            return Some(0);
+            return Some(LRESULT(0));
         }
 
         return None;
@@ -2501,36 +2512,36 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
     if msg == WM_DEADCHAR {
         // Ignore WM_DEADCHAR; we only care about the resultant WM_CHAR
-        return Some(0);
+        return Some(LRESULT(0));
     }
 
     let keys = {
         let mut keys = [0u8; 256];
-        GetKeyboardState(keys.as_mut_ptr());
+        GetKeyboardState(&mut keys).ok()?;
         keys
     };
 
     let mut modifiers = Modifiers::default();
-    if keys[VK_SHIFT as usize] & 0x80 != 0 {
+    if keys[VK_SHIFT.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::SHIFT;
     }
-    if keys[VK_LSHIFT as usize] & 0x80 != 0 {
+    if keys[VK_LSHIFT.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::LEFT_SHIFT;
     }
-    if keys[VK_RSHIFT as usize] & 0x80 != 0 {
+    if keys[VK_RSHIFT.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::RIGHT_SHIFT;
     }
-    if keys[VK_LCONTROL as usize] & 0x80 != 0 {
+    if keys[VK_LCONTROL.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::LEFT_CTRL;
     }
-    if keys[VK_RCONTROL as usize] & 0x80 != 0 {
+    if keys[VK_RCONTROL.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::RIGHT_CTRL;
     }
     modifiers.set(Modifiers::ENHANCED_KEY, is_extended);
 
-    if inner.keyboard_info.has_alt_gr()
-        && (keys[VK_RMENU as usize] & 0x80 != 0)
-        && (keys[VK_CONTROL as usize] & 0x80 != 0)
+    if inner.keyboard_info.has_alt_gr().ok()?
+        && (keys[VK_RMENU.0 as usize] & 0x80 != 0)
+        && (keys[VK_CONTROL.0 as usize] & 0x80 != 0)
     {
         // AltGr is pressed; while AltGr is on the RHS of the keyboard
         // is is not the same thing as right-alt.
@@ -2541,10 +2552,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         // use (we use regular ALT otherwise) so that our dead key
         // resolution can do the right thing.
         modifiers |= Modifiers::RIGHT_ALT;
-    } else if inner.keyboard_info.has_alt_gr()
+    } else if inner.keyboard_info.has_alt_gr().ok()?
         && inner.config.treat_left_ctrlalt_as_altgr
-        && (keys[VK_MENU as usize] & 0x80 != 0)
-        && (keys[VK_CONTROL as usize] & 0x80 != 0)
+        && (keys[VK_MENU.0 as usize] & 0x80 != 0)
+        && (keys[VK_CONTROL.0 as usize] & 0x80 != 0)
     {
         // When running inside a VNC session, VNC emulates the AltGr keypresses
         // by sending plain VK_MENU (rather than VK_RMENU) + VK_CONTROL.
@@ -2557,22 +2568,22 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         // See issue #392 & #472 for some more context.
         modifiers |= Modifiers::RIGHT_ALT;
     } else {
-        if keys[VK_CONTROL as usize] & 0x80 != 0 {
+        if keys[VK_CONTROL.0 as usize] & 0x80 != 0 {
             modifiers |= Modifiers::CTRL;
         }
-        if keys[VK_MENU as usize] & 0x80 != 0 {
+        if keys[VK_MENU.0 as usize] & 0x80 != 0 {
             modifiers |= Modifiers::ALT;
         }
     }
-    if keys[VK_LWIN as usize] & 0x80 != 0 || keys[VK_RWIN as usize] & 0x80 != 0 {
+    if keys[VK_LWIN.0 as usize] & 0x80 != 0 || keys[VK_RWIN.0 as usize] & 0x80 != 0 {
         modifiers |= Modifiers::SUPER;
     }
 
     let mut leds = KeyboardLedStatus::empty();
-    if keys[VK_CAPITAL as usize] & 1 != 0 {
+    if keys[VK_CAPITAL.0 as usize] & 1 != 0 {
         leds |= KeyboardLedStatus::CAPS_LOCK;
     }
-    if keys[VK_NUMLOCK as usize] & 1 != 0 {
+    if keys[VK_NUMLOCK.0 as usize] & 1 != 0 {
         leds |= KeyboardLedStatus::NUM_LOCK;
     }
 
@@ -2580,10 +2591,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
     let raw_key_event = RawKeyEvent {
         key: match phys_code {
             Some(phys) => KeyCode::Physical(phys),
-            None => KeyCode::RawCode(wparam as _),
+            None => KeyCode::RawCode(wparam.0 as _),
         },
         phys_code,
-        raw_code: wparam as _,
+        raw_code: wparam.0 as _,
         scan_code: scan_code as _,
         leds,
         modifiers,
@@ -2597,7 +2608,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         // or by ourselves via TranslateMessage, then take that
         // value as-is.
         (
-            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32))),
+            Some(KeyCode::Char(std::char::from_u32_unchecked(
+                wparam.0 as u32,
+            ))),
             None,
         )
     } else {
@@ -2616,7 +2629,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
             }
             log::trace!("raw key was handled; not processing further");
-            return Some(0);
+            return Some(LRESULT(0));
         }
 
         let is_modifier_only = phys_code.map(|p| p.is_modifier()).unwrap_or(false);
@@ -2632,11 +2645,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // combinations that start a dead key sequence, as well as those
             // that are valid end states for dead keys, so we can resolve
             // these for ourselves in a couple of quick hash lookups.
-            let vk = wparam as u32;
+            let vk = wparam.0 as u32;
 
             if releasing && inner.dead_pending.is_some() {
                 // Don't care about key-up events while processing dead keys
-                return Some(0);
+                return Some(LRESULT(0));
             }
 
             // If we previously had the start of a dead key...
@@ -2685,7 +2698,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                                 // Happens to be the start of its own new,
                                 // different, dead key sequence
                                 inner.dead_pending.replace((modifiers, vk));
-                                return Some(0);
+                                return Some(LRESULT(0));
                             }
 
                             // They pressed the same dead key twice,
@@ -2693,7 +2706,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             // it done.
                             // <https://github.com/wez/wezterm/issues/1729>
                             inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
-                            return Some(0);
+                            return Some(LRESULT(0));
                         }
 
                         // We don't know; allow normal ToUnicode processing
@@ -2713,7 +2726,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
                 if releasing {
                     // Don't care about key-up events while processing dead keys
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
 
                 // They pressed a dead key.
@@ -2724,7 +2737,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
                         DeadKeyStatus::Composing(c.to_string()),
                     ));
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
                 // They don't want dead keys; just return the base character
                 Some(KeyCode::Char(c))
@@ -2744,14 +2757,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 let mut out = [0u16; 16];
 
                 let win32_uni_char = {
-                    let res = ToUnicode(
-                        wparam as u32,
-                        scan_code as u32,
-                        keys.as_ptr(),
-                        out.as_mut_ptr(),
-                        out.len() as i32,
-                        0,
-                    );
+                    let res =
+                        ToUnicode(wparam.0 as u32, scan_code as u32, Some(&keys), &mut out, 0);
 
                     match res {
                         1 => Some(std::char::from_u32_unchecked(out[0] as u32)),
@@ -2768,19 +2775,12 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // layout.
                 // The shift normalization is now handled by the normalize_shift() method.
                 if modifiers.contains(Modifiers::CTRL) {
-                    keys[VK_CONTROL as usize] = 0;
-                    keys[VK_LCONTROL as usize] = 0;
-                    keys[VK_RCONTROL as usize] = 0;
+                    keys[VK_CONTROL.0 as usize] = 0;
+                    keys[VK_LCONTROL.0 as usize] = 0;
+                    keys[VK_RCONTROL.0 as usize] = 0;
                 }
 
-                let res = ToUnicode(
-                    wparam as u32,
-                    scan_code as u32,
-                    keys.as_ptr(),
-                    out.as_mut_ptr(),
-                    out.len() as i32,
-                    0,
-                );
+                let res = ToUnicode(wparam.0 as u32, scan_code as u32, Some(&keys), &mut out, 0);
 
                 let key = match res {
                     1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
@@ -2789,7 +2789,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         log::trace!(
                             "ToUnicode had no mapping for {:?} wparam={}",
                             phys_code,
-                            wparam
+                            wparam.0
                         );
                         phys_code.map(|p| p.to_key_code())
                     }
@@ -2846,28 +2846,28 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         }
 
         inner.events.dispatch(WindowEvent::KeyEvent(key));
-        return Some(0);
+        return Some(LRESULT(0));
     }
     None
 }
 
-unsafe fn drop_files(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn drop_files(hwnd: HWND, _msg: u32, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let h_drop = wparam as HDROP;
+    let h_drop = HDROP(wparam.0 as isize);
 
     // Get the number of files dropped
-    let file_count = DragQueryFileW(h_drop, 0xFFFFFFFF, null_mut(), 0);
+    let file_count = DragQueryFileW(h_drop, 0xFFFFFFFF, None);
 
     let mut filenames: Vec<PathBuf> = Vec::with_capacity(file_count as usize);
 
     for idx in 0..file_count {
         // The returned size of buffer is in characters, not including the terminating null character
-        let buf_size = DragQueryFileW(h_drop, idx, null_mut(), 0);
+        let buf_size = DragQueryFileW(h_drop, idx, None);
         if buf_size > 0 {
             // Windows will truncate the filename and add null terminator if space isn't enough
             let buf_size = buf_size as usize + 1;
             let mut wide_buf = vec![0u16; buf_size];
-            DragQueryFileW(h_drop, idx, wide_buf.as_mut_ptr(), wide_buf.len() as u32);
+            DragQueryFileW(h_drop, idx, Some(&mut wide_buf));
             wide_buf.pop(); // Drops the null terminator
             filenames.push(OsString::from_wide(&wide_buf).into());
         }
@@ -2877,10 +2877,10 @@ unsafe fn drop_files(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) ->
     inner.events.dispatch(WindowEvent::DroppedFile(filenames));
 
     DragFinish(h_drop);
-    Some(0)
+    Some(LRESULT(0))
 }
 
-unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn do_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     match msg {
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
@@ -2910,13 +2910,13 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_button(hwnd, msg, wparam, lparam)
         }
         WM_DROPFILES => drop_files(hwnd, msg, wparam, lparam),
-        WM_ERASEBKGND => Some(1),
+        WM_ERASEBKGND => Some(LRESULT(1)),
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
                 let mut inner = inner.borrow_mut();
                 inner.events.dispatch(WindowEvent::CloseRequested);
                 // Don't let it close
-                return Some(0);
+                return Some(LRESULT(0));
             }
             None
         }
@@ -2945,7 +2945,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
 
 unsafe extern "system" fn wnd_proc(
     hwnd: HWND,
-    msg: UINT,
+    msg: u32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {

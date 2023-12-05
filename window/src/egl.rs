@@ -34,7 +34,7 @@ pub mod ffi {
     pub type EGLNativePixmapType = *const raw::c_void;
 
     #[cfg(target_os = "windows")]
-    pub type EGLNativeWindowType = winapi::shared::windef::HWND;
+    pub type EGLNativeWindowType = windows::Win32::Foundation::HWND;
     #[cfg(not(target_os = "windows"))]
     pub type EGLNativeWindowType = *const raw::c_void;
 }

@@ -32,9 +32,6 @@ time-funcs = { path = "../lua-api-crates/time-funcs" }
 url-funcs = { path = "../lua-api-crates/url-funcs" }
 wezterm-version = { path = "../wezterm-version" }
 
-[target."cfg(windows)".dependencies]
-winapi = "0.3"
-
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20"
 objc = "0.2"

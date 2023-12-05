@@ -3,64 +3,27 @@ use crate::cmdbuilder::CommandBuilder;
 use crate::win::procthreadattr::ProcThreadAttributeList;
 use anyhow::{bail, ensure, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
-use lazy_static::lazy_static;
-use shared_library::shared_library;
 use std::ffi::OsString;
 use std::io::Error as IoError;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
-use std::path::Path;
 use std::sync::Mutex;
 use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::{HRESULT, S_OK};
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::{
-    CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW,
+use windows::core::{PCWSTR, PWSTR};
+use windows::Win32::Foundation::*;
+pub use windows::Win32::System::Console::HPCON;
+use windows::Win32::System::Console::{
+    ClosePseudoConsole, CreatePseudoConsole, ResizePseudoConsole, COORD,
 };
-use winapi::um::wincon::COORD;
-use winapi::um::winnt::HANDLE;
+use windows::Win32::System::Threading::{
+    CreateProcessW, CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
+    STARTF_USESTDHANDLES, STARTUPINFOEXW,
+};
 
-pub type HPCON = HANDLE;
-
-pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
-pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
+pub const PSEUDOCONSOLE_RESIZE_QUIRK: u32 = 0x2;
+pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
 #[allow(dead_code)]
-pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: DWORD = 0x8;
-
-shared_library!(ConPtyFuncs,
-    pub fn CreatePseudoConsole(
-        size: COORD,
-        hInput: HANDLE,
-        hOutput: HANDLE,
-        flags: DWORD,
-        hpc: *mut HPCON
-    ) -> HRESULT,
-    pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
-    pub fn ClosePseudoConsole(hpc: HPCON),
-);
-
-fn load_conpty() -> ConPtyFuncs {
-    // If the kernel doesn't export these functions then their system is
-    // too old and we cannot run.
-    let kernel = ConPtyFuncs::open(Path::new("kernel32.dll")).expect(
-        "this system does not support conpty.  Windows 10 October 2018 or newer is required",
-    );
-
-    // We prefer to use a sideloaded conpty.dll and openconsole.exe host deployed
-    // alongside the application.  We check for this after checking for kernel
-    // support so that we don't try to proceed and do something crazy.
-    if let Ok(sideloaded) = ConPtyFuncs::open(Path::new("conpty.dll")) {
-        sideloaded
-    } else {
-        kernel
-    }
-}
-
-lazy_static! {
-    static ref CONPTY: ConPtyFuncs = load_conpty();
-}
+pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
 pub struct PsuedoCon {
     con: HPCON,
@@ -71,38 +34,38 @@ unsafe impl Sync for PsuedoCon {}
 
 impl Drop for PsuedoCon {
     fn drop(&mut self) {
-        unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
+        unsafe { ClosePseudoConsole(self.con) };
     }
 }
 
 impl PsuedoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
-        let mut con: HPCON = INVALID_HANDLE_VALUE;
         let result = unsafe {
-            (CONPTY.CreatePseudoConsole)(
+            CreatePseudoConsole(
                 size,
-                input.as_raw_handle() as _,
-                output.as_raw_handle() as _,
+                HANDLE(input.as_raw_handle() as isize),
+                HANDLE(output.as_raw_handle() as isize),
                 PSEUDOCONSOLE_RESIZE_QUIRK | PSEUDOCONSOLE_WIN32_INPUT_MODE,
-                &mut con,
             )
         };
         ensure!(
-            result == S_OK,
+            result.is_ok(),
             "failed to create psuedo console: HRESULT {}",
-            result
+            result.err().unwrap()
         );
-        Ok(Self { con })
+        Ok(Self {
+            con: result.unwrap(),
+        })
     }
 
     pub fn resize(&self, size: COORD) -> Result<(), Error> {
-        let result = unsafe { (CONPTY.ResizePseudoConsole)(self.con, size) };
+        let result = unsafe { ResizePseudoConsole(self.con, size) };
         ensure!(
-            result == S_OK,
+            result.is_ok(),
             "failed to resize console to {}x{}: HRESULT: {}",
             size.X,
             size.Y,
-            result
+            result.err().unwrap()
         );
         Ok(())
     }
@@ -134,21 +97,23 @@ impl PsuedoCon {
 
         let res = unsafe {
             CreateProcessW(
-                exe.as_mut_slice().as_mut_ptr(),
-                cmdline.as_mut_slice().as_mut_ptr(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-                0,
+                PCWSTR(exe.as_mut_slice().as_mut_ptr()),
+                PWSTR(cmdline.as_mut_slice().as_mut_ptr()),
+                None,
+                None,
+                FALSE,
                 EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
-                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
-                cwd.as_ref()
-                    .map(|c| c.as_slice().as_ptr())
-                    .unwrap_or(ptr::null()),
+                Some(cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _),
+                PCWSTR(
+                    cwd.as_ref()
+                        .map(|c| c.as_slice().as_ptr())
+                        .unwrap_or(ptr::null()),
+                ),
                 &mut si.StartupInfo,
                 &mut pi,
             )
         };
-        if res == 0 {
+        if res.is_err() {
             let err = IoError::last_os_error();
             let msg = format!(
                 "CreateProcessW `{:?}` in cwd `{:?}` failed: {}",
@@ -162,8 +127,8 @@ impl PsuedoCon {
 
         // Make sure we close out the thread handle so we don't leak it;
         // we do this simply by making it owned
-        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread as _) };
-        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess as _) };
+        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread.0 as *mut _) };
+        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess.0 as *mut _) };
 
         Ok(WinChild {
             proc: Mutex::new(proc),

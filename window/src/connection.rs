@@ -74,7 +74,9 @@ pub trait ConnectionOps {
     fn hide_application(&self) {}
 
     /// Perform the system beep/notification sound
-    fn beep(&self) {}
+    fn beep(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 
     /// Returns information about the screens
     fn screens(&self) -> anyhow::Result<Screens> {

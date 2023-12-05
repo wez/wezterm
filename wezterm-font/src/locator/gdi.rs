@@ -10,13 +10,13 @@ use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::Arc;
-use winapi::shared::windef::{HDC, HFONT};
-use winapi::um::dwrite::*;
-use winapi::um::winbase::MulDiv;
-use winapi::um::wingdi::{
+use windows::Win32::Graphics::DirectWrite::DWRITE_READING_DIRECTION_LEFT_TO_RIGHT;
+use windows::Win32::Graphics::Gdi::{
     CreateCompatibleDC, CreateFontIndirectW, DeleteDC, DeleteObject, GetDeviceCaps, GetFontData,
-    SelectObject, FIXED_PITCH, GDI_ERROR, LF_FACESIZE, LOGFONTW, LOGPIXELSY, OUT_TT_ONLY_PRECIS,
+    SelectObject, FIXED_PITCH, FONT_CHARSET, FONT_CLIP_PRECISION, FONT_OUTPUT_PRECISION,
+    FONT_QUALITY, HDC, HFONT, LF_FACESIZE, LOGFONTW, LOGPIXELSY, OUT_TT_ONLY_PRECIS,
 };
+use windows::Win32::System::WindowsProgramming::MulDiv;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by the font-loader crate.
@@ -24,8 +24,8 @@ pub struct GdiFontLocator {}
 
 fn extract_raw_font_data(font: HFONT, name: &str) -> anyhow::Result<FontDataSource> {
     unsafe {
-        let hdc = CreateCompatibleDC(std::ptr::null_mut());
-        SelectObject(hdc, font as *mut _);
+        let hdc = CreateCompatibleDC(HDC::default());
+        SelectObject(hdc, font);
 
         // GetFontData can retrieve different parts of the font data.
         // We want to fetch the entire font file, but things are made
@@ -38,21 +38,27 @@ fn extract_raw_font_data(font: HFONT, name: &str) -> anyhow::Result<FontDataSour
         // See if we can retrieve the ttc data as a first try
         let ttc_table = 0x66637474; // 'ttcf'
 
-        let ttc_size = GetFontData(hdc, ttc_table, 0, std::ptr::null_mut(), 0);
+        let ttc_size = GetFontData(hdc, ttc_table, 0, None, 0);
 
-        let data = if ttc_size > 0 && ttc_size != GDI_ERROR {
+        let data = if ttc_size > 0 {
             let mut data = vec![0u8; ttc_size as usize];
-            GetFontData(hdc, ttc_table, 0, data.as_mut_ptr() as *mut _, ttc_size);
+            GetFontData(
+                hdc,
+                ttc_table,
+                0,
+                Some(data.as_mut_ptr() as *mut _),
+                ttc_size,
+            );
 
             Ok(data)
         } else {
             // Otherwise: presumably a regular ttf
 
-            let size = GetFontData(hdc, 0, 0, std::ptr::null_mut(), 0);
+            let size = GetFontData(hdc, 0, 0, None, 0);
             match size {
-                _ if size > 0 && size != GDI_ERROR => {
+                _ if size > 0 => {
                     let mut data = vec![0u8; size as usize];
-                    GetFontData(hdc, 0, 0, data.as_mut_ptr() as *mut _, size);
+                    GetFontData(hdc, 0, 0, Some(data.as_mut_ptr() as *mut _), size);
                     Ok(data)
                 }
                 _ => Err(anyhow::anyhow!("Failed to get font data")),
@@ -108,16 +114,16 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
         },
         lfUnderline: 0,
         lfStrikeOut: 0,
-        lfCharSet: 0,
-        lfOutPrecision: OUT_TT_ONLY_PRECIS as u8,
-        lfClipPrecision: 0,
-        lfQuality: 0,
-        lfPitchAndFamily: FIXED_PITCH as u8,
+        lfCharSet: FONT_CHARSET(0),
+        lfOutPrecision: FONT_OUTPUT_PRECISION(OUT_TT_ONLY_PRECIS.0),
+        lfClipPrecision: FONT_CLIP_PRECISION(0),
+        lfQuality: FONT_QUALITY(0),
+        lfPitchAndFamily: FIXED_PITCH.0,
         lfFaceName: [0u16; 32],
     };
 
     let name = wide_string(&font_attr.family);
-    if name.len() > LF_FACESIZE {
+    if name.len() > LF_FACESIZE as usize {
         anyhow::bail!(
             "family name {:?} is too large for LOGFONTW",
             font_attr.family
@@ -130,7 +136,7 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
     unsafe {
         let font = CreateFontIndirectW(&log_font);
         let result = extract_font_data(font, font_attr, pixel_size);
-        DeleteObject(font as *mut _);
+        DeleteObject(font);
         result
     }
 }
@@ -140,7 +146,7 @@ pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFo
     unsafe {
         let font = CreateFontIndirectW(log_font);
         let source = extract_raw_font_data(font, &name);
-        DeleteObject(font as *mut _);
+        DeleteObject(font);
         let source = source?;
 
         let point_size = MulDiv(-log_font.lfHeight, 72, GetDeviceCaps(hdc, LOGPIXELSY)) as f64;
@@ -277,7 +283,7 @@ impl FontLocator for GdiFontLocator {
                 (Cow::Borrowed(&self.locale), self.len)
             }
             fn get_paragraph_reading_direction(&self) -> u32 {
-                DWRITE_READING_DIRECTION_LEFT_TO_RIGHT
+                DWRITE_READING_DIRECTION_LEFT_TO_RIGHT.0 as u32
             }
         }
 

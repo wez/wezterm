@@ -298,8 +298,11 @@ impl ChildKiller for ProcessSignaller {
     fn kill(&mut self) -> IoResult<()> {
         if let Some(handle) = &self.handle {
             unsafe {
-                if winapi::um::processthreadsapi::TerminateProcess(handle.as_raw_handle() as _, 127)
-                    == 0
+                if windows::Win32::System::Threading::TerminateProcess(
+                    windows::Win32::Foundation::HANDLE(handle.as_raw_handle() as isize),
+                    127,
+                )
+                .is_err()
                 {
                     return Err(std::io::Error::last_os_error());
                 }

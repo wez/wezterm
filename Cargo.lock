@@ -979,7 +979,7 @@ dependencies = [
  "wezterm-input-types",
  "wezterm-ssh",
  "wezterm-term",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -1573,7 +1573,6 @@ dependencies = [
  "time-funcs",
  "url-funcs",
  "wezterm-version",
- "winapi",
 ]
 
 [[package]]
@@ -1716,11 +1715,11 @@ dependencies = [
 
 [[package]]
 name = "filedescriptor"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "libc",
  "thiserror",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -1748,14 +1747,14 @@ dependencies = [
 
 [[package]]
 name = "filetime"
-version = "0.2.22"
+version = "0.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4029edd3e734da6fe05b6cd7bd2960760a616bd2ddd0d59a0124746d6272af0"
+checksum = "1ee447700ac8aa0b2f2bd7bc4462ad686ba06baa6727ac149a2d6277f0d240fd"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall 0.3.5",
- "windows-sys 0.48.0",
+ "redox_syscall 0.4.1",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3309,9 +3308,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.8.9"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dce281c5e46beae905d4de1870d8b1509a9142b62eedf18b443b011ca8343d0"
+checksum = "8f3d0b296e374a4e6f3c7b0a1f5a51d748a0d34c85e7dc48fc3fa9a87657fe09"
 dependencies = [
  "libc",
  "log",
@@ -3393,7 +3392,7 @@ dependencies = [
  "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -4145,7 +4144,7 @@ dependencies = [
  "shared_library",
  "shell-words",
  "smol",
- "winapi",
+ "windows 0.52.0",
  "winreg 0.51.0",
 ]
 
@@ -4411,15 +4410,6 @@ name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
-dependencies = [
- "bitflags 1.3.2",
-]
-
-[[package]]
-name = "redox_syscall"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567664f262709473930a4bf9e51bf2ebf3348f2e748ccc50dea20646858f8f29"
 dependencies = [
  "bitflags 1.3.2",
 ]
@@ -5119,7 +5109,7 @@ dependencies = [
  "smol",
  "wezterm-dynamic",
  "wezterm-open-url",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -5458,7 +5448,7 @@ dependencies = [
  "wezterm-color-types",
  "wezterm-dynamic",
  "wezterm-input-types",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -6207,7 +6197,7 @@ dependencies = [
  "wezterm-client",
  "wezterm-gui-subcommands",
  "wezterm-term",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -6267,7 +6257,7 @@ dependencies = [
  "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -6348,7 +6338,7 @@ dependencies = [
  "wezterm-input-types",
  "wezterm-term",
  "wezterm-toast-notification",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -6435,7 +6425,6 @@ dependencies = [
  "wezterm-term",
  "wezterm-toast-notification",
  "wgpu",
- "winapi",
  "window",
  "window-funcs",
  "windows 0.52.0",
@@ -6484,7 +6473,7 @@ dependencies = [
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
  "wezterm-term",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -6510,14 +6499,13 @@ dependencies = [
  "url",
  "wezterm-client",
  "wezterm-term",
- "winapi",
 ]
 
 [[package]]
 name = "wezterm-open-url"
 version = "0.1.0"
 dependencies = [
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -7084,9 +7072,9 @@ checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 
 [[package]]
 name = "winnow"
-version = "0.5.24"
+version = "0.5.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0383266b19108dfc6314a56047aa545a1b4d1be60e799b4dbdd407b56402704b"
+checksum = "b7e87b8dfbe3baffbe687eef2e164e32286eff31a5ee16463ce03d991643ec94"
 dependencies = [
  "memchr",
 ]
@@ -7285,18 +7273,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.7.28"
+version = "0.7.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d6f15f7ade05d2a4935e34a457b936c23dc70a05cc1d97133dc99e7a3fe0f0e"
+checksum = "5d075cf85bbb114e933343e087b92f2146bac0d55b534cbb8188becf0039948e"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.7.28"
+version = "0.7.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbbad221e3f78500350ecbd7dfa4e63ef945c05f4c61cb7f4d3f84cd0bba649b"
+checksum = "86cd5ca076997b97ef09d3ad65efe811fa68c9e874cb636ccb211223a813b0c2"
 dependencies = [
  "proc-macro2",
  "quote",

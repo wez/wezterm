@@ -1,9 +1,11 @@
 use crate::win::psuedocon::HPCON;
 use anyhow::{ensure, Error};
 use std::io::Error as IoError;
-use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::processthreadsapi::*;
+use std::mem;
+use windows::Win32::System::Threading::{
+    DeleteProcThreadAttributeList, InitializeProcThreadAttributeList, UpdateProcThreadAttribute,
+    LPPROC_THREAD_ATTRIBUTE_LIST,
+};
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
@@ -12,12 +14,12 @@ pub struct ProcThreadAttributeList {
 }
 
 impl ProcThreadAttributeList {
-    pub fn with_capacity(num_attributes: DWORD) -> Result<Self, Error> {
+    pub fn with_capacity(num_attributes: u16) -> Result<Self, Error> {
         let mut bytes_required: usize = 0;
-        unsafe {
+        let _ = unsafe {
             InitializeProcThreadAttributeList(
-                ptr::null_mut(),
-                num_attributes,
+                LPPROC_THREAD_ATTRIBUTE_LIST::default(),
+                num_attributes.into(),
                 0,
                 &mut bytes_required,
             )
@@ -30,10 +32,15 @@ impl ProcThreadAttributeList {
 
         let attr_ptr = data.as_mut_slice().as_mut_ptr() as *mut _;
         let res = unsafe {
-            InitializeProcThreadAttributeList(attr_ptr, num_attributes, 0, &mut bytes_required)
+            InitializeProcThreadAttributeList(
+                LPPROC_THREAD_ATTRIBUTE_LIST(attr_ptr as *mut _),
+                num_attributes.into(),
+                0,
+                &mut bytes_required,
+            )
         };
         ensure!(
-            res != 0,
+            res.is_ok(),
             "InitializeProcThreadAttributeList failed: {}",
             IoError::last_os_error()
         );
@@ -41,7 +48,7 @@ impl ProcThreadAttributeList {
     }
 
     pub fn as_mut_ptr(&mut self) -> LPPROC_THREAD_ATTRIBUTE_LIST {
-        self.data.as_mut_slice().as_mut_ptr() as *mut _
+        LPPROC_THREAD_ATTRIBUTE_LIST(self.data.as_mut_slice().as_mut_ptr() as *mut _)
     }
 
     pub fn set_pty(&mut self, con: HPCON) -> Result<(), Error> {
@@ -50,14 +57,14 @@ impl ProcThreadAttributeList {
                 self.as_mut_ptr(),
                 0,
                 PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-                con,
+                Some(con.0 as *const _),
                 mem::size_of::<HPCON>(),
-                ptr::null_mut(),
-                ptr::null_mut(),
+                None,
+                None,
             )
         };
         ensure!(
-            res != 0,
+            res.is_ok(),
             "UpdateProcThreadAttribute failed: {}",
             IoError::last_os_error()
         );

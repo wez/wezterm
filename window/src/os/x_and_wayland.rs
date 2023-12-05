@@ -159,7 +159,7 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn beep(&self) {
+    fn beep(&self) -> anyhow::Result<()> {
         match self {
             Self::X11(x) => x.beep(),
             #[cfg(feature = "wayland")]

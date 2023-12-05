@@ -427,10 +427,10 @@ use std::time::Duration;
 
 #[cfg(not(target_os = "macos"))]
 #[doc(hidden)]
-pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize> {
+pub fn poll_impl(pfd: &mut [PollFd], duration: Option<Duration>) -> Result<usize> {
     let poll_result = unsafe {
         libc::poll(
-            pfd.as_mut_ptr(),
+            std::mem::transmute(pfd.as_mut_ptr()),
             pfd.len() as _,
             duration
                 .map(|wait| wait.as_millis() as libc::c_int)

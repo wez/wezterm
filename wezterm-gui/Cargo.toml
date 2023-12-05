@@ -48,7 +48,7 @@ emojis = "0.6"
 env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
 fastrand = "2.0"
-filedescriptor = { version="0.8", path = "../filedescriptor" }
+filedescriptor = { version="0.9", path = "../filedescriptor" }
 finl_unicode = "1.2"
 frecency = { path = "../frecency" }
 futures = "0.3"
@@ -112,17 +112,11 @@ window-funcs = { path = "../lua-api-crates/window-funcs" }
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"
 uds_windows = "1.0"
-winapi = { version = "0.3", features = [
-    "winuser",
-    "consoleapi",
-    "handleapi",
-    "fileapi",
-    "namedpipeapi",
-    "synchapi",
-    "winsock2",
-]}
 windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
     "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
 ]}
 
 [dev-dependencies]
