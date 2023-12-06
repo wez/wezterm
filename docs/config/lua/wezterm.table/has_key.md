@@ -10,7 +10,9 @@ assert(wezterm.table.has_key(tbl, key) == (tbl[key] ~= nil))
 You may pass a sequence of keys that will be used to successively check nested tables:
 ```lua
 local tbl = { a = { b = { c = true } } }
-assert(wezterm.table.has_key(tbl, 'a', 'b', 'c') == (tbl['a']['b']['c'] ~= nil))
+assert(
+  wezterm.table.has_key(tbl, 'a', 'b', 'c') == (tbl['a']['b']['c'] ~= nil)
+)
 ```
 
 *Note:*

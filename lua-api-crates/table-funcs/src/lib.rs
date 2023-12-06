@@ -295,3 +295,77 @@ fn lua_table_eq(table1: Table, table2: Table) -> mlua::Result<bool> {
 fn equal<'lua>(_: &'lua Lua, (table1, table2): (Table<'lua>, Table<'lua>)) -> mlua::Result<bool> {
     lua_table_eq(table1, table2)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_table_funcs_equal() -> mlua::Result<()> {
+        let lua = Lua::new();
+
+        lua.load(
+            r#"
+        tbl1 = { 1, 'a', 2, 'abc' }
+        tbl2 = { 1, 'a', 2, 'abc' }
+        tbl3 = { a = 1, b = '2' }
+        tbl4 = { b = '2', a = 1 }
+        tbl5 = { a = { 1, 2 }, b = { c = { 1 } } }
+        tbl6 = { b = { c = { 1 } }, a = { 1, 2 } }
+        "#,
+        )
+        .exec()?;
+        let tbl1 = lua.globals().get::<_, Table>("tbl1")?;
+        let tbl2 = lua.globals().get::<_, Table>("tbl2")?;
+        let tbl3 = lua.globals().get::<_, Table>("tbl3")?;
+        let tbl4 = lua.globals().get::<_, Table>("tbl4")?;
+        let tbl5 = lua.globals().get::<_, Table>("tbl5")?;
+        let tbl6 = lua.globals().get::<_, Table>("tbl6")?;
+
+        assert!(equal(&lua, (tbl1, tbl2))?);
+        assert!(equal(&lua, (tbl3, tbl4))?);
+        assert!(equal(&lua, (tbl5, tbl6))?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_table_funcs_extend() -> mlua::Result<()> {
+        let lua = Lua::new();
+
+        lua.load(
+            r#"
+        tbl1 = { a = 1, b = { d = { 4 } }, e = 3 }
+        tbl2 = { a = 2, b = { e = 5 }, d = 4 }
+        tbl3 = { e = 3 }
+
+        ext_tbl1_tbl2 = { a = 2, b = { e = 5 }, e = 3, d = 4 }
+        ext_tbl1_tbl2_Keep = { a = 1, b = { d = { 4 } }, e = 3, d = 4 }
+        "#,
+        )
+        .exec()?;
+        let tbl1 = lua.globals().get::<_, Table>("tbl1")?;
+        let tbl2 = lua.globals().get::<_, Table>("tbl2")?;
+        let tbl3 = lua.globals().get::<_, Table>("tbl3")?;
+        let ext_tbl1_tbl2 = lua.globals().get::<_, Table>("ext_tbl1_tbl2")?;
+        let ext_tbl1_tbl2_keep = lua.globals().get::<_, Table>("ext_tbl1_tbl2_Keep")?;
+
+        assert!(equal(
+            &lua,
+            (
+                extend(&lua, (vec![tbl1.clone(), tbl2.clone()], None))?,
+                ext_tbl1_tbl2
+            )
+        )?);
+        assert!(equal(
+            &lua,
+            (
+                extend(&lua, (vec![tbl1.clone(), tbl2], Some(ConflictMode::Keep)))?,
+                ext_tbl1_tbl2_keep
+            )
+        )?);
+        assert!(extend(&lua, (vec![tbl1, tbl3], Some(ConflictMode::Error))).is_err());
+
+        Ok(())
+    }
+}
