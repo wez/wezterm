@@ -15,7 +15,7 @@ present a GUI window for each MuxWindow that is present in that workspace.
 You can spawn windows into differently named workspaces and they won't become
 visible until you set the active workspace to that name.
 
-When switching the active workspace, wezterm will swap the the contents of the
+When switching the active workspace, wezterm will swap the contents of the
 GUI windows with the MuxWindows that belong to the now-focused workspace.
 
 The following key assignments are helpful when working with workspaces:
