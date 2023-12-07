@@ -1,0 +1,29 @@
+name: Nix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/*.rs'
+      - '.github/workflows/nix.yml'
+      - 'nix/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.rs'
+      - '.github/workflows/nix.yml'
+      - 'nix/**'
+
+jobs:
+  lints:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      - name: Run `nix build`
+        run: nix build .
