@@ -1,0 +1,27 @@
+name: update-flake-lock
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Enable magic Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Check flake
+        uses: DeterminateSystems/flake-checker-action@main
+      - name: Update flake.lock
+        uses: DeterminateSystems/update-flake-lock@main
+        with:
+          pr-title: 'Update flake.lock' # Title of PR to be created
+          pr-labels: | # Labels to be set on the PR
+            dependencies
+            automated
+          pr-assignees: happenslol,gabyx,emiller88
+          # TODO pr-reviewers: SomeOtherGitHubUsername,SomeThirdGitHubUsername
