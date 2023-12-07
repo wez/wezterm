@@ -1685,10 +1685,14 @@ impl KeyEvent {
         if raw_modifiers.contains(Modifiers::META) {
             modifiers |= 32;
         }
-        if raw_modifiers.contains(Modifiers::CAPS_LOCK) {
+        if raw_modifiers.contains(Modifiers::CAPS_LOCK)
+            || self.leds.contains(KeyboardLedStatus::CAPS_LOCK)
+        {
             modifiers |= 64;
         }
-        if raw_modifiers.contains(Modifiers::NUM_LOCK) {
+        if raw_modifiers.contains(Modifiers::NUM_LOCK)
+            || self.leds.contains(KeyboardLedStatus::NUM_LOCK)
+        {
             modifiers |= 128;
         }
         modifiers += 1;
@@ -1757,7 +1761,11 @@ impl KeyEvent {
         });
 
         if let Some(numpad) = is_numpad {
-            let code = match (numpad, self.leds.contains(KeyboardLedStatus::NUM_LOCK)) {
+            let code = match (
+                numpad,
+                self.leds.contains(KeyboardLedStatus::NUM_LOCK)
+                    || raw_modifiers.contains(Modifiers::NUM_LOCK),
+            ) {
                 (PhysKeyCode::Keypad0, true) => 57399,
                 (PhysKeyCode::Keypad0, false) => 57425,
                 (PhysKeyCode::Keypad1, true) => 57400,
@@ -1822,26 +1830,25 @@ impl KeyEvent {
                     && event_type.is_empty()
                     && is_legacy_key
                     && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
-                        && (self.modifiers.contains(Modifiers::CTRL)
-                            || self.modifiers.contains(Modifiers::ALT)))
-                    && !self.modifiers.intersects(
-                        Modifiers::SUPER, /* TODO: Hyper and Meta should be added here. */
+                        && (raw_modifiers.contains(Modifiers::CTRL)
+                            || raw_modifiers.contains(Modifiers::ALT)))
+                    && !raw_modifiers.intersects(
+                        Modifiers::SUPER
+                            | Modifiers::META
+                            | Modifiers::NUM_LOCK
+                            | Modifiers::CAPS_LOCK,
                     );
 
                 if use_legacy {
                     // Legacy text key
                     // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-text-keys
                     let mut output = String::new();
-                    if self.modifiers.contains(Modifiers::ALT) {
+                    if raw_modifiers.contains(Modifiers::ALT) {
                         output.push('\x1b');
                     }
 
-                    if self.modifiers.contains(Modifiers::CTRL) {
-                        csi_u_encode(
-                            &mut output,
-                            shifted_key.to_ascii_uppercase(),
-                            self.modifiers,
-                        );
+                    if raw_modifiers.contains(Modifiers::CTRL) {
+                        csi_u_encode(&mut output, shifted_key.to_ascii_uppercase(), raw_modifiers);
                     } else {
                         output.push(shifted_key);
                     }
@@ -2697,6 +2704,23 @@ mod test {
                     key: KeyCode::Numpad(0),
                     modifiers: Modifiers::NONE,
                     leds: KeyboardLedStatus::NUM_LOCK,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
+                },
+                Some(PhysKeyCode::Keypad0)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57399;129u".to_string()
+        );
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(0),
+                    modifiers: Modifiers::NUM_LOCK,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None,
