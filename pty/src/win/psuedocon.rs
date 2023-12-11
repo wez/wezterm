@@ -3,18 +3,19 @@ use crate::cmdbuilder::CommandBuilder;
 use crate::win::procthreadattr::ProcThreadAttributeList;
 use anyhow::{bail, ensure, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
+use lazy_static::lazy_static;
+use shared_library::shared_library;
 use std::ffi::OsString;
 use std::io::Error as IoError;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
+use std::path::Path;
 use std::sync::Mutex;
 use std::{mem, ptr};
-use windows::core::{PCWSTR, PWSTR};
+use windows::core::{HRESULT, PCWSTR, PWSTR};
 use windows::Win32::Foundation::*;
+use windows::Win32::System::Console::COORD;
 pub use windows::Win32::System::Console::HPCON;
-use windows::Win32::System::Console::{
-    ClosePseudoConsole, CreatePseudoConsole, ResizePseudoConsole, COORD,
-};
 use windows::Win32::System::Threading::{
     CreateProcessW, CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
     STARTF_USESTDHANDLES, STARTUPINFOEXW,
@@ -25,6 +26,39 @@ pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
 #[allow(dead_code)]
 pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
+shared_library!(ConPtyFuncs,
+    pub fn CreatePseudoConsole(
+        size: COORD,
+        hInput: HANDLE,
+        hOutput: HANDLE,
+        flags: u32,
+        hpc: *mut HPCON
+    ) -> HRESULT,
+    pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
+    pub fn ClosePseudoConsole(hpc: HPCON),
+);
+
+fn load_conpty() -> ConPtyFuncs {
+    // If the kernel doesn't export these functions then their system is
+    // too old and we cannot run.
+    let kernel = ConPtyFuncs::open(Path::new("kernel32.dll")).expect(
+        "this system does not support conpty.  Windows 10 October 2018 or newer is required",
+    );
+
+    // We prefer to use a sideloaded conpty.dll and openconsole.exe host deployed
+    // alongside the application.  We check for this after checking for kernel
+    // support so that we don't try to proceed and do something crazy.
+    if let Ok(sideloaded) = ConPtyFuncs::open(Path::new("conpty.dll")) {
+        sideloaded
+    } else {
+        kernel
+    }
+}
+
+lazy_static! {
+    static ref CONPTY: ConPtyFuncs = load_conpty();
+}
+
 pub struct PsuedoCon {
     con: HPCON,
 }
@@ -34,38 +68,38 @@ unsafe impl Sync for PsuedoCon {}
 
 impl Drop for PsuedoCon {
     fn drop(&mut self) {
-        unsafe { ClosePseudoConsole(self.con) };
+        unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
     }
 }
 
 impl PsuedoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
+        let mut con: HPCON = HPCON::default();
         let result = unsafe {
-            CreatePseudoConsole(
+            (CONPTY.CreatePseudoConsole)(
                 size,
-                HANDLE(input.as_raw_handle() as isize),
-                HANDLE(output.as_raw_handle() as isize),
+                HANDLE(input.as_raw_handle() as _),
+                HANDLE(output.as_raw_handle() as _),
                 PSEUDOCONSOLE_RESIZE_QUIRK | PSEUDOCONSOLE_WIN32_INPUT_MODE,
+                &mut con,
             )
         };
         ensure!(
-            result.is_ok(),
+            result == S_OK,
             "failed to create psuedo console: HRESULT {}",
-            result.err().unwrap()
+            result
         );
-        Ok(Self {
-            con: result.unwrap(),
-        })
+        Ok(Self { con })
     }
 
     pub fn resize(&self, size: COORD) -> Result<(), Error> {
-        let result = unsafe { ResizePseudoConsole(self.con, size) };
+        let result = unsafe { (CONPTY.ResizePseudoConsole)(self.con, size) };
         ensure!(
-            result.is_ok(),
+            result == S_OK,
             "failed to resize console to {}x{}: HRESULT: {}",
             size.X,
             size.Y,
-            result.err().unwrap()
+            result
         );
         Ok(())
     }

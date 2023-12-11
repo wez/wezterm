@@ -328,7 +328,10 @@ fn read_from_pane_pty(
             }
             Ok(size) => {
                 histogram!("read_from_pane_pty.bytes.rate", size as f64);
-                log::trace!("read_pty pane {pane_id} read {size} bytes");
+                log::trace!(
+                    "read_pty pane {pane_id} read {size} bytes: {:?}",
+                    String::from_utf8_lossy(&buf[0..size])
+                );
                 if let Err(err) = tx.write_all(&buf[..size]) {
                     error!(
                         "read_pty failed to write to parser: pane {} {:?}",
