@@ -17,7 +17,7 @@ config = { path = "../config" }
 crossbeam = "0.8"
 downcast-rs = "1.0"
 fancy-regex = "0.11"
-filedescriptor = { version="0.8", path = "../filedescriptor" }
+filedescriptor = { version="0.9", path = "../filedescriptor" }
 finl_unicode = "1.2"
 hostname = "0.3"
 lazy_static = "1.4"
@@ -51,12 +51,9 @@ flume = "0.10"
 
 [target."cfg(windows)".dependencies]
 ntapi = "0.4"
-winapi = { version = "0.3", features = [
-    "handleapi",
-    "memoryapi",
-    "psapi",
-    "processthreadsapi",
-    "tlhelp32",
+windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_Networking_WinSock",
 ]}
 
 [dev-dependencies]

@@ -24,4 +24,3 @@ winapi = { version = "0.3", features = [
     "shellapi",
     "tlhelp32",
 ]}
-

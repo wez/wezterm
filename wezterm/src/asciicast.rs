@@ -135,16 +135,15 @@ impl Event {
 #[cfg(windows)]
 mod win {
     use super::*;
-    use filedescriptor::AsRawFileDescriptor;
+    use filedescriptor::AsRawSocketDescriptor;
     use std::fs::OpenOptions;
-    use std::os::windows::io::AsRawHandle;
-    use winapi::um::consoleapi::*;
-    use winapi::um::wincon::*;
-    use winapi::um::winnls::CP_UTF8;
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::Globalization::CP_UTF8;
+    use windows::Win32::System::Console::*;
 
     pub struct WinTty {
-        saved_input: u32,
-        saved_output: u32,
+        saved_input: CONSOLE_MODE,
+        saved_output: CONSOLE_MODE,
         saved_cp: u32,
         read: FileDescriptor,
         write: FileDescriptor,
@@ -157,14 +156,20 @@ mod win {
             let write =
                 FileDescriptor::new(OpenOptions::new().read(true).write(true).open("CONOUT$")?);
 
-            let mut saved_input = 0;
-            let mut saved_output = 0;
+            let mut saved_input = CONSOLE_MODE::default();
+            let mut saved_output = CONSOLE_MODE::default();
             let saved_cp;
             unsafe {
-                GetConsoleMode(read.as_raw_file_descriptor(), &mut saved_input);
-                GetConsoleMode(write.as_raw_file_descriptor(), &mut saved_output);
+                GetConsoleMode(
+                    HANDLE(read.as_socket_descriptor().0 as isize),
+                    &mut saved_input,
+                )?;
+                GetConsoleMode(
+                    HANDLE(write.as_socket_descriptor().0 as isize),
+                    &mut saved_output,
+                )?;
                 saved_cp = GetConsoleOutputCP();
-                SetConsoleOutputCP(CP_UTF8);
+                SetConsoleOutputCP(CP_UTF8)?;
             }
 
             Ok(Self {
@@ -178,9 +183,15 @@ mod win {
 
         pub fn set_cooked(&mut self) -> anyhow::Result<()> {
             unsafe {
-                SetConsoleOutputCP(self.saved_cp);
-                SetConsoleMode(self.read.as_raw_handle(), self.saved_input);
-                SetConsoleMode(self.write.as_raw_handle(), self.saved_output);
+                SetConsoleOutputCP(self.saved_cp)?;
+                SetConsoleMode(
+                    HANDLE(self.read.as_socket_descriptor().0 as isize),
+                    self.saved_input,
+                )?;
+                SetConsoleMode(
+                    HANDLE(self.write.as_socket_descriptor().0 as isize),
+                    self.saved_output,
+                )?;
             }
             Ok(())
         }
@@ -188,29 +199,29 @@ mod win {
         pub fn set_raw(&mut self) -> anyhow::Result<()> {
             unsafe {
                 SetConsoleMode(
-                    self.read.as_raw_file_descriptor(),
+                    HANDLE(self.read.as_socket_descriptor().0 as isize),
                     ENABLE_VIRTUAL_TERMINAL_INPUT,
-                );
+                )?;
                 SetConsoleMode(
-                    self.write.as_raw_file_descriptor(),
+                    HANDLE(self.write.as_socket_descriptor().0 as isize),
                     ENABLE_PROCESSED_OUTPUT
                         | ENABLE_WRAP_AT_EOL_OUTPUT
                         | ENABLE_VIRTUAL_TERMINAL_PROCESSING
                         | DISABLE_NEWLINE_AUTO_RETURN,
-                );
+                )?;
             }
             Ok(())
         }
 
         pub fn get_size(&self) -> anyhow::Result<PtySize> {
             let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { std::mem::zeroed() };
-            let ok = unsafe {
+            let res = unsafe {
                 GetConsoleScreenBufferInfo(
-                    self.write.as_raw_handle() as *mut _,
+                    HANDLE(self.write.as_socket_descriptor().0 as isize),
                     &mut info as *mut _,
                 )
             };
-            if ok == 0 {
+            if res.is_err() {
                 anyhow::bail!(
                     "GetConsoleScreenBufferInfo failed: {}",
                     std::io::Error::last_os_error()

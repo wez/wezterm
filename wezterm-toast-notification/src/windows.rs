@@ -3,7 +3,7 @@
 use crate::ToastNotification as TN;
 use xml::escape::escape_str_pcdata;
 
-use windows::core::{Error as WinError, IInspectable, Interface, HSTRING};
+use windows::core::{ComInterface, Error as WinError, IInspectable, HSTRING};
 use windows::Data::Xml::Dom::XmlDocument;
 use windows::Foundation::TypedEventHandler;
 use windows::Win32::Foundation::E_POINTER;
@@ -31,7 +31,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         ""
     };
 
-    xml.LoadXml(HSTRING::from(format!(
+    xml.LoadXml(&HSTRING::from(format!(
         r#"<toast duration="long">
         <visual>
             <binding template="ToastGeneric">
@@ -46,9 +46,9 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         url_actions
     )))?;
 
-    let notif = ToastNotification::CreateToastNotification(xml)?;
+    let notif = ToastNotification::CreateToastNotification(&xml)?;
 
-    notif.Activated(TypedEventHandler::new(
+    notif.Activated(&TypedEventHandler::new(
         move |_: &Option<ToastNotification>, result: &Option<IInspectable>| {
             // let myself = unwrap_arg(myself)?;
             let result = unwrap_arg(result)?.cast::<ToastActivatedEventArgs>()?;
@@ -77,7 +77,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     }))?;
     */
 
-    let notifier = ToastNotificationManager::CreateToastNotifierWithId(HSTRING::from(
+    let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(
         "org.wezfurlong.wezterm",
     ))?;
 

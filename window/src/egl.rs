@@ -34,7 +34,7 @@ pub mod ffi {
     pub type EGLNativePixmapType = *const raw::c_void;
 
     #[cfg(target_os = "windows")]
-    pub type EGLNativeWindowType = winapi::shared::windef::HWND;
+    pub type EGLNativeWindowType = windows::Win32::Foundation::HWND;
     #[cfg(not(target_os = "windows"))]
     pub type EGLNativeWindowType = *const raw::c_void;
 }
@@ -440,7 +440,8 @@ impl GlState {
                 std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
             }
             for path in &paths {
-                match libloading::Library::new(path) {
+                let library = unsafe { libloading::Library::new(path) };
+                match library {
                     Ok(lib) => match EglWrapper::load_egl(lib) {
                         Ok(egl) => match func(egl) {
                             Ok(result) => {

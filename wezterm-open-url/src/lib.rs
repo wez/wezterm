@@ -57,7 +57,10 @@ pub fn open_with(url: &str, app: &str) {
 #[cfg(windows)]
 fn shell_execute(url: String, with: Option<String>) {
     use std::os::windows::ffi::OsStrExt;
-    use winapi::um::shellapi::ShellExecuteW;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
     /// Convert a rust string to a windows wide string
     fn wide_string(s: &str) -> Vec<u16> {
         std::ffi::OsStr::new(s)
@@ -78,12 +81,12 @@ fn shell_execute(url: String, with: Option<String>) {
 
         unsafe {
             ShellExecuteW(
-                std::ptr::null_mut(),
-                operation.as_ptr(),
-                app,
-                path,
-                std::ptr::null(),
-                winapi::um::winuser::SW_SHOW,
+                HWND::default(),
+                PCWSTR(operation.as_ptr()),
+                PCWSTR(app),
+                PCWSTR(path),
+                PCWSTR::null(),
+                SW_SHOW,
             );
         }
     });

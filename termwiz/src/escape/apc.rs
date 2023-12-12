@@ -322,11 +322,12 @@ fn read_shared_memory_data(
 
 #[cfg(windows)]
 mod win {
-    use winapi::um::handleapi::CloseHandle;
-    use winapi::um::memoryapi::{
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::*;
+    use windows::Win32::System::Memory::{
         MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery, FILE_MAP_ALL_ACCESS,
+        MEMORY_BASIC_INFORMATION, MEMORY_MAPPED_VIEW_ADDRESS,
     };
-    use winapi::um::winnt::{HANDLE, MEMORY_BASIC_INFORMATION};
 
     struct HandleWrapper {
         handle: HANDLE,
@@ -340,16 +341,18 @@ mod win {
     impl Drop for HandleWrapper {
         fn drop(&mut self) {
             unsafe {
-                CloseHandle(self.handle);
+                let _ = CloseHandle(self.handle);
             }
         }
     }
 
     impl Drop for SharedMemObject {
         fn drop(&mut self) {
-            unsafe {
-                UnmapViewOfFile(self.buf as _);
-            }
+            let _ = unsafe {
+                UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS {
+                    Value: self.buf as _,
+                })
+            };
         }
     }
 
@@ -369,18 +372,20 @@ mod win {
     ) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
         let wide_name = wide_string(&name);
 
-        let handle = unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS, 0, wide_name.as_ptr()) };
-        if handle.is_null() {
-            let err = std::io::Error::last_os_error();
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("OpenFileMappingW {} failed: {:#}", name, err),
-            ));
-        }
+        let handle =
+            unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS.0, FALSE, PCWSTR(wide_name.as_ptr())) };
+        let handle_wrapper = handle
+            .map_err(|_| {
+                let err = std::io::Error::last_os_error();
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("OpenFileMappingW {} failed: {:#}", name, err),
+                )
+            })
+            .map(|handle| HandleWrapper { handle })?;
 
-        let handle_wrapper = HandleWrapper { handle };
         let buf = unsafe { MapViewOfFile(handle_wrapper.handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
-        if buf.is_null() {
+        if buf.Value.is_null() {
             let err = std::io::Error::last_os_error();
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -390,13 +395,13 @@ mod win {
 
         let shm = SharedMemObject {
             _handle: handle_wrapper,
-            buf: buf as *mut u8,
+            buf: buf.Value as *mut u8,
         };
 
         let mut memory_info = MEMORY_BASIC_INFORMATION::default();
         let res = unsafe {
             VirtualQuery(
-                shm.buf as _,
+                Some(shm.buf as _),
                 &mut memory_info as *mut MEMORY_BASIC_INFORMATION,
                 std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
             )

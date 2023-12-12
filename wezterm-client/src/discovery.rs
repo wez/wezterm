@@ -19,14 +19,16 @@ use std::time::{Duration, SystemTime};
 #[cfg(windows)]
 mod windows {
     use super::*;
-    use std::io::Error as IoError;
-    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-    use winapi::um::memoryapi::{
+    use ::windows::core::PCWSTR;
+    use ::windows::Win32::Foundation::*;
+    use ::windows::Win32::System::Memory::{
         CreateFileMappingW, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, FILE_MAP_ALL_ACCESS,
+        MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
     };
-    use winapi::um::synchapi::{CreateMutexW, ReleaseMutex, WaitForSingleObject};
-    use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
-    use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
+    use ::windows::Win32::System::Threading::{
+        CreateMutexW, ReleaseMutex, WaitForSingleObject, INFINITE,
+    };
+    use std::io::Error as IoError;
 
     const MAX_NAME: usize = 1024;
 
@@ -45,7 +47,7 @@ mod windows {
 
     impl Drop for FileMapping {
         fn drop(&mut self) {
-            unsafe { CloseHandle(self.handle) };
+            let _ = unsafe { CloseHandle(self.handle) };
         }
     }
 
@@ -57,14 +59,14 @@ mod windows {
             let handle = unsafe {
                 CreateFileMappingW(
                     INVALID_HANDLE_VALUE,
-                    std::ptr::null_mut(),
+                    None,
                     PAGE_READWRITE,
                     0,
                     size as _,
-                    wide_name.as_ptr(),
-                )
+                    PCWSTR(wide_name.as_ptr()),
+                )?
             };
-            if handle.is_null() {
+            if handle.0 == 0 {
                 return Err(IoError::last_os_error())
                     .with_context(|| format!("creating shared memory with name {}", name));
             }
@@ -79,8 +81,10 @@ mod windows {
         pub fn open(name: &str, size: usize) -> anyhow::Result<Self> {
             let wide_name = wide_string(&name);
 
-            let handle = unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS, 0, wide_name.as_ptr()) };
-            if handle.is_null() {
+            let handle = unsafe {
+                OpenFileMappingW(FILE_MAP_ALL_ACCESS.0, FALSE, PCWSTR(wide_name.as_ptr()))?
+            };
+            if handle.0 == 0 {
                 return Err(IoError::last_os_error())
                     .with_context(|| format!("creating shared memory with name {}", name));
             }
@@ -95,13 +99,13 @@ mod windows {
         pub fn map(&self) -> anyhow::Result<MappedView> {
             let buf =
                 unsafe { MapViewOfFile(self.handle, FILE_MAP_ALL_ACCESS, 0, 0, self.size as _) };
-            if buf.is_null() {
+            if buf.Value.is_null() {
                 return Err(IoError::last_os_error()).with_context(|| {
                     format!("mapping view of shared memory with name {}", self.name)
                 });
             }
             Ok(MappedView {
-                buf: buf as _,
+                buf: buf.Value as _,
                 size: self.size,
             })
         }
@@ -114,7 +118,7 @@ mod windows {
     impl Drop for NamedMutex {
         fn drop(&mut self) {
             unsafe {
-                CloseHandle(self.handle);
+                let _ = CloseHandle(self.handle);
             }
         }
     }
@@ -123,8 +127,8 @@ mod windows {
         /// Create a mutex with the specified name
         pub fn new(name: &str) -> anyhow::Result<Self> {
             let wide_name = wide_string(name);
-            let handle = unsafe { CreateMutexW(std::ptr::null_mut(), 0, wide_name.as_ptr()) };
-            if handle.is_null() {
+            let handle = unsafe { CreateMutexW(None, FALSE, PCWSTR(wide_name.as_ptr()))? };
+            if handle.0 == 0 {
                 return Err(IoError::last_os_error())
                     .with_context(|| format!("creating mutex name {}", name));
             }
@@ -144,7 +148,7 @@ mod windows {
             }
 
             let res = func();
-            unsafe { ReleaseMutex(self.handle) };
+            unsafe { ReleaseMutex(self.handle)? };
             res
         }
     }
@@ -158,7 +162,9 @@ mod windows {
     impl Drop for MappedView {
         fn drop(&mut self) {
             unsafe {
-                UnmapViewOfFile(self.buf as _);
+                let _ = UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS {
+                    Value: self.buf as *mut _,
+                });
             }
         }
     }

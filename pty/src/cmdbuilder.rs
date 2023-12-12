@@ -102,7 +102,8 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStringExt;
-        use winapi::um::processenv::ExpandEnvironmentStringsW;
+        use windows::core::PCWSTR;
+        use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
         use winreg::enums::{RegType, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
         use winreg::types::FromRegValue;
         use winreg::{RegKey, RegValue};
@@ -116,12 +117,9 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
                             value.bytes.len() / 2,
                         )
                     };
-                    let size =
-                        unsafe { ExpandEnvironmentStringsW(src.as_ptr(), std::ptr::null_mut(), 0) };
+                    let size = unsafe { ExpandEnvironmentStringsW(PCWSTR(src.as_ptr()), None) };
                     let mut buf = vec![0u16; size as usize + 1];
-                    unsafe {
-                        ExpandEnvironmentStringsW(src.as_ptr(), buf.as_mut_ptr(), buf.len() as u32)
-                    };
+                    unsafe { ExpandEnvironmentStringsW(PCWSTR(src.as_ptr()), Some(&mut buf)) };
 
                     let mut buf = buf.as_slice();
                     while let Some(0) = buf.last() {

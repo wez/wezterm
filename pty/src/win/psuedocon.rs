@@ -12,29 +12,26 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::Path;
 use std::sync::Mutex;
 use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::{HRESULT, S_OK};
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::{
-    CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW,
+use windows::core::{HRESULT, PCWSTR, PWSTR};
+use windows::Win32::Foundation::*;
+use windows::Win32::System::Console::COORD;
+pub use windows::Win32::System::Console::HPCON;
+use windows::Win32::System::Threading::{
+    CreateProcessW, CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
+    STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
-use winapi::um::wincon::COORD;
-use winapi::um::winnt::HANDLE;
 
-pub type HPCON = HANDLE;
-
-pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
-pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
+pub const PSEUDOCONSOLE_RESIZE_QUIRK: u32 = 0x2;
+pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
 #[allow(dead_code)]
-pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: DWORD = 0x8;
+pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
 shared_library!(ConPtyFuncs,
     pub fn CreatePseudoConsole(
         size: COORD,
         hInput: HANDLE,
         hOutput: HANDLE,
-        flags: DWORD,
+        flags: u32,
         hpc: *mut HPCON
     ) -> HRESULT,
     pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
@@ -77,12 +74,12 @@ impl Drop for PsuedoCon {
 
 impl PsuedoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
-        let mut con: HPCON = INVALID_HANDLE_VALUE;
+        let mut con: HPCON = HPCON::default();
         let result = unsafe {
             (CONPTY.CreatePseudoConsole)(
                 size,
-                input.as_raw_handle() as _,
-                output.as_raw_handle() as _,
+                HANDLE(input.as_raw_handle() as _),
+                HANDLE(output.as_raw_handle() as _),
                 PSEUDOCONSOLE_RESIZE_QUIRK | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
             )
@@ -134,21 +131,23 @@ impl PsuedoCon {
 
         let res = unsafe {
             CreateProcessW(
-                exe.as_mut_slice().as_mut_ptr(),
-                cmdline.as_mut_slice().as_mut_ptr(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-                0,
+                PCWSTR(exe.as_mut_slice().as_mut_ptr()),
+                PWSTR(cmdline.as_mut_slice().as_mut_ptr()),
+                None,
+                None,
+                FALSE,
                 EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
-                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
-                cwd.as_ref()
-                    .map(|c| c.as_slice().as_ptr())
-                    .unwrap_or(ptr::null()),
+                Some(cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _),
+                PCWSTR(
+                    cwd.as_ref()
+                        .map(|c| c.as_slice().as_ptr())
+                        .unwrap_or(ptr::null()),
+                ),
                 &mut si.StartupInfo,
                 &mut pi,
             )
         };
-        if res == 0 {
+        if res.is_err() {
             let err = IoError::last_os_error();
             let msg = format!(
                 "CreateProcessW `{:?}` in cwd `{:?}` failed: {}",
@@ -162,8 +161,8 @@ impl PsuedoCon {
 
         // Make sure we close out the thread handle so we don't leak it;
         // we do this simply by making it owned
-        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread as _) };
-        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess as _) };
+        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread.0 as *mut _) };
+        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess.0 as *mut _) };
 
         Ok(WinChild {
             proc: Mutex::new(proc),

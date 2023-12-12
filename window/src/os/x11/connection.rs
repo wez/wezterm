@@ -372,8 +372,9 @@ impl ConnectionOps for XConnection {
         Ok(())
     }
 
-    fn beep(&self) {
+    fn beep(&self) -> anyhow::Result<()> {
         self.conn.send_request(&xcb::x::Bell { percent: 0 });
+        Ok(())
     }
 }
 

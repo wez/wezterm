@@ -48,4 +48,7 @@ wezterm-term = { path = "../term", features=["use_serde"] }
 nix = "0.26"
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = ["winuser"]}
+windows = { version="0.52.0", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading"
+]}

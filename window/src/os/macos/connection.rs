@@ -158,10 +158,11 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn beep(&self) {
+    fn beep(&self) -> anyhow::Result<()> {
         unsafe {
             NSBeep();
         }
+        Ok(())
     }
 
     fn screens(&self) -> anyhow::Result<Screens> {

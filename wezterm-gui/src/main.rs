@@ -1138,7 +1138,9 @@ fn run() -> anyhow::Result<()> {
     #[cfg(windows)]
     unsafe {
         if opts.attach_parent_console {
-            winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
+            ::windows::Win32::System::Console::AttachConsole(
+                ::windows::Win32::System::Console::ATTACH_PARENT_PROCESS,
+            )?;
         }
     };
 

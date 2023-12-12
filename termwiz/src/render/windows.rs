@@ -6,14 +6,13 @@ use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
 use crate::terminal::windows::ConsoleOutputHandle;
 use crate::Result;
+use ::windows::Win32::System::Console::{
+    BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED, CHAR_INFO,
+    COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, CONSOLE_CHARACTER_ATTRIBUTES, FOREGROUND_BLUE,
+    FOREGROUND_GREEN, FOREGROUND_INTENSITY, FOREGROUND_RED,
+};
 use num_traits::FromPrimitive;
 use std::io::Write;
-use winapi::shared::minwindef::WORD;
-use winapi::um::wincon::{
-    BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED, CHAR_INFO,
-    COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, FOREGROUND_BLUE, FOREGROUND_GREEN,
-    FOREGROUND_INTENSITY, FOREGROUND_RED,
-};
 
 pub struct WindowsConsoleRenderer {
     pending_attr: CellAttributes,
@@ -27,7 +26,7 @@ impl WindowsConsoleRenderer {
     }
 }
 
-fn to_attr_word(attr: &CellAttributes) -> u16 {
+fn to_attr_output(attr: &CellAttributes) -> CONSOLE_CHARACTER_ATTRIBUTES {
     macro_rules! ansi_colors_impl {
         ($idx:expr, $default:ident,
                 $red:ident, $green:ident, $blue:ident,
@@ -41,7 +40,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
     }
 
     macro_rules! ansi_colors {
-        ($idx:expr, $default:ident, $red:ident, $green:ident, $blue:ident, $bright:ident) => {
+        ($idx:expr, $default:ident, $red:ident, $green:ident, $blue:ident, $black:ident, $bright:ident) => {
             ansi_colors_impl!(
                 $idx,
                 $default,
@@ -49,7 +48,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
                 $green,
                 $blue,
                 $bright,
-                (Black, 0),
+                (Black, $black),
                 (Maroon, $red),
                 (Green, $green),
                 (Olive, $red | $green),
@@ -69,44 +68,54 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         };
     }
 
+    let black = CONSOLE_CHARACTER_ATTRIBUTES::default();
+
     let fg = match attr.foreground() {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
             FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
         }
 
         ColorAttribute::TrueColorWithPaletteFallback(_, idx)
-        | ColorAttribute::PaletteIndex(idx) => ansi_colors!(
-            idx,
-            White,
-            FOREGROUND_RED,
-            FOREGROUND_GREEN,
-            FOREGROUND_BLUE,
-            FOREGROUND_INTENSITY
-        ),
+        | ColorAttribute::PaletteIndex(idx) => {
+            ansi_colors!(
+                idx,
+                White,
+                FOREGROUND_RED,
+                FOREGROUND_GREEN,
+                FOREGROUND_BLUE,
+                black,
+                FOREGROUND_INTENSITY
+            )
+        }
     };
 
     let bg = match attr.background() {
-        ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => 0,
+        ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
+            CONSOLE_CHARACTER_ATTRIBUTES::default()
+        }
         ColorAttribute::TrueColorWithPaletteFallback(_, idx)
-        | ColorAttribute::PaletteIndex(idx) => ansi_colors!(
-            idx,
-            Black,
-            BACKGROUND_RED,
-            BACKGROUND_GREEN,
-            BACKGROUND_BLUE,
-            BACKGROUND_INTENSITY
-        ),
+        | ColorAttribute::PaletteIndex(idx) => {
+            ansi_colors!(
+                idx,
+                Black,
+                BACKGROUND_RED,
+                BACKGROUND_GREEN,
+                BACKGROUND_BLUE,
+                black,
+                BACKGROUND_INTENSITY
+            )
+        }
     };
 
     let reverse = if attr.reverse() {
         COMMON_LVB_REVERSE_VIDEO
     } else {
-        0
+        CONSOLE_CHARACTER_ATTRIBUTES::default()
     };
     let underline = if attr.underline() != Underline::None {
         COMMON_LVB_UNDERSCORE
     } else {
-        0
+        CONSOLE_CHARACTER_ATTRIBUTES::default()
     };
 
     bg | fg | reverse | underline
@@ -119,7 +128,7 @@ struct ScreenBuffer {
     cols: usize,
     cursor_x: usize,
     cursor_y: usize,
-    pending_attr: WORD,
+    pending_attr: CONSOLE_CHARACTER_ATTRIBUTES,
 }
 
 impl ScreenBuffer {
@@ -137,7 +146,7 @@ impl ScreenBuffer {
         idx
     }
 
-    fn fill(&mut self, c: char, attr: WORD, x: usize, y: usize, num_elements: usize) -> usize {
+    fn fill(&mut self, c: char, attr: u16, x: usize, y: usize, num_elements: usize) -> usize {
         let idx = (y * self.cols) + x;
         let max = self.rows * self.cols;
 
@@ -145,9 +154,7 @@ impl ScreenBuffer {
         let c = c as u16;
         for cell in &mut self.buf[idx..end] {
             cell.Attributes = attr;
-            unsafe {
-                *cell.Char.UnicodeChar_mut() = c;
-            }
+            cell.Char.UnicodeChar = c;
         }
         self.dirty = true;
         end
@@ -186,7 +193,7 @@ impl ScreenBuffer {
     fn write_text<B: ConsoleOutputHandle + Write>(
         &mut self,
         t: &str,
-        attr: WORD,
+        attr: u16,
         out: &mut B,
     ) -> Result<()> {
         for c in t.chars() {
@@ -209,9 +216,7 @@ impl ScreenBuffer {
 
                     let cell = &mut self.buf[idx];
                     cell.Attributes = attr;
-                    unsafe {
-                        *cell.Char.UnicodeChar_mut() = c as u16;
-                    }
+                    cell.Char.UnicodeChar = c as u16;
                     self.cursor_x += 1;
                     self.dirty = true;
                 }
@@ -308,7 +313,7 @@ impl WindowsConsoleRenderer {
             dirty: false,
             rows,
             cols,
-            pending_attr: to_attr_word(&CellAttributes::default()),
+            pending_attr: to_attr_output(&CellAttributes::default()),
         };
 
         for change in changes {
@@ -318,7 +323,7 @@ impl WindowsConsoleRenderer {
                         .set_background(color.clone())
                         .clone();
 
-                    buffer.fill(' ', to_attr_word(&attr), 0, 0, cols * rows);
+                    buffer.fill(' ', to_attr_output(&attr).0, 0, 0, cols * rows);
                     buffer.set_cursor(0, 0, out)?;
                 }
                 Change::ClearToEndOfLine(color) => {
@@ -328,7 +333,7 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_output(&attr).0,
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols.saturating_sub(buffer.cursor_x),
@@ -341,14 +346,14 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_output(&attr).0,
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols * rows,
                     );
                 }
                 Change::Text(text) => {
-                    buffer.write_text(&text, to_attr_word(&self.pending_attr), out)?;
+                    buffer.write_text(&text, to_attr_output(&self.pending_attr).0, out)?;
                 }
                 Change::CursorPosition { x, y } => {
                     let x = match x {

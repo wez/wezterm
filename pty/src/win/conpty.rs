@@ -4,7 +4,7 @@ use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
 use anyhow::Error;
 use filedescriptor::{FileDescriptor, Pipe};
 use std::sync::{Arc, Mutex};
-use winapi::um::wincon::COORD;
+use windows::Win32::System::Console::COORD;
 
 #[derive(Default)]
 pub struct ConPtySystem {}

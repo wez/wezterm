@@ -1150,7 +1150,7 @@ impl TermWindow {
                 } => {
                     match self.config.audible_bell {
                         AudibleBell::SystemBeep => {
-                            Connection::get().expect("on main thread").beep();
+                            Connection::get().expect("on main thread").beep()?;
                         }
                         AudibleBell::Disabled => {}
                     }

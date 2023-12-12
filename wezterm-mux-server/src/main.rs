@@ -160,7 +160,7 @@ fn run() -> anyhow::Result<()> {
             cmd.stdout(config.daemon_options.open_stdout()?);
             cmd.stderr(config.daemon_options.open_stderr()?);
 
-            cmd.creation_flags(winapi::um::winbase::DETACHED_PROCESS);
+            cmd.creation_flags(windows::Win32::System::Threading::DETACHED_PROCESS.0);
             let child = cmd.spawn();
             drop(child);
             return Ok(());
