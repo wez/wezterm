@@ -546,7 +546,7 @@ impl TerminalState {
             last_mouse_move: None,
             cursor_visible: true,
             g0_charset: CharSet::Ascii,
-            g1_charset: CharSet::DecLineDrawing,
+            g1_charset: CharSet::Ascii,
             shift_out: false,
             newline_mode: false,
             current_mouse_buttons: vec![],
@@ -929,6 +929,11 @@ impl TerminalState {
         }
     }
 
+    /// Returns the current cell attributes of the screen
+    pub fn pen(&self) -> CellAttributes {
+        self.pen.clone()
+    }
+
     pub fn user_vars(&self) -> &HashMap<String, String> {
         &self.user_vars
     }
@@ -1248,6 +1253,9 @@ impl TerminalState {
                 self.reverse_video_mode = false;
                 self.bidi_enabled.take();
                 self.bidi_hint.take();
+
+                self.g0_charset = CharSet::Ascii;
+                self.g1_charset = CharSet::Ascii;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -1343,6 +1351,22 @@ impl TerminalState {
                 self.writer.flush().ok();
             }
         }
+    }
+
+    /// Indicates that mode is permanently enabled
+    fn decqrm_response_permanent(&mut self, mode: Mode) {
+        let (is_dec, number) = match &mode {
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(code)) => (true, code.to_u16().unwrap()),
+            Mode::QueryDecPrivateMode(DecPrivateMode::Unspecified(code)) => (true, *code),
+            Mode::QueryMode(TerminalMode::Code(code)) => (false, code.to_u16().unwrap()),
+            Mode::QueryMode(TerminalMode::Unspecified(code)) => (false, *code),
+            _ => unreachable!(),
+        };
+
+        let prefix = if is_dec { "?" } else { "" };
+
+        write!(self.writer, "\x1b[{prefix}{number};3$y").ok();
+        self.writer.flush().ok();
     }
 
     fn decqrm_response(&mut self, mode: Mode, mut recognized: bool, enabled: bool) {
@@ -1447,6 +1471,21 @@ impl TerminalState {
                 DecPrivateModeCode::LeftRightMarginMode,
             )) => {
                 self.decqrm_response(mode, true, self.left_and_right_margin_mode);
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            )) => {
+                // Permanently enabled
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            )) => {
+                self.decqrm_response_permanent(mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SaveCursor)) => {
@@ -1940,7 +1979,17 @@ impl TerminalState {
                 checksum += u16::from(ch as u8);
             }
         }
-        checksum
+
+        // Treat uninitialized cells as spaces.
+        // The concept of uninitialized cells in wezterm is not the same as that on VT520 or that
+        // on xterm, so, to prevent a lot of noise in esctest, treat them as spaces, at least when
+        // asking for the checksum of a single cell (which is what esctest does).
+        // See: https://github.com/wez/wezterm/pull/4565
+        if checksum == 0 {
+            32u16
+        } else {
+            checksum
+        }
     }
 
     fn perform_csi_window(&mut self, window: Window) {
@@ -2474,11 +2523,15 @@ impl TerminalState {
                     })) as u32,
                 );
                 let col = OneBased::from_zero_based(
-                    (self.cursor.x.saturating_sub(if self.dec_origin_mode {
-                        self.left_and_right_margins.start
-                    } else {
-                        0
-                    })) as u32,
+                    (self
+                        .cursor
+                        .x
+                        .min(self.screen().physical_cols - 1)
+                        .saturating_sub(if self.dec_origin_mode {
+                            self.left_and_right_margins.start
+                        } else {
+                            0
+                        })) as u32,
                 );
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
@@ -2545,7 +2598,7 @@ impl TerminalState {
                 pen: Default::default(),
                 dec_origin_mode: false,
                 g0_charset: CharSet::Ascii,
-                g1_charset: CharSet::DecLineDrawing,
+                g1_charset: CharSet::Ascii,
             });
         debug!(
             "restore cursor {:?} is_alt={}",

@@ -477,6 +477,27 @@ pub struct InputSelector {
 
     #[dynamic(default)]
     pub fuzzy: bool,
+
+    #[dynamic(default = "default_num_alphabet")]
+    pub alphabet: String,
+
+    #[dynamic(default = "default_description")]
+    pub description: String,
+
+    #[dynamic(default = "default_fuzzy_description")]
+    pub fuzzy_description: String,
+}
+
+fn default_num_alphabet() -> String {
+    "1234567890abcdefghilmnopqrstuvwxyz".to_string()
+}
+
+fn default_description() -> String {
+    "Select an item and press Enter = accept,  Esc = cancel,  / = filter".to_string()
+}
+
+fn default_fuzzy_description() -> String {
+    "Fuzzy matching: ".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]

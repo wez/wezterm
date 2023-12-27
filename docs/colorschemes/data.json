@@ -186,7 +186,7 @@
       ],
       "cursor_bg": "#4a4543",
       "cursor_border": "#4a4543",
-      "cursor_fg": "#4a4543",
+      "cursor_fg": "#f7f7f7",
       "foreground": "#4a4543",
       "indexed": {}
     },
@@ -266,7 +266,7 @@
       ],
       "cursor_bg": "#a5a2a2",
       "cursor_border": "#a5a2a2",
-      "cursor_fg": "#a5a2a2",
+      "cursor_fg": "#090300",
       "foreground": "#a5a2a2",
       "indexed": {}
     },
@@ -342,7 +342,7 @@
       ],
       "cursor_bg": "#b4e1fd",
       "cursor_border": "#b4e1fd",
-      "cursor_fg": "#b4e1fd",
+      "cursor_fg": "#0d1926",
       "foreground": "#b4e1fd",
       "indexed": {}
     },
@@ -379,7 +379,7 @@
       ],
       "cursor_bg": "#b4e1fd",
       "cursor_border": "#b4e1fd",
-      "cursor_fg": "#b4e1fd",
+      "cursor_fg": "#1f1305",
       "foreground": "#b4e1fd",
       "indexed": {}
     },
@@ -455,7 +455,7 @@
       ],
       "cursor_bg": "#f8dcc0",
       "cursor_border": "#f8dcc0",
-      "cursor_fg": "#f8dcc0",
+      "cursor_fg": "#1f1d45",
       "foreground": "#f8dcc0",
       "indexed": {}
     },
@@ -572,7 +572,7 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#222222",
       "foreground": "#d0d0d0",
       "indexed": {}
     },
@@ -683,7 +683,7 @@
       ],
       "cursor_bg": "#637d75",
       "cursor_border": "#637d75",
-      "cursor_fg": "#637d75",
+      "cursor_fg": "#0f1610",
       "foreground": "#637d75",
       "indexed": {}
     },
@@ -933,7 +933,7 @@
       ],
       "cursor_bg": "#bcbcbc",
       "cursor_border": "#bcbcbc",
-      "cursor_fg": "#bcbcbc",
+      "cursor_fg": "#262626",
       "foreground": "#bcbcbc",
       "indexed": {}
     },
@@ -1050,7 +1050,7 @@
       ],
       "cursor_bg": "#fffaf4",
       "cursor_border": "#fffaf4",
-      "cursor_fg": "#fffaf4",
+      "cursor_fg": "#0e1019",
       "foreground": "#fffaf4",
       "indexed": {}
     },
@@ -1128,7 +1128,7 @@
       ],
       "cursor_bg": "#ddeedd",
       "cursor_border": "#ddeedd",
-      "cursor_fg": "#ddeedd",
+      "cursor_fg": "#1c1c1c",
       "foreground": "#ddeedd",
       "indexed": {}
     },
@@ -2736,7 +2736,7 @@
       ],
       "cursor_bg": "#c5c8c6",
       "cursor_border": "#c5c8c6",
-      "cursor_fg": "#c5c8c6",
+      "cursor_fg": "#161719",
       "foreground": "#c5c8c6",
       "indexed": {}
     },
@@ -2812,7 +2812,7 @@
       ],
       "cursor_bg": "#edecee",
       "cursor_border": "#edecee",
-      "cursor_fg": "#edecee",
+      "cursor_fg": "#15141b",
       "foreground": "#edecee",
       "indexed": {}
     },
@@ -2927,7 +2927,7 @@
       ],
       "cursor_bg": "#e6b450",
       "cursor_border": "#e6b450",
-      "cursor_fg": "#e6b450",
+      "cursor_fg": "#0a0e14",
       "foreground": "#b3b1ad",
       "indexed": {}
     },
@@ -2966,7 +2966,7 @@
       ],
       "cursor_bg": "#ff9940",
       "cursor_border": "#ff9940",
-      "cursor_fg": "#ff9940",
+      "cursor_fg": "#fafafa",
       "foreground": "#575f66",
       "indexed": {}
     },
@@ -3044,7 +3044,7 @@
       ],
       "cursor_bg": "#ffcc66",
       "cursor_border": "#ffcc66",
-      "cursor_fg": "#ffcc66",
+      "cursor_fg": "#1f2430",
       "foreground": "#cbccc6",
       "indexed": {}
     },
@@ -3122,7 +3122,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#09111a",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -3454,7 +3454,7 @@
       ],
       "cursor_bg": "#45373c",
       "cursor_border": "#45373c",
-      "cursor_fg": "#45373c",
+      "cursor_fg": "#d5ccba",
       "foreground": "#45373c",
       "indexed": {}
     },
@@ -3534,7 +3534,7 @@
       ],
       "cursor_bg": "#968c83",
       "cursor_border": "#968c83",
-      "cursor_fg": "#968c83",
+      "cursor_fg": "#20111b",
       "foreground": "#968c83",
       "indexed": {}
     },
@@ -3725,7 +3725,7 @@
       ],
       "cursor_bg": "#a9bed8",
       "cursor_border": "#a9bed8",
-      "cursor_fg": "#a9bed8",
+      "cursor_fg": "#012849",
       "foreground": "#a9bed8",
       "indexed": {}
     },
@@ -3762,7 +3762,7 @@
       ],
       "cursor_bg": "#e0dbb7",
       "cursor_border": "#e0dbb7",
-      "cursor_fg": "#e0dbb7",
+      "cursor_fg": "#2a1f1d",
       "foreground": "#e0dbb7",
       "indexed": {}
     },
@@ -4434,7 +4434,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#0d1926",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -4623,7 +4623,7 @@
       ],
       "cursor_bg": "#383a42",
       "cursor_border": "#383a42",
-      "cursor_fg": "#383a42",
+      "cursor_fg": "#f9f9f9",
       "foreground": "#383a42",
       "indexed": {}
     },
@@ -4662,7 +4662,7 @@
       ],
       "cursor_bg": "#383a42",
       "cursor_border": "#383a42",
-      "cursor_fg": "#383a42",
+      "cursor_fg": "#f9f9f9",
       "foreground": "#383a42",
       "indexed": {}
     },
@@ -4820,7 +4820,7 @@
       ],
       "cursor_bg": "#ffff4e",
       "cursor_border": "#ffff4e",
-      "cursor_fg": "#ffff4e",
+      "cursor_fg": "#0000a4",
       "foreground": "#ffff4e",
       "indexed": {}
     },
@@ -4857,7 +4857,7 @@
       ],
       "cursor_bg": "#17a88b",
       "cursor_border": "#17a88b",
-      "cursor_fg": "#17a88b",
+      "cursor_fg": "#1e2229",
       "foreground": "#17a88b",
       "indexed": {}
     },
@@ -4894,7 +4894,7 @@
       ],
       "cursor_bg": "#17a88b",
       "cursor_border": "#17a88b",
-      "cursor_fg": "#17a88b",
+      "cursor_fg": "#080d14",
       "foreground": "#17a88b",
       "indexed": {}
     },
@@ -4931,7 +4931,7 @@
       ],
       "cursor_bg": "#292f34",
       "cursor_border": "#292f34",
-      "cursor_fg": "#292f34",
+      "cursor_fg": "#e8e8e8",
       "foreground": "#292f34",
       "indexed": {}
     },
@@ -4970,7 +4970,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#1e2229",
       "foreground": "#bbbbbb",
       "indexed": {}
     },
@@ -5048,7 +5048,7 @@
       ],
       "cursor_bg": "#fcfcfc",
       "cursor_border": "#fcfcfc",
-      "cursor_fg": "#fcfcfc",
+      "cursor_fg": "#232627",
       "foreground": "#fcfcfc",
       "indexed": {}
     },
@@ -5331,7 +5331,7 @@
       ],
       "cursor_bg": "#e6e1dc",
       "cursor_border": "#e6e1dc",
-      "cursor_fg": "#e6e1dc",
+      "cursor_fg": "#2b2b2b",
       "foreground": "#e6e1dc",
       "indexed": {}
     },
@@ -5456,7 +5456,7 @@
       ],
       "cursor_bg": "#d6dbe5",
       "cursor_border": "#d6dbe5",
-      "cursor_fg": "#d6dbe5",
+      "cursor_fg": "#131313",
       "foreground": "#d6dbe5",
       "indexed": {}
     },
@@ -5711,7 +5711,9 @@
       "selection_fg": "#93a1a1"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "iTerm2 Solarized Dark"
+      ],
       "name": "Builtin Solarized Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -5752,7 +5754,8 @@
     "metadata": {
       "aliases": [
         "Solarized Light (Gogh)",
-        "SolarizedLight (Gogh)"
+        "SolarizedLight (Gogh)",
+        "iTerm2 Solarized Light"
       ],
       "name": "Builtin Solarized Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -5907,7 +5910,7 @@
       ],
       "cursor_bg": "#7869c4",
       "cursor_border": "#7869c4",
-      "cursor_fg": "#7869c4",
+      "cursor_fg": "#40318d",
       "foreground": "#7869c4",
       "indexed": {}
     },
@@ -5944,7 +5947,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#09111a",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -5993,6 +5996,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0c0c0c",
+        "#c50f1f",
+        "#13a10e",
+        "#c19c00",
+        "#0037da",
+        "#881798",
+        "#3a96dd",
+        "#cccccc"
+      ],
+      "background": "#0c0c0c",
+      "brights": [
+        "#767676",
+        "#e74856",
+        "#16c60c",
+        "#f9f1a5",
+        "#3b78ff",
+        "#b4009e",
+        "#61d6d6",
+        "#f2f2f2"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#0c0c0c",
+      "foreground": "#cccccc",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Campbell (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6276,7 +6316,7 @@
       ],
       "cursor_bg": "#c6d0f5",
       "cursor_border": "#c6d0f5",
-      "cursor_fg": "#c6d0f5",
+      "cursor_fg": "#303446",
       "foreground": "#c6d0f5",
       "indexed": {}
     },
@@ -6404,7 +6444,7 @@
       ],
       "cursor_bg": "#4c4f69",
       "cursor_border": "#4c4f69",
-      "cursor_fg": "#4c4f69",
+      "cursor_fg": "#eff1f5",
       "foreground": "#4c4f69",
       "indexed": {}
     },
@@ -6535,7 +6575,7 @@
       ],
       "cursor_bg": "#cad3f5",
       "cursor_border": "#cad3f5",
-      "cursor_fg": "#cad3f5",
+      "cursor_fg": "#24273a",
       "foreground": "#cad3f5",
       "indexed": {}
     },
@@ -6666,7 +6706,7 @@
       ],
       "cursor_bg": "#cdd6f4",
       "cursor_border": "#cdd6f4",
-      "cursor_fg": "#cdd6f4",
+      "cursor_fg": "#1e1e2e",
       "foreground": "#cdd6f4",
       "indexed": {}
     },
@@ -7023,7 +7063,7 @@
       ],
       "cursor_bg": "#d4d4d4",
       "cursor_border": "#d4d4d4",
-      "cursor_fg": "#d4d4d4",
+      "cursor_fg": "#2d2d2d",
       "foreground": "#d4d4d4",
       "indexed": {}
     },
@@ -7136,7 +7176,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#29262f",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -7212,7 +7252,7 @@
       ],
       "cursor_bg": "#dedede",
       "cursor_border": "#dedede",
-      "cursor_fg": "#dedede",
+      "cursor_fg": "#2c2c2c",
       "foreground": "#dedede",
       "indexed": {}
     },
@@ -7329,7 +7369,7 @@
       ],
       "cursor_bg": "#aea47a",
       "cursor_border": "#aea47a",
-      "cursor_fg": "#aea47a",
+      "cursor_fg": "#191c27",
       "foreground": "#aea47a",
       "indexed": {}
     },
@@ -7544,7 +7584,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#300a24",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -7659,7 +7699,7 @@
       ],
       "cursor_bg": "#262626",
       "cursor_border": "#262626",
-      "cursor_fg": "#262626",
+      "cursor_fg": "#ffffff",
       "foreground": "#262626",
       "indexed": {}
     },
@@ -7696,7 +7736,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#132738",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -7775,7 +7815,7 @@
       ],
       "cursor_bg": "#8ff586",
       "cursor_border": "#8ff586",
-      "cursor_fg": "#8ff586",
+      "cursor_fg": "#142838",
       "foreground": "#8ff586",
       "indexed": {}
     },
@@ -8046,7 +8086,7 @@
       ],
       "cursor_bg": "#005f87",
       "cursor_border": "#005f87",
-      "cursor_fg": "#005f87",
+      "cursor_fg": "#ffffff",
       "foreground": "#005f87",
       "indexed": {}
     },
@@ -8200,7 +8240,7 @@
       ],
       "cursor_bg": "#68525a",
       "cursor_border": "#68525a",
-      "cursor_fg": "#68525a",
+      "cursor_fg": "#150707",
       "foreground": "#68525a",
       "indexed": {}
     },
@@ -8668,7 +8708,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -8957,7 +8997,7 @@
       ],
       "cursor_bg": "#bababa",
       "cursor_border": "#bababa",
-      "cursor_fg": "#bababa",
+      "cursor_fg": "#222324",
       "foreground": "#bababa",
       "indexed": {}
     },
@@ -9545,7 +9585,7 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#333333",
       "foreground": "#cccccc",
       "indexed": {}
     },
@@ -9660,7 +9700,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#333333",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -9732,7 +9772,7 @@
       ],
       "cursor_bg": "#b9bcba",
       "cursor_border": "#b9bcba",
-      "cursor_fg": "#b9bcba",
+      "cursor_fg": "#1f1f1f",
       "foreground": "#b9bcba",
       "indexed": {}
     },
@@ -9857,7 +9897,7 @@
       ],
       "cursor_bg": "#dc322f",
       "cursor_border": "#dc322f",
-      "cursor_fg": "#dc322f",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -10234,7 +10274,7 @@
         "#8be9fd",
         "#bd93f9",
         "#ff79c6",
-        "#94a3a5"
+        "#f8f8f2"
       ],
       "background": "#282a36",
       "brights": [
@@ -10247,10 +10287,10 @@
         "#ff79c6",
         "#ffffff"
       ],
-      "cursor_bg": "#94a3a5",
-      "cursor_border": "#94a3a5",
-      "cursor_fg": "#94a3a5",
-      "foreground": "#94a3a5",
+      "cursor_bg": "#f8f8f2",
+      "cursor_border": "#f8f8f2",
+      "cursor_fg": "#282a36",
+      "foreground": "#f8f8f2",
       "indexed": {}
     },
     "metadata": {
@@ -10657,7 +10697,7 @@
       ],
       "cursor_bg": "#e5c7a9",
       "cursor_border": "#e5c7a9",
-      "cursor_fg": "#e5c7a9",
+      "cursor_fg": "#292520",
       "foreground": "#e5c7a9",
       "indexed": {}
     },
@@ -10766,7 +10806,7 @@
   {
     "colors": {
       "ansi": [
-        "#46423f",
+        "#26211d",
         "#ef656a",
         "#2fa526",
         "#c48702",
@@ -10777,18 +10817,18 @@
       ],
       "background": "#0f0e06",
       "brights": [
-        "#887c8a",
-        "#f06a3f",
-        "#64aa0f",
-        "#d0730f",
-        "#6a88ff",
-        "#e580ea",
-        "#6fafff",
-        "#70a89f"
+        "#56524f",
+        "#ff7a7f",
+        "#00b066",
+        "#df8f6f",
+        "#029fff",
+        "#af8aff",
+        "#3dbbb0",
+        "#887c8a"
       ],
       "cursor_bg": "#ffaa33",
       "cursor_border": "#ffaa33",
-      "cursor_fg": "#cfbcba",
+      "cursor_fg": "#0f0e06",
       "foreground": "#cfbcba",
       "indexed": {},
       "selection_bg": "#3f1020",
@@ -10806,7 +10846,7 @@
   {
     "colors": {
       "ansi": [
-        "#404240",
+        "#222522",
         "#ef6560",
         "#3fb83f",
         "#d4aa02",
@@ -10817,18 +10857,18 @@
       ],
       "background": "#111111",
       "brights": [
-        "#808f80",
+        "#505250",
         "#ff778f",
         "#00c089",
         "#cfc04f",
         "#32cfef",
         "#af9fff",
         "#5dc0aa",
-        "#8fcfaf"
+        "#808f80"
       ],
       "cursor_bg": "#35f038",
       "cursor_border": "#35f038",
-      "cursor_fg": "#cfdfd5",
+      "cursor_fg": "#111111",
       "foreground": "#cfdfd5",
       "indexed": {},
       "selection_bg": "#3a3027",
@@ -10846,7 +10886,7 @@
   {
     "colors": {
       "ansi": [
-        "#594a4f",
+        "#291f26",
         "#ff7359",
         "#60b444",
         "#e5b76f",
@@ -10857,7 +10897,7 @@
       ],
       "background": "#190a0f",
       "brights": [
-        "#5f509f",
+        "#594a4f",
         "#ff78aa",
         "#60bf88",
         "#f59280",
@@ -10866,9 +10906,9 @@
         "#8fcfdf",
         "#808898"
       ],
-      "cursor_bg": "#ff99ff",
-      "cursor_border": "#ff99ff",
-      "cursor_fg": "#d8cfd5",
+      "cursor_bg": "#ff5aaf",
+      "cursor_border": "#ff5aaf",
+      "cursor_fg": "#190a0f",
       "foreground": "#d3cfcf",
       "indexed": {},
       "selection_bg": "#232f3f",
@@ -10908,7 +10948,7 @@
       ],
       "cursor_bg": "#007f00",
       "cursor_border": "#007f00",
-      "cursor_fg": "#242521",
+      "cursor_fg": "#fcf7ef",
       "foreground": "#242521",
       "indexed": {},
       "selection_bg": "#e0e7e5",
@@ -10926,7 +10966,7 @@
   {
     "colors": {
       "ansi": [
-        "#4b4b4b",
+        "#1a1a1a",
         "#ef6560",
         "#0faa26",
         "#bf9032",
@@ -10937,18 +10977,18 @@
       ],
       "background": "#000000",
       "brights": [
-        "#857f8f",
+        "#4b4b4b",
         "#ff5a7a",
         "#00a692",
         "#df8a5a",
         "#029fff",
         "#af85ff",
         "#1dbfcf",
-        "#89afef"
+        "#857f8f"
       ],
       "cursor_bg": "#ff76ff",
       "cursor_border": "#ff76ff",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#000000",
       "foreground": "#d0d0d0",
       "indexed": {},
       "selection_bg": "#2a234a",
@@ -10988,7 +11028,7 @@
       ],
       "cursor_bg": "#cf1f00",
       "cursor_border": "#cf1f00",
-      "cursor_fg": "#584141",
+      "cursor_fg": "#fff5ea",
       "foreground": "#584141",
       "indexed": {},
       "selection_bg": "#f0d2df",
@@ -11028,7 +11068,7 @@
       ],
       "cursor_bg": "#ffff00",
       "cursor_border": "#ffff00",
-      "cursor_fg": "#ddddee",
+      "cursor_fg": "#000a1f",
       "foreground": "#ddddee",
       "indexed": {},
       "selection_bg": "#223848",
@@ -11068,7 +11108,7 @@
       ],
       "cursor_bg": "#0000bb",
       "cursor_border": "#0000bb",
-      "cursor_fg": "#1a1a2f",
+      "cursor_fg": "#f5f5ff",
       "foreground": "#1a1a2f",
       "indexed": {},
       "selection_bg": "#dadadf",
@@ -11108,7 +11148,7 @@
       ],
       "cursor_bg": "#ef6f11",
       "cursor_border": "#ef6f11",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#070019",
       "foreground": "#d0d0d0",
       "indexed": {},
       "selection_bg": "#042a50",
@@ -11148,7 +11188,7 @@
       ],
       "cursor_bg": "#1144ff",
       "cursor_border": "#1144ff",
-      "cursor_fg": "#222222",
+      "cursor_fg": "#fff8f0",
       "foreground": "#222222",
       "indexed": {},
       "selection_bg": "#caeafa",
@@ -11177,7 +11217,7 @@
       ],
       "background": "#222524",
       "brights": [
-        "#3e4140",
+        "#5e6160",
         "#fa7f88",
         "#50cf89",
         "#cfb27f",
@@ -11188,7 +11228,7 @@
       ],
       "cursor_bg": "#ef7fa8",
       "cursor_border": "#ef7fa8",
-      "cursor_fg": "#eaf2ef",
+      "cursor_fg": "#222524",
       "foreground": "#eaf2ef",
       "indexed": {},
       "selection_bg": "#543040",
@@ -11228,7 +11268,7 @@
       ],
       "cursor_bg": "#770080",
       "cursor_border": "#770080",
-      "cursor_fg": "#221321",
+      "cursor_fg": "#edf5e2",
       "foreground": "#221321",
       "indexed": {},
       "selection_bg": "#d9d2ef",
@@ -11268,7 +11308,7 @@
       ],
       "cursor_bg": "#0055bb",
       "cursor_border": "#0055bb",
-      "cursor_fg": "#232323",
+      "cursor_fg": "#fcffff",
       "foreground": "#232323",
       "indexed": {},
       "selection_bg": "#d4eaf3",
@@ -11308,7 +11348,7 @@
       ],
       "cursor_bg": "#d06f30",
       "cursor_border": "#d06f30",
-      "cursor_fg": "#201f36",
+      "cursor_fg": "#fff7f7",
       "foreground": "#201f36",
       "indexed": {},
       "selection_bg": "#dfe4f4",
@@ -11348,7 +11388,7 @@
       ],
       "cursor_bg": "#0033cc",
       "cursor_border": "#0033cc",
-      "cursor_fg": "#202020",
+      "cursor_fg": "#ffffff",
       "foreground": "#202020",
       "indexed": {},
       "selection_bg": "#bfefff",
@@ -11359,6 +11399,86 @@
       "author": "anhsirk0",
       "name": "Ef-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2c39",
+        "#ff6f6f",
+        "#41bf4f",
+        "#d0d24f",
+        "#57b0ff",
+        "#f59acf",
+        "#2fd0db",
+        "#eaedef"
+      ],
+      "background": "#131c2b",
+      "brights": [
+        "#4a5664",
+        "#ff7788",
+        "#30c489",
+        "#cab27f",
+        "#12b4ff",
+        "#cf90ff",
+        "#65d5a8",
+        "#969faf"
+      ],
+      "cursor_bg": "#8fdfff",
+      "cursor_border": "#8fdfff",
+      "cursor_fg": "#131c2b",
+      "foreground": "#eaedef",
+      "indexed": {},
+      "selection_bg": "#183c65",
+      "selection_fg": "#eaedef"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Maris-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e0e7ef",
+        "#c3303a",
+        "#007010",
+        "#805a1f",
+        "#375cc6",
+        "#80308f",
+        "#1f66af",
+        "#151a27"
+      ],
+      "background": "#edf4f8",
+      "brights": [
+        "#afb8c3",
+        "#b02440",
+        "#007047",
+        "#78542f",
+        "#003faf",
+        "#5f2fba",
+        "#006f70",
+        "#676470"
+      ],
+      "cursor_bg": "#036f99",
+      "cursor_border": "#036f99",
+      "cursor_fg": "#edf4f8",
+      "foreground": "#151a27",
+      "indexed": {},
+      "selection_bg": "#c8dcff",
+      "selection_fg": "#151a27"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Maris-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-light-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -11388,7 +11508,7 @@
       ],
       "cursor_bg": "#00ccff",
       "cursor_border": "#00ccff",
-      "cursor_fg": "#afbcbf",
+      "cursor_fg": "#000e17",
       "foreground": "#afbcbf",
       "indexed": {},
       "selection_bg": "#222f40",
@@ -11406,7 +11526,7 @@
   {
     "colors": {
       "ansi": [
-        "#d0d6d3",
+        "#e8f0f0",
         "#c42d2f",
         "#1a870f",
         "#a45f22",
@@ -11417,18 +11537,18 @@
       ],
       "background": "#f6fff9",
       "brights": [
-        "#777294",
+        "#c0c6c3",
         "#cf2f4f",
         "#007f68",
         "#ae5a30",
         "#265fbf",
         "#9435b4",
         "#0f7b8f",
-        "#34494a"
+        "#777294"
       ],
       "cursor_bg": "#bf005f",
       "cursor_border": "#bf005f",
-      "cursor_fg": "#34494a",
+      "cursor_fg": "#f6fff9",
       "foreground": "#34494a",
       "indexed": {},
       "selection_bg": "#d0e6ff",
@@ -11446,7 +11566,7 @@
   {
     "colors": {
       "ansi": [
-        "#cfb3c4",
+        "#f2e4ea",
         "#d3303a",
         "#217a3c",
         "#a45f22",
@@ -11457,18 +11577,18 @@
       ],
       "background": "#fff2f3",
       "brights": [
-        "#786e74",
+        "#cfb3c4",
         "#d50f7f",
         "#007f68",
         "#b65050",
         "#065fff",
         "#8e44f3",
         "#0f7b8f",
-        "#af4988"
+        "#786e74"
       ],
       "cursor_bg": "#cf0090",
       "cursor_border": "#cf0090",
-      "cursor_fg": "#4f4073",
+      "cursor_fg": "#fff2f3",
       "foreground": "#4f4073",
       "indexed": {},
       "selection_bg": "#eecfff",
@@ -11508,7 +11628,7 @@
       ],
       "cursor_bg": "#f0af7f",
       "cursor_border": "#f0af7f",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#130911",
       "foreground": "#d0d0d0",
       "indexed": {},
       "selection_bg": "#2f2630",
@@ -11526,7 +11646,7 @@
   {
     "colors": {
       "ansi": [
-        "#43353d",
+        "#2a2228",
         "#f48359",
         "#60b444",
         "#d4a052",
@@ -11537,22 +11657,22 @@
       ],
       "background": "#160f0f",
       "brights": [
-        "#908890",
+        "#564f55",
         "#ff85aa",
         "#60bf88",
         "#ef9680",
         "#72afff",
         "#a698ef",
         "#8fcfdf",
-        "#afdacf"
+        "#908890"
       ],
       "cursor_bg": "#ff99ff",
       "cursor_border": "#ff99ff",
-      "cursor_fg": "#d8cfd5",
+      "cursor_fg": "#160f0f",
       "foreground": "#d8cfd5",
       "indexed": {},
       "selection_bg": "#16304f",
-      "selection_fg": "#b8c6d5"
+      "selection_fg": "#d8cfd5"
     },
     "metadata": {
       "aliases": [],
@@ -11566,7 +11686,7 @@
   {
     "colors": {
       "ansi": [
-        "#d3d0d9",
+        "#ebe7f1",
         "#c3303a",
         "#057800",
         "#a45f22",
@@ -11577,18 +11697,18 @@
       ],
       "background": "#f8f5ff",
       "brights": [
-        "#786e74",
-        "#d03033",
-        "#057800",
-        "#b8532f",
-        "#5165e4",
-        "#c035aa",
-        "#3f6faf",
-        "#4f3363"
+        "#c3c0c9",
+        "#c01f5f",
+        "#007f6f",
+        "#b65050",
+        "#065fbf",
+        "#705ae3",
+        "#0f7a9d",
+        "#786e74"
       ],
-      "cursor_bg": "#375cd6",
-      "cursor_border": "#375cd6",
-      "cursor_fg": "#4f3363",
+      "cursor_bg": "#4f45ff",
+      "cursor_border": "#4f45ff",
+      "cursor_fg": "#f8f5ff",
       "foreground": "#4f3363",
       "indexed": {},
       "selection_bg": "#eed0ff",
@@ -11606,14 +11726,14 @@
   {
     "colors": {
       "ansi": [
-        "#352f2f",
+        "#282026",
         "#cf4f5f",
         "#2fa526",
         "#c48702",
         "#379cf6",
         "#b2608f",
         "#3fafcf",
-        "#908890"
+        "#dfd0d5"
       ],
       "background": "#15050f",
       "brights": [
@@ -11624,11 +11744,11 @@
         "#029fff",
         "#a6699f",
         "#4fafaf",
-        "#afdaef"
+        "#908890"
       ],
-      "cursor_bg": "#ff99ff",
-      "cursor_border": "#ff99ff",
-      "cursor_fg": "#d8cfd5",
+      "cursor_bg": "#fd3333",
+      "cursor_border": "#fd3333",
+      "cursor_fg": "#15050f",
       "foreground": "#dfd0d5",
       "indexed": {},
       "selection_bg": "#202d3f",
@@ -11646,7 +11766,7 @@
   {
     "colors": {
       "ansi": [
-        "#756275",
+        "#efecec",
         "#aa0010",
         "#217a3c",
         "#805d00",
@@ -11664,11 +11784,11 @@
         "#065fff",
         "#af40af",
         "#007faa",
-        "#194f90"
+        "#756275"
       ],
       "cursor_bg": "#bb0000",
       "cursor_border": "#bb0000",
-      "cursor_fg": "#1a1a1a",
+      "cursor_fg": "#fff9f9",
       "foreground": "#1a1a1a",
       "indexed": {},
       "selection_bg": "#dadadf",
@@ -11686,29 +11806,29 @@
   {
     "colors": {
       "ansi": [
-        "#353554",
-        "#ef6560",
-        "#6aad0f",
-        "#c48052",
-        "#6a9fff",
-        "#d369af",
-        "#6fafdf",
-        "#807c9f"
-      ],
-      "background": "#0f0b15",
-      "brights": [
-        "#807c9f",
+        "#1d202f",
         "#f47359",
         "#29a444",
-        "#df9080",
+        "#b58a52",
         "#3f95f6",
-        "#e580e0",
+        "#d369af",
         "#4fbaef",
         "#b8c6d5"
       ],
-      "cursor_bg": "#e580e0",
-      "cursor_border": "#e580e0",
-      "cursor_fg": "#b8c6d5",
+      "background": "#0f0b15",
+      "brights": [
+        "#4a4f62",
+        "#ff6a7a",
+        "#00a392",
+        "#df9080",
+        "#029fff",
+        "#af85ea",
+        "#35afbf",
+        "#807c9f"
+      ],
+      "cursor_bg": "#ff6ff0",
+      "cursor_border": "#ff6ff0",
+      "cursor_fg": "#0f0b15",
       "foreground": "#b8c6d5",
       "indexed": {},
       "selection_bg": "#342464",
@@ -11943,7 +12063,7 @@
       ],
       "cursor_bg": "#807a74",
       "cursor_border": "#807a74",
-      "cursor_fg": "#807a74",
+      "cursor_fg": "#22211d",
       "foreground": "#807a74",
       "indexed": {}
     },
@@ -12019,7 +12139,7 @@
       ],
       "cursor_bg": "#f2f2f2",
       "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
+      "cursor_fg": "#101010",
       "foreground": "#f2f2f2",
       "indexed": {}
     },
@@ -12056,7 +12176,7 @@
       ],
       "cursor_bg": "#f2f2f2",
       "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
+      "cursor_fg": "#4a453e",
       "foreground": "#f2f2f2",
       "indexed": {}
     },
@@ -12093,7 +12213,7 @@
       ],
       "cursor_bg": "#f2f2f2",
       "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
+      "cursor_fg": "#041a3b",
       "foreground": "#f2f2f2",
       "indexed": {}
     },
@@ -12669,7 +12789,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#323232",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -12748,7 +12868,7 @@
       ],
       "cursor_bg": "#b8a898",
       "cursor_border": "#b8a898",
-      "cursor_fg": "#b8a898",
+      "cursor_fg": "#2a211c",
       "foreground": "#b8a898",
       "indexed": {}
     },
@@ -12955,7 +13075,7 @@
       ],
       "cursor_bg": "#dadada",
       "cursor_border": "#dadada",
-      "cursor_fg": "#dadada",
+      "cursor_fg": "#141b1e",
       "foreground": "#dadada",
       "indexed": {}
     },
@@ -12992,44 +13112,7 @@
       ],
       "cursor_bg": "#d3c6aa",
       "cursor_border": "#d3c6aa",
-      "cursor_fg": "#d3c6aa",
-      "foreground": "#d3c6aa",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Everforest Dark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "e",
-      "wezterm_version": "20230320-124340-559cb7b0"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#4b565c",
-        "#e67e80",
-        "#a7c080",
-        "#dbbc7f",
-        "#7fbbb3",
-        "#d699b6",
-        "#83c092",
-        "#d3c6aa"
-      ],
-      "background": "#2f383e",
-      "brights": [
-        "#5c6a72",
-        "#f85552",
-        "#8da101",
-        "#dfa000",
-        "#3a94c5",
-        "#df69ba",
-        "#35a77c",
-        "#dfddc8"
-      ],
-      "cursor_bg": "#d3c6aa",
-      "cursor_border": "#d3c6aa",
-      "cursor_fg": "#d3c6aa",
+      "cursor_fg": "#2d353b",
       "foreground": "#d3c6aa",
       "indexed": {}
     },
@@ -13068,7 +13151,7 @@
       ],
       "cursor_bg": "#5c6a72",
       "cursor_border": "#5c6a72",
-      "cursor_fg": "#5c6a72",
+      "cursor_fg": "#fdf6e3",
       "foreground": "#5c6a72",
       "indexed": {}
     },
@@ -13146,7 +13229,7 @@
       ],
       "cursor_bg": "#ffb8d1",
       "cursor_border": "#ffb8d1",
-      "cursor_fg": "#ffb8d1",
+      "cursor_fg": "#5a5475",
       "foreground": "#c2ffdf",
       "indexed": {}
     },
@@ -13185,7 +13268,7 @@
       ],
       "cursor_bg": "#ffb8d1",
       "cursor_border": "#ffb8d1",
-      "cursor_fg": "#ffb8d1",
+      "cursor_fg": "#42395d",
       "foreground": "#c2ffdf",
       "indexed": {}
     },
@@ -13491,7 +13574,7 @@
       ],
       "cursor_bg": "#ecf0fe",
       "cursor_border": "#ecf0fe",
-      "cursor_fg": "#ecf0fe",
+      "cursor_fg": "#232537",
       "foreground": "#ecf0fe",
       "indexed": {}
     },
@@ -13614,7 +13697,7 @@
       ],
       "cursor_bg": "#1abc9c",
       "cursor_border": "#1abc9c",
-      "cursor_fg": "#1abc9c",
+      "cursor_fg": "#1f2d3a",
       "foreground": "#1abc9c",
       "indexed": {}
     },
@@ -13651,7 +13734,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#272a34",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -13731,7 +13814,7 @@
       ],
       "cursor_bg": "#b8dbef",
       "cursor_border": "#b8dbef",
-      "cursor_fg": "#b8dbef",
+      "cursor_fg": "#1d1f21",
       "foreground": "#b8dbef",
       "indexed": {}
     },
@@ -13846,7 +13929,7 @@
       ],
       "cursor_bg": "#d7d7db",
       "cursor_border": "#d7d7db",
-      "cursor_fg": "#d7d7db",
+      "cursor_fg": "#2a2a2e",
       "foreground": "#d7d7db",
       "indexed": {}
     },
@@ -13969,7 +14052,7 @@
       ],
       "cursor_bg": "#839496",
       "cursor_border": "#839496",
-      "cursor_fg": "#839496",
+      "cursor_fg": "#252e32",
       "foreground": "#94a3a5",
       "indexed": {}
     },
@@ -14006,7 +14089,7 @@
       ],
       "cursor_bg": "#adadad",
       "cursor_border": "#adadad",
-      "cursor_fg": "#adadad",
+      "cursor_fg": "#1b1c1d",
       "foreground": "#adadad",
       "indexed": {}
     },
@@ -14043,7 +14126,7 @@
       ],
       "cursor_bg": "#dec165",
       "cursor_border": "#dec165",
-      "cursor_fg": "#dec165",
+      "cursor_fg": "#251200",
       "foreground": "#dec165",
       "indexed": {}
     },
@@ -14080,7 +14163,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#1d2837",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -14330,7 +14413,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#1f1e1f",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -14504,7 +14587,7 @@
       ],
       "cursor_bg": "#3e3e3e",
       "cursor_border": "#3e3e3e",
-      "cursor_fg": "#3e3e3e",
+      "cursor_fg": "#f4f4f4",
       "foreground": "#3e3e3e",
       "indexed": {}
     },
@@ -14689,7 +14772,7 @@
       ],
       "cursor_bg": "#bfc7d5",
       "cursor_border": "#bfc7d5",
-      "cursor_fg": "#bfc7d5",
+      "cursor_fg": "#292d3e",
       "foreground": "#bfc7d5",
       "indexed": {}
     },
@@ -14726,7 +14809,7 @@
       ],
       "cursor_bg": "#ebeef9",
       "cursor_border": "#ebeef9",
-      "cursor_fg": "#ebeef9",
+      "cursor_fg": "#0d101b",
       "foreground": "#ebeef9",
       "indexed": {}
     },
@@ -14884,7 +14967,7 @@
       ],
       "cursor_bg": "#e8eaed",
       "cursor_border": "#e8eaed",
-      "cursor_fg": "#e8eaed",
+      "cursor_fg": "#202124",
       "foreground": "#e8eaed",
       "indexed": {}
     },
@@ -14970,7 +15053,7 @@
       ],
       "cursor_bg": "#5f6368",
       "cursor_border": "#5f6368",
-      "cursor_fg": "#5f6368",
+      "cursor_fg": "#ffffff",
       "foreground": "#5f6368",
       "indexed": {}
     },
@@ -15009,7 +15092,7 @@
       ],
       "cursor_bg": "#98d1ce",
       "cursor_border": "#98d1ce",
-      "cursor_fg": "#98d1ce",
+      "cursor_fg": "#0a0f14",
       "foreground": "#98d1ce",
       "indexed": {}
     },
@@ -15160,7 +15243,7 @@
       ],
       "cursor_bg": "#9f9fa1",
       "cursor_border": "#9f9fa1",
-      "cursor_fg": "#9f9fa1",
+      "cursor_fg": "#171423",
       "foreground": "#9f9fa1",
       "indexed": {}
     },
@@ -15238,7 +15321,7 @@
       ],
       "cursor_bg": "#fff0a5",
       "cursor_border": "#fff0a5",
-      "cursor_fg": "#fff0a5",
+      "cursor_fg": "#13773d",
       "foreground": "#fff0a5",
       "indexed": {}
     },
@@ -15646,7 +15729,7 @@
       ],
       "cursor_bg": "#3c3836",
       "cursor_border": "#3c3836",
-      "cursor_fg": "#3c3836",
+      "cursor_fg": "#fbf1c7",
       "foreground": "#3c3836",
       "indexed": {}
     },
@@ -15683,7 +15766,7 @@
       ],
       "cursor_bg": "#ebdbb2",
       "cursor_border": "#ebdbb2",
-      "cursor_fg": "#ebdbb2",
+      "cursor_fg": "#282828",
       "foreground": "#ebdbb2",
       "indexed": {}
     },
@@ -15886,45 +15969,6 @@
   {
     "colors": {
       "ansi": [
-        "#fbf1c7",
-        "#9d0006",
-        "#79740e",
-        "#b57614",
-        "#076678",
-        "#8f3f71",
-        "#427b58",
-        "#3c3836"
-      ],
-      "background": "#fbf1c7",
-      "brights": [
-        "#9d8374",
-        "#cc241d",
-        "#98971a",
-        "#d79921",
-        "#458588",
-        "#b16186",
-        "#689d69",
-        "#7c6f64"
-      ],
-      "cursor_bg": "#282828",
-      "cursor_border": "#282828",
-      "cursor_fg": "#fbf1c7",
-      "foreground": "#282828",
-      "indexed": {},
-      "selection_bg": "#d5c4a1",
-      "selection_fg": "#665c54"
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Gruvbox Light",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#f9f5d7",
         "#9d0006",
         "#79740e",
@@ -16088,7 +16132,7 @@
       ],
       "cursor_bg": "#d4be98",
       "cursor_border": "#d4be98",
-      "cursor_fg": "#d4be98",
+      "cursor_fg": "#282828",
       "foreground": "#d4be98",
       "indexed": {}
     },
@@ -16178,6 +16222,47 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
       "wezterm_version": "20230320-124340-559cb7b0"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fbf1c7",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#3c3836"
+      ],
+      "background": "#fbf1c7",
+      "brights": [
+        "#9d8374",
+        "#cc241d",
+        "#98971a",
+        "#d79921",
+        "#458588",
+        "#b16186",
+        "#689d69",
+        "#7c6f64"
+      ],
+      "cursor_bg": "#282828",
+      "cursor_border": "#282828",
+      "cursor_fg": "#fbf1c7",
+      "foreground": "#282828",
+      "indexed": {},
+      "selection_bg": "#d5c4a1",
+      "selection_fg": "#665c54"
+    },
+    "metadata": {
+      "aliases": [
+        "Gruvbox Light"
+      ],
+      "name": "GruvboxLight",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16371,7 +16456,7 @@
       ],
       "cursor_bg": "#a0a0a0",
       "cursor_border": "#a0a0a0",
-      "cursor_fg": "#a0a0a0",
+      "cursor_fg": "#121212",
       "foreground": "#a0a0a0",
       "indexed": {}
     },
@@ -16413,7 +16498,7 @@
       "foreground": "#eee9fc",
       "indexed": {},
       "scrollbar_thumb": "#3f3951",
-      "selection_bg": "#3f3951",
+      "selection_bg": "#e965a5",
       "selection_fg": "#eee9fc",
       "split": "#938aad",
       "tab_bar": {
@@ -16629,7 +16714,7 @@
       ],
       "cursor_bg": "#a8a49d",
       "cursor_border": "#a8a49d",
-      "cursor_fg": "#a8a49d",
+      "cursor_fg": "#010101",
       "foreground": "#a8a49d",
       "indexed": {}
     },
@@ -16924,7 +17009,7 @@
       ],
       "cursor_bg": "#baffaa",
       "cursor_border": "#baffaa",
-      "cursor_fg": "#baffaa",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -16963,7 +17048,7 @@
       ],
       "cursor_bg": "#ff0054",
       "cursor_border": "#ff0054",
-      "cursor_fg": "#ff0054",
+      "cursor_fg": "#efefef",
       "foreground": "#444444",
       "indexed": {}
     },
@@ -17043,7 +17128,7 @@
       ],
       "cursor_bg": "#ededed",
       "cursor_border": "#ededed",
-      "cursor_fg": "#ededed",
+      "cursor_fg": "#222225",
       "foreground": "#ededed",
       "indexed": {}
     },
@@ -17122,7 +17207,7 @@
       ],
       "cursor_bg": "#84c138",
       "cursor_border": "#84c138",
-      "cursor_fg": "#84c138",
+      "cursor_fg": "#100b05",
       "foreground": "#84c138",
       "indexed": {}
     },
@@ -17239,7 +17324,7 @@
       ],
       "cursor_bg": "#00ff00",
       "cursor_border": "#00ff00",
-      "cursor_fg": "#00ff00",
+      "cursor_fg": "#000000",
       "foreground": "#00ff00",
       "indexed": {}
     },
@@ -17276,7 +17361,7 @@
       ],
       "cursor_bg": "#000000",
       "cursor_border": "#000000",
-      "cursor_fg": "#000000",
+      "cursor_fg": "#ffffff",
       "foreground": "#000000",
       "indexed": {}
     },
@@ -17313,7 +17398,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#224fbc",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -17477,7 +17562,7 @@
       ],
       "cursor_bg": "#1c1e26",
       "cursor_border": "#1c1e26",
-      "cursor_fg": "#1c1e26",
+      "cursor_fg": "#fdf0ed",
       "foreground": "#1c1e26",
       "indexed": {}
     },
@@ -17487,53 +17572,6 @@
       ],
       "name": "Horizon Bright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1c1e26",
-        "#e93c58",
-        "#efaf8e",
-        "#efb993",
-        "#df5273",
-        "#b072d1",
-        "#24a8b4",
-        "#cbced0"
-      ],
-      "background": "#1c1e26",
-      "brights": [
-        "#6f6f70",
-        "#e93c58",
-        "#efaf8e",
-        "#efb993",
-        "#df5273",
-        "#b072d1",
-        "#24a8b4",
-        "#e3e6ee"
-      ],
-      "cursor_bg": "#cbced0",
-      "cursor_border": "#cbced0",
-      "cursor_fg": "#1c1e26",
-      "foreground": "#cbced0",
-      "indexed": {
-        "16": "#e58d7d",
-        "17": "#e4a382",
-        "18": "#232530",
-        "19": "#2e303e",
-        "20": "#9da0a2",
-        "21": "#dcdfe4"
-      },
-      "selection_bg": "#cbced0",
-      "selection_fg": "#1c1e26"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Michaël Ball (http://github.com/michael-ball/)",
-      "name": "Horizon Dark (base16)",
-      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -17610,7 +17648,7 @@
       ],
       "cursor_bg": "#fdf0ed",
       "cursor_border": "#fdf0ed",
-      "cursor_fg": "#fdf0ed",
+      "cursor_fg": "#1c1e26",
       "foreground": "#fdf0ed",
       "indexed": {}
     },
@@ -17620,53 +17658,6 @@
       ],
       "name": "Horizon Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#fdf0ed",
-        "#f7939b",
-        "#94e1b0",
-        "#fbe0d9",
-        "#da103f",
-        "#1d8991",
-        "#dc3318",
-        "#403c3d"
-      ],
-      "background": "#fdf0ed",
-      "brights": [
-        "#bdb3b1",
-        "#f7939b",
-        "#94e1b0",
-        "#fbe0d9",
-        "#da103f",
-        "#1d8991",
-        "#dc3318",
-        "#201c1d"
-      ],
-      "cursor_bg": "#403c3d",
-      "cursor_border": "#403c3d",
-      "cursor_fg": "#fdf0ed",
-      "foreground": "#403c3d",
-      "indexed": {
-        "16": "#f6661e",
-        "17": "#e58c92",
-        "18": "#fadad1",
-        "19": "#f9cbbe",
-        "20": "#948c8a",
-        "21": "#302c2d"
-      },
-      "selection_bg": "#403c3d",
-      "selection_fg": "#fdf0ed"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Michaël Ball (http://github.com/michael-ball/)",
-      "name": "Horizon Light (base16)",
-      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -17913,7 +17904,7 @@
       ],
       "cursor_bg": "#dbdbdb",
       "cursor_border": "#dbdbdb",
-      "cursor_fg": "#dbdbdb",
+      "cursor_fg": "#000000",
       "foreground": "#dbdbdb",
       "indexed": {}
     },
@@ -17989,7 +17980,7 @@
       ],
       "cursor_bg": "#94a3a5",
       "cursor_border": "#94a3a5",
-      "cursor_fg": "#94a3a5",
+      "cursor_fg": "#141414",
       "foreground": "#94a3a5",
       "indexed": {}
     },
@@ -17997,41 +17988,6 @@
       "aliases": [],
       "name": "Hybrid (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#282a2e",
-        "#a54242",
-        "#8c9440",
-        "#de935f",
-        "#5f819d",
-        "#85678f",
-        "#5e8d87",
-        "#707880"
-      ],
-      "background": "#1d1f21",
-      "brights": [
-        "#373b41",
-        "#cc6666",
-        "#b5bd68",
-        "#f0c674",
-        "#81a2be",
-        "#b294bb",
-        "#8abeb7",
-        "#c5c8c6"
-      ],
-      "foreground": "#c5c8c6",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "w0ng",
-      "name": "Hybrid (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -18096,7 +18052,7 @@
       ],
       "cursor_bg": "#fdfdfd",
       "cursor_border": "#fdfdfd",
-      "cursor_fg": "#fdfdfd",
+      "cursor_fg": "#000000",
       "foreground": "#fdfdfd",
       "indexed": {}
     },
@@ -18135,7 +18091,7 @@
       ],
       "cursor_bg": "#fdfdfd",
       "cursor_border": "#fdfdfd",
-      "cursor_fg": "#fdfdfd",
+      "cursor_fg": "#000000",
       "foreground": "#fdfdfd",
       "indexed": {}
     },
@@ -18174,7 +18130,7 @@
       ],
       "cursor_bg": "#d9efd3",
       "cursor_border": "#d9efd3",
-      "cursor_fg": "#d9efd3",
+      "cursor_fg": "#3a3d3f",
       "foreground": "#d9efd3",
       "indexed": {}
     },
@@ -18213,7 +18169,7 @@
       ],
       "cursor_bg": "#ffcb83",
       "cursor_border": "#ffcb83",
-      "cursor_fg": "#ffcb83",
+      "cursor_fg": "#262626",
       "foreground": "#ffcb83",
       "indexed": {}
     },
@@ -18495,7 +18451,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#323232",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -18726,7 +18682,7 @@
       ],
       "cursor_bg": "#ffa560",
       "cursor_border": "#ffa560",
-      "cursor_fg": "#ffa560",
+      "cursor_fg": "#000000",
       "foreground": "#eeeeee",
       "indexed": {}
     },
@@ -18905,6 +18861,45 @@
         "#c91b00",
         "#00c200",
         "#c7c400",
+        "#0225c7",
+        "#ca30c7",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c7c7c7",
+      "cursor_border": "#c7c7c7",
+      "cursor_fg": "#ffffff",
+      "foreground": "#c7c7c7",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Dark Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
         "#2225c4",
         "#ca30c7",
         "#00c5c7",
@@ -18932,6 +18927,201 @@
     "metadata": {
       "aliases": [],
       "name": "iTerm2 Default",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
+        "#0225c7",
+        "#ca30c7",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Light Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#626262",
+        "#ff8373",
+        "#b4fb73",
+        "#fffdc3",
+        "#a5d5fe",
+        "#ff90fe",
+        "#d1d1fe",
+        "#f1f1f1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#8f8f8f",
+        "#ffc4be",
+        "#d6fcba",
+        "#fffed5",
+        "#c2e3ff",
+        "#ffb2fe",
+        "#e6e6fe",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffb473",
+      "cursor_border": "#ffb473",
+      "cursor_fg": "#ffffff",
+      "foreground": "#c7c7c7",
+      "indexed": {},
+      "selection_bg": "#454d96",
+      "selection_fg": "#f4f4f4"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Pastel Dark Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#14191e",
+        "#b43c2a",
+        "#00c200",
+        "#c7c400",
+        "#2744c7",
+        "#c040be",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#15191f",
+      "brights": [
+        "#686868",
+        "#dd7975",
+        "#58e790",
+        "#ece100",
+        "#a7abf2",
+        "#e17ee1",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#000000",
+      "foreground": "#dcdcdc",
+      "indexed": {},
+      "selection_bg": "#b3d7ff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Smoooooth",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#d81e00",
+        "#5ea702",
+        "#cfae00",
+        "#427ab3",
+        "#89658e",
+        "#00a7aa",
+        "#dbded8"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#686a66",
+        "#f54235",
+        "#99e343",
+        "#fdeb61",
+        "#84b0d8",
+        "#bc94b7",
+        "#37e6e8",
+        "#f1f1f0"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Tango Dark",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#d81e00",
+        "#5ea702",
+        "#cfae00",
+        "#427ab3",
+        "#89658e",
+        "#00a7aa",
+        "#dbded8"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#686a66",
+        "#f54235",
+        "#99e343",
+        "#fdeb61",
+        "#84b0d8",
+        "#bc94b7",
+        "#37e6e8",
+        "#f1f1f0"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
       "wezterm_version": "nightly builds only"
@@ -19074,7 +19264,7 @@
       ],
       "cursor_bg": "#ffcc2f",
       "cursor_border": "#ffcc2f",
-      "cursor_fg": "#ffcc2f",
+      "cursor_fg": "#2c1d16",
       "foreground": "#ffcc2f",
       "indexed": {}
     },
@@ -19152,7 +19342,7 @@
       ],
       "cursor_bg": "#f7f6ec",
       "cursor_border": "#f7f6ec",
-      "cursor_fg": "#f7f6ec",
+      "cursor_fg": "#1e1e1e",
       "foreground": "#f7f6ec",
       "indexed": {}
     },
@@ -19265,7 +19455,7 @@
       ],
       "cursor_bg": "#dedede",
       "cursor_border": "#dedede",
-      "cursor_fg": "#dedede",
+      "cursor_fg": "#121212",
       "foreground": "#dedede",
       "indexed": {}
     },
@@ -19415,7 +19605,7 @@
       ],
       "cursor_bg": "#23476a",
       "cursor_border": "#23476a",
-      "cursor_fg": "#23476a",
+      "cursor_fg": "#758480",
       "foreground": "#23476a",
       "indexed": {}
     },
@@ -19487,7 +19677,7 @@
       ],
       "cursor_bg": "#dcd7ba",
       "cursor_border": "#dcd7ba",
-      "cursor_fg": "#dcd7ba",
+      "cursor_fg": "#1f1f28",
       "foreground": "#dcd7ba",
       "indexed": {}
     },
@@ -19641,7 +19831,7 @@
       ],
       "cursor_bg": "#f7f7f7",
       "cursor_border": "#f7f7f7",
-      "cursor_fg": "#f7f7f7",
+      "cursor_fg": "#0e100a",
       "foreground": "#f7f7f7",
       "indexed": {}
     },
@@ -19725,7 +19915,7 @@
       ],
       "cursor_bg": "#d8e2d7",
       "cursor_border": "#d8e2d7",
-      "cursor_fg": "#d8e2d7",
+      "cursor_fg": "#0d4a08",
       "foreground": "#d8e2d7",
       "indexed": {}
     },
@@ -19920,7 +20110,7 @@
       ],
       "cursor_bg": "#c7c7c7",
       "cursor_border": "#c7c7c7",
-      "cursor_fg": "#c7c7c7",
+      "cursor_fg": "#1f1926",
       "foreground": "#e0e0e0",
       "indexed": {}
     },
@@ -20001,7 +20191,7 @@
       ],
       "cursor_bg": "#959595",
       "cursor_border": "#959595",
-      "cursor_fg": "#959595",
+      "cursor_fg": "#222222",
       "foreground": "#959595",
       "indexed": {}
     },
@@ -20079,7 +20269,7 @@
       ],
       "cursor_bg": "#736e7d",
       "cursor_border": "#736e7d",
-      "cursor_fg": "#736e7d",
+      "cursor_fg": "#050014",
       "foreground": "#736e7d",
       "indexed": {}
     },
@@ -20151,7 +20341,7 @@
       ],
       "cursor_bg": "#afc2c2",
       "cursor_border": "#afc2c2",
-      "cursor_fg": "#afc2c2",
+      "cursor_fg": "#303030",
       "foreground": "#afc2c2",
       "indexed": {}
     },
@@ -20188,7 +20378,7 @@
       ],
       "cursor_bg": "#afc2c2",
       "cursor_border": "#afc2c2",
-      "cursor_fg": "#afc2c2",
+      "cursor_fg": "#000000",
       "foreground": "#afc2c2",
       "indexed": {}
     },
@@ -20609,7 +20799,7 @@
       ],
       "cursor_bg": "#caced8",
       "cursor_border": "#caced8",
-      "cursor_fg": "#caced8",
+      "cursor_fg": "#36464e",
       "foreground": "#caced8",
       "indexed": {}
     },
@@ -20648,7 +20838,7 @@
       ],
       "cursor_bg": "#c9cdd7",
       "cursor_border": "#c9cdd7",
-      "cursor_fg": "#c9cdd7",
+      "cursor_fg": "#323f46",
       "foreground": "#c9cdd7",
       "indexed": {}
     },
@@ -20687,7 +20877,7 @@
       ],
       "cursor_bg": "#484646",
       "cursor_border": "#484646",
-      "cursor_fg": "#484646",
+      "cursor_fg": "#ebe4e1",
       "foreground": "#484646",
       "indexed": {}
     },
@@ -20773,7 +20963,7 @@
       ],
       "cursor_bg": "#bdc3c7",
       "cursor_border": "#bdc3c7",
-      "cursor_fg": "#bdc3c7",
+      "cursor_fg": "#31363b",
       "foreground": "#bdc3c7",
       "indexed": {}
     },
@@ -20852,7 +21042,7 @@
       ],
       "cursor_bg": "#000000",
       "cursor_border": "#000000",
-      "cursor_fg": "#000000",
+      "cursor_fg": "#fef49c",
       "foreground": "#000000",
       "indexed": {}
     },
@@ -20889,7 +21079,7 @@
       ],
       "cursor_bg": "#23476a",
       "cursor_border": "#23476a",
-      "cursor_fg": "#23476a",
+      "cursor_fg": "#ffffff",
       "foreground": "#23476a",
       "indexed": {}
     },
@@ -21252,7 +21442,7 @@
       ],
       "cursor_bg": "#657b83",
       "cursor_border": "#657b83",
-      "cursor_fg": "#657b83",
+      "cursor_fg": "#1e282c",
       "foreground": "#c3c7d1",
       "indexed": {}
     },
@@ -21709,7 +21899,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#000000",
       "foreground": "#bbbbbb",
       "indexed": {}
     },
@@ -21861,7 +22051,7 @@
       ],
       "cursor_bg": "#cac296",
       "cursor_border": "#cac296",
-      "cursor_fg": "#cac296",
+      "cursor_fg": "#1d1908",
       "foreground": "#cac296",
       "indexed": {}
     },
@@ -22181,7 +22371,7 @@
       ],
       "cursor_bg": "#e1e1e0",
       "cursor_border": "#e1e1e0",
-      "cursor_fg": "#e1e1e0",
+      "cursor_fg": "#2d3743",
       "foreground": "#e1e1e0",
       "indexed": {}
     },
@@ -22333,11 +22523,11 @@
         "#0031a9",
         "#721045",
         "#00538b",
-        "#000000"
+        "#595959"
       ],
       "cursor_bg": "#282828",
       "cursor_border": "#282828",
-      "cursor_fg": "#000000",
+      "cursor_fg": "#d7d7d7",
       "foreground": "#000000",
       "indexed": {},
       "selection_bg": "#bcbcbc",
@@ -22350,6 +22540,88 @@
       "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-operandi-theme.el",
       "prefix": "m",
       "wezterm_version": "20230408-112425-69ae8472"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f2f2f2",
+        "#a60000",
+        "#006800",
+        "#695500",
+        "#0031a9",
+        "#721045",
+        "#005e8b",
+        "#000000"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#c4c4c4",
+        "#a0132f",
+        "#00663f",
+        "#77492f",
+        "#0000b0",
+        "#531ab6",
+        "#005f5f",
+        "#595959"
+      ],
+      "cursor_bg": "#dfa0f0",
+      "cursor_border": "#dfa0f0",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#bdbdbd",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [
+        "Modus-Operandi-Tritanopia"
+      ],
+      "author": "anhsirk0",
+      "name": "Modus-Operandi-Deuteranopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-deuteranopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#efe9dd",
+        "#a60000",
+        "#006800",
+        "#6f5500",
+        "#0031a9",
+        "#721045",
+        "#005e8b",
+        "#000000"
+      ],
+      "background": "#fbf7f0",
+      "brights": [
+        "#c9b9b0",
+        "#a0132f",
+        "#00663f",
+        "#7a4f2f",
+        "#0000b0",
+        "#531ab6",
+        "#005f5f",
+        "#595959"
+      ],
+      "cursor_bg": "#dfa0f0",
+      "cursor_border": "#dfa0f0",
+      "cursor_fg": "#fbf7f0",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c2bcb5",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Operandi-Tinted",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-tinted-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22373,11 +22645,11 @@
         "#79a8ff",
         "#f78fe7",
         "#4ae2f0",
-        "#ffffff"
+        "#989898"
       ],
       "cursor_bg": "#f4f4f4",
       "cursor_border": "#f4f4f4",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#323232",
       "foreground": "#ffffff",
       "indexed": {},
       "selection_bg": "#3c3c3c",
@@ -22390,6 +22662,126 @@
       "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-vivendi-theme.el",
       "prefix": "m",
       "wezterm_version": "20230408-112425-69ae8472"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#ff5f59",
+        "#44bc44",
+        "#cabf00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#535353",
+        "#ff7f9f",
+        "#00c06f",
+        "#d8af7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#5a5a5a",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Deuteranopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-deuteranopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2235",
+        "#ff5f59",
+        "#44bc44",
+        "#d0bc00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#0d0e1c",
+      "brights": [
+        "#4a4f69",
+        "#ff7f9f",
+        "#00c06f",
+        "#dfaf7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#0d0e1c",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#555a66",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Tinted",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tinted-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#ff5f59",
+        "#44bc44",
+        "#cabf00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#535353",
+        "#ff6f9f",
+        "#00c06f",
+        "#d8af7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#5a5a5a",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Tritanopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tritanopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22456,7 +22848,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#1b1d1e",
       "foreground": "#bbbbbb",
       "indexed": {}
     },
@@ -22493,7 +22885,7 @@
       ],
       "cursor_bg": "#f7d66a",
       "cursor_border": "#f7d66a",
-      "cursor_fg": "#f7d66a",
+      "cursor_fg": "#120b0d",
       "foreground": "#f7d66a",
       "indexed": {}
     },
@@ -22606,7 +22998,7 @@
       ],
       "cursor_bg": "#ff9400",
       "cursor_border": "#ff9400",
-      "cursor_fg": "#ff9400",
+      "cursor_fg": "#2b1900",
       "foreground": "#ff9400",
       "indexed": {}
     },
@@ -22645,7 +23037,7 @@
       ],
       "cursor_bg": "#00ccff",
       "cursor_border": "#00ccff",
-      "cursor_fg": "#00ccff",
+      "cursor_fg": "#00222b",
       "foreground": "#00ccff",
       "indexed": {}
     },
@@ -22684,7 +23076,7 @@
       ],
       "cursor_bg": "#0bff00",
       "cursor_border": "#0bff00",
-      "cursor_fg": "#0bff00",
+      "cursor_fg": "#022b00",
       "foreground": "#0bff00",
       "indexed": {}
     },
@@ -22723,7 +23115,7 @@
       ],
       "cursor_bg": "#ff3600",
       "cursor_border": "#ff3600",
-      "cursor_fg": "#ff3600",
+      "cursor_fg": "#2b0c00",
       "foreground": "#ff3600",
       "indexed": {}
     },
@@ -22797,7 +23189,7 @@
       ],
       "cursor_bg": "#fafafa",
       "cursor_border": "#fafafa",
-      "cursor_fg": "#fafafa",
+      "cursor_fg": "#262626",
       "foreground": "#fafafa",
       "indexed": {}
     },
@@ -22836,7 +23228,7 @@
       ],
       "cursor_bg": "#ffd300",
       "cursor_border": "#ffd300",
-      "cursor_fg": "#ffd300",
+      "cursor_fg": "#2b2400",
       "foreground": "#ffd300",
       "indexed": {}
     },
@@ -23029,7 +23421,7 @@
       ],
       "cursor_bg": "#f8f8f2",
       "cursor_border": "#f8f8f2",
-      "cursor_fg": "#f8f8f2",
+      "cursor_fg": "#272822",
       "foreground": "#f8f8f2",
       "indexed": {}
     },
@@ -23068,7 +23460,7 @@
       ],
       "cursor_bg": "#fdf9f3",
       "cursor_border": "#fdf9f3",
-      "cursor_fg": "#fdf9f3",
+      "cursor_fg": "#363537",
       "foreground": "#fdf9f3",
       "indexed": {}
     },
@@ -23107,7 +23499,7 @@
       ],
       "cursor_bg": "#fbf2f3",
       "cursor_border": "#fbf2f3",
-      "cursor_fg": "#fbf2f3",
+      "cursor_fg": "#3e3838",
       "foreground": "#fbf2f3",
       "indexed": {}
     },
@@ -23227,7 +23619,7 @@
       ],
       "cursor_bg": "#c4c5b5",
       "cursor_border": "#c4c5b5",
-      "cursor_fg": "#c4c5b5",
+      "cursor_fg": "#1a1a1a",
       "foreground": "#c4c5b5",
       "indexed": {}
     },
@@ -23303,7 +23695,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#211f46",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -23451,7 +23843,7 @@
       ],
       "cursor_bg": "#a0a0a0",
       "cursor_border": "#a0a0a0",
-      "cursor_fg": "#a0a0a0",
+      "cursor_fg": "#222222",
       "foreground": "#a0a0a0",
       "indexed": {}
     },
@@ -23792,7 +24184,7 @@
       ],
       "cursor_bg": "#c7c8ff",
       "cursor_border": "#c7c8ff",
-      "cursor_fg": "#c7c8ff",
+      "cursor_fg": "#20242d",
       "foreground": "#c7c8ff",
       "indexed": {}
     },
@@ -23872,7 +24264,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#271f19",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -23909,7 +24301,7 @@
       ],
       "cursor_bg": "#23476a",
       "cursor_border": "#23476a",
-      "cursor_fg": "#23476a",
+      "cursor_fg": "#758480",
       "foreground": "#23476a",
       "indexed": {}
     },
@@ -23987,7 +24379,7 @@
       ],
       "cursor_bg": "#e6e8ef",
       "cursor_border": "#e6e8ef",
-      "cursor_fg": "#e6e8ef",
+      "cursor_fg": "#1c1e22",
       "foreground": "#e6e8ef",
       "indexed": {}
     },
@@ -24024,7 +24416,7 @@
       ],
       "cursor_bg": "#d6deeb",
       "cursor_border": "#d6deeb",
-      "cursor_fg": "#d6deeb",
+      "cursor_fg": "#011627",
       "foreground": "#d6deeb",
       "indexed": {}
     },
@@ -24236,7 +24628,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#000000",
       "foreground": "#bbbbbb",
       "indexed": {}
     },
@@ -24315,7 +24707,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#171717",
       "foreground": "#bbbbbb",
       "indexed": {}
     },
@@ -24352,7 +24744,7 @@
       ],
       "cursor_bg": "#dfdfdf",
       "cursor_border": "#dfdfdf",
-      "cursor_fg": "#dfdfdf",
+      "cursor_fg": "#2f2f2f",
       "foreground": "#dfdfdf",
       "indexed": {}
     },
@@ -24557,7 +24949,7 @@
       ],
       "cursor_bg": "#d8dee9",
       "cursor_border": "#d8dee9",
-      "cursor_fg": "#d8dee9",
+      "cursor_fg": "#2e3440",
       "foreground": "#d8dee9",
       "indexed": {}
     },
@@ -24594,7 +24986,7 @@
       ],
       "cursor_bg": "#439ecf",
       "cursor_border": "#439ecf",
-      "cursor_fg": "#439ecf",
+      "cursor_fg": "#ebeaf2",
       "foreground": "#004f7c",
       "indexed": {}
     },
@@ -24852,7 +25244,7 @@
       ],
       "cursor_bg": "#3b2322",
       "cursor_border": "#3b2322",
-      "cursor_fg": "#3b2322",
+      "cursor_fg": "#dfdbc3",
       "foreground": "#3b2322",
       "indexed": {}
     },
@@ -25035,7 +25427,7 @@
       ],
       "cursor_bg": "#cdcdcd",
       "cursor_border": "#cdcdcd",
-      "cursor_fg": "#cdcdcd",
+      "cursor_fg": "#283033",
       "foreground": "#cdcdcd",
       "indexed": {}
     },
@@ -25232,7 +25624,7 @@
       ],
       "cursor_bg": "#979cac",
       "cursor_border": "#979cac",
-      "cursor_fg": "#979cac",
+      "cursor_fg": "#1c1f27",
       "foreground": "#979cac",
       "indexed": {}
     },
@@ -25271,7 +25663,7 @@
       ],
       "cursor_bg": "#b3b8c3",
       "cursor_border": "#b3b8c3",
-      "cursor_fg": "#b3b8c3",
+      "cursor_fg": "#121b21",
       "foreground": "#b3b8c3",
       "indexed": {}
     },
@@ -25477,7 +25869,7 @@
       ],
       "cursor_bg": "#8a8dae",
       "cursor_border": "#8a8dae",
-      "cursor_fg": "#8a8dae",
+      "cursor_fg": "#222125",
       "foreground": "#8a8dae",
       "indexed": {}
     },
@@ -25514,7 +25906,7 @@
       ],
       "cursor_bg": "#abb2bf",
       "cursor_border": "#abb2bf",
-      "cursor_fg": "#abb2bf",
+      "cursor_fg": "#191622",
       "foreground": "#abb2bf",
       "indexed": {}
     },
@@ -25551,7 +25943,7 @@
       ],
       "cursor_bg": "#5c6370",
       "cursor_border": "#5c6370",
-      "cursor_fg": "#5c6370",
+      "cursor_fg": "#1e2127",
       "foreground": "#5c6370",
       "indexed": {}
     },
@@ -25590,7 +25982,7 @@
       ],
       "cursor_bg": "#dcdfe4",
       "cursor_border": "#dcdfe4",
-      "cursor_fg": "#dcdfe4",
+      "cursor_fg": "#000000",
       "foreground": "#dcdfe4",
       "indexed": {}
     },
@@ -25676,7 +26068,7 @@
       ],
       "cursor_bg": "#2a2b32",
       "cursor_border": "#2a2b32",
-      "cursor_fg": "#2a2b32",
+      "cursor_fg": "#f8f8f8",
       "foreground": "#2a2b32",
       "indexed": {}
     },
@@ -25980,6 +26372,43 @@
   {
     "colors": {
       "ansi": [
+        "#262626",
+        "#ee5396",
+        "#42be65",
+        "#ffe97b",
+        "#33b1ff",
+        "#ff7eb6",
+        "#3ddbd9",
+        "#dde1e6"
+      ],
+      "background": "#161616",
+      "brights": [
+        "#393939",
+        "#ee5396",
+        "#42be65",
+        "#ffe97b",
+        "#33b1ff",
+        "#ff7eb6",
+        "#3ddbd9",
+        "#ffffff"
+      ],
+      "cursor_bg": "#6f6f6f",
+      "cursor_border": "#6f6f6f",
+      "cursor_fg": "#161616",
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Oxocarbon Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#292d3e",
         "#f07178",
         "#c3e88d",
@@ -26002,7 +26431,7 @@
       ],
       "cursor_bg": "#bfc7d5",
       "cursor_border": "#bfc7d5",
-      "cursor_fg": "#bfc7d5",
+      "cursor_fg": "#292d3e",
       "foreground": "#bfc7d5",
       "indexed": {}
     },
@@ -26080,7 +26509,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#232e37",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -26117,7 +26546,7 @@
       ],
       "cursor_bg": "#f0f0f0",
       "cursor_border": "#f0f0f0",
-      "cursor_fg": "#f0f0f0",
+      "cursor_fg": "#1d1e20",
       "foreground": "#f0f0f0",
       "indexed": {}
     },
@@ -26275,7 +26704,7 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#1c1c1c",
       "foreground": "#d0d0d0",
       "indexed": {}
     },
@@ -26361,7 +26790,7 @@
       ],
       "cursor_bg": "#444444",
       "cursor_border": "#444444",
-      "cursor_fg": "#444444",
+      "cursor_fg": "#eeeeee",
       "foreground": "#444444",
       "indexed": {}
     },
@@ -26562,7 +26991,7 @@
       ],
       "cursor_bg": "#a39e9b",
       "cursor_border": "#a39e9b",
-      "cursor_fg": "#a39e9b",
+      "cursor_fg": "#2f1e2e",
       "foreground": "#a39e9b",
       "indexed": {}
     },
@@ -26716,7 +27145,7 @@
       ],
       "cursor_bg": "#f2f2f2",
       "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
+      "cursor_fg": "#000000",
       "foreground": "#f2f2f2",
       "indexed": {}
     },
@@ -26794,7 +27223,7 @@
       ],
       "cursor_bg": "#f1f1f1",
       "cursor_border": "#f1f1f1",
-      "cursor_fg": "#f1f1f1",
+      "cursor_fg": "#212121",
       "foreground": "#f1f1f1",
       "indexed": {}
     },
@@ -26831,7 +27260,7 @@
       ],
       "cursor_bg": "#424242",
       "cursor_border": "#424242",
-      "cursor_fg": "#424242",
+      "cursor_fg": "#f1f1f1",
       "foreground": "#424242",
       "indexed": {}
     },
@@ -26989,7 +27418,7 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#000000",
       "foreground": "#c7c7c7",
       "indexed": {}
     },
@@ -27241,7 +27670,7 @@
       ],
       "cursor_bg": "#d1cae8",
       "cursor_border": "#d1cae8",
-      "cursor_fg": "#d1cae8",
+      "cursor_fg": "#241f33",
       "foreground": "#d1cae8",
       "indexed": {}
     },
@@ -27319,7 +27748,7 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#1c1c1c",
       "foreground": "#d0d0d0",
       "indexed": {}
     },
@@ -27355,8 +27784,8 @@
         "#ffffff"
       ],
       "compose_cursor": "#fcc5e9",
-      "cursor_bg": "#7390aa",
-      "cursor_border": "#7390aa",
+      "cursor_bg": "#a6accd",
+      "cursor_border": "#a6accd",
       "cursor_fg": "#1b1e28",
       "foreground": "#e4f0fb",
       "indexed": {
@@ -27445,8 +27874,8 @@
         "#ffffff"
       ],
       "compose_cursor": "#fcc5e9",
-      "cursor_bg": "#7390aa",
-      "cursor_border": "#7390aa",
+      "cursor_bg": "#a6accd",
+      "cursor_border": "#a6accd",
       "cursor_fg": "#252b37",
       "foreground": "#e4f0fb",
       "indexed": {
@@ -27669,7 +28098,7 @@
       ],
       "cursor_bg": "#f6f6f7",
       "cursor_border": "#f6f6f7",
-      "cursor_fg": "#f6f6f7",
+      "cursor_fg": "#052454",
       "foreground": "#f6f6f7",
       "indexed": {}
     },
@@ -27708,7 +28137,7 @@
       ],
       "cursor_bg": "#f1f1f1",
       "cursor_border": "#f1f1f1",
-      "cursor_fg": "#f1f1f1",
+      "cursor_fg": "#282828",
       "foreground": "#f1f1f1",
       "indexed": {}
     },
@@ -27860,7 +28289,7 @@
       ],
       "cursor_bg": "#f2f2f2",
       "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
+      "cursor_fg": "#000000",
       "foreground": "#f2f2f2",
       "indexed": {}
     },
@@ -27971,7 +28400,7 @@
       ],
       "cursor_bg": "#c9d1d9",
       "cursor_border": "#c9d1d9",
-      "cursor_fg": "#c9d1d9",
+      "cursor_fg": "#161b22",
       "foreground": "#c9d1d9",
       "indexed": {}
     },
@@ -28581,7 +29010,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#762423",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -28734,7 +29163,7 @@
       ],
       "cursor_bg": "#d7c9a7",
       "cursor_border": "#d7c9a7",
-      "cursor_fg": "#d7c9a7",
+      "cursor_fg": "#7a251e",
       "foreground": "#d7c9a7",
       "indexed": {}
     },
@@ -28812,7 +29241,7 @@
       ],
       "cursor_bg": "#d9d9d9",
       "cursor_border": "#d9d9d9",
-      "cursor_fg": "#d9d9d9",
+      "cursor_fg": "#353a44",
       "foreground": "#d9d9d9",
       "indexed": {}
     },
@@ -28964,7 +29393,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#2b2b2b",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -29174,7 +29603,7 @@
       ],
       "cursor_bg": "#e0def4",
       "cursor_border": "#e0def4",
-      "cursor_fg": "#e0def4",
+      "cursor_fg": "#191724",
       "foreground": "#e0def4",
       "indexed": {}
     },
@@ -29258,7 +29687,7 @@
       ],
       "cursor_bg": "#575279",
       "cursor_border": "#575279",
-      "cursor_fg": "#575279",
+      "cursor_fg": "#faf4ed",
       "foreground": "#575279",
       "indexed": {}
     },
@@ -29342,7 +29771,7 @@
       ],
       "cursor_bg": "#e0def4",
       "cursor_border": "#e0def4",
-      "cursor_fg": "#e0def4",
+      "cursor_fg": "#232136",
       "foreground": "#e0def4",
       "indexed": {}
     },
@@ -29459,7 +29888,7 @@
       ],
       "cursor_bg": "#514968",
       "cursor_border": "#514968",
-      "cursor_fg": "#514968",
+      "cursor_fg": "#100815",
       "foreground": "#514968",
       "indexed": {}
     },
@@ -29785,7 +30214,7 @@
       ],
       "cursor_bg": "#23476a",
       "cursor_border": "#23476a",
-      "cursor_fg": "#23476a",
+      "cursor_fg": "#758480",
       "foreground": "#23476a",
       "indexed": {}
     },
@@ -29861,7 +30290,7 @@
       ],
       "cursor_bg": "#deb88d",
       "cursor_border": "#deb88d",
-      "cursor_fg": "#deb88d",
+      "cursor_fg": "#09141b",
       "foreground": "#deb88d",
       "indexed": {}
     },
@@ -29940,7 +30369,7 @@
       ],
       "cursor_bg": "#d4e7d4",
       "cursor_border": "#d4e7d4",
-      "cursor_fg": "#d4e7d4",
+      "cursor_fg": "#243435",
       "foreground": "#d4e7d4",
       "indexed": {}
     },
@@ -30217,7 +30646,7 @@
       ],
       "cursor_bg": "#cacecd",
       "cursor_border": "#cacecd",
-      "cursor_fg": "#cacecd",
+      "cursor_fg": "#111213",
       "foreground": "#cacecd",
       "indexed": {}
     },
@@ -30463,7 +30892,7 @@
       ],
       "cursor_bg": "#405555",
       "cursor_border": "#405555",
-      "cursor_fg": "#405555",
+      "cursor_fg": "#001015",
       "foreground": "#405555",
       "indexed": {}
     },
@@ -30617,7 +31046,7 @@
       ],
       "cursor_bg": "#4882cd",
       "cursor_border": "#4882cd",
-      "cursor_fg": "#4882cd",
+      "cursor_fg": "#2a201f",
       "foreground": "#4882cd",
       "indexed": {}
     },
@@ -30859,7 +31288,7 @@
       ],
       "cursor_bg": "#35b1d2",
       "cursor_border": "#35b1d2",
-      "cursor_fg": "#35b1d2",
+      "cursor_fg": "#222222",
       "foreground": "#35b1d2",
       "indexed": {}
     },
@@ -30974,7 +31403,7 @@
       ],
       "cursor_bg": "#f7f7f7",
       "cursor_border": "#f7f7f7",
-      "cursor_fg": "#f7f7f7",
+      "cursor_fg": "#242424",
       "foreground": "#f7f7f7",
       "indexed": {}
     },
@@ -31097,7 +31526,7 @@
       ],
       "cursor_bg": "#97979b",
       "cursor_border": "#97979b",
-      "cursor_fg": "#97979b",
+      "cursor_fg": "#282a36",
       "foreground": "#eff0eb",
       "indexed": {}
     },
@@ -31134,7 +31563,7 @@
       ],
       "cursor_bg": "#99a3a2",
       "cursor_border": "#99a3a2",
-      "cursor_fg": "#99a3a2",
+      "cursor_fg": "#242626",
       "foreground": "#99a3a2",
       "indexed": {}
     },
@@ -31418,7 +31847,7 @@
       ],
       "cursor_bg": "#d2d8d9",
       "cursor_border": "#d2d8d9",
-      "cursor_fg": "#d2d8d9",
+      "cursor_fg": "#3d3f41",
       "foreground": "#d2d8d9",
       "indexed": {}
     },
@@ -31455,7 +31884,7 @@
       ],
       "cursor_bg": "#839496",
       "cursor_border": "#839496",
-      "cursor_fg": "#839496",
+      "cursor_fg": "#002b36",
       "foreground": "#839496",
       "indexed": {}
     },
@@ -31575,7 +32004,7 @@
       ],
       "cursor_bg": "#9cc2c3",
       "cursor_border": "#9cc2c3",
-      "cursor_fg": "#9cc2c3",
+      "cursor_fg": "#001e27",
       "foreground": "#9cc2c3",
       "indexed": {}
     },
@@ -31612,7 +32041,7 @@
       ],
       "cursor_bg": "#657b83",
       "cursor_border": "#657b83",
-      "cursor_fg": "#657b83",
+      "cursor_fg": "#fdf6e3",
       "foreground": "#657b83",
       "indexed": {}
     },
@@ -31649,7 +32078,7 @@
       ],
       "cursor_bg": "#e2e2e3",
       "cursor_border": "#e2e2e3",
-      "cursor_fg": "#e2e2e3",
+      "cursor_fg": "#2c2e34",
       "foreground": "#e2e2e3",
       "indexed": {}
     },
@@ -31762,7 +32191,7 @@
       ],
       "cursor_bg": "#ecf0c1",
       "cursor_border": "#ecf0c1",
-      "cursor_fg": "#ecf0c1",
+      "cursor_fg": "#0a1e24",
       "foreground": "#ecf0c1",
       "indexed": {}
     },
@@ -31840,7 +32269,7 @@
       ],
       "cursor_bg": "#b3b8c3",
       "cursor_border": "#b3b8c3",
-      "cursor_fg": "#b3b8c3",
+      "cursor_fg": "#20242d",
       "foreground": "#b3b8c3",
       "indexed": {}
     },
@@ -31919,7 +32348,7 @@
       ],
       "cursor_bg": "#bdbaae",
       "cursor_border": "#bdbaae",
-      "cursor_fg": "#bdbaae",
+      "cursor_fg": "#222222",
       "foreground": "#bdbaae",
       "indexed": {}
     },
@@ -31998,7 +32427,7 @@
       ],
       "cursor_bg": "#c9c6bc",
       "cursor_border": "#c9c6bc",
-      "cursor_fg": "#c9c6bc",
+      "cursor_fg": "#222222",
       "foreground": "#c9c6bc",
       "indexed": {}
     },
@@ -32195,7 +32624,7 @@
       ],
       "cursor_bg": "#ecf0c1",
       "cursor_border": "#ecf0c1",
-      "cursor_fg": "#ecf0c1",
+      "cursor_fg": "#0a1e24",
       "foreground": "#ecf0c1",
       "indexed": {}
     },
@@ -32271,7 +32700,7 @@
       ],
       "cursor_bg": "#a1a1a1",
       "cursor_border": "#a1a1a1",
-      "cursor_fg": "#a1a1a1",
+      "cursor_fg": "#0a1e24",
       "foreground": "#a1a1a1",
       "indexed": {}
     },
@@ -32308,7 +32737,7 @@
       ],
       "cursor_bg": "#fbb829",
       "cursor_border": "#fbb829",
-      "cursor_fg": "#fbb829",
+      "cursor_fg": "#1c1b19",
       "foreground": "#fce8c3",
       "indexed": {}
     },
@@ -32423,7 +32852,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#272822",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -32644,7 +33073,7 @@
       ],
       "cursor_bg": "#c9c9c9",
       "cursor_border": "#c9c9c9",
-      "cursor_fg": "#c9c9c9",
+      "cursor_fg": "#1a1818",
       "foreground": "#c9c9c9",
       "indexed": {}
     },
@@ -32716,7 +33145,7 @@
       ],
       "cursor_bg": "#c3c7d1",
       "cursor_border": "#c3c7d1",
-      "cursor_fg": "#c3c7d1",
+      "cursor_fg": "#282c34",
       "foreground": "#c3c7d1",
       "indexed": {}
     },
@@ -32790,7 +33219,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#222235",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -32870,7 +33299,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -33040,7 +33469,7 @@
       ],
       "cursor_bg": "#03edf9",
       "cursor_border": "#03edf9",
-      "cursor_fg": "#03edf9",
+      "cursor_fg": "#262335",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -33079,7 +33508,7 @@
       ],
       "cursor_bg": "#f2f2e3",
       "cursor_border": "#f2f2e3",
-      "cursor_fg": "#f2f2e3",
+      "cursor_fg": "#241b30",
       "foreground": "#f2f2e3",
       "indexed": {}
     },
@@ -33467,7 +33896,7 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#262626",
       "foreground": "#d0d0d0",
       "indexed": {}
     },
@@ -33551,7 +33980,7 @@
       ],
       "cursor_bg": "#eeeeee",
       "cursor_border": "#eeeeee",
-      "cursor_fg": "#eeeeee",
+      "cursor_fg": "#282828",
       "foreground": "#eeeeee",
       "indexed": {}
     },
@@ -33722,7 +34151,7 @@
       ],
       "cursor_bg": "#7f7f7f",
       "cursor_border": "#7f7f7f",
-      "cursor_fg": "#7f7f7f",
+      "cursor_fg": "#ffffff",
       "foreground": "#000000",
       "indexed": {}
     },
@@ -33759,7 +34188,7 @@
       ],
       "cursor_bg": "#868a8c",
       "cursor_border": "#868a8c",
-      "cursor_fg": "#868a8c",
+      "cursor_fg": "#091116",
       "foreground": "#868a8c",
       "indexed": {}
     },
@@ -33875,7 +34304,7 @@
       ],
       "cursor_bg": "#f8f8f8",
       "cursor_border": "#f8f8f8",
-      "cursor_fg": "#f8f8f8",
+      "cursor_fg": "#1b1d1e",
       "foreground": "#f8f8f8",
       "indexed": {}
     },
@@ -34021,7 +34450,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#2e2e35",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -34255,7 +34684,7 @@
       ],
       "cursor_bg": "#c0caf5",
       "cursor_border": "#c0caf5",
-      "cursor_fg": "#c0caf5",
+      "cursor_fg": "#1a1b26",
       "foreground": "#c0caf5",
       "indexed": {}
     },
@@ -34378,7 +34807,7 @@
       ],
       "cursor_bg": "#565a6e",
       "cursor_border": "#565a6e",
-      "cursor_fg": "#565a6e",
+      "cursor_fg": "#d5d6db",
       "foreground": "#565a6e",
       "indexed": {}
     },
@@ -34585,7 +35014,7 @@
       ],
       "cursor_bg": "#c0caf5",
       "cursor_border": "#c0caf5",
-      "cursor_fg": "#c0caf5",
+      "cursor_fg": "#24283b",
       "foreground": "#c0caf5",
       "indexed": {}
     },
@@ -35153,7 +35582,7 @@
       ],
       "cursor_bg": "#4c4c4c",
       "cursor_border": "#4c4c4c",
-      "cursor_fg": "#4c4c4c",
+      "cursor_fg": "#ffffff",
       "foreground": "#4d4d4c",
       "indexed": {}
     },
@@ -35264,7 +35693,7 @@
       ],
       "cursor_bg": "#c4c8c5",
       "cursor_border": "#c4c8c5",
-      "cursor_fg": "#c4c8c5",
+      "cursor_fg": "#1d1f21",
       "foreground": "#c5c8c6",
       "indexed": {}
     },
@@ -35342,7 +35771,7 @@
       ],
       "cursor_bg": "#fffefe",
       "cursor_border": "#fffefe",
-      "cursor_fg": "#fffefe",
+      "cursor_fg": "#002451",
       "foreground": "#fffefe",
       "indexed": {}
     },
@@ -35420,7 +35849,7 @@
       ],
       "cursor_bg": "#e9e9e9",
       "cursor_border": "#e9e9e9",
-      "cursor_fg": "#e9e9e9",
+      "cursor_fg": "#000000",
       "foreground": "#e9e9e9",
       "indexed": {}
     },
@@ -35537,7 +35966,7 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#2c2c2c",
       "foreground": "#cccccc",
       "indexed": {}
     },
@@ -35576,7 +36005,7 @@
       ],
       "cursor_bg": "#31d07b",
       "cursor_border": "#31d07b",
-      "cursor_fg": "#31d07b",
+      "cursor_fg": "#24364b",
       "foreground": "#31d07b",
       "indexed": {}
     },
@@ -35695,7 +36124,7 @@
       ],
       "cursor_bg": "#786b53",
       "cursor_border": "#786b53",
-      "cursor_fg": "#786b53",
+      "cursor_fg": "#191919",
       "foreground": "#786b53",
       "indexed": {}
     },
@@ -35892,7 +36321,7 @@
       ],
       "cursor_bg": "#ffffd4",
       "cursor_border": "#ffffd4",
-      "cursor_fg": "#ffffd4",
+      "cursor_fg": "#141414",
       "foreground": "#ffffd4",
       "indexed": {}
     },
@@ -36335,7 +36764,7 @@
       ],
       "cursor_bg": "#23476a",
       "cursor_border": "#23476a",
-      "cursor_fg": "#23476a",
+      "cursor_fg": "#feffee",
       "foreground": "#23476a",
       "indexed": {}
     },
@@ -36413,7 +36842,7 @@
       ],
       "cursor_bg": "#877a9b",
       "cursor_border": "#877a9b",
-      "cursor_fg": "#877a9b",
+      "cursor_fg": "#1b1b23",
       "foreground": "#877a9b",
       "indexed": {}
     },
@@ -36485,7 +36914,7 @@
       ],
       "cursor_bg": "#d9e6f2",
       "cursor_border": "#d9e6f2",
-      "cursor_fg": "#d9e6f2",
+      "cursor_fg": "#191f1d",
       "foreground": "#d9e6f2",
       "indexed": {}
     },
@@ -36563,7 +36992,7 @@
       ],
       "cursor_bg": "#dcdccc",
       "cursor_border": "#dcdccc",
-      "cursor_fg": "#dcdccc",
+      "cursor_fg": "#25234f",
       "foreground": "#dcdccc",
       "indexed": {}
     },
@@ -36600,7 +37029,7 @@
       ],
       "cursor_bg": "#ffffff",
       "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {}
     },
@@ -36994,7 +37423,7 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#1e1e1e",
       "foreground": "#cccccc",
       "indexed": {}
     },
@@ -37033,7 +37462,7 @@
       ],
       "cursor_bg": "#020202",
       "cursor_border": "#020202",
-      "cursor_fg": "#020202",
+      "cursor_fg": "#f9f9f9",
       "foreground": "#020202",
       "indexed": {}
     },
@@ -37154,7 +37583,7 @@
       ],
       "cursor_bg": "#afdab6",
       "cursor_border": "#afdab6",
-      "cursor_fg": "#afdab6",
+      "cursor_fg": "#404040",
       "foreground": "#afdab6",
       "indexed": {}
     },
@@ -37273,7 +37702,7 @@
       ],
       "cursor_bg": "#b3b3b3",
       "cursor_border": "#b3b3b3",
-      "cursor_fg": "#b3b3b3",
+      "cursor_fg": "#000000",
       "foreground": "#b3b3b3",
       "indexed": {}
     },
@@ -37349,7 +37778,7 @@
       ],
       "cursor_bg": "#dafaff",
       "cursor_border": "#dafaff",
-      "cursor_fg": "#dafaff",
+      "cursor_fg": "#1f1726",
       "foreground": "#dafaff",
       "indexed": {}
     },
@@ -37883,7 +38312,7 @@
       ],
       "cursor_bg": "#dedacf",
       "cursor_border": "#dedacf",
-      "cursor_fg": "#dedacf",
+      "cursor_fg": "#171717",
       "foreground": "#dedacf",
       "indexed": {}
     },
@@ -38008,7 +38437,7 @@
       ],
       "cursor_bg": "#999993",
       "cursor_border": "#999993",
-      "cursor_fg": "#999993",
+      "cursor_fg": "#101010",
       "foreground": "#999993",
       "indexed": {}
     },
@@ -38045,7 +38474,7 @@
       ],
       "cursor_bg": "#fcfcfa",
       "cursor_border": "#fcfcfa",
-      "cursor_fg": "#fcfcfa",
+      "cursor_fg": "#424043",
       "foreground": "#fcfcfa",
       "indexed": {}
     },
@@ -38402,7 +38831,7 @@
       ],
       "cursor_bg": "#dcdccc",
       "cursor_border": "#dcdccc",
-      "cursor_fg": "#dcdccc",
+      "cursor_fg": "#3f3f3f",
       "foreground": "#dcdccc",
       "indexed": {}
     },

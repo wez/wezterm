@@ -61,7 +61,8 @@ As features stabilize some brief notes about them will accumulate here.
   In addition, there are now a number of options for explicitly resizing
   as a preprocessing step, and controlling the filtering and format used
   by the resizing, along with showing diagnostics around the resize operation. #3264
-* Color schemes: [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
+* Color schemes: [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
+  [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
   [Ef-Day](colorschemes/e/index.md#ef-day),
   [Ef-Deuteranopia-Dark](colorschemes/e/index.md#ef-deuteranopia-dark),
   [Ef-Deuteranopia-Light](colorschemes/e/index.md#ef-deuteranopia-light),
@@ -72,13 +73,36 @@ As features stabilize some brief notes about them will accumulate here.
   [Ef-Frost](colorschemes/e/index.md#ef-frost),
   [Ef-Kassio](colorschemes/e/index.md#ef-kassio),
   [Ef-Light](colorschemes/e/index.md#ef-light),
+  [Ef-Maris-Dark](colorschemes/e/index.md#ef-maris-dark),
+  [Ef-Maris-Light](colorschemes/e/index.md#ef-maris-light),
   [Ef-Night](colorschemes/e/index.md#ef-night),
   [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
+  [iTerm2 Dark Background](colorschemes/i/index.md#iterm2-dark-background),
   [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
+  [iTerm2 Light Background](colorschemes/i/index.md#iterm2-light-background),
+  [iTerm2 Pastel Dark Background](colorschemes/i/index.md#iterm2-pastel-dark-background),
+  [iTerm2 Smoooooth](colorschemes/i/index.md#iterm2-smoooooth),
+  [iTerm2 Tango Dark](colorschemes/i/index.md#iterm2-tango-dark),
+  [iTerm2 Tango Light](colorschemes/i/index.md#iterm2-tango-light),
+  [Modus-Operandi-Deuteranopia](colorschemes/m/index.md#modus-operandi-deuteranopia),
+  [Modus-Operandi-Tinted](colorschemes/m/index.md#modus-operandi-tinted),
+  [Modus-Vivendi-Deuteranopia](colorschemes/m/index.md#modus-vivendi-deuteranopia),
+  [Modus-Vivendi-Tinted](colorschemes/m/index.md#modus-vivendi-tinted),
+  [Modus-Vivendi-Tritanopia](colorschemes/m/index.md#modus-vivendi-tritanopia),
+  [Oxocarbon Dark (Gogh)](colorschemes/o/index.md#oxocarbon-dark-gogh),
   [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
 * Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
   more recent versions of Noto Color Emoji. #4148
 * [wezterm cli zoom-pane](cli/cli/zoom-pane.md). Thanks to @quantonganh! #4160
+* [InputSelector](config/lua/keyassignment/InputSelector.md) has been
+  enhanced to allow setting an alphabet for quickly launching items beyond
+  the first 10 items, as well as customizing the description/label text.
+  Thanks to @Danielkonge! #4226 #4227
+* [notification_handling](config/lua/config/notification_handling.md) to
+  control whether notifications are suppressed based on focus. #3727
+* [command_palette_rows](config/lua/config/command_palette_rows.md) to
+  control how many rows are displayed in the command palette. Thanks to
+  @exastone! #4595
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
@@ -94,11 +118,30 @@ As features stabilize some brief notes about them will accumulate here.
   than the native font dimensions and looked weird when either config option was
   not set to `1.0`. #2882
 * Using `CloseCurrentPane` could sometimes leave a stranded pane in a tab. #4030
+* Wayland: wezterm wouldn't start on Plasma 6 or newer versions of sway. Thanks
+  to @hexchain! #3996 #4322.
+* font-config: when resolving a fallback font for a text cluster like `U+3065,U+2686`
+  where no single font contains both glyphs, wezterm would fail to show a glyph
+  for either codepoint.  We now split the fallback query up and query for each
+  individual codepoint separately. #4310
+* Gogh color schemes all had the incorrect cursor foreground color. #4257
+* Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
+* macOS: Leak of NSWindow and NSView objects. Thanks to @0f-0b! #4457
+* Initial G1 state is non-conformant. Thanks to @ninjalj! #4534 #3962
+* Make RIS also clear the alternate screen. Thanks to @ninjalj! #4563
+* DECRQCRA: treat uninitialized cells as spaces. Thanks to @ninjalj! #4565
+* Clamp cursor position reported by CPR. Thanks to @ninjalj! #4564
+* Correct `SUPER` modifier key handling in kitty protocol. Thanks to @gabyx! #4605
+* macOS: honor the `window_close_confirmation` config option when quitting the
+  application. Thanks to @quantonganh! #4420 #4362
+* terminfo: added missing terminator to Sync capability. Thanks to @gpanders! #4578
 
 #### Updated
-* Bundled harfbuzz to 8.1.1
+* Bundled harfbuzz to 8.3.0
 * Bundled freetype to 2.13.1
 * Bundled Noto Color Emoji font to 2.038
+* wgpu to 0.18, which [improves OpenGL compatibility with older GPUs when using
+  WebGpu with its GL backend on Windows](https://github.com/gfx-rs/wgpu/releases/tag/v0.18.0)
 
 ### 20230712-072601-f4abf8fd
 

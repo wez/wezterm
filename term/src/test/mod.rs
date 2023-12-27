@@ -726,7 +726,7 @@ fn test_dec_special_graphics() {
     );
 
     term = TestTerm::new(2, 50, 0);
-    term.print("\u{0e}SO-ABCabcdefghijklmnopqrstuvwxyzDEF\r\n\u{0f}SI-hello");
+    term.print("\u{1b})0\u{0e}SO-ABCabcdefghijklmnopqrstuvwxyzDEF\r\n\u{0f}SI-hello");
     assert_visible_contents(
         &term,
         file!(),

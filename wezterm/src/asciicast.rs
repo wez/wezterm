@@ -337,6 +337,13 @@ enum Message {
 
 #[derive(Debug, Parser, Clone)]
 pub struct RecordCommand {
+    /// Start in the specified directory, instead of
+    /// the default_cwd defined by your wezterm configuration
+    #[arg(long)]
+    cwd: Option<std::path::PathBuf>,
+
+    /// Start prog instead of the default_prog defined by your
+    /// wezterm configuration
     #[arg(value_parser)]
     prog: Vec<OsString>,
 }
@@ -369,7 +376,7 @@ impl RecordCommand {
                 Some(prog)
             },
             config.default_prog.as_ref(),
-            config.default_cwd.as_ref(),
+            self.cwd.as_ref().or(config.default_cwd.as_ref()),
         )?;
 
         let mut child = pair.slave.spawn_command(cmd)?;

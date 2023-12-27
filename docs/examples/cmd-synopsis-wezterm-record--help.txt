@@ -1,9 +1,12 @@
 Record a terminal session as an asciicast
 
-Usage: wezterm record [PROG]...
+Usage: wezterm record [OPTIONS] [PROG]...
 
 Arguments:
-  [PROG]...  
+  [PROG]...  Start prog instead of the default_prog defined by your wezterm
+             configuration
 
 Options:
-  -h, --help  Print help
+      --cwd <CWD>  Start in the specified directory, instead of the default_cwd
+                   defined by your wezterm configuration
+  -h, --help       Print help

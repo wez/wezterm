@@ -30,6 +30,14 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
+    wezterm_mod.set(
+        "to_string",
+        lua.create_function(|_, arg: Value| {
+            let res = ValuePrinter(arg);
+            Ok(format!("{:#?}", res).to_string())
+        })?,
+    )?;
+
     lua.globals().set(
         "print",
         lua.create_function(|_, args: Variadic<Value>| {

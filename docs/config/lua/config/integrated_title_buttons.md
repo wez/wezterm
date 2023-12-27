@@ -2,7 +2,7 @@
 tags:
   - appearance
 ---
-# `integrated_title_button_style = BUTTONS`
+# `integrated_title_buttons = BUTTONS`
 
 {{since('20230408-112425-69ae8472')}}
 

@@ -3,7 +3,7 @@ use anyhow::Context;
 use config::{ColorSchemeFile, ColorSchemeMetaData};
 use serde::Deserialize;
 use sqlite_cache::Cache;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use std::time::Duration;
 use tar::Archive;
@@ -103,94 +103,12 @@ fn make_prefix(key: &str) -> (char, String) {
     panic!("no good prefix");
 }
 
-fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
-    let json_file_name = "docs/colorschemes/data.json";
-
-    let mut version_by_color_scheme = BTreeMap::new();
-    let mut names_by_color_scheme = BTreeMap::new();
-    let mut version_by_name = BTreeMap::new();
-
-    if let Ok(data) = std::fs::read_to_string(&json_file_name) {
-        #[derive(Deserialize)]
-        struct Entry {
-            colors: serde_json::Value,
-            metadata: MetaData,
-        }
-        #[derive(Deserialize)]
-        struct MetaData {
-            name: String,
-            aliases: Vec<String>,
-            wezterm_version: Option<String>,
-        }
-
-        let existing: Vec<Entry> = serde_json::from_str(&data)?;
-        for item in existing {
-            if let Some(version) = &item.metadata.wezterm_version {
-                let ident = serde_json::to_string(&item.colors)?;
-                version_by_color_scheme.insert(ident.to_string(), version.to_string());
-                version_by_name.insert(item.metadata.name.to_string(), version.to_string());
-
-                let mut names = item.metadata.aliases;
-                names.insert(0, item.metadata.name);
-
-                for name in names {
-                    names_by_color_scheme
-                        .entry(ident.to_string())
-                        .or_insert_with(Vec::new)
-                        .push(name);
-                }
-            }
-        }
-
-        let existing: Vec<serde_json::Value> = serde_json::from_str(&data)?;
-        for item in existing {
-            let data = ColorSchemeFile::from_json_value(&item)?;
-            push_or_alias(
-                &mut schemeses,
-                Scheme {
-                    name: data.metadata.name.as_ref().unwrap().to_string(),
-                    file_name: None,
-                    data,
-                },
-            );
-        }
-
-        for scheme in &mut schemeses {
-            let json = scheme.to_json_value()?;
-            let ident = serde_json::to_string(json.get("colors").unwrap())?;
-            if let Some(version) = version_by_color_scheme
-                .get(&ident)
-                .or_else(|| version_by_name.get(&scheme.name))
-                .or_else(|| {
-                    for a in &scheme.data.metadata.aliases {
-                        if let Some(v) = version_by_name.get(a) {
-                            return Some(v);
-                        }
-                    }
-                    None
-                })
-            {
-                scheme
-                    .data
-                    .metadata
-                    .wezterm_version
-                    .replace(version.to_string());
-            }
-        }
-    }
-
+const DATA_FILE_NAME: &str = "docs/colorschemes/data.json";
+fn bake_for_config(schemeses: SchemeSet) -> anyhow::Result<()> {
     let mut all = vec![];
-    for s in &schemeses {
+    for s in schemeses.by_name.values() {
         // Only interested in aliases with different-enough names
         let mut aliases = s.data.metadata.aliases.clone();
-
-        let json = s.to_json_value()?;
-        let ident = serde_json::to_string(json.get("colors").unwrap())?;
-        if let Some(more_aliases) = names_by_color_scheme.get(&ident) {
-            for a in more_aliases {
-                aliases.push(a.to_string());
-            }
-        }
 
         aliases.sort();
         aliases.dedup();
@@ -257,105 +175,200 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
     }
 
     let json = serde_json::to_string_pretty(&doc_data)?;
-    let update = match std::fs::read_to_string(json_file_name) {
+    let update = match std::fs::read_to_string(&DATA_FILE_NAME) {
         Ok(existing) => existing != json,
         Err(_) => true,
     };
 
     if update {
-        println!("Updating {json_file_name}");
-        std::fs::write(json_file_name, json)?;
+        println!("Updating {DATA_FILE_NAME}");
+        std::fs::write(&DATA_FILE_NAME, json)?;
     }
 
     Ok(())
 }
 
-fn push_or_alias(schemeses: &mut Vec<Scheme>, candidate: Scheme) -> bool {
-    let mut aliased = false;
-    for existing in schemeses.iter_mut() {
-        if candidate.data.colors == existing.data.colors {
-            log::info!("Adding {} as alias of {}", candidate.name, existing.name);
-            existing.data.metadata.aliases.push(candidate.name.clone());
-            aliased = true;
+struct SchemeSet {
+    by_name: HashMap<String, Scheme>,
+    version_by_color_scheme: BTreeMap<String, String>,
+    version_by_name: BTreeMap<String, String>,
+}
+
+impl SchemeSet {
+    pub fn accumulate(&mut self, to_add: Vec<Scheme>) {
+        for candidate in to_add {
+            self.add(candidate);
         }
     }
-    if !aliased {
-        log::info!("Adding {}", candidate.name);
-        schemeses.push(candidate);
-    }
-    aliased
-}
 
-fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
-    // Only accumulate if the scheme looks different enough
-    for candidate in to_add {
-        push_or_alias(schemeses, candidate);
-    }
-}
+    pub fn load_existing() -> anyhow::Result<Self> {
+        let mut by_name = HashMap::new();
+        let mut version_by_color_scheme = BTreeMap::new();
+        let mut names_by_color_scheme = BTreeMap::new();
+        let mut version_by_name = BTreeMap::new();
 
-async fn sync_toml(
-    repo_url: &str,
-    branch: &str,
-    suffix: &str,
-    schemeses: &mut Vec<Scheme>,
-) -> anyhow::Result<()> {
-    let tarball_url = if repo_url.starts_with("https://codeberg.org/") {
-        format!("{repo_url}/archive/{branch}.tar.gz")
-    } else {
-        format!("{repo_url}/tarball/{branch}")
-    };
-    let tar_data = fetch_url(&tarball_url).await?;
-    let decoder = libflate::gzip::Decoder::new(tar_data.as_slice())?;
-    let mut tar = Archive::new(decoder);
-    for entry in tar.entries()? {
-        let mut entry = entry?;
+        if let Ok(data) = std::fs::read_to_string(&DATA_FILE_NAME) {
+            #[derive(Deserialize)]
+            struct Entry {
+                colors: serde_json::Value,
+                metadata: MetaData,
+            }
+            #[derive(Deserialize)]
+            struct MetaData {
+                name: String,
+                aliases: Vec<String>,
+                wezterm_version: Option<String>,
+            }
 
-        if entry
-            .path()?
-            .extension()
-            .and_then(|s| s.to_str())
-            .map(|s| s == "toml")
-            .unwrap_or(false)
-        {
-            let dest_file = NamedTempFile::new()?;
-            entry.unpack(dest_file.path())?;
+            let existing: Vec<Entry> = serde_json::from_str(&data)?;
+            for item in existing {
+                if let Some(version) = &item.metadata.wezterm_version {
+                    let ident = serde_json::to_string(&item.colors)?;
+                    version_by_color_scheme.insert(ident.to_string(), version.to_string());
+                    version_by_name.insert(item.metadata.name.to_string(), version.to_string());
 
-            let data = std::fs::read_to_string(dest_file.path())?;
+                    let mut names = item.metadata.aliases;
+                    names.insert(0, item.metadata.name);
 
-            match ColorSchemeFile::from_toml_str(&data) {
-                Ok(mut scheme) => {
-                    let name = match scheme.metadata.name {
-                        Some(name) => name,
-                        None => entry
-                            .path()?
-                            .file_stem()
-                            .unwrap()
-                            .to_str()
-                            .unwrap()
-                            .to_string(),
-                    };
-                    let name = format!("{name}{suffix}");
-                    scheme.metadata.name = Some(name.clone());
-                    if scheme.metadata.origin_url.is_none() {
-                        scheme.metadata.origin_url = Some(repo_url.to_string());
+                    for name in names {
+                        names_by_color_scheme
+                            .entry(ident.to_string())
+                            .or_insert_with(Vec::new)
+                            .push(name);
                     }
-                    apply_nightly_version(&mut scheme.metadata);
-
-                    let scheme = Scheme {
-                        name: name.clone(),
-                        file_name: None,
-                        data: scheme,
-                    };
-
-                    push_or_alias(schemeses, scheme);
                 }
-                Err(err) => {
-                    log::error!("{tarball_url}/{}: {err:#}", entry.path().unwrap().display());
+            }
+
+            let existing: Vec<serde_json::Value> = serde_json::from_str(&data)?;
+            for item in existing {
+                let data = ColorSchemeFile::from_json_value(&item)?;
+                let name = data.metadata.name.as_ref().unwrap().to_string();
+                by_name.insert(
+                    name.to_string(),
+                    Scheme {
+                        name,
+                        file_name: None,
+                        data,
+                    },
+                );
+            }
+        }
+
+        Ok(Self {
+            by_name,
+            version_by_color_scheme,
+            version_by_name,
+        })
+    }
+
+    pub fn add(&mut self, mut candidate: Scheme) {
+        for existing in self.by_name.values_mut() {
+            if candidate == *existing || candidate.data.colors == existing.data.colors {
+                log::info!("Adding {} as alias of {}", candidate.name, existing.name);
+                existing.data.metadata.aliases.push(candidate.name.clone());
+                return;
+            }
+        }
+
+        // Resolve wezterm version information for this scheme
+        let json = candidate.to_json_value().expect("scheme to be json compat");
+        let ident =
+            serde_json::to_string(json.get("colors").unwrap()).expect("colors to be json compat");
+        if let Some(version) = self
+            .version_by_color_scheme
+            .get(&ident)
+            .or_else(|| self.version_by_name.get(&candidate.name))
+            .or_else(|| {
+                for a in &candidate.data.metadata.aliases {
+                    if let Some(v) = self.version_by_name.get(a) {
+                        return Some(v);
+                    }
+                }
+                None
+            })
+        {
+            candidate
+                .data
+                .metadata
+                .wezterm_version
+                .replace(version.to_string());
+        }
+
+        if let Some(existing) = self.by_name.remove(&candidate.name) {
+            // Already exists but we didn't find it by exact color match
+            // above.
+            candidate.data.metadata.aliases = existing.data.metadata.aliases;
+            println!("Updating {}", candidate.name);
+        } else {
+            println!("Adding {}", candidate.name);
+        }
+        self.by_name.insert(candidate.name.to_string(), candidate);
+    }
+
+    async fn sync_toml(
+        &mut self,
+        repo_url: &str,
+        branch: &str,
+        suffix: &str,
+    ) -> anyhow::Result<()> {
+        let tarball_url = if repo_url.starts_with("https://codeberg.org/") {
+            format!("{repo_url}/archive/{branch}.tar.gz")
+        } else {
+            format!("{repo_url}/tarball/{branch}")
+        };
+        let tar_data = fetch_url(&tarball_url).await?;
+        let decoder = libflate::gzip::Decoder::new(tar_data.as_slice())?;
+        let mut tar = Archive::new(decoder);
+        for entry in tar.entries()? {
+            let mut entry = entry?;
+
+            if entry
+                .path()?
+                .extension()
+                .and_then(|s| s.to_str())
+                .map(|s| s == "toml")
+                .unwrap_or(false)
+            {
+                let dest_file = NamedTempFile::new()?;
+                entry.unpack(dest_file.path())?;
+
+                let data = std::fs::read_to_string(dest_file.path())?;
+
+                match ColorSchemeFile::from_toml_str(&data) {
+                    Ok(mut scheme) => {
+                        let name = match scheme.metadata.name {
+                            Some(name) => name,
+                            None => entry
+                                .path()?
+                                .file_stem()
+                                .unwrap()
+                                .to_str()
+                                .unwrap()
+                                .to_string(),
+                        };
+                        let name = format!("{name}{suffix}");
+                        scheme.metadata.name = Some(name.clone());
+                        if scheme.metadata.origin_url.is_none() {
+                            scheme.metadata.origin_url = Some(repo_url.to_string());
+                        }
+                        apply_nightly_version(&mut scheme.metadata);
+
+                        let scheme = Scheme {
+                            name: name.clone(),
+                            file_name: None,
+                            data: scheme,
+                        };
+
+                        self.add(scheme);
+                    }
+                    Err(err) => {
+                        log::error!("{tarball_url}/{}: {err:#}", entry.path().unwrap().display());
+                    }
                 }
             }
         }
+        Ok(())
     }
-    Ok(())
 }
 
 #[tokio::main]
@@ -363,83 +376,51 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     // They color us! my precious!
-    let mut schemeses = vec![];
-    sync_toml(
-        "https://github.com/catppuccin/wezterm",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/EdenEast/nightfox.nvim",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/Hiroya-W/wezterm-sequoia-theme",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/dracula/wezterm",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/olivercederborg/poimandres.nvim",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/folke/tokyonight.nvim",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://codeberg.org/anhsirk0/wezterm-themes",
-        "main",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/hardhackerlabs/theme-wezterm",
-        "master",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    sync_toml(
-        "https://github.com/ribru17/bamboo.nvim",
-        "master",
-        "",
-        &mut schemeses,
-    )
-    .await?;
-    accumulate(
-        &mut schemeses,
-        iterm2::sync_iterm2().await.context("sync iterm2")?,
-    );
-    accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
-    accumulate(
-        &mut schemeses,
-        gogh::sync_gogh().await.context("sync gogh")?,
-    );
-    accumulate(
-        &mut schemeses,
-        sexy::sync_sexy().await.context("sync sexy")?,
-    );
+    let mut schemeses = SchemeSet::load_existing()?;
+
+    schemeses
+        .sync_toml("https://github.com/catppuccin/wezterm", "main", "")
+        .await?;
+    schemeses
+        .sync_toml("https://github.com/EdenEast/nightfox.nvim", "main", "")
+        .await?;
+    schemeses
+        .sync_toml(
+            "https://github.com/Hiroya-W/wezterm-sequoia-theme",
+            "main",
+            "",
+        )
+        .await?;
+    schemeses
+        .sync_toml("https://github.com/dracula/wezterm", "main", "")
+        .await?;
+    schemeses
+        .sync_toml(
+            "https://github.com/olivercederborg/poimandres.nvim",
+            "main",
+            "",
+        )
+        .await?;
+    schemeses
+        .sync_toml("https://github.com/folke/tokyonight.nvim", "main", "")
+        .await?;
+    schemeses
+        .sync_toml("https://codeberg.org/anhsirk0/wezterm-themes", "main", "")
+        .await?;
+    schemeses
+        .sync_toml(
+            "https://github.com/hardhackerlabs/theme-wezterm",
+            "master",
+            "",
+        )
+        .await?;
+    schemeses
+        .sync_toml("https://github.com/ribru17/bamboo.nvim", "master", "")
+        .await?;
+    schemeses.accumulate(iterm2::sync_iterm2().await.context("sync iterm2")?);
+    schemeses.accumulate(base16::sync().await.context("sync base16")?);
+    schemeses.accumulate(gogh::sync_gogh().await.context("sync gogh")?);
+    schemeses.accumulate(sexy::sync_sexy().await.context("sync sexy")?);
     bake_for_config(schemeses)?;
 
     Ok(())

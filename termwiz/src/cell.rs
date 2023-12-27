@@ -669,9 +669,7 @@ impl TeenyString {
         let len = bytes.len();
         let width = width.unwrap_or_else(|| grapheme_column_width(s, unicode_version));
 
-        if len < std::mem::size_of::<u64>() {
-            debug_assert!(width < 3);
-
+        if len < std::mem::size_of::<u64>() && width < 3 {
             let mut word = 0u64;
             unsafe {
                 std::ptr::copy_nonoverlapping(
