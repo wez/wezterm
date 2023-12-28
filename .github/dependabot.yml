@@ -7,6 +7,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      patterns:
+        - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
