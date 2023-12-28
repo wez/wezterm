@@ -8,8 +8,9 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      patterns:
-        - "*"
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
