@@ -429,7 +429,7 @@ impl Window {
         name: &str,
         geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
-        _font_config: Rc<FontConfiguration>,
+        font_config: Rc<FontConfiguration>,
         event_handler: F,
     ) -> anyhow::Result<Window>
     where
@@ -485,6 +485,7 @@ impl Window {
                 dead_pending: None,
                 fullscreen: None,
                 config: config.clone(),
+                font_config: font_config.clone(),
                 ime_state: ImeDisposition::None,
                 ime_last_event: None,
                 live_resizing: false,
@@ -499,12 +500,6 @@ impl Window {
                 NSBackingStoreBuffered,
                 NO,
             ));
-
-            apply_decorations_to_window(
-                &window,
-                config.window_decorations,
-                config.integrated_title_button_style,
-            );
 
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
@@ -615,6 +610,7 @@ impl Window {
                 ns_window: *window,
                 ns_view: *view,
             };
+
             let window_inner = Rc::new(RefCell::new(WindowInner {
                 window,
                 view,
@@ -850,6 +846,8 @@ impl WindowOps for Window {
                     let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
                     log::trace!("{:?}", insets);
 
+                    dbg!(&insets);
+
                     // Bleh, the API is supposed to give us the right metrics, but it needs
                     // a tweak to look good around the notch.
                     // <https://github.com/wez/wezterm/issues/1737#issuecomment-1085923867>
@@ -939,6 +937,10 @@ impl WindowInner {
                 self.config.window_decorations,
                 self.config.integrated_title_button_style,
             );
+
+            if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+                window_view.update_titlebar();
+            }
         }
     }
 
@@ -987,11 +989,7 @@ impl WindowInner {
                 Some(saved_rect) => unsafe {
                     // Restore prior dimensions
                     self.window.orderOut_(nil);
-                    apply_decorations_to_window(
-                        &self.window,
-                        self.config.window_decorations,
-                        self.config.integrated_title_button_style,
-                    );
+                    self.apply_decorations();
                     self.window.setFrame_display_(saved_rect, YES);
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
@@ -1082,12 +1080,7 @@ impl WindowInner {
             // stuck with a scale factor of 2 despite us having configured 1.
             self.window
                 .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
-            apply_decorations_to_window(
-                &self.window,
-                self.config.window_decorations,
-                self.config.integrated_title_button_style,
-            );
-
+            self.apply_decorations();
             self.window.makeKeyAndOrderFront_(nil)
         }
     }
@@ -1370,6 +1363,9 @@ struct Inner {
 
     config: ConfigHandle,
 
+    /// Currently used only to detect the titlebar height
+    font_config: Rc<FontConfiguration>,
+
     /// Used to signal when IME really just swallowed a key
     ime_state: ImeDisposition,
     /// Captures the last event that had ImeDisposition::Acted,
@@ -1624,6 +1620,77 @@ impl Inner {
             Ok(TranslateStatus::Composing(composing.text))
         } else {
             Ok(TranslateStatus::NotDead)
+        }
+    }
+
+    fn update_title_bar_buttons_position(&mut self) {
+        let Some(window) = self.window.as_ref().map(|p| p.load()) else {
+            return;
+        };
+
+        if !self
+            .config
+            .window_decorations
+            .contains(WindowDecorations::INTEGRATED_BUTTONS)
+        {
+            return;
+        }
+
+        // Currently height detection supported only for the fancy tab bar
+        if !self.config.use_fancy_tab_bar {
+            return;
+        }
+
+        let Some(height) = self
+            .font_config
+            .title_font()
+            .map(|f| (f.metrics().cell_height.get() as f64 * 1.75 * 0.5).ceil())
+            .ok()
+        else {
+            return;
+        };
+
+        unsafe {
+            // https://github.com/stonesam92/ChitChat/blob/8aa2feb58e3467546ee5c861df53de604cb2ca96/WhatsMac/AppDelegate.m#L391
+            use appkit::*;
+
+            let titlebar_height = height;
+
+            let window_frame = NSWindow::frame(*window);
+
+            let close_button = window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);
+
+            // Set size of titlebar container
+            let titlebar_container_view = NSView::superview(NSView::superview(close_button));
+
+            let mut titlebar_container_frame = NSView::frame(titlebar_container_view);
+            titlebar_container_frame.origin.y = window_frame.size.height - titlebar_height;
+            titlebar_container_frame.size.height = titlebar_height;
+            NSView::setFrameOrigin(titlebar_container_view, titlebar_container_frame.origin);
+            NSView::setFrameSize(titlebar_container_view, titlebar_container_frame.size);
+
+            let mut button_x = (height * 0.5 - 8.0).max(0.0);
+
+            let minimize_button =
+                window.standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
+            let zoom_button = window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
+
+            for button in [close_button, minimize_button, zoom_button] {
+                let mut button_frame = NSView::frame(button);
+
+                button_frame.origin.x = button_x;
+
+                // in fullscreen, the titlebar frame is not governed by kTitlebarHeight but rather appears to be fixed by the system.
+                // thus, we set a constant Y origin for the buttons when in fullscreen.
+
+                button_frame.origin.y =
+                    ((titlebar_height - button_frame.size.height) / 2.0).round();
+
+                // spacing for next button
+                button_x += button_frame.size.width + 6.0;
+
+                NSView::setFrameOrigin(button, button_frame.origin);
+            }
         }
     }
 }
@@ -1974,6 +2041,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::AppearanceChanged(appearance));
+            this.update_titlebar();
         }
     }
 
@@ -2056,6 +2124,8 @@ impl WindowView {
                 }
             }
         }
+
+        self.update_titlebar();
     }
 
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
@@ -2708,6 +2778,8 @@ impl WindowView {
 
     extern "C" fn will_start_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
+            this.update_titlebar();
+
             let mut inner = this.inner.borrow_mut();
             inner.live_resizing = true;
         }
@@ -2715,6 +2787,8 @@ impl WindowView {
 
     extern "C" fn did_end_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
+            this.update_titlebar();
+
             let mut inner = this.inner.borrow_mut();
             inner.live_resizing = false;
         }
@@ -2722,6 +2796,8 @@ impl WindowView {
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
+            this.update_titlebar();
+
             let inner = this.inner.borrow_mut();
 
             if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
@@ -2921,6 +2997,10 @@ impl WindowView {
             inner.events.dispatch(WindowEvent::DroppedFile(paths));
         }
         YES
+    }
+
+    fn update_titlebar(&self) {
+        self.inner.borrow_mut().update_title_bar_buttons_position();
     }
 
     fn get_this(this: &Object) -> Option<&mut Self> {
