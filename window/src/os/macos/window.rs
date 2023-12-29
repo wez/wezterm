@@ -26,7 +26,7 @@ use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
     NSUInteger,
 };
-use config::ConfigHandle;
+use config::{ConfigHandle, Dimension};
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
@@ -877,6 +877,38 @@ impl WindowOps for Window {
             border_dimensions,
         }))
     }
+
+    fn get_title_bar_horizontal_padding(
+        &self,
+        config: &ConfigHandle,
+        window_state: WindowState,
+        tab_bar_height: f32,
+    ) -> (Dimension, Dimension) {
+        let window_buttons_at_left = config
+            .window_decorations
+            .contains(wezterm_input_types::WindowDecorations::INTEGRATED_BUTTONS)
+            && (config.integrated_title_button_alignment
+                == wezterm_input_types::IntegratedTitleButtonAlignment::Left
+                || config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative);
+
+        let left_padding = if window_buttons_at_left {
+            if config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative {
+                if !window_state.contains(WindowState::FULL_SCREEN) {
+                    // width of the three buttons + left and right padding around
+                    let padding = 76.0 + tab_bar_height;
+                    Dimension::Pixels(padding)
+                } else {
+                    Dimension::Cells(0.5)
+                }
+            } else {
+                Dimension::Pixels(0.0)
+            }
+        } else {
+            Dimension::Cells(0.5)
+        };
+
+        (left_padding, Default::default())
+    }
 }
 
 /// Convert from a macOS screen coordinate with the origin in the bottom left
@@ -939,7 +971,7 @@ impl WindowInner {
             );
 
             if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
-                window_view.update_titlebar();
+                window_view.update_title_bar_buttons_position();
             }
         }
     }
@@ -2041,7 +2073,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::AppearanceChanged(appearance));
-            this.update_titlebar();
+            this.update_title_bar_buttons_position();
         }
     }
 
@@ -2125,7 +2157,7 @@ impl WindowView {
             }
         }
 
-        self.update_titlebar();
+        self.update_title_bar_buttons_position();
     }
 
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
@@ -2778,7 +2810,7 @@ impl WindowView {
 
     extern "C" fn will_start_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
-            this.update_titlebar();
+            this.update_title_bar_buttons_position();
 
             let mut inner = this.inner.borrow_mut();
             inner.live_resizing = true;
@@ -2787,7 +2819,7 @@ impl WindowView {
 
     extern "C" fn did_end_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
-            this.update_titlebar();
+            this.update_title_bar_buttons_position();
 
             let mut inner = this.inner.borrow_mut();
             inner.live_resizing = false;
@@ -2796,7 +2828,7 @@ impl WindowView {
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
-            this.update_titlebar();
+            this.update_title_bar_buttons_position();
 
             let inner = this.inner.borrow_mut();
 
@@ -2999,7 +3031,7 @@ impl WindowView {
         YES
     }
 
-    fn update_titlebar(&self) {
+    fn update_title_bar_buttons_position(&self) {
         self.inner.borrow_mut().update_title_bar_buttons_position();
     }
 

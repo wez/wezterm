@@ -8,7 +8,7 @@ use crate::termwindow::{UIItem, UIItemType};
 use crate::utilsprites::RenderMetrics;
 use config::{Dimension, DimensionContext, TabBarColors};
 use wezterm_term::color::{ColorAttribute, ColorPalette};
-use window::{IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
+use window::{IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle, WindowOps};
 
 const X_BUTTON: &[Poly] = &[
     Poly {
@@ -304,21 +304,23 @@ impl crate::TermWindow {
             .max(0.);
 
         // Reserve space for the native titlebar buttons
-        if self
-            .config
-            .window_decorations
-            .contains(::window::WindowDecorations::INTEGRATED_BUTTONS)
-            && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
-        {
-            left_status.push(
-                Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
-                    left: Dimension::Cells(4.0), // FIXME: determine exact width of macos ... buttons
-                    right: Dimension::Cells(0.),
-                    top: Dimension::Cells(0.),
-                    bottom: Dimension::Cells(0.),
-                }),
-            );
-        }
+
+        let (left_title_bar_padding, _) = self
+            .window
+            .as_ref()
+            .map(|w| {
+                w.get_title_bar_horizontal_padding(&self.config, self.window_state, tab_bar_height)
+            })
+            .unwrap_or_default();
+
+        left_status.push(
+            Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
+                left: left_title_bar_padding, // FIXME: determine exact width of macos ... buttons
+                right: Dimension::Cells(0.),
+                top: Dimension::Cells(0.),
+                bottom: Dimension::Cells(0.),
+            }),
+        );
 
         for item in items {
             match item.item {
@@ -415,40 +417,10 @@ impl crate::TermWindow {
             );
         }
 
-        let window_buttons_at_left = self
-            .config
-            .window_decorations
-            .contains(window::WindowDecorations::INTEGRATED_BUTTONS)
-            && (self.config.integrated_title_button_alignment
-                == IntegratedTitleButtonAlignment::Left
-                || self.config.integrated_title_button_style
-                    == IntegratedTitleButtonStyle::MacOsNative);
-
-        let left_padding = if window_buttons_at_left {
-            if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
-            {
-                if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
-                    Dimension::Pixels(70.0)
-                } else {
-                    Dimension::Cells(0.5)
-                }
-            } else {
-                Dimension::Pixels(0.0)
-            }
-        } else {
-            Dimension::Cells(0.5)
-        };
-
         children.push(
             Element::new(&font, ElementContent::Children(left_eles))
                 .vertical_align(VerticalAlign::Bottom)
                 .colors(bar_colors.clone())
-                .padding(BoxDimension {
-                    left: left_padding,
-                    right: Dimension::Cells(0.),
-                    top: Dimension::Cells(0.),
-                    bottom: Dimension::Cells(0.),
-                })
                 .zindex(1),
         );
         children.push(
