@@ -28,13 +28,14 @@ use crate::termwindow::webgpu::WebGpuState;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
+use config::keyassignment::SpawnTabDomain;
 use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
     RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
-    GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
+    GeometryOrigin, GuiPosition, SearchEditorLocation, TermConfig, WindowCloseConfirmation,
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
@@ -51,6 +52,7 @@ use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
+use std::io::Write;
 use std::ops::Add;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -58,6 +60,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::SequenceNo;
+use uuid::Uuid;
 use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
@@ -2697,6 +2700,50 @@ impl TermWindow {
                                 prevent_fallback: false,
                             });
                         });
+                }
+            }
+            SearchViaEditor => {
+                if let Some(pane) = self.get_active_pane_no_overlay() {
+                    if let Some(mut search_editor) = self.config.search_editor.to_owned() {
+                        // It would be nice if I could get the entire buffer but currently can't find it
+                        let dims = pane.get_dimensions();
+                        let viewport_range = dims.physical_top
+                            ..dims.physical_top + dims.viewport_rows as StableRowIndex;
+                        let (_, lines) = pane.get_lines(viewport_range);
+
+                        // Write tmp file with pane content
+                        let file_name = format!("/tmp/wezterm-{}.tmp", Uuid::new_v4());
+                        if let Ok(mut file) = std::fs::File::create(&file_name) {
+                            for line in lines.iter() {
+                                let text = format!("{}\n", line.as_str());
+                                file.write_all(text.as_bytes()).unwrap();
+                            }
+                            file.sync_all()?;
+                            drop(file);
+
+                            // Choose where to spawn
+                            let location = match search_editor.location {
+                                SearchEditorLocation::NewTab => SpawnWhere::NewTab,
+                                SearchEditorLocation::NewWindow => SpawnWhere::NewWindow,
+                            };
+
+                            // Add file_name to editor command
+                            search_editor.editor.push(String::from(file_name));
+
+                            // Spawn editor
+                            self.spawn_command(
+                                &SpawnCommand {
+                                    label: None,
+                                    args: Some(search_editor.editor),
+                                    cwd: None,
+                                    set_environment_variables: search_editor.environment,
+                                    domain: SpawnTabDomain::CurrentPaneDomain,
+                                    position: None,
+                                },
+                                location,
+                            );
+                        }
+                    }
                 }
             }
             QuickSelect => {

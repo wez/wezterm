@@ -6432,6 +6432,7 @@ dependencies = [
  "unicode-width",
  "url",
  "url-funcs",
+ "uuid",
  "walkdir",
  "wezterm-bidi",
  "wezterm-blob-leases",

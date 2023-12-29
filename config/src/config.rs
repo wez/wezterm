@@ -23,9 +23,9 @@ use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
     default_true, default_win32_acrylic_accent_color, GpuInfo, IntegratedTitleButtonColor,
-    KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop,
-    WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
-    HOME_DIR,
+    KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SearchEditor,
+    SearchEditorLocation, SerialDomain, SystemBackdrop, WebGpuPowerPreference, CONFIG_DIRS,
+    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -830,6 +830,9 @@ pub struct Config {
 
     #[dynamic(default = "default_ulimit_nproc")]
     pub ulimit_nproc: u64,
+
+    #[dynamic(default = "default_search_editor")]
+    pub search_editor: Option<SearchEditor>,
 }
 impl_lua_conversion_dynamic!(Config);
 
@@ -843,6 +846,17 @@ fn default_ulimit_nofile() -> u64 {
 
 fn default_ulimit_nproc() -> u64 {
     2048
+}
+
+fn default_search_editor() -> Option<SearchEditor> {
+    #[cfg(all(unix, not(target_os = "windows")))]
+    {
+        return Some(SearchEditor {
+            editor: vec![String::from("/usr/bin/vim")],
+            location: SearchEditorLocation::NewTab,
+            environment: HashMap::new(),
+        });
+    }
 }
 
 impl Default for Config {

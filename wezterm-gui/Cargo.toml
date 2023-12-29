@@ -108,6 +108,7 @@ wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 wgpu = "0.18"
 window = { path = "../window" }
 window-funcs = { path = "../lua-api-crates/window-funcs" }
+uuid = { version = "1.6.1", features = ["serde", "v4"] }
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

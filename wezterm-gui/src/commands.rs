@@ -749,6 +749,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("oct_search"),
         },
+        SearchViaEditor => CommandDef {
+            brief: "Dump pane content into favorite editor".into(),
+            doc: "Dump pane content into favorite editor".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &[],
+            icon: Some("oct_search"),
+        },
         ShowDebugOverlay => CommandDef {
             brief: "Show debug overlay".into(),
             doc: "Activates the debug overlay and Lua REPL".into(),

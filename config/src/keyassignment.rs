@@ -550,6 +550,7 @@ pub enum KeyAssignment {
     ClearScrollback(ScrollbackEraseMode),
     Search(Pattern),
     ActivateCopyMode,
+    SearchViaEditor,
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(SelectionMode),
