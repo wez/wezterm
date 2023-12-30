@@ -240,11 +240,21 @@ pub enum PolyStyle {
     OutlineThin,
     // A line with the thickness as underlines
     Outline,
-    // A line with twice the thickness of underlines
+    // A line with thrice the thickness of underlines
     OutlineHeavy,
 }
 
 impl PolyStyle {
+    fn stroke_width(&self, stroke_width: f32) -> f32 {
+        match self {
+            Self::OutlineThin => 1.2,
+            Self::Outline => stroke_width,
+            Self::OutlineHeavy => stroke_width * 3.0, // NOTE: Using 2.0, the difference is almost invisible
+            // Fill mode doesn't have a stroke width
+            Self::Fill => 0.,
+        }
+    }
+
     fn apply(
         self,
         width: f32,
@@ -260,12 +270,7 @@ impl PolyStyle {
 
             PolyStyle::OutlineThin | PolyStyle::Outline | PolyStyle::OutlineHeavy => {
                 let mut stroke = Stroke::default();
-                stroke.width = width;
-                if self == PolyStyle::OutlineHeavy {
-                    stroke.width *= 3.0; // NOTE: Using 2.0, the difference is almost invisible
-                } else if self == PolyStyle::OutlineThin {
-                    stroke.width = 1.2;
-                }
+                stroke.width = self.stroke_width(width);
                 pixmap.stroke_path(path, paint, &stroke, transform, None);
             }
         }
@@ -3747,6 +3752,12 @@ impl GlyphCache {
             style,
         } in polys
         {
+            // adjust the width, i.e., what `BlockCoord::One` resolves to, to account for the width
+            // of the stroke.
+            let width_adjustment =
+                (style.stroke_width(metrics.underline_height as f32) / 2.).floor() as usize;
+            let width_adjusted_for_stroke = width - width_adjustment;
+
             let mut paint = Paint::default();
             let intensity = intensity.to_scale();
             paint.set_color(
@@ -3759,7 +3770,12 @@ impl GlyphCache {
             paint.force_hq_pipeline = true;
             let mut pb = PathBuilder::new();
             for item in path.iter() {
-                item.to_skia(width, height, metrics.underline_height as f32, &mut pb);
+                item.to_skia(
+                    width_adjusted_for_stroke,
+                    height,
+                    metrics.underline_height as f32,
+                    &mut pb,
+                );
             }
             let path = pb.finish().expect("poly path to be valid");
             style.apply(
