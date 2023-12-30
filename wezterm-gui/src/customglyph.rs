@@ -3754,6 +3754,8 @@ impl GlyphCache {
         {
             // adjust the width, i.e., what `BlockCoord::One` resolves to, to account for the width
             // of the stroke.
+            // TODO: why does `.floor()` seem to do the right thing here? what is actually
+            // correct?
             let width_adjustment =
                 (style.stroke_width(metrics.underline_height as f32) / 2.).floor() as usize;
             let width_adjusted_for_stroke = width - width_adjustment;
