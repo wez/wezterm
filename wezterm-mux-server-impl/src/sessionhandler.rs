@@ -6,7 +6,7 @@ use mux::client::ClientId;
 use mux::domain::SplitSource;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::TabId;
+use mux::tab::{NotifyMux, TabId};
 use mux::{Mux, MuxNotification};
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
@@ -332,10 +332,9 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
-                            tab.set_active_pane(&pane);
+                            tab.set_active_pane(&pane, NotifyMux::No);
 
                             mux.record_focus_for_current_identity(pane_id);
-                            mux.notify(mux::MuxNotification::PaneFocused(pane_id));
 
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
@@ -538,14 +537,14 @@ impl SessionHandler {
                                     if is_zoomed != zoomed {
                                         tab.set_zoomed(false);
                                         if zoomed {
-                                            tab.set_active_pane(&pane);
+                                            tab.set_active_pane(&pane, NotifyMux::Yes);
                                             tab.set_zoomed(zoomed);
                                         }
                                     }
                                 }
                                 None => {
                                     if zoomed {
-                                        tab.set_active_pane(&pane);
+                                        tab.set_active_pane(&pane, NotifyMux::Yes);
                                         tab.set_zoomed(zoomed);
                                     }
                                 }

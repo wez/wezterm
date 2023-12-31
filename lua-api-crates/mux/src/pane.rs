@@ -1,6 +1,7 @@
 use super::*;
 use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
 use mlua::Value;
+use mux::tab::NotifyMux;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
@@ -400,7 +401,7 @@ impl UserData for MuxPane {
             let tab = mux
                 .get_tab(tab_id)
                 .ok_or_else(|| mlua::Error::external(format!("tab {tab_id} not found")))?;
-            tab.set_active_pane(&pane);
+            tab.set_active_pane(&pane, NotifyMux::Yes);
             Ok(())
         });
 

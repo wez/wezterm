@@ -20,6 +20,12 @@ pub type Cursor = bintree::Cursor<Arc<dyn Pane>, SplitDirectionAndSize>;
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum NotifyMux {
+    Yes,
+    No,
+}
+
 #[derive(Default)]
 struct Recency {
     count: usize,
@@ -698,8 +704,8 @@ impl Tab {
         self.inner.lock().get_active_idx()
     }
 
-    pub fn set_active_pane(&self, pane: &Arc<dyn Pane>) {
-        self.inner.lock().set_active_pane(pane)
+    pub fn set_active_pane(&self, pane: &Arc<dyn Pane>, notify: NotifyMux) {
+        self.inner.lock().set_active_pane(pane, notify)
     }
 
     pub fn set_active_idx(&self, pane_index: usize) {
@@ -1747,7 +1753,7 @@ impl TabInner {
         self.active
     }
 
-    fn set_active_pane(&mut self, pane: &Arc<dyn Pane>) {
+    fn set_active_pane(&mut self, pane: &Arc<dyn Pane>, notify: NotifyMux) {
         if let Some(item) = self
             .iter_panes_ignoring_zoom()
             .iter()
@@ -1756,22 +1762,26 @@ impl TabInner {
             let prior = self.get_active_pane();
             self.active = item.index;
             self.recency.tag(item.index);
-            self.advise_focus_change(prior);
+            self.advise_focus_change(prior, notify);
         }
     }
 
-    fn advise_focus_change(&mut self, prior: Option<Arc<dyn Pane>>) {
+    fn advise_focus_change(&mut self, prior: Option<Arc<dyn Pane>>, notify: NotifyMux) {
         let mux = Mux::get();
         let current = self.get_active_pane();
         match (prior, current) {
             (Some(prior), Some(current)) if prior.pane_id() != current.pane_id() => {
                 prior.focus_changed(false);
                 current.focus_changed(true);
-                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                if notify == NotifyMux::Yes {
+                    mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                }
             }
             (None, Some(current)) => {
                 current.focus_changed(true);
-                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                if notify == NotifyMux::Yes {
+                    mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                }
             }
             (Some(prior), None) => {
                 prior.focus_changed(false);
@@ -1786,7 +1796,7 @@ impl TabInner {
         let prior = self.get_active_pane();
         self.active = pane_index;
         self.recency.tag(pane_index);
-        self.advise_focus_change(prior);
+        self.advise_focus_change(prior, NotifyMux::Yes);
     }
 
     fn assign_pane(&mut self, pane: &Arc<dyn Pane>) {
@@ -1849,7 +1859,7 @@ impl TabInner {
         if keep_focus {
             self.set_active_idx(pane_index);
         } else {
-            self.advise_focus_change(Some(pane));
+            self.advise_focus_change(Some(pane), NotifyMux::Yes);
         }
         None
     }
