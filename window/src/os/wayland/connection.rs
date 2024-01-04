@@ -1,26 +1,29 @@
 // TODO: change this
 #![allow(dead_code, unused)]
-use std::{borrow::BorrowMut, cell::RefCell, os::fd::AsRawFd};
+use std::{borrow::BorrowMut, cell::RefCell, os::fd::AsRawFd, sync::atomic::AtomicUsize};
 
 use anyhow::{Context, bail};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
     delegate_registry,
     registry::{ProvidesRegistryState, RegistryState},
-    registry_handlers,
+    registry_handlers, delegate_compositor, compositor::CompositorHandler, output::OutputHandler, delegate_xdg_shell, delegate_xdg_window, shell::xdg::window::WindowHandler,
 };
-use wayland_client::{globals::registry_queue_init, Connection, EventQueue, backend::{protocol::ProtocolError, WaylandError}};
+use wayland_client::{globals::{registry_queue_init, GlobalList}, Connection, EventQueue, backend::{protocol::ProtocolError, WaylandError}};
 
 use crate::{spawn::SPAWN_QUEUE, ConnectionOps};
 
 pub struct WaylandConnection {
-    should_terminate: RefCell<bool>,
-    event_queue: RefCell<EventQueue<WaylandState>>,
+    pub(crate) should_terminate: RefCell<bool>,
+    pub(crate) next_window_id: AtomicUsize,
 
-    wayland_state: RefCell<WaylandState>,
+    pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
+    pub(crate) globals: RefCell<GlobalList>,
+
+    pub(crate) wayland_state: RefCell<WaylandState>,
 }
 
-struct WaylandState {
+pub (crate) struct WaylandState {
     registry_state: RegistryState,
 }
 
@@ -35,7 +38,11 @@ impl WaylandConnection {
         };
         let wayland_connection = WaylandConnection {
             should_terminate: RefCell::new(false),
+            next_window_id: AtomicUsize::new(1),
+
             event_queue: RefCell::new(event_queue),
+            globals: RefCell::new(globals),
+
             wayland_state: RefCell::new(wayland_state),
         };
 
@@ -118,6 +125,11 @@ impl WaylandConnection {
 
         Ok(())
     }
+
+    pub(crate) fn next_window_id(&self) -> usize {
+        self.next_window_id
+            .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+    }
 }
 
 impl ProvidesRegistryState for WaylandState {
@@ -128,9 +140,81 @@ impl ProvidesRegistryState for WaylandState {
     registry_handlers!();
 }
 
+impl CompositorHandler for WaylandState {
+    fn scale_factor_changed(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        new_factor: i32,
+    ) {
+        todo!()
+    }
+
+    fn frame(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        time: u32,
+    ) {
+        todo!()
+    }
+}
+
+impl OutputHandler for WaylandState {
+    fn output_state(&mut self) -> &mut smithay_client_toolkit::output::OutputState {
+        todo!()
+    }
+
+    fn new_output(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+        todo!()
+    }
+
+    fn update_output(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+        todo!()
+    }
+
+    fn output_destroyed(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+        todo!()
+    }
+}
+
+impl WindowHandler for WaylandState {
+    fn request_close(&mut self, conn: &Connection, qh: &wayland_client::QueueHandle<Self>, window: &smithay_client_toolkit::shell::xdg::window::Window) {
+        todo!()
+    }
+
+    fn configure(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        window: &smithay_client_toolkit::shell::xdg::window::Window,
+        configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
+        serial: u32,
+    ) {
+        todo!()
+    }
+}
+
 impl ConnectionOps for WaylandConnection {
     fn name(&self) -> String {
-        todo!()
+        "Wayland".to_string()
     }
 
     fn terminate_message_loop(&self) {
@@ -143,4 +227,7 @@ impl ConnectionOps for WaylandConnection {
     }
 }
 
+delegate_xdg_shell!(WaylandState);
+delegate_xdg_window!(WaylandState);
+delegate_compositor!(WaylandState);
 delegate_registry!(WaylandState);
