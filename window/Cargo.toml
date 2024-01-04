@@ -75,10 +75,10 @@ xcb = {version="1.2", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "p
 xkbcommon = { version = "0.5.0", features = ["x11", "wayland"] }
 mio = {version="0.8", features=["os-ext"]}
 libc = "0.2"
-smithay-client-toolkit = {version = "0.16.1", default-features=false, optional=true}
-wayland-protocols = {version="0.29", optional=true}
-wayland-client = {version="0.29", optional=true}
-wayland-egl = {version="0.29", optional=true}
+smithay-client-toolkit = {version = "0.17.0", default-features=false, optional=true}
+wayland-protocols = {version="0.30", optional=true}
+wayland-client = {version="0.30", optional=true}
+wayland-egl = {version="0.30", optional=true}
 xcb-imdkit = { version="0.2", git="https://github.com/wez/xcb-imdkit-rs.git", branch="hangfix"}
 zbus = "3.13"
 zvariant = "3.14"
