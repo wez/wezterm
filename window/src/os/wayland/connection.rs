@@ -13,7 +13,9 @@ use wayland_client::{globals::registry_queue_init, Connection, EventQueue};
 use crate::ConnectionOps;
 
 pub struct WaylandConnection {
+    should_terminate: RefCell<bool>,
     event_queue: RefCell<EventQueue<WaylandState>>,
+
     wayland_state: RefCell<WaylandState>,
 }
 
@@ -31,6 +33,7 @@ impl WaylandConnection {
             registry_state: RegistryState::new(&globals),
         };
         let wayland_connection = WaylandConnection {
+            should_terminate: RefCell::new(false),
             event_queue: RefCell::new(event_queue),
             wayland_state: RefCell::new(wayland_state),
         };
@@ -59,14 +62,18 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        loop {
+        while !*self.should_terminate.borrow() {
             let mut event_q = self.event_queue.borrow_mut();
             let mut wayland_state = self.wayland_state.borrow_mut();
-            if let Err(err) = event_q.dispatch_pending(&mut wayland_state) {
-                // TODO: show the protocol error in the display
-                return Err(err)
-                    .with_context(|| format!("error during event_q.dispatch protcol_error"));
-            }
+            // TODO
+            // Do dispatch pending later, just do blocking for now
+            // if let Err(err) = event_q.dispatch_pending(&mut wayland_state) {
+            //     // TODO: show the protocol error in the display
+            //     return Err(err)
+            //         .with_context(|| format!("error during event_q.dispatch protcol_error"));
+            // }
+            // event_q.flush();
+            event_q.blocking_dispatch(&mut wayland_state)?;
         }
         Ok(())
     }
