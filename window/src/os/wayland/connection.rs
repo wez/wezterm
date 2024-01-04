@@ -1,3 +1,5 @@
+// TODO: change this
+#![allow(dead_code, unused)]
 use crate::ConnectionOps;
 
 pub struct WaylandConnection {}
