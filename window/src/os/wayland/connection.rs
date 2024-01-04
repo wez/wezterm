@@ -1,21 +1,34 @@
 // TODO: change this
 #![allow(dead_code, unused)]
-use std::{borrow::BorrowMut, cell::RefCell, os::fd::AsRawFd, sync::atomic::AtomicUsize};
+use std::{
+    borrow::BorrowMut, cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc,
+    sync::atomic::AtomicUsize,
+};
 
-use anyhow::{Context, bail};
+use anyhow::{bail, Context};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
-    delegate_registry,
+    compositor::CompositorHandler,
+    delegate_compositor, delegate_registry, delegate_xdg_shell, delegate_xdg_window,
+    output::OutputHandler,
     registry::{ProvidesRegistryState, RegistryState},
-    registry_handlers, delegate_compositor, compositor::CompositorHandler, output::OutputHandler, delegate_xdg_shell, delegate_xdg_window, shell::xdg::window::WindowHandler,
+    registry_handlers,
+    shell::xdg::window::WindowHandler,
 };
-use wayland_client::{globals::{registry_queue_init, GlobalList}, Connection, EventQueue, backend::{protocol::ProtocolError, WaylandError}};
+use wayland_client::{
+    backend::{protocol::ProtocolError, WaylandError},
+    globals::{registry_queue_init, GlobalList},
+    Connection, EventQueue,
+};
 
 use crate::{spawn::SPAWN_QUEUE, ConnectionOps};
+
+use super::WaylandWindowInner;
 
 pub struct WaylandConnection {
     pub(crate) should_terminate: RefCell<bool>,
     pub(crate) next_window_id: AtomicUsize,
+    pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
     pub(crate) globals: RefCell<GlobalList>,
@@ -23,7 +36,7 @@ pub struct WaylandConnection {
     pub(crate) wayland_state: RefCell<WaylandState>,
 }
 
-pub (crate) struct WaylandState {
+pub(crate) struct WaylandState {
     registry_state: RegistryState,
 }
 
@@ -39,6 +52,7 @@ impl WaylandConnection {
         let wayland_connection = WaylandConnection {
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
+            windows: RefCell::new(HashMap::default()),
 
             event_queue: RefCell::new(event_queue),
             globals: RefCell::new(globals),
@@ -120,7 +134,6 @@ impl WaylandConnection {
                     }
                 }
             }
-
         }
 
         Ok(())
@@ -129,6 +142,10 @@ impl WaylandConnection {
     pub(crate) fn next_window_id(&self) -> usize {
         self.next_window_id
             .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
+        self.windows.borrow().get(&window_id).map(Rc::clone)
     }
 }
 
@@ -196,7 +213,12 @@ impl OutputHandler for WaylandState {
 }
 
 impl WindowHandler for WaylandState {
-    fn request_close(&mut self, conn: &Connection, qh: &wayland_client::QueueHandle<Self>, window: &smithay_client_toolkit::shell::xdg::window::Window) {
+    fn request_close(
+        &mut self,
+        conn: &Connection,
+        qh: &wayland_client::QueueHandle<Self>,
+        window: &smithay_client_toolkit::shell::xdg::window::Window,
+    ) {
         todo!()
     }
 
