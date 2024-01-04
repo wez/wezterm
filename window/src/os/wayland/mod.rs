@@ -3,8 +3,8 @@
 pub mod connection;
 // pub mod inputhandler;
 // pub mod output;
-// pub mod window;
-// pub use self::window::*;
+pub mod window;
+pub use self::window::*;
 pub use connection::*;
 // pub use output::*;
 // mod copy_and_paste;
