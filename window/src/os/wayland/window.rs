@@ -32,6 +32,7 @@ impl WaylandWindow {
     where
         F: 'static + FnMut(WindowEvent, &Window),
     {
+        log::debug!("Creating a window");
         todo!("WaylandWindow::new_window")
     }
 }
