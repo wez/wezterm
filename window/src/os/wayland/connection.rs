@@ -1,16 +1,17 @@
 // TODO: change this
 #![allow(dead_code, unused)]
-use std::{borrow::BorrowMut, cell::RefCell};
+use std::{borrow::BorrowMut, cell::RefCell, os::fd::AsRawFd};
 
-use anyhow::Context;
+use anyhow::{Context, bail};
+use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
     delegate_registry,
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
 };
-use wayland_client::{globals::registry_queue_init, Connection, EventQueue};
+use wayland_client::{globals::registry_queue_init, Connection, EventQueue, backend::{protocol::ProtocolError, WaylandError}};
 
-use crate::ConnectionOps;
+use crate::{spawn::SPAWN_QUEUE, ConnectionOps};
 
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
@@ -42,6 +43,81 @@ impl WaylandConnection {
     }
 
     pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {}
+
+    fn run_message_loop_impl(&self) -> anyhow::Result<()> {
+        const TOK_WL: usize = 0xffff_fffc;
+        const TOK_SPAWN: usize = 0xffff_fffd;
+        let tok_wl = Token(TOK_WL);
+        let tok_spawn = Token(TOK_SPAWN);
+
+        let mut poll = Poll::new()?;
+        let mut events = Events::with_capacity(8);
+
+        let read_guard = self.event_queue.borrow().prepare_read()?;
+        let wl_fd = read_guard.connection_fd();
+
+        poll.registry().register(
+            &mut SourceFd(&wl_fd.as_raw_fd()),
+            tok_wl,
+            Interest::READABLE,
+        )?;
+        poll.registry().register(
+            &mut SourceFd(&SPAWN_QUEUE.raw_fd()),
+            tok_spawn,
+            Interest::READABLE,
+        )?;
+
+        // JUST Realized that the reason we need the spawn executor is so we can have tasks
+        // scheduled (needed to open window)
+        while !*self.should_terminate.borrow() {
+            let timeout = if SPAWN_QUEUE.run() {
+                Some(std::time::Duration::from_secs(0))
+            } else {
+                None
+            };
+
+            let mut event_q = self.event_queue.borrow_mut();
+            {
+                let mut wayland_state = self.wayland_state.borrow_mut();
+                if let Err(err) = event_q.dispatch_pending(&mut wayland_state) {
+                    // TODO: show the protocol error in the display
+                    return Err(err)
+                        .with_context(|| format!("error during event_q.dispatch protcol_error"));
+                }
+            }
+
+            event_q.flush()?;
+            if let Err(err) = poll.poll(&mut events, timeout) {
+                if err.kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
+                bail!("polling for events: {:?}", err);
+            }
+
+            for event in &events {
+                if event.token() != tok_wl {
+                    continue;
+                }
+
+                let a = event_q.prepare_read();
+                if let Ok(guard) = event_q.prepare_read() {
+                    if let Err(err) = guard.read() {
+                        if let WaylandError::Protocol(perr) = err {
+                            return Err(perr.into());
+                            // TODO
+                            // return Err(perr).with_context(|| {
+                            //     format!("error during event_q.read protocol_error={:?}",
+                            //             perr)
+                            // })
+                        }
+                    }
+                }
+            }
+
+        }
+
+        Ok(())
+    }
 }
 
 impl ProvidesRegistryState for WaylandState {
@@ -62,20 +138,8 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        while !*self.should_terminate.borrow() {
-            let mut event_q = self.event_queue.borrow_mut();
-            let mut wayland_state = self.wayland_state.borrow_mut();
-            // TODO
-            // Do dispatch pending later, just do blocking for now
-            // if let Err(err) = event_q.dispatch_pending(&mut wayland_state) {
-            //     // TODO: show the protocol error in the display
-            //     return Err(err)
-            //         .with_context(|| format!("error during event_q.dispatch protcol_error"));
-            // }
-            // event_q.flush();
-            event_q.blocking_dispatch(&mut wayland_state)?;
-        }
-        Ok(())
+        // TODO: match
+        self.run_message_loop_impl()
     }
 }
 
