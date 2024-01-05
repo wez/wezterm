@@ -30,6 +30,7 @@ pub struct WaylandConnection {
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
+    pub(crate) connection: RefCell<Connection>,
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
     pub(crate) globals: RefCell<GlobalList>,
 
@@ -50,6 +51,7 @@ impl WaylandConnection {
             registry_state: RegistryState::new(&globals),
         };
         let wayland_connection = WaylandConnection {
+            connection: RefCell::new(conn),
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::default()),
