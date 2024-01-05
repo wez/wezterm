@@ -84,6 +84,7 @@ impl WaylandWindow {
 
         let compositor = CompositorState::bind(&globals, &qh)?;
         let surface = compositor.create_surface(&qh);
+        log::trace!("SURFACE: {:?} - {:?} - {:?}", surface, surface.id(), surface.id().as_ptr());
 
         let xdg_shell = XdgShell::bind(&globals, &qh)?;
         let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
@@ -118,7 +119,7 @@ impl WaylandWindow {
         // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
-            surface,
+            surface: surface.clone(),
 
             wegl_surface: None,
             gl_state: None,
@@ -144,7 +145,7 @@ impl WaylandWindow {
         // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
-        log::trace!("About to commit the window");
+        log::trace!("About to commit window");
         window.commit();
 
         Ok(window_handle)
@@ -254,7 +255,8 @@ struct PendingEvent {
 pub struct WaylandWindowInner {
     //     window_id: usize,
     pub(crate) events: WindowEventSender,
-    surface: WlSurface,
+    // TODO: remove pub(crate) surface
+    pub(crate) surface: WlSurface,
     // surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     // window: Option<toolkit::window::Window<ConceptFrame>>,
@@ -295,12 +297,17 @@ impl WaylandWindowInner {
         let gl_state = if !egl_is_available() {
             Err(anyhow!("!egl_is_available"))
         } else {
+            let object_id = self.surface.id();
+            log::trace!("EGL SURFACE: {:?} - {:?} - {:?}", self.surface, object_id, object_id.as_ptr());
+            let ptr = object_id.as_ptr();
+            // IMPORTANT!!!! - TODO: the wl_surface is null
             wegl_surface = Some(WlEglSurface::new(
                 self.surface.id(),
                 // TODO: remove the hardcoded stuff
                 100,
                 100,
             )?);
+            log::trace!("EGL SURFACE AFTER");
 
             match wayland_conn.gl_connection.borrow().as_ref() {
                 Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
