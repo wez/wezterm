@@ -1,7 +1,7 @@
 // TODO: change this
 #![allow(dead_code, unused)]
 use std::{
-    borrow::BorrowMut, cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc,
+    cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc,
     sync::atomic::AtomicUsize,
 };
 
@@ -10,13 +10,13 @@ use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
     compositor::CompositorHandler,
     delegate_compositor, delegate_registry, delegate_xdg_shell, delegate_xdg_window,
-    output::OutputHandler,
+    output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
-    shell::xdg::window::WindowHandler,
+    shell::xdg::window::WindowHandler, delegate_output,
 };
 use wayland_client::{
-    backend::{protocol::ProtocolError, WaylandError},
+    backend::WaylandError,
     globals::{registry_queue_init, GlobalList},
     Connection, EventQueue,
 };
@@ -44,8 +44,8 @@ pub(crate) struct WaylandState {
 impl WaylandConnection {
     pub(crate) fn create_new() -> anyhow::Result<Self> {
         let conn = Connection::connect_to_env()?;
-        let (globals, mut event_queue) = registry_queue_init::<WaylandState>(&conn)?;
-        let qh = event_queue.handle();
+        let (globals, event_queue) = registry_queue_init::<WaylandState>(&conn)?;
+        let _qh = event_queue.handle();
 
         let wayland_state = WaylandState {
             registry_state: RegistryState::new(&globals),
@@ -65,7 +65,7 @@ impl WaylandConnection {
         Ok(wayland_connection)
     }
 
-    pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {}
+    pub(crate) fn advise_of_appearance_change(&self, _appearance: crate::Appearance) {}
 
     fn run_message_loop_impl(&self) -> anyhow::Result<()> {
         const TOK_WL: usize = 0xffff_fffc;
@@ -76,11 +76,13 @@ impl WaylandConnection {
         let mut poll = Poll::new()?;
         let mut events = Events::with_capacity(8);
 
-        let read_guard = self.event_queue.borrow().prepare_read()?;
-        let wl_fd = read_guard.connection_fd();
+        let wl_fd = {
+            let read_guard = self.event_queue.borrow().prepare_read()?;
+            read_guard.connection_fd().as_raw_fd()
+        };
 
         poll.registry().register(
-            &mut SourceFd(&wl_fd.as_raw_fd()),
+            &mut SourceFd(&wl_fd),
             tok_wl,
             Interest::READABLE,
         )?;
@@ -122,9 +124,12 @@ impl WaylandConnection {
                     continue;
                 }
 
+                println!("READING WL EVENT");
+
                 let a = event_q.prepare_read();
                 if let Ok(guard) = event_q.prepare_read() {
                     if let Err(err) = guard.read() {
+                        log::trace!("Event Q error: {:?}", err);
                         if let WaylandError::Protocol(perr) = err {
                             return Err(perr.into());
                             // TODO
@@ -151,14 +156,6 @@ impl WaylandConnection {
     }
 }
 
-impl ProvidesRegistryState for WaylandState {
-    fn registry(&mut self) -> &mut RegistryState {
-        &mut self.registry_state
-    }
-
-    registry_handlers!();
-}
-
 impl CompositorHandler for WaylandState {
     fn scale_factor_changed(
         &mut self,
@@ -177,12 +174,14 @@ impl CompositorHandler for WaylandState {
         surface: &wayland_client::protocol::wl_surface::WlSurface,
         time: u32,
     ) {
+        log::trace!("frame: CompositorHandler");
         todo!()
     }
 }
 
 impl OutputHandler for WaylandState {
     fn output_state(&mut self) -> &mut smithay_client_toolkit::output::OutputState {
+        log::trace!("output state: OutputHandler");
         todo!()
     }
 
@@ -192,6 +191,7 @@ impl OutputHandler for WaylandState {
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
+        log::trace!("new output: OutputHandler");
         todo!()
     }
 
@@ -201,6 +201,7 @@ impl OutputHandler for WaylandState {
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
+        log::trace!("update output: OutputHandler");
         todo!()
     }
 
@@ -210,6 +211,7 @@ impl OutputHandler for WaylandState {
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
+        log::trace!("output destroyed: OutputHandler");
         todo!()
     }
 }
@@ -221,6 +223,7 @@ impl WindowHandler for WaylandState {
         qh: &wayland_client::QueueHandle<Self>,
         window: &smithay_client_toolkit::shell::xdg::window::Window,
     ) {
+        log::trace!("Request close on WindowHandler");
         todo!()
     }
 
@@ -232,6 +235,7 @@ impl WindowHandler for WaylandState {
         configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
         serial: u32,
     ) {
+        log::trace!("Configuring Window Handler");
         todo!()
     }
 }
@@ -249,9 +253,25 @@ impl ConnectionOps for WaylandConnection {
         // TODO: match
         self.run_message_loop_impl()
     }
+
+    fn screens(&self) -> anyhow::Result<crate::screen::Screens> {
+        todo!("Screens is not implemented");
+    }
 }
+
+delegate_compositor!(WaylandState);
+delegate_output!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
-delegate_compositor!(WaylandState);
+
+
 delegate_registry!(WaylandState);
+
+impl ProvidesRegistryState for WaylandState {
+    fn registry(&mut self) -> &mut RegistryState {
+        &mut self.registry_state
+    }
+
+    registry_handlers!(OutputState);
+}
