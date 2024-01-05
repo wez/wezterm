@@ -140,6 +140,7 @@ impl WaylandWindow {
         // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
+        log::trace!("About to commit the window");
         window.commit();
 
         Ok(window_handle)
@@ -223,7 +224,7 @@ unsafe impl HasRawDisplayHandle for WaylandWindow {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         let mut handle = WaylandDisplayHandle::empty();
         let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.borrow().display().id().as_ptr() as *mut _;
+        handle.display = conn.connection.borrow().backend().display_ptr() as *mut _;
         RawDisplayHandle::Wayland(handle)
     }
 }
