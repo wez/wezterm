@@ -122,6 +122,15 @@ impl WaylandConnection {
                 bail!("polling for events: {:?}", err);
             }
 
+            {
+                // TODO: remove me
+                log::trace!("WINDOWS");
+                for (k, v) in self.windows.borrow().iter() {
+                    let obj_id = wayland_client::Proxy::id(&v.borrow().surface).as_ptr();
+                    log::trace!("{k} := inner <{:?}>", obj_id);
+                }
+            }
+
             for event in &events {
                 if event.token() != tok_wl {
                     continue;
