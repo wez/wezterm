@@ -30,6 +30,8 @@ pub struct WaylandConnection {
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
+    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
+
     pub(crate) connection: RefCell<Connection>,
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
     pub(crate) globals: RefCell<GlobalList>,
@@ -54,6 +56,7 @@ impl WaylandConnection {
             connection: RefCell::new(conn),
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
+            gl_connection: RefCell::new(None),
             windows: RefCell::new(HashMap::default()),
 
             event_queue: RefCell::new(event_queue),
@@ -246,12 +249,17 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn terminate_message_loop(&self) {
-        todo!()
+        log::trace!("Terminating Message Loop");
+        *self.should_terminate.borrow_mut() = true;
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        // TODO: match
-        self.run_message_loop_impl()
+        let res = self.run_message_loop_impl();
+        // Ensure that we drop these eagerly, to avoid
+        // noisy errors wrt. global destructors unwinding
+        // in unexpected places
+        self.windows.borrow_mut().clear();
+        res
     }
 
     fn screens(&self) -> anyhow::Result<crate::screen::Screens> {
