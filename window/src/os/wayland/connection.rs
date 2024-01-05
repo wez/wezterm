@@ -1,27 +1,27 @@
 // TODO: change this
 #![allow(dead_code, unused)]
 use std::{
-    cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc,
-    sync::atomic::AtomicUsize,
+    cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc, sync::atomic::AtomicUsize,
 };
 
 use anyhow::{bail, Context};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
     compositor::CompositorHandler,
-    delegate_compositor, delegate_registry, delegate_xdg_shell, delegate_xdg_window,
+    delegate_compositor, delegate_output, delegate_registry, delegate_xdg_shell,
+    delegate_xdg_window,
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
-    shell::xdg::window::WindowHandler, delegate_output,
+    shell::xdg::window::WindowHandler,
 };
 use wayland_client::{
     backend::WaylandError,
     globals::{registry_queue_init, GlobalList},
-    Connection, EventQueue,
+    Connection as WConnection, EventQueue,
 };
 
-use crate::{spawn::SPAWN_QUEUE, ConnectionOps};
+use crate::{spawn::SPAWN_QUEUE, ConnectionOps, Connection};
 
 use super::WaylandWindowInner;
 
@@ -32,7 +32,7 @@ pub struct WaylandConnection {
 
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 
-    pub(crate) connection: RefCell<Connection>,
+    pub(crate) connection: RefCell<WConnection>,
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
     pub(crate) globals: RefCell<GlobalList>,
 
@@ -45,7 +45,7 @@ pub(crate) struct WaylandState {
 
 impl WaylandConnection {
     pub(crate) fn create_new() -> anyhow::Result<Self> {
-        let conn = Connection::connect_to_env()?;
+        let conn = WConnection::connect_to_env()?;
         let (globals, event_queue) = registry_queue_init::<WaylandState>(&conn)?;
         let _qh = event_queue.handle();
 
@@ -84,11 +84,8 @@ impl WaylandConnection {
             read_guard.connection_fd().as_raw_fd()
         };
 
-        poll.registry().register(
-            &mut SourceFd(&wl_fd),
-            tok_wl,
-            Interest::READABLE,
-        )?;
+        poll.registry()
+            .register(&mut SourceFd(&wl_fd), tok_wl, Interest::READABLE)?;
         poll.registry().register(
             &mut SourceFd(&SPAWN_QUEUE.raw_fd()),
             tok_spawn,
@@ -157,12 +154,36 @@ impl WaylandConnection {
     pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Rc::clone)
     }
+
+    pub(crate) fn with_window_inner<
+        R,
+        F: FnOnce(&mut WaylandWindowInner) -> anyhow::Result<R> + Send + 'static,
+    >(
+        window: usize,
+        f: F,
+    ) -> promise::Future<R>
+    where
+        R: Send + 'static,
+    {
+        let mut prom = promise::Promise::new();
+        let future = prom.get_future().unwrap();
+
+        promise::spawn::spawn_into_main_thread(async move {
+            if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(window) {
+                let mut inner = handle.borrow_mut();
+                prom.result(f(&mut inner));
+            }
+        })
+        .detach();
+
+        future
+    }
 }
 
 impl CompositorHandler for WaylandState {
     fn scale_factor_changed(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         surface: &wayland_client::protocol::wl_surface::WlSurface,
         new_factor: i32,
@@ -172,7 +193,7 @@ impl CompositorHandler for WaylandState {
 
     fn frame(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         surface: &wayland_client::protocol::wl_surface::WlSurface,
         time: u32,
@@ -190,7 +211,7 @@ impl OutputHandler for WaylandState {
 
     fn new_output(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
@@ -200,7 +221,7 @@ impl OutputHandler for WaylandState {
 
     fn update_output(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
@@ -210,7 +231,7 @@ impl OutputHandler for WaylandState {
 
     fn output_destroyed(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
@@ -222,7 +243,7 @@ impl OutputHandler for WaylandState {
 impl WindowHandler for WaylandState {
     fn request_close(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         window: &smithay_client_toolkit::shell::xdg::window::Window,
     ) {
@@ -232,7 +253,7 @@ impl WindowHandler for WaylandState {
 
     fn configure(
         &mut self,
-        conn: &Connection,
+        conn: &WConnection,
         qh: &wayland_client::QueueHandle<Self>,
         window: &smithay_client_toolkit::shell::xdg::window::Window,
         configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
@@ -272,7 +293,6 @@ delegate_output!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
-
 
 delegate_registry!(WaylandState);
 

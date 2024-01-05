@@ -120,7 +120,7 @@ impl WaylandWindow {
         // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
-            window,
+            window: Some(window),
 
             wegl_surface: None,
             gl_state: None,
@@ -145,6 +145,7 @@ impl WaylandWindow {
         //     Decorations::ClientSide
         // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
+        log::trace!("Return from commiting window");
 
         Ok(window_handle)
     }
@@ -154,7 +155,10 @@ impl WaylandWindow {
 impl WindowOps for WaylandWindow {
     #[doc = r" Show a hidden window"]
     fn show(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.show();
+            Ok(())
+        });
     }
 
     fn notify<T: Any + Send + Sync>(&self, t: T)
@@ -253,12 +257,9 @@ struct PendingEvent {
 pub struct WaylandWindowInner {
     //     window_id: usize,
     pub(crate) events: WindowEventSender,
-    // TODO: remove pub(crate) surface
-    pub (crate) window: XdgWindow,
-    // pub(crate) surface: WlSurface,
     // surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
-    // window: Option<toolkit::window::Window<ConceptFrame>>,
+    window: Option<XdgWindow>,
     // dimensions: Dimensions,
     // resize_increments: Option<(u16, u16)>,
     // window_state: WindowState,
@@ -289,21 +290,32 @@ pub struct WaylandWindowInner {
 }
 
 impl WaylandWindowInner {
+    fn show(&mut self) {
+        // TODO: Need to implement show
+        if self.window.is_none() {}
+    }
+
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let wayland_conn = Connection::get().unwrap().wayland();
         let mut wegl_surface = None;
 
+        log::trace!("Enable opengl");
+
         let gl_state = if !egl_is_available() {
             Err(anyhow!("!egl_is_available"))
         } else {
+            let window = self
+                .window
+                .as_ref()
+                .ok_or(anyhow!("Window does not exist"))?;
+            let object_id = window.wl_surface().id();
 
-            let object_id = self.window.wl_surface().id();
             wegl_surface = Some(WlEglSurface::new(
-                object_id,
-                // TODO: remove the hardcoded stuff
-                100,
-                100,
+                object_id, // TODO: remove the hardcoded stuff
+                100, 100,
             )?);
+
+            log::trace!("WEGL Surface here {:?}", wegl_surface);
 
             match wayland_conn.gl_connection.borrow().as_ref() {
                 Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
@@ -352,7 +364,12 @@ unsafe impl HasRawDisplayHandle for WaylandWindowInner {
 unsafe impl HasRawWindowHandle for WaylandWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = WaylandWindowHandle::empty();
-        handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
+        let surface = self
+            .window
+            .as_ref()
+            .expect("Window should exist")
+            .wl_surface();
+        handle.surface = surface.id().as_ptr() as *mut _;
         RawWindowHandle::Wayland(handle)
     }
 }
