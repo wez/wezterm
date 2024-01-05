@@ -15,6 +15,7 @@ use raw_window_handle::HasRawDisplayHandle;
 use raw_window_handle::HasRawWindowHandle;
 use raw_window_handle::RawDisplayHandle;
 use raw_window_handle::RawWindowHandle;
+use raw_window_handle::WaylandDisplayHandle;
 use raw_window_handle::WaylandWindowHandle;
 use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::registry::ProvidesRegistryState;
@@ -137,6 +138,7 @@ impl WaylandWindow {
         //     // client side decoration rendering.
         //     Decorations::ClientSide
         // });
+        conn.windows.borrow_mut().insert(window_id, inner.clone());
 
         window.commit();
 
@@ -219,13 +221,16 @@ impl WindowOps for WaylandWindow {
 
 unsafe impl HasRawDisplayHandle for WaylandWindow {
     fn raw_display_handle(&self) -> RawDisplayHandle {
-        todo!()
+        let mut handle = WaylandDisplayHandle::empty();
+        let conn = WaylandConnection::get().unwrap().wayland();
+        handle.display = conn.connection.borrow().display().id().as_ptr() as *mut _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 
 unsafe impl HasRawWindowHandle for WaylandWindow {
     fn raw_window_handle(&self) -> RawWindowHandle {
-        let conn = Connection::get().expect("raw_window_handle only callable on the main thread");
+        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
         let handle = conn
             .wayland()
             .window_by_id(self.0)
