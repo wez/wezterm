@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use anyhow::anyhow;
+use async_trait::async_trait;
 use config::configuration;
 use config::ConfigHandle;
 use promise::Future;
@@ -26,7 +27,7 @@ use smithay_client_toolkit::shell::WaylandSurface;
 use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::Proxy;
-use wayland_egl::WlEglSurface;
+use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::KeyboardLedStatus;
 use wezterm_input_types::Modifiers;
@@ -118,6 +119,9 @@ impl WaylandWindow {
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
             surface,
+
+            wegl_surface: None,
+            gl_state: None,
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
@@ -147,6 +151,7 @@ impl WaylandWindow {
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for WaylandWindow {
     #[doc = r" Show a hidden window"]
     fn show(&self) {
@@ -160,22 +165,17 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
-    #[doc = r" Setup opengl for rendering"]
-    #[must_use]
-    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
-    fn enable_opengl<'life0, 'async_trait>(
-        &'life0 self,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = anyhow::Result<Rc<glium::backend::Context>>>
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        Self: 'async_trait,
-    {
-        todo!()
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let window = self.0;
+        promise::spawn::spawn(async move {
+            if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(window) {
+                let mut inner = handle.borrow_mut();
+                inner.enable_opengl()
+            } else {
+                anyhow::bail!("invalid window");
+            }
+        })
+        .await
     }
 
     #[doc = r" Hide a visible window"]
@@ -283,8 +283,57 @@ pub struct WaylandWindowInner {
     // // wegl_surface is listed before gl_state because it
     // // must be dropped before gl_state otherwise the underlying
     // // libraries will segfault on shutdown
-    // wegl_surface: Option<WlEglSurface>,
-    // gl_state: Option<Rc<glium::backend::Context>>,
+    wegl_surface: Option<WlEglSurface>,
+    gl_state: Option<Rc<glium::backend::Context>>,
+}
+
+impl WaylandWindowInner {
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let wayland_conn = Connection::get().unwrap().wayland();
+        let mut wegl_surface = None;
+
+        let gl_state = if !egl_is_available() {
+            Err(anyhow!("!egl_is_available"))
+        } else {
+            wegl_surface = Some(WlEglSurface::new(
+                self.surface.id(),
+                // TODO: remove the hardcoded stuff
+                100,
+                100,
+            )?);
+
+            match wayland_conn.gl_connection.borrow().as_ref() {
+                Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
+                    glconn,
+                    wegl_surface.as_ref().unwrap(),
+                ),
+                None => crate::egl::GlState::create_wayland(
+                    Some(wayland_conn.connection.borrow().backend().display_ptr() as *const _),
+                    wegl_surface.as_ref().unwrap(),
+                ),
+            }
+        };
+        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
+            wayland_conn
+                .gl_connection
+                .borrow_mut()
+                .replace(Rc::clone(state.get_connection()));
+            Ok(glium::backend::Context::new(
+                Rc::clone(&state),
+                true,
+                if cfg!(debug_assertions) {
+                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                } else {
+                    glium::debug::DebugCallbackBehavior::Ignore
+                },
+            )?)
+        })?;
+
+        self.gl_state.replace(gl_state.clone());
+        self.wegl_surface = wegl_surface;
+
+        Ok(gl_state)
+    }
 }
 
 unsafe impl HasRawDisplayHandle for WaylandWindowInner {
