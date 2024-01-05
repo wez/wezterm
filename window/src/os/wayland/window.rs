@@ -21,6 +21,7 @@ use raw_window_handle::WaylandWindowHandle;
 use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::registry::ProvidesRegistryState;
 use smithay_client_toolkit::shell::xdg::window::DecorationMode;
+use smithay_client_toolkit::shell::xdg::window::Window as XdgWindow;
 use smithay_client_toolkit::shell::xdg::window::WindowDecorations as Decorations;
 use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shell::WaylandSurface;
@@ -84,7 +85,6 @@ impl WaylandWindow {
 
         let compositor = CompositorState::bind(&globals, &qh)?;
         let surface = compositor.create_surface(&qh);
-        log::trace!("SURFACE: {:?} - {:?} - {:?}", surface, surface.id(), surface.id().as_ptr());
 
         let xdg_shell = XdgShell::bind(&globals, &qh)?;
         let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
@@ -109,6 +109,7 @@ impl WaylandWindow {
 
         window.set_min_size(Some((32, 32)));
 
+        window.commit();
         //
         // TODO:
         // let copy_and_paste = CopyAndPaste::create();
@@ -119,7 +120,7 @@ impl WaylandWindow {
         // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
-            surface: surface.clone(),
+            window,
 
             wegl_surface: None,
             gl_state: None,
@@ -144,9 +145,6 @@ impl WaylandWindow {
         //     Decorations::ClientSide
         // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
-
-        log::trace!("About to commit window");
-        window.commit();
 
         Ok(window_handle)
     }
@@ -256,7 +254,8 @@ pub struct WaylandWindowInner {
     //     window_id: usize,
     pub(crate) events: WindowEventSender,
     // TODO: remove pub(crate) surface
-    pub(crate) surface: WlSurface,
+    pub (crate) window: XdgWindow,
+    // pub(crate) surface: WlSurface,
     // surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     // window: Option<toolkit::window::Window<ConceptFrame>>,
@@ -297,17 +296,14 @@ impl WaylandWindowInner {
         let gl_state = if !egl_is_available() {
             Err(anyhow!("!egl_is_available"))
         } else {
-            let object_id = self.surface.id();
-            log::trace!("EGL SURFACE: {:?} - {:?} - {:?}", self.surface, object_id, object_id.as_ptr());
-            let ptr = object_id.as_ptr();
-            // IMPORTANT!!!! - TODO: the wl_surface is null
+
+            let object_id = self.window.wl_surface().id();
             wegl_surface = Some(WlEglSurface::new(
-                self.surface.id(),
+                object_id,
                 // TODO: remove the hardcoded stuff
                 100,
                 100,
             )?);
-            log::trace!("EGL SURFACE AFTER");
 
             match wayland_conn.gl_connection.borrow().as_ref() {
                 Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
@@ -356,7 +352,7 @@ unsafe impl HasRawDisplayHandle for WaylandWindowInner {
 unsafe impl HasRawWindowHandle for WaylandWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = WaylandWindowHandle::empty();
-        handle.surface = self.surface.id().as_ptr() as *mut _;
+        handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
         RawWindowHandle::Wayland(handle)
     }
 }
