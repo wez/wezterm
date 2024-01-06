@@ -19,6 +19,8 @@ use raw_window_handle::RawWindowHandle;
 use raw_window_handle::WaylandDisplayHandle;
 use raw_window_handle::WaylandWindowHandle;
 use smithay_client_toolkit::compositor::CompositorState;
+use smithay_client_toolkit::compositor::SurfaceData;
+use smithay_client_toolkit::compositor::SurfaceDataExt;
 use smithay_client_toolkit::registry::ProvidesRegistryState;
 use smithay_client_toolkit::shell::xdg::window::DecorationMode;
 use smithay_client_toolkit::shell::xdg::window::Window as XdgWindow;
@@ -76,15 +78,22 @@ impl WaylandWindow {
             .wayland();
 
         let window_id = conn.next_window_id();
-        // let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
+        let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
 
-        // let (pending_first_configure, wait_configure) = async_channel::bounded(1);
+        let (pending_first_configure, wait_configure) = async_channel::bounded(1);
 
         let qh = conn.event_queue.borrow().handle();
         let globals = conn.globals.borrow();
 
         let compositor = CompositorState::bind(&globals, &qh)?;
         let surface = compositor.create_surface(&qh);
+
+        // We need user data so we can get the window_id => WaylandWindowInner during a handler
+        let surface_data = SurfaceUserData {
+            surface_data: SurfaceData::default(),
+            window_id,
+        };
+        let surface = compositor.create_surface_with_data(&qh, surface_data);
 
         let xdg_shell = XdgShell::bind(&globals, &qh)?;
         let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
@@ -122,6 +131,8 @@ impl WaylandWindow {
             events: WindowEventSender::new(event_handler),
             window: Some(window),
 
+            pending_event,
+
             wegl_surface: None,
             gl_state: None,
         }));
@@ -145,7 +156,8 @@ impl WaylandWindow {
         //     Decorations::ClientSide
         // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
-        log::trace!("Return from commiting window");
+
+        wait_configure.recv().await?;
 
         Ok(window_handle)
     }
@@ -270,7 +282,7 @@ pub struct WaylandWindowInner {
     // modifiers: Modifiers,
     // leds: KeyboardLedStatus,
     // key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
-    // pending_event: Arc<Mutex<PendingEvent>>,
+    pending_event: Arc<Mutex<PendingEvent>>,
     // pending_mouse: Arc<Mutex<PendingMouse>>,
     // pending_first_configure: Option<async_channel::Sender<()>>,
     // frame_callback: Option<Main<WlCallback>>,
@@ -371,5 +383,16 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
             .wl_surface();
         handle.surface = surface.id().as_ptr() as *mut _;
         RawWindowHandle::Wayland(handle)
+    }
+}
+
+pub(crate) struct SurfaceUserData {
+    surface_data: SurfaceData,
+    window_id: usize,
+}
+
+impl SurfaceDataExt for SurfaceUserData {
+    fn surface_data(&self) -> &smithay_client_toolkit::compositor::SurfaceData {
+        &self.surface_data
     }
 }

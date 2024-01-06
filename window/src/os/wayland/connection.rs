@@ -7,7 +7,7 @@ use std::{
 use anyhow::{bail, Context};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
-    compositor::CompositorHandler,
+    compositor::{CompositorHandler, SurfaceData},
     delegate_compositor, delegate_output, delegate_registry, delegate_xdg_shell,
     delegate_xdg_window,
     output::{OutputHandler, OutputState},
@@ -18,16 +18,18 @@ use smithay_client_toolkit::{
 use wayland_client::{
     backend::WaylandError,
     globals::{registry_queue_init, GlobalList},
+    protocol::wl_surface::WlSurface,
     Connection as WConnection, EventQueue,
 };
 
-use crate::{spawn::SPAWN_QUEUE, ConnectionOps, Connection};
+use crate::{spawn::SPAWN_QUEUE, Connection, ConnectionOps};
 
-use super::WaylandWindowInner;
+use super::{SurfaceUserData, WaylandWindowInner};
 
 pub struct WaylandConnection {
     pub(crate) should_terminate: RefCell<bool>,
     pub(crate) next_window_id: AtomicUsize,
+
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
@@ -259,6 +261,7 @@ impl WindowHandler for WaylandState {
         configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
         serial: u32,
     ) {
+        // How can i get the specific pending state for the window
         log::trace!("Configuring Window Handler");
         todo!()
     }
@@ -288,7 +291,11 @@ impl ConnectionOps for WaylandConnection {
     }
 }
 
+// Undocumented in sctk 0.17: This is required to use have user data with a surface
+// Will be just delegate_compositor!(WaylandState, surface: [SurfaceData, SurfaceUserData]) in 0.18
+wayland_client::delegate_dispatch!(WaylandState: [ WlSurface: SurfaceUserData] => WaylandState);
 delegate_compositor!(WaylandState);
+
 delegate_output!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
