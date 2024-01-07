@@ -29,6 +29,7 @@ use smithay_client_toolkit::shell::xdg::window::WindowDecorations as Decorations
 use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shell::WaylandSurface;
 use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::Proxy;
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
@@ -131,6 +132,8 @@ impl WaylandWindow {
         // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
+
+            invalidated: false,
             window: Some(window),
 
             window_state: WindowState::default(),
@@ -138,6 +141,9 @@ impl WaylandWindow {
             pending_event,
 
             pending_first_configure: Some(pending_first_configure),
+            frame_callback: None,
+
+            title: None,
 
             wegl_surface: None,
             gl_state: None,
@@ -145,7 +151,6 @@ impl WaylandWindow {
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
 
-        // TODO: assign window inner
         inner
             .borrow_mut()
             .events
@@ -182,7 +187,12 @@ impl WindowOps for WaylandWindow {
     where
         Self: Sized,
     {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner
+                .events
+                .dispatch(WindowEvent::Notification(Box::new(t)));
+            Ok(())
+        });
     }
 
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
@@ -213,15 +223,19 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
-    #[doc = r" Invalidate the window so that the entire client area will"]
-    #[doc = r" be repainted shortly"]
     fn invalidate(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.invalidate();
+            Ok(())
+        });
     }
 
-    #[doc = r" Change the titlebar text for the window"]
     fn set_title(&self, title: &str) {
-        todo!()
+        let title = title.to_owned();
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.set_title(title);
+            Ok(())
+        });
     }
 
     #[doc = r" Resize the inner or client area of the window"]
@@ -290,15 +304,15 @@ pub struct WaylandWindowInner {
     pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
     // pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
-    // frame_callback: Option<Main<WlCallback>>,
-    // invalidated: bool,
+    frame_callback: Option<WlCallback>,
+    invalidated: bool,
     // font_config: Rc<FontConfiguration>,
     // text_cursor: Option<Rect>,
     // appearance: Appearance,
     // config: ConfigHandle,
     // // cache the title for comparison to avoid spamming
     // // the compositor with updates that don't actually change it
-    // title: Option<String>,
+    title: Option<String>,
     // // wegl_surface is listed before gl_state because it
     // // must be dropped before gl_state otherwise the underlying
     // // libraries will segfault on shutdown
@@ -309,6 +323,7 @@ pub struct WaylandWindowInner {
 impl WaylandWindowInner {
     fn show(&mut self) {
         // TODO: Need to implement show
+        log::trace!("WaylandWindowInner show: {:?}", self.window);
         if self.window.is_none() {}
     }
 
@@ -487,6 +502,27 @@ impl WaylandWindowInner {
                 notify.try_send(()).ok();
             }
         }
+    }
+
+    fn invalidate(&mut self) {
+        if self.frame_callback.is_some() {
+            self.invalidated = true;
+            return;
+        }
+        // TODO: self.do_paint().unwrap();
+    }
+
+    fn set_title(&mut self, title: String) {
+        if let Some(last_title) = self.title.as_ref() {
+            if last_title == &title {
+                return;
+            }
+        }
+        if let Some(window) = self.window.as_ref() {
+            window.set_title(title.clone());
+        }
+        // TODO: self.refresh_frame();
+        self.title = Some(title);
     }
 }
 
