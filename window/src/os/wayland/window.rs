@@ -157,16 +157,6 @@ impl WaylandWindow {
             .events
             .assign_window(window_handle.clone());
 
-        // window.set_decorate(if decorations == WindowDecorations::NONE {
-        //     Decorations::None
-        // } else if decorations == WindowDecorations::default() {
-        //     Decorations::FollowServer
-        // } else {
-        //     // SCTK/Wayland don't allow more nuance than "decorations are hidden",
-        //     // so if we have a mixture of things, then we need to force our
-        //     // client side decoration rendering.
-        //     Decorations::ClientSide
-        // });
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
         wait_configure.recv().await?;
@@ -323,13 +313,19 @@ pub struct WaylandWindowInner {
 
 impl WaylandWindowInner {
     fn show(&mut self) {
-        // TODO: Need to implement show
         log::trace!("WaylandWindowInner show: {:?}", self.window);
         if self.window.is_none() {
             return;
         }
 
         self.do_paint().unwrap();
+    }
+
+    fn refresh_frame(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            // window.refresh();
+            // window.surface().commit();
+        }
     }
 
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
@@ -514,7 +510,7 @@ impl WaylandWindowInner {
             self.invalidated = true;
             return;
         }
-        // TODO: self.do_paint().unwrap();
+        self.do_paint().unwrap();
     }
 
     fn set_title(&mut self, title: String) {
