@@ -223,7 +223,6 @@ impl OutputHandler for WaylandState {
         output: wayland_client::protocol::wl_output::WlOutput,
     ) {
         log::trace!("new output: OutputHandler");
-        todo!()
     }
 
     fn update_output(
