@@ -547,16 +547,10 @@ impl WaylandWindowInner {
 
         let conn = WaylandConnection::get().unwrap().wayland();
         let qh = conn.event_queue.borrow().handle();
-        // TODO: is this the current udata to pass in?, just following examples
+
         let callback = self.surface().frame(&qh, self.surface().clone());
 
         log::trace!("do_paint - callback: {:?}", callback);
-        // callback.quick_assign(move |_source, _event, _data| {
-        //     WaylandConnection::with_window_inner(window_id, |inner| {
-        //         inner.next_frame_is_ready();
-        //         Ok(())
-        //     });
-        // });
         self.frame_callback.replace(callback);
 
         // The repaint has the side of effect of committing the surface,
@@ -575,6 +569,13 @@ impl WaylandWindowInner {
             .as_ref()
             .expect("Window should exist")
             .wl_surface()
+    }
+
+    pub(crate) fn next_frame_is_ready(&mut self) {
+        self.frame_callback.take();
+        if self.invalidated {
+            self.do_paint().ok();
+        }
     }
 }
 
