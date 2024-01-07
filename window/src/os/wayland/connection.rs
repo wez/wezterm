@@ -1,7 +1,11 @@
 // TODO: change this
 #![allow(dead_code, unused)]
 use std::{
-    cell::RefCell, collections::HashMap, os::fd::AsRawFd, rc::Rc, sync::atomic::AtomicUsize,
+    cell::RefCell,
+    collections::HashMap,
+    os::fd::AsRawFd,
+    rc::Rc,
+    sync::{atomic::AtomicUsize, Arc},
 };
 
 use anyhow::{bail, Context};
@@ -13,16 +17,19 @@ use smithay_client_toolkit::{
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
-    shell::xdg::window::WindowHandler,
+    shell::{
+        xdg::window::{WindowHandler, WindowState as SCTKWindowState},
+        WaylandSurface,
+    },
 };
 use wayland_client::{
     backend::WaylandError,
     globals::{registry_queue_init, GlobalList},
     protocol::wl_surface::WlSurface,
-    Connection as WConnection, EventQueue,
+    Connection as WConnection, EventQueue, Proxy,
 };
 
-use crate::{spawn::SPAWN_QUEUE, Connection, ConnectionOps};
+use crate::{spawn::SPAWN_QUEUE, Connection, ConnectionOps, WindowState};
 
 use super::{SurfaceUserData, WaylandWindowInner};
 
@@ -41,6 +48,7 @@ pub struct WaylandConnection {
     pub(crate) wayland_state: RefCell<WaylandState>,
 }
 
+// TODO: the SurfaceUserData should be something in WaylandConnection struct as a whole. I think?
 pub(crate) struct WaylandState {
     registry_state: RegistryState,
 }
@@ -126,9 +134,6 @@ impl WaylandConnection {
                     continue;
                 }
 
-                println!("READING WL EVENT");
-
-                let a = event_q.prepare_read();
                 if let Ok(guard) = event_q.prepare_read() {
                     if let Err(err) = guard.read() {
                         log::trace!("Event Q error: {:?}", err);
@@ -261,9 +266,66 @@ impl WindowHandler for WaylandState {
         configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
         serial: u32,
     ) {
-        // How can i get the specific pending state for the window
-        log::trace!("Configuring Window Handler");
-        todo!()
+        let surface_data = SurfaceUserData::from_wl(window.wl_surface());
+        // TODO: XXX: should we grouping window data and connection
+
+        let window_id = surface_data.window_id;
+        let wconn = WaylandConnection::get()
+            .expect("should be wayland connection")
+            .wayland();
+        let window_inner = wconn
+            .window_by_id(window_id)
+            .expect("Inner Window should exist");
+
+        let p = window_inner.borrow().pending_event.clone();
+        let mut pending_event = p.lock().unwrap();
+
+        // TODO: This should the new queue function
+        // p.queue_configure(&configure)
+        //
+        let changed = {
+            let mut changed;
+            pending_event.had_configure_event = true;
+            if let (Some(w), Some(h)) = configure.new_size {
+                changed = pending_event.configure.is_none();
+                pending_event.configure.replace((w.get(), h.get()));
+            } else {
+                changed = true;
+            }
+
+            let mut state = WindowState::default();
+            if configure.state.contains(SCTKWindowState::FULLSCREEN) {
+                state |= WindowState::FULL_SCREEN;
+            }
+            let fs_bits = SCTKWindowState::MAXIMIZED
+                | SCTKWindowState::TILED_LEFT
+                | SCTKWindowState::TILED_RIGHT
+                | SCTKWindowState::TILED_TOP
+                | SCTKWindowState::TILED_BOTTOM;
+            if !((configure.state & fs_bits).is_empty()) {
+                state |= WindowState::MAXIMIZED;
+            }
+
+            log::debug!(
+                "Config: self.window_state={:?}, states: {:?} {:?}",
+                pending_event.window_state,
+                state,
+                configure.state
+            );
+
+            if pending_event.window_state.is_none() && state != WindowState::default() {
+                changed = true;
+            }
+
+            pending_event.window_state.replace(state);
+            changed
+        }; // function should return changed
+        if changed {
+            WaylandConnection::with_window_inner(window_id, move |inner| {
+                inner.dispatch_pending_event();
+                Ok(())
+            });
+        }
     }
 }
 
