@@ -131,6 +131,7 @@ impl WaylandWindow {
 
         // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
+            window_id,
             events: WindowEventSender::new(event_handler),
 
             invalidated: false,
@@ -286,7 +287,7 @@ pub(crate) struct PendingEvent {
 }
 
 pub struct WaylandWindowInner {
-    //     window_id: usize,
+    window_id: usize,
     pub(crate) events: WindowEventSender,
     // surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
@@ -324,7 +325,11 @@ impl WaylandWindowInner {
     fn show(&mut self) {
         // TODO: Need to implement show
         log::trace!("WaylandWindowInner show: {:?}", self.window);
-        if self.window.is_none() {}
+        if self.window.is_none() {
+            return;
+        }
+
+        self.do_paint().unwrap();
     }
 
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
@@ -524,6 +529,53 @@ impl WaylandWindowInner {
         // TODO: self.refresh_frame();
         self.title = Some(title);
     }
+
+    fn do_paint(&mut self) -> anyhow::Result<()> {
+        if self.frame_callback.is_some() {
+            // Painting now won't be productive, so skip it but
+            // remember that we need to be painted so that when
+            // the compositor is ready for us, we can paint then.
+            self.invalidated = true;
+            return Ok(());
+        }
+
+        self.invalidated = false;
+
+        // Ask the compositor to wake us up when its time to paint the next frame,
+        // note that this only happens _after_ the next commit
+        let window_id = self.window_id;
+
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let qh = conn.event_queue.borrow().handle();
+        // TODO: is this the current udata to pass in?, just following examples
+        let callback = self.surface().frame(&qh, self.surface().clone());
+
+        log::trace!("do_paint - callback: {:?}", callback);
+        // callback.quick_assign(move |_source, _event, _data| {
+        //     WaylandConnection::with_window_inner(window_id, |inner| {
+        //         inner.next_frame_is_ready();
+        //         Ok(())
+        //     });
+        // });
+        self.frame_callback.replace(callback);
+
+        // The repaint has the side of effect of committing the surface,
+        // which is necessary for the frame callback to get triggered.
+        // Ordering the repaint after requesting the callback ensures that
+        // we will get woken at the appropriate time.
+        // <https://github.com/wez/wezterm/issues/3468>
+        // <https://github.com/wez/wezterm/issues/3126>
+        self.events.dispatch(WindowEvent::NeedRepaint);
+
+        Ok(())
+    }
+
+    fn surface(&self) -> &WlSurface {
+        self.window
+            .as_ref()
+            .expect("Window should exist")
+            .wl_surface()
+    }
 }
 
 unsafe impl HasRawDisplayHandle for WaylandWindowInner {
@@ -539,11 +591,7 @@ unsafe impl HasRawDisplayHandle for WaylandWindowInner {
 unsafe impl HasRawWindowHandle for WaylandWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = WaylandWindowHandle::empty();
-        let surface = self
-            .window
-            .as_ref()
-            .expect("Window should exist")
-            .wl_surface();
+        let surface = self.surface();
         handle.surface = surface.id().as_ptr() as *mut _;
         RawWindowHandle::Wayland(handle)
     }
