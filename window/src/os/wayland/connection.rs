@@ -206,7 +206,13 @@ impl CompositorHandler for WaylandState {
         time: u32,
     ) {
         log::trace!("frame: CompositorHandler");
-        todo!()
+        let surface_data = SurfaceUserData::from_wl(surface);
+        let window_id = surface_data.window_id;
+
+        WaylandConnection::with_window_inner(window_id, |inner| {
+            inner.next_frame_is_ready();
+            Ok(())
+        });
     }
 }
 
