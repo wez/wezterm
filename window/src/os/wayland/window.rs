@@ -1,4 +1,5 @@
 // TODO: change this
+// TODO: change a lot of the pubstruct crates
 #![allow(dead_code, unused)]
 
 use std::any::Any;
@@ -47,6 +48,7 @@ use crate::Window;
 use crate::WindowEvent;
 use crate::WindowEventSender;
 use crate::WindowOps;
+use crate::WindowState;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct WaylandWindow(usize);
@@ -131,7 +133,11 @@ impl WaylandWindow {
             events: WindowEventSender::new(event_handler),
             window: Some(window),
 
+            window_state: WindowState::default(),
+
             pending_event,
+
+            pending_first_configure: Some(pending_first_configure),
 
             wegl_surface: None,
             gl_state: None,
@@ -165,7 +171,6 @@ impl WaylandWindow {
 
 #[async_trait(?Send)]
 impl WindowOps for WaylandWindow {
-    #[doc = r" Show a hidden window"]
     fn show(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
@@ -258,12 +263,12 @@ unsafe impl HasRawWindowHandle for WaylandWindow {
 }
 
 #[derive(Default, Clone, Debug)]
-struct PendingEvent {
-    close: bool,
-    had_configure_event: bool,
-    configure: Option<(u32, u32)>,
-    dpi: Option<i32>,
-    // window_state: Option<WindowState>,
+pub(crate) struct PendingEvent {
+    pub(crate) close: bool,
+    pub(crate) had_configure_event: bool,
+    pub(crate) configure: Option<(u32, u32)>,
+    pub(crate) dpi: Option<i32>,
+    pub(crate) window_state: Option<WindowState>,
 }
 
 pub struct WaylandWindowInner {
@@ -274,7 +279,7 @@ pub struct WaylandWindowInner {
     window: Option<XdgWindow>,
     // dimensions: Dimensions,
     // resize_increments: Option<(u16, u16)>,
-    // window_state: WindowState,
+    window_state: WindowState,
     // last_mouse_coords: Point,
     // mouse_buttons: MouseButtons,
     // hscroll_remainder: f64,
@@ -282,9 +287,9 @@ pub struct WaylandWindowInner {
     // modifiers: Modifiers,
     // leds: KeyboardLedStatus,
     // key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
-    pending_event: Arc<Mutex<PendingEvent>>,
+    pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
     // pending_mouse: Arc<Mutex<PendingMouse>>,
-    // pending_first_configure: Option<async_channel::Sender<()>>,
+    pending_first_configure: Option<async_channel::Sender<()>>,
     // frame_callback: Option<Main<WlCallback>>,
     // invalidated: bool,
     // font_config: Rc<FontConfiguration>,
@@ -361,6 +366,128 @@ impl WaylandWindowInner {
 
         Ok(gl_state)
     }
+
+    pub(crate) fn dispatch_pending_event(&mut self) {
+        let mut pending;
+        {
+            let mut pending_events = self.pending_event.lock().unwrap();
+            pending = pending_events.clone();
+            *pending_events = PendingEvent::default();
+        }
+
+        if pending.close {
+            self.events.dispatch(WindowEvent::CloseRequested);
+        }
+
+        if let Some(window_state) = pending.window_state.take() {
+            log::debug!(
+                "dispatch_pending_event self.window_state={:?}, pending:{:?}",
+                window_state,
+                window_state
+            );
+            self.window_state = window_state;
+        }
+
+        if pending.configure.is_none() {
+            // TODO: Handle the DPI
+        }
+
+        if let Some((mut w, mut h)) = pending.configure.take() {
+            log::trace!("Pending configure: w:{w}, h{h} -- {:?}", self.window);
+            if self.window.is_some() {
+                // TODO: here
+                // let factor = get_surface_scale_factor(&self.surface) as f64;
+                // let old_dimensions = self.dimensions;
+
+                // FIXME: teach this how to resolve dpi_by_screen
+                // let dpi = self.config.dpi.unwrap_or(factor * crate::DEFAULT_DPI) as usize;
+
+                // Do this early because this affects surface_to_pixels/pixels_to_surface
+                // self.dimensions.dpi = dpi;
+
+                // let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                // let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                //
+                // if self.window_state.can_resize() {
+                //     if let Some((x, y)) = self.resize_increments {
+                //         let desired_pixel_width = pixel_width - (pixel_width % x as i32);
+                //         let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                //         w = self.pixels_to_surface(desired_pixel_width) as u32;
+                //         h = self.pixels_to_surface(desired_pixel_height) as u32;
+                //         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                //         pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                //     }
+                // }
+                //
+                // // Update the window decoration size
+                // self.window.as_mut().unwrap().resize(w, h);
+                //
+                // // Compute the new pixel dimensions
+                // let new_dimensions = Dimensions {
+                //     pixel_width: pixel_width.try_into().unwrap(),
+                //     pixel_height: pixel_height.try_into().unwrap(),
+                //     dpi,
+                // };
+                //
+                // // Only trigger a resize if the new dimensions are different;
+                // // this makes things more efficient and a little more smooth
+                // if new_dimensions != old_dimensions {
+                //     self.dimensions = new_dimensions;
+                //
+                //     self.events.dispatch(WindowEvent::Resized {
+                //         dimensions: self.dimensions,
+                //         window_state: self.window_state,
+                //         // We don't know if we're live resizing or not, so
+                //         // assume no.
+                //         live_resizing: false,
+                //     });
+                //     // Avoid blurring by matching the scaling factor of the
+                //     // compositor; if it is going to double the size then
+                //     // we render at double the size anyway and tell it that
+                //     // the buffer is already doubled.
+                //     // Take care to detach the current buffer (managed by EGL),
+                //     // so that the compositor doesn't get annoyed by it not
+                //     // having dimensions that match the scale.
+                //     // The wegl_surface.resize won't take effect until
+                //     // we paint later on.
+                //     // We do this only if the scale has actually changed,
+                //     // otherwise interactive window resize will keep removing
+                //     // the window contents!
+                //     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                //         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+                //     }
+                //     if self.surface_factor != factor {
+                //         let wayland_conn = Connection::get().unwrap().wayland();
+                //         let mut pool = wayland_conn.mem_pool.borrow_mut();
+                //         // Make a "fake" buffer with the right dimensions, as
+                //         // simply detaching the buffer can cause wlroots-derived
+                //         // compositors consider the window to be unconfigured.
+                //         if let Ok((_bytes, buffer)) = pool.buffer(
+                //             factor as i32,
+                //             factor as i32,
+                //             (factor * 4.0) as i32,
+                //             wayland_client::protocol::wl_shm::Format::Argb8888,
+                //         ) {
+                //             self.surface.attach(Some(&buffer), 0, 0);
+                //             self.surface.set_buffer_scale(factor as i32);
+                //             self.surface_factor = factor;
+                //         }
+                //     }
+                // }
+                // self.refresh_frame();
+                // self.do_paint().unwrap();
+            }
+        }
+        // if pending.refresh_decorations && self.window.is_some() {
+        //     self.refresh_frame();
+        // }
+        if pending.had_configure_event && self.window.is_some() {
+            if let Some(notify) = self.pending_first_configure.take() {
+                // Allow window creation to complete
+                notify.try_send(()).ok();
+            }
+        }
+    }
 }
 
 unsafe impl HasRawDisplayHandle for WaylandWindowInner {
@@ -388,7 +515,14 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
 
 pub(crate) struct SurfaceUserData {
     surface_data: SurfaceData,
-    window_id: usize,
+    pub(crate) window_id: usize,
+}
+
+impl SurfaceUserData {
+    pub(crate) fn from_wl(wl: &WlSurface) -> &Self {
+        wl.data()
+            .expect("User data should be associated with WlSurface")
+    }
 }
 
 impl SurfaceDataExt for SurfaceUserData {
