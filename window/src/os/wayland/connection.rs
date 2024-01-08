@@ -1,7 +1,7 @@
 // TODO: change this
 #![allow(dead_code, unused)]
 use std::{
-    cell::RefCell,
+    cell::{RefCell, Ref},
     collections::HashMap,
     os::fd::AsRawFd,
     rc::Rc,
@@ -20,7 +20,7 @@ use smithay_client_toolkit::{
     shell::{
         xdg::window::{WindowHandler, WindowState as SCTKWindowState},
         WaylandSurface,
-    },
+    }, shm::{slot::SlotPool, Shm, ShmHandler}, delegate_shm,
 };
 use wayland_client::{
     backend::WaylandError,
@@ -41,27 +41,34 @@ pub struct WaylandConnection {
 
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 
+    pub(crate) globals: RefCell<GlobalList>,
     pub(crate) connection: RefCell<WConnection>,
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
-    pub(crate) globals: RefCell<GlobalList>,
-
     pub(crate) wayland_state: RefCell<WaylandState>,
 }
 
 // TODO: the SurfaceUserData should be something in WaylandConnection struct as a whole. I think?
 pub(crate) struct WaylandState {
     registry_state: RegistryState,
+    shm: Shm,
+    pub(crate) mem_pool: RefCell<SlotPool>,
 }
 
 impl WaylandConnection {
     pub(crate) fn create_new() -> anyhow::Result<Self> {
         let conn = WConnection::connect_to_env()?;
         let (globals, event_queue) = registry_queue_init::<WaylandState>(&conn)?;
-        let _qh = event_queue.handle();
+        let qh = event_queue.handle();
 
+        let shm = Shm::bind(&globals, &qh)?;
+        let mem_pool = SlotPool::new(1, &shm)?;
         let wayland_state = WaylandState {
             registry_state: RegistryState::new(&globals),
+            shm,
+            mem_pool: RefCell::new(mem_pool),
         };
+
+
         let wayland_connection = WaylandConnection {
             connection: RefCell::new(conn),
             should_terminate: RefCell::new(false),
@@ -334,6 +341,12 @@ impl WindowHandler for WaylandState {
     }
 }
 
+impl ShmHandler for WaylandState {
+    fn shm_state(&mut self) -> &mut Shm {
+        &mut self.shm
+    }
+}
+
 impl ConnectionOps for WaylandConnection {
     fn name(&self) -> String {
         "Wayland".to_string()
@@ -367,6 +380,8 @@ delegate_output!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
+
+delegate_shm!(WaylandState);
 
 delegate_registry!(WaylandState);
 
