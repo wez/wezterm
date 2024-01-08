@@ -444,6 +444,7 @@ impl VTParser {
         for src in &self.params[0..self.num_params] {
             if let CsiParam::Integer(value) = src {
                 res[i] = *value;
+            } else if let CsiParam::P(b';') = src {
                 i += 1;
             }
         }
@@ -1093,6 +1094,28 @@ mod test {
                 VTAction::DcsPut(b'l'),
                 VTAction::DcsPut(b'l'),
                 VTAction::DcsPut(b'o'),
+                VTAction::DcsUnhook,
+                VTAction::EscDispatch {
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                    byte: b'\\',
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_ommitted_dcs_param() {
+        assert_eq!(
+            parse_as_vec("\x1bP;1q\x1b\\".as_bytes()),
+            vec![
+                VTAction::DcsHook {
+                    byte: b'q',
+                    params: vec![0, 1],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                },
                 VTAction::DcsUnhook,
                 VTAction::EscDispatch {
                     params: vec![],
