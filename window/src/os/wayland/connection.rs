@@ -5,20 +5,20 @@ use std::{
     collections::HashMap,
     os::fd::AsRawFd,
     rc::Rc,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{atomic::AtomicUsize, Arc, Mutex},
 };
 
 use anyhow::{bail, Context};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
-    compositor::{CompositorHandler, SurfaceData, CompositorState},
+    compositor::{CompositorHandler, CompositorState, SurfaceData},
     delegate_compositor, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell,
     delegate_xdg_window,
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
     shell::{
-        xdg::window::{WindowHandler, WindowState as SCTKWindowState},
+        xdg::window::{Window, WindowConfigure, WindowHandler, WindowState as SCTKWindowState},
         WaylandSurface,
     },
     shm::{slot::SlotPool, Shm, ShmHandler},
@@ -31,10 +31,12 @@ use wayland_client::{
 };
 
 use crate::{
-    screen::{ScreenInfo, Screens}, spawn::SPAWN_QUEUE, Connection, ConnectionOps, ScreenRect, WindowState,
+    screen::{ScreenInfo, Screens},
+    spawn::SPAWN_QUEUE,
+    Connection, ConnectionOps, ScreenRect, WindowState,
 };
 
-use super::{SurfaceUserData, WaylandWindowInner};
+use super::{PendingEvent, SurfaceUserData, WaylandWindowInner};
 
 pub struct WaylandConnection {
     pub(crate) should_terminate: RefCell<bool>,
@@ -199,6 +201,82 @@ impl WaylandConnection {
     }
 }
 
+impl WaylandState {
+    fn handle_window_event(&self, window: &Window, event: WindowEvent) {
+        // TODO: XXX: should we grouping window data and connection
+        let surface_data = SurfaceUserData::from_wl(window.wl_surface());
+        let window_id = surface_data.window_id;
+        let wconn = WaylandConnection::get()
+            .expect("should be wayland connection")
+            .wayland();
+        let window_inner = wconn
+            .window_by_id(window_id)
+            .expect("Inner Window should exist");
+
+        let p = window_inner.borrow().pending_event.clone();
+        let mut pending_event = p.lock().unwrap();
+
+        let changed = match event {
+            WindowEvent::Close => {
+                // TODO: This should the new queue function
+                // p.queue_close()
+                if !pending_event.close {
+                    pending_event.close = true;
+                    true
+                } else {
+                    false
+                }
+            }
+            WindowEvent::Request(configure) => {
+                // TODO: This should the new queue function
+                // p.queue_configure(&configure)
+                //
+                let mut changed;
+                pending_event.had_configure_event = true;
+                if let (Some(w), Some(h)) = configure.new_size {
+                    changed = pending_event.configure.is_none();
+                    pending_event.configure.replace((w.get(), h.get()));
+                } else {
+                    changed = true;
+                }
+
+                let mut state = WindowState::default();
+                if configure.state.contains(SCTKWindowState::FULLSCREEN) {
+                    state |= WindowState::FULL_SCREEN;
+                }
+                let fs_bits = SCTKWindowState::MAXIMIZED
+                    | SCTKWindowState::TILED_LEFT
+                    | SCTKWindowState::TILED_RIGHT
+                    | SCTKWindowState::TILED_TOP
+                    | SCTKWindowState::TILED_BOTTOM;
+                if !((configure.state & fs_bits).is_empty()) {
+                    state |= WindowState::MAXIMIZED;
+                }
+
+                log::debug!(
+                    "Config: self.window_state={:?}, states: {:?} {:?}",
+                    pending_event.window_state,
+                    state,
+                    configure.state
+                );
+
+                if pending_event.window_state.is_none() && state != WindowState::default() {
+                    changed = true;
+                }
+
+                pending_event.window_state.replace(state);
+                changed
+            }
+        };
+        if changed {
+            WaylandConnection::with_window_inner(window_id, move |inner| {
+                inner.dispatch_pending_event();
+                Ok(())
+            });
+        }
+    }
+}
+
 impl CompositorHandler for WaylandState {
     fn scale_factor_changed(
         &mut self,
@@ -264,85 +342,30 @@ impl OutputHandler for WaylandState {
     }
 }
 
+enum WindowEvent {
+    Close,
+    Request(WindowConfigure),
+}
+
 impl WindowHandler for WaylandState {
     fn request_close(
         &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        window: &smithay_client_toolkit::shell::xdg::window::Window,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        window: &Window,
     ) {
-        log::trace!("Request close on WindowHandler");
-        todo!()
+        self.handle_window_event(window, WindowEvent::Close);
     }
 
     fn configure(
         &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        window: &smithay_client_toolkit::shell::xdg::window::Window,
-        configure: smithay_client_toolkit::shell::xdg::window::WindowConfigure,
-        serial: u32,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        window: &Window,
+        configure: WindowConfigure,
+        _serial: u32,
     ) {
-        let surface_data = SurfaceUserData::from_wl(window.wl_surface());
-        // TODO: XXX: should we grouping window data and connection
-
-        let window_id = surface_data.window_id;
-        let wconn = WaylandConnection::get()
-            .expect("should be wayland connection")
-            .wayland();
-        let window_inner = wconn
-            .window_by_id(window_id)
-            .expect("Inner Window should exist");
-
-        let p = window_inner.borrow().pending_event.clone();
-        let mut pending_event = p.lock().unwrap();
-
-        // TODO: This should the new queue function
-        // p.queue_configure(&configure)
-        //
-        let changed = {
-            let mut changed;
-            pending_event.had_configure_event = true;
-            if let (Some(w), Some(h)) = configure.new_size {
-                changed = pending_event.configure.is_none();
-                pending_event.configure.replace((w.get(), h.get()));
-            } else {
-                changed = true;
-            }
-
-            let mut state = WindowState::default();
-            if configure.state.contains(SCTKWindowState::FULLSCREEN) {
-                state |= WindowState::FULL_SCREEN;
-            }
-            let fs_bits = SCTKWindowState::MAXIMIZED
-                | SCTKWindowState::TILED_LEFT
-                | SCTKWindowState::TILED_RIGHT
-                | SCTKWindowState::TILED_TOP
-                | SCTKWindowState::TILED_BOTTOM;
-            if !((configure.state & fs_bits).is_empty()) {
-                state |= WindowState::MAXIMIZED;
-            }
-
-            log::debug!(
-                "Config: self.window_state={:?}, states: {:?} {:?}",
-                pending_event.window_state,
-                state,
-                configure.state
-            );
-
-            if pending_event.window_state.is_none() && state != WindowState::default() {
-                changed = true;
-            }
-
-            pending_event.window_state.replace(state);
-            changed
-        }; // function should return changed
-        if changed {
-            WaylandConnection::with_window_inner(window_id, move |inner| {
-                inner.dispatch_pending_event();
-                Ok(())
-            });
-        }
+        self.handle_window_event(window, WindowEvent::Request(configure));
     }
 }
 
