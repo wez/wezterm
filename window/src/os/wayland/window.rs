@@ -291,6 +291,7 @@ unsafe impl HasRawWindowHandle for WaylandWindow {
 pub(crate) struct PendingEvent {
     pub(crate) close: bool,
     pub(crate) had_configure_event: bool,
+    refresh_decorations: bool,
     pub(crate) configure: Option<(u32, u32)>,
     pub(crate) dpi: Option<i32>,
     pub(crate) window_state: Option<WindowState>,
@@ -434,7 +435,7 @@ impl WaylandWindowInner {
         if let Some(window_state) = pending.window_state.take() {
             log::debug!(
                 "dispatch_pending_event self.window_state={:?}, pending:{:?}",
-                window_state,
+                self.window_state,
                 window_state
             );
             self.window_state = window_state;
@@ -539,11 +540,11 @@ impl WaylandWindowInner {
                 self.do_paint().unwrap();
             }
         }
-        // TODO:
-        // if pending.refresh_decorations && self.window.is_some() {
-        //     self.refresh_frame();
-        // }
+        if pending.refresh_decorations && self.window.is_some() {
+            self.refresh_frame();
+        }
         if pending.had_configure_event && self.window.is_some() {
+            log::debug!("Had configured an event");
             if let Some(notify) = self.pending_first_configure.take() {
                 // Allow window creation to complete
                 notify.try_send(()).ok();
