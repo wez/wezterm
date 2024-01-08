@@ -1,7 +1,7 @@
 // TODO: change this
 #![allow(dead_code, unused)]
 use std::{
-    cell::{RefCell, Ref},
+    cell::{Ref, RefCell},
     collections::HashMap,
     os::fd::AsRawFd,
     rc::Rc,
@@ -11,8 +11,8 @@ use std::{
 use anyhow::{bail, Context};
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
 use smithay_client_toolkit::{
-    compositor::{CompositorHandler, SurfaceData},
-    delegate_compositor, delegate_output, delegate_registry, delegate_xdg_shell,
+    compositor::{CompositorHandler, SurfaceData, CompositorState},
+    delegate_compositor, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell,
     delegate_xdg_window,
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
@@ -20,7 +20,8 @@ use smithay_client_toolkit::{
     shell::{
         xdg::window::{WindowHandler, WindowState as SCTKWindowState},
         WaylandSurface,
-    }, shm::{slot::SlotPool, Shm, ShmHandler}, delegate_shm,
+    },
+    shm::{slot::SlotPool, Shm, ShmHandler},
 };
 use wayland_client::{
     backend::WaylandError,
@@ -29,7 +30,9 @@ use wayland_client::{
     Connection as WConnection, EventQueue, Proxy,
 };
 
-use crate::{spawn::SPAWN_QUEUE, Connection, ConnectionOps, WindowState};
+use crate::{
+    screen::{ScreenInfo, Screens}, spawn::SPAWN_QUEUE, Connection, ConnectionOps, ScreenRect, WindowState,
+};
 
 use super::{SurfaceUserData, WaylandWindowInner};
 
@@ -50,6 +53,8 @@ pub struct WaylandConnection {
 // TODO: the SurfaceUserData should be something in WaylandConnection struct as a whole. I think?
 pub(crate) struct WaylandState {
     registry_state: RegistryState,
+    output_state: OutputState,
+
     shm: Shm,
     pub(crate) mem_pool: RefCell<SlotPool>,
 }
@@ -64,10 +69,10 @@ impl WaylandConnection {
         let mem_pool = SlotPool::new(1, &shm)?;
         let wayland_state = WaylandState {
             registry_state: RegistryState::new(&globals),
+            output_state: OutputState::new(&globals, &qh),
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
-
 
         let wayland_connection = WaylandConnection {
             connection: RefCell::new(conn),
@@ -226,7 +231,7 @@ impl CompositorHandler for WaylandState {
 impl OutputHandler for WaylandState {
     fn output_state(&mut self) -> &mut smithay_client_toolkit::output::OutputState {
         log::trace!("output state: OutputHandler");
-        todo!()
+        &mut self.output_state
     }
 
     fn new_output(
@@ -367,7 +372,88 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn screens(&self) -> anyhow::Result<crate::screen::Screens> {
-        todo!("Screens is not implemented");
+        // TODO: implement for the outputhandler
+        // if let Some(screens) = self
+        //     .environment
+        //     .with_inner(|env| env.output_handler.screens())
+        // {
+        //     return Ok(screens);
+        // }
+        //
+
+        log::trace!("Getting screens for wayland connection");
+        let mut by_name = HashMap::new();
+        let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        let config = config::configuration();
+
+        let output_state = &self.wayland_state.borrow().output_state;
+
+        for output in output_state.outputs() {
+            let info = output_state.info(&output).unwrap();
+            let name = match info.name {
+                Some(n) => n.clone(),
+                None => format!("{} {}", info.model, info.make),
+            };
+
+            let (width, height) = info
+                .modes
+                .iter()
+                .find(|mode| mode.current)
+                .map(|mode| mode.dimensions)
+                .unwrap_or((info.physical_size.0, info.physical_size.1));
+
+            let rect = euclid::rect(
+                info.location.0 as isize,
+                info.location.1 as isize,
+                width as isize,
+                height as isize,
+            );
+
+            let scale = info.scale_factor as f64;
+
+            // FIXME: teach this how to resolve dpi_by_screen once
+            // dispatch_pending_event knows how to do the same
+            let effective_dpi = Some(config.dpi.unwrap_or(scale * crate::DEFAULT_DPI));
+
+            virtual_rect = virtual_rect.union(&rect);
+            by_name.insert(
+                name.clone(),
+                ScreenInfo {
+                    name,
+                    rect,
+                    scale,
+                    max_fps: None,
+                    effective_dpi,
+                },
+            );
+        }
+
+        // // The main screen is the one either at the origin of
+        // // the virtual area, or if that doesn't exist for some weird
+        // // reason, the screen closest to the origin.
+        let main = by_name
+            .values()
+            .min_by_key(|screen| {
+                screen
+                    .rect
+                    .origin
+                    .to_f32()
+                    .distance_to(euclid::Point2D::origin())
+                    .abs() as isize
+            })
+            .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
+            .clone();
+
+        // We don't yet know how to determine the active screen,
+        // so assume the main screen.
+        let active = main.clone();
+
+        Ok(Screens {
+            main,
+            active,
+            by_name,
+            virtual_rect,
+        })
     }
 }
 
