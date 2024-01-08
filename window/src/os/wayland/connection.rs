@@ -373,7 +373,7 @@ impl ConnectionOps for WaylandConnection {
 
 // Undocumented in sctk 0.17: This is required to use have user data with a surface
 // Will be just delegate_compositor!(WaylandState, surface: [SurfaceData, SurfaceUserData]) in 0.18
-wayland_client::delegate_dispatch!(WaylandState: [ WlSurface: SurfaceUserData] => WaylandState);
+wayland_client::delegate_dispatch!(WaylandState: [ WlSurface: SurfaceUserData] => CompositorState);
 delegate_compositor!(WaylandState);
 
 delegate_output!(WaylandState);
