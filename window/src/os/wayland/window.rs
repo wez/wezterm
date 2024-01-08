@@ -224,9 +224,11 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
-    #[doc = r" Schedule the window to be closed"]
     fn close(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.close();
+            Ok(())
+        });
     }
 
     #[doc = r" Change the cursor"]
@@ -333,6 +335,11 @@ pub struct WaylandWindowInner {
 }
 
 impl WaylandWindowInner {
+    fn close(&mut self) {
+        self.events.dispatch(WindowEvent::Destroyed);
+        self.window.take();
+    }
+
     fn show(&mut self) {
         log::trace!("WaylandWindowInner show: {:?}", self.window);
         if self.window.is_none() {
