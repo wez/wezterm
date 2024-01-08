@@ -207,7 +207,7 @@ impl CompositorHandler for WaylandState {
         surface: &wayland_client::protocol::wl_surface::WlSurface,
         new_factor: i32,
     ) {
-        todo!()
+        // We do nothing, we get the scale_factor from surface_data
     }
 
     fn frame(
