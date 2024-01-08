@@ -4,6 +4,7 @@
 
 use std::any::Any;
 use std::cell::RefCell;
+use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -43,8 +44,10 @@ use crate::wayland::WaylandConnection;
 use crate::Clipboard;
 use crate::Connection;
 use crate::ConnectionOps;
+use crate::Dimensions;
 use crate::MouseCursor;
 use crate::RequestedWindowGeometry;
+use crate::ResolvedGeometry;
 use crate::Window;
 use crate::WindowEvent;
 use crate::WindowEventSender;
@@ -98,6 +101,19 @@ impl WaylandWindow {
         };
         let surface = compositor.create_surface_with_data(&qh, surface_data);
 
+        let ResolvedGeometry {
+            x: _,
+            y: _,
+            width,
+            height,
+        } = conn.resolve_geometry(geometry);
+
+        let dimensions = Dimensions {
+            pixel_width: width,
+            pixel_height: height,
+            dpi: config.dpi.unwrap_or(crate::DEFAULT_DPI) as usize,
+        };
+
         let xdg_shell = XdgShell::bind(&globals, &qh)?;
         let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
 
@@ -116,7 +132,8 @@ impl WaylandWindow {
         };
         window.request_decoration_mode(decor_mode);
 
-        // TODO: I don't know anything about the frame thing
+        // TODO: I don't want to deal with CSD right now, since my current tiling window manager
+        // Hyprland doesn't support it
         //         window.set_frame_config(ConceptConfig {
 
         window.set_min_size(Some((32, 32)));
@@ -129,20 +146,23 @@ impl WaylandWindow {
 
         // conn.pointer.borrow().add_window(&surface, &pending_mouse);
 
-        // TODO: WindowInner
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             window_id,
             events: WindowEventSender::new(event_handler),
+            surface_factor: 1.0,
 
             invalidated: false,
             window: Some(window),
-
+            dimensions,
+            resize_increments: None,
             window_state: WindowState::default(),
 
             pending_event,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
+
+            config,
 
             title: None,
 
@@ -279,11 +299,11 @@ pub(crate) struct PendingEvent {
 pub struct WaylandWindowInner {
     window_id: usize,
     pub(crate) events: WindowEventSender,
-    // surface_factor: f64,
+    surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<XdgWindow>,
-    // dimensions: Dimensions,
-    // resize_increments: Option<(u16, u16)>,
+    dimensions: Dimensions,
+    resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
     // last_mouse_coords: Point,
     // mouse_buttons: MouseButtons,
@@ -300,7 +320,7 @@ pub struct WaylandWindowInner {
     // font_config: Rc<FontConfiguration>,
     // text_cursor: Option<Rect>,
     // appearance: Appearance,
-    // config: ConfigHandle,
+    config: ConfigHandle,
     // // cache the title for comparison to avoid spamming
     // // the compositor with updates that don't actually change it
     title: Option<String>,
@@ -323,8 +343,9 @@ impl WaylandWindowInner {
 
     fn refresh_frame(&mut self) {
         if let Some(window) = self.window.as_mut() {
+            // TODO: refresh frame
             // window.refresh();
-            // window.surface().commit();
+            window.wl_surface().commit();
         }
     }
 
@@ -383,6 +404,21 @@ impl WaylandWindowInner {
         Ok(gl_state)
     }
 
+    fn get_dpi_factor(&self) -> f64 {
+        self.dimensions.dpi as f64 / crate::DEFAULT_DPI as f64
+    }
+
+    fn surface_to_pixels(&self, surface: i32) -> i32 {
+        (surface as f64 * self.get_dpi_factor()).ceil() as i32
+    }
+
+    fn pixels_to_surface(&self, pixels: i32) -> i32 {
+        // Take care to round up, otherwise we can lose a pixel
+        // and that can effectively lose the final row of the
+        // terminal
+        ((pixels as f64) / self.get_dpi_factor()).ceil() as i32
+    }
+
     pub(crate) fn dispatch_pending_event(&mut self) {
         let mut pending;
         {
@@ -405,95 +441,105 @@ impl WaylandWindowInner {
         }
 
         if pending.configure.is_none() {
-            // TODO: Handle the DPI
+            if pending.dpi.is_some() {
+                // Synthesize a pending configure event for the dpi change
+                pending.configure.replace((
+                    self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
+                    self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
+                ));
+                log::debug!("synthesize configure with {:?}", pending.configure);
+            }
         }
 
         if let Some((mut w, mut h)) = pending.configure.take() {
             log::trace!("Pending configure: w:{w}, h{h} -- {:?}", self.window);
             if self.window.is_some() {
-                // TODO: here
-                // let factor = get_surface_scale_factor(&self.surface) as f64;
-                // let old_dimensions = self.dimensions;
+                let surface_udata = SurfaceUserData::from_wl(self.surface());
+                let factor = surface_udata.surface_data.scale_factor() as f64;
+                let old_dimensions = self.dimensions;
 
                 // FIXME: teach this how to resolve dpi_by_screen
-                // let dpi = self.config.dpi.unwrap_or(factor * crate::DEFAULT_DPI) as usize;
+                let dpi = self.config.dpi.unwrap_or(factor * crate::DEFAULT_DPI) as usize;
 
                 // Do this early because this affects surface_to_pixels/pixels_to_surface
-                // self.dimensions.dpi = dpi;
+                self.dimensions.dpi = dpi;
 
-                // let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
-                // let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
-                //
-                // if self.window_state.can_resize() {
-                //     if let Some((x, y)) = self.resize_increments {
-                //         let desired_pixel_width = pixel_width - (pixel_width % x as i32);
-                //         let desired_pixel_height = pixel_height - (pixel_height % y as i32);
-                //         w = self.pixels_to_surface(desired_pixel_width) as u32;
-                //         h = self.pixels_to_surface(desired_pixel_height) as u32;
-                //         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
-                //         pixel_height = self.surface_to_pixels(h.try_into().unwrap());
-                //     }
-                // }
-                //
-                // // Update the window decoration size
+                let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+
+                if self.window_state.can_resize() {
+                    if let Some((x, y)) = self.resize_increments {
+                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
+                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                        w = self.pixels_to_surface(desired_pixel_width) as u32;
+                        h = self.pixels_to_surface(desired_pixel_height) as u32;
+                        pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                        pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                    }
+                }
+
+                // TODO: Update the window decoration size
                 // self.window.as_mut().unwrap().resize(w, h);
-                //
-                // // Compute the new pixel dimensions
-                // let new_dimensions = Dimensions {
-                //     pixel_width: pixel_width.try_into().unwrap(),
-                //     pixel_height: pixel_height.try_into().unwrap(),
-                //     dpi,
-                // };
-                //
-                // // Only trigger a resize if the new dimensions are different;
-                // // this makes things more efficient and a little more smooth
-                // if new_dimensions != old_dimensions {
-                //     self.dimensions = new_dimensions;
-                //
-                //     self.events.dispatch(WindowEvent::Resized {
-                //         dimensions: self.dimensions,
-                //         window_state: self.window_state,
-                //         // We don't know if we're live resizing or not, so
-                //         // assume no.
-                //         live_resizing: false,
-                //     });
-                //     // Avoid blurring by matching the scaling factor of the
-                //     // compositor; if it is going to double the size then
-                //     // we render at double the size anyway and tell it that
-                //     // the buffer is already doubled.
-                //     // Take care to detach the current buffer (managed by EGL),
-                //     // so that the compositor doesn't get annoyed by it not
-                //     // having dimensions that match the scale.
-                //     // The wegl_surface.resize won't take effect until
-                //     // we paint later on.
-                //     // We do this only if the scale has actually changed,
-                //     // otherwise interactive window resize will keep removing
-                //     // the window contents!
-                //     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                //         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
-                //     }
-                //     if self.surface_factor != factor {
-                //         let wayland_conn = Connection::get().unwrap().wayland();
-                //         let mut pool = wayland_conn.mem_pool.borrow_mut();
-                //         // Make a "fake" buffer with the right dimensions, as
-                //         // simply detaching the buffer can cause wlroots-derived
-                //         // compositors consider the window to be unconfigured.
-                //         if let Ok((_bytes, buffer)) = pool.buffer(
-                //             factor as i32,
-                //             factor as i32,
-                //             (factor * 4.0) as i32,
-                //             wayland_client::protocol::wl_shm::Format::Argb8888,
-                //         ) {
-                //             self.surface.attach(Some(&buffer), 0, 0);
-                //             self.surface.set_buffer_scale(factor as i32);
-                //             self.surface_factor = factor;
-                //         }
-                //     }
-                // }
-                // self.refresh_frame();
-                // self.do_paint().unwrap();
+
+                // Compute the new pixel dimensions
+                let new_dimensions = Dimensions {
+                    pixel_width: pixel_width.try_into().unwrap(),
+                    pixel_height: pixel_height.try_into().unwrap(),
+                    dpi,
+                };
+
+                // Only trigger a resize if the new dimensions are different;
+                // this makes things more efficient and a little more smooth
+                if new_dimensions != old_dimensions {
+                    self.dimensions = new_dimensions;
+
+                    self.events.dispatch(WindowEvent::Resized {
+                        dimensions: self.dimensions,
+                        window_state: self.window_state,
+                        // We don't know if we're live resizing or not, so
+                        // assume no.
+                        live_resizing: false,
+                    });
+                    // Avoid blurring by matching the scaling factor of the
+                    // compositor; if it is going to double the size then
+                    // we render at double the size anyway and tell it that
+                    // the buffer is already doubled.
+                    // Take care to detach the current buffer (managed by EGL),
+                    // so that the compositor doesn't get annoyed by it not
+                    // having dimensions that match the scale.
+                    // The wegl_surface.resize won't take effect until
+                    // we paint later on.
+                    // We do this only if the scale has actually changed,
+                    // otherwise interactive window resize will keep removing
+                    // the window contents!
+                    if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                        wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+                    }
+                    if self.surface_factor != factor {
+                        let wayland_conn = Connection::get().unwrap().wayland();
+                        let wayland_state = wayland_conn.wayland_state.borrow();
+                        let mut pool = wayland_state.mem_pool.borrow_mut();
+
+                        // Make a "fake" buffer with the right dimensions, as
+                        // simply detaching the buffer can cause wlroots-derived
+                        // compositors consider the window to be unconfigured.
+                        if let Ok((buffer, _bytes)) = pool.create_buffer(
+                            factor as i32,
+                            factor as i32,
+                            (factor * 4.0) as i32,
+                            wayland_client::protocol::wl_shm::Format::Argb8888,
+                        ) {
+                            self.surface().attach(Some(buffer.wl_buffer()), 0, 0);
+                            self.surface().set_buffer_scale(factor as i32);
+                            self.surface_factor = factor;
+                        }
+                    }
+                }
+                self.refresh_frame();
+                self.do_paint().unwrap();
             }
         }
+        // TODO:
         // if pending.refresh_decorations && self.window.is_some() {
         //     self.refresh_frame();
         // }
@@ -522,7 +568,7 @@ impl WaylandWindowInner {
         if let Some(window) = self.window.as_ref() {
             window.set_title(title.clone());
         }
-        // TODO: self.refresh_frame();
+        self.refresh_frame();
         self.title = Some(title);
     }
 
