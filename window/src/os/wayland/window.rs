@@ -69,7 +69,6 @@ impl WaylandWindow {
     where
         F: 'static + FnMut(WindowEvent, &Window),
     {
-        log::trace!("Creating a window");
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
@@ -89,9 +88,8 @@ impl WaylandWindow {
         let (pending_first_configure, wait_configure) = async_channel::bounded(1);
 
         let qh = conn.event_queue.borrow().handle();
-        let globals = conn.globals.borrow();
 
-        let compositor = CompositorState::bind(&globals, &qh)?;
+        let compositor = &conn.wayland_state.borrow().compositor;
         let surface = compositor.create_surface(&qh);
 
         // We need user data so we can get the window_id => WaylandWindowInner during a handler
@@ -114,7 +112,7 @@ impl WaylandWindow {
             dpi: config.dpi.unwrap_or(crate::DEFAULT_DPI) as usize,
         };
 
-        let xdg_shell = XdgShell::bind(&globals, &qh)?;
+        let xdg_shell = &conn.wayland_state.borrow().xdg;
         let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
 
         window.set_app_id(class_name.to_string());
@@ -271,7 +269,7 @@ unsafe impl HasRawDisplayHandle for WaylandWindow {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         let mut handle = WaylandDisplayHandle::empty();
         let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.borrow().backend().display_ptr() as *mut _;
+        handle.display = conn.connection.backend().display_ptr() as *mut _;
         RawDisplayHandle::Wayland(handle)
     }
 }
@@ -385,7 +383,7 @@ impl WaylandWindowInner {
                     wegl_surface.as_ref().unwrap(),
                 ),
                 None => crate::egl::GlState::create_wayland(
-                    Some(wayland_conn.connection.borrow().backend().display_ptr() as *const _),
+                    Some(wayland_conn.connection.backend().display_ptr() as *const _),
                     wegl_surface.as_ref().unwrap(),
                 ),
             }

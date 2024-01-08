@@ -18,7 +18,10 @@ use smithay_client_toolkit::{
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
     shell::{
-        xdg::window::{Window, WindowConfigure, WindowHandler, WindowState as SCTKWindowState},
+        xdg::{
+            window::{Window, WindowConfigure, WindowHandler, WindowState as SCTKWindowState},
+            XdgShell,
+        },
         WaylandSurface,
     },
     shm::{slot::SlotPool, Shm, ShmHandler},
@@ -46,16 +49,19 @@ pub struct WaylandConnection {
 
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 
-    pub(crate) globals: RefCell<GlobalList>,
-    pub(crate) connection: RefCell<WConnection>,
+    pub(crate) connection: WConnection,
     pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
+
     pub(crate) wayland_state: RefCell<WaylandState>,
 }
 
-// TODO: the SurfaceUserData should be something in WaylandConnection struct as a whole. I think?
+// We can't combine WaylandState and WaylandConnection together because
+// the run_message_loop has &self(WaylandConnection) and needs to update WaylandState as mut
 pub(crate) struct WaylandState {
-    registry_state: RegistryState,
-    output_state: OutputState,
+    registry: RegistryState,
+    output: OutputState,
+    pub(crate) compositor: CompositorState,
+    pub(crate) xdg: XdgShell,
 
     shm: Shm,
     pub(crate) mem_pool: RefCell<SlotPool>,
@@ -70,21 +76,22 @@ impl WaylandConnection {
         let shm = Shm::bind(&globals, &qh)?;
         let mem_pool = SlotPool::new(1, &shm)?;
         let wayland_state = WaylandState {
-            registry_state: RegistryState::new(&globals),
-            output_state: OutputState::new(&globals, &qh),
+            registry: RegistryState::new(&globals),
+            output: OutputState::new(&globals, &qh),
+            compositor: CompositorState::bind(&globals, &qh)?,
+            xdg: XdgShell::bind(&globals, &qh)?,
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
 
         let wayland_connection = WaylandConnection {
-            connection: RefCell::new(conn),
+            connection: conn,
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
             gl_connection: RefCell::new(None),
             windows: RefCell::new(HashMap::default()),
 
             event_queue: RefCell::new(event_queue),
-            globals: RefCell::new(globals),
 
             wayland_state: RefCell::new(wayland_state),
         };
@@ -116,8 +123,6 @@ impl WaylandConnection {
             Interest::READABLE,
         )?;
 
-        // JUST Realized that the reason we need the spawn executor is so we can have tasks
-        // scheduled (needed to open window)
         while !*self.should_terminate.borrow() {
             let timeout = if SPAWN_QUEUE.run() {
                 Some(std::time::Duration::from_secs(0))
@@ -203,7 +208,6 @@ impl WaylandConnection {
 
 impl WaylandState {
     fn handle_window_event(&self, window: &Window, event: WindowEvent) {
-        // TODO: XXX: should we grouping window data and connection
         let surface_data = SurfaceUserData::from_wl(window.wl_surface());
         let window_id = surface_data.window_id;
         let wconn = WaylandConnection::get()
@@ -308,8 +312,7 @@ impl CompositorHandler for WaylandState {
 
 impl OutputHandler for WaylandState {
     fn output_state(&mut self) -> &mut smithay_client_toolkit::output::OutputState {
-        log::trace!("output state: OutputHandler");
-        &mut self.output_state
+        &mut self.output
     }
 
     fn new_output(
@@ -409,7 +412,7 @@ impl ConnectionOps for WaylandConnection {
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
         let config = config::configuration();
 
-        let output_state = &self.wayland_state.borrow().output_state;
+        let output_state = &self.wayland_state.borrow().output;
 
         for output in output_state.outputs() {
             let info = output_state.info(&output).unwrap();
@@ -496,7 +499,7 @@ delegate_registry!(WaylandState);
 
 impl ProvidesRegistryState for WaylandState {
     fn registry(&mut self) -> &mut RegistryState {
-        &mut self.registry_state
+        &mut self.registry
     }
 
     registry_handlers!(OutputState);
