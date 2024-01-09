@@ -1,70 +1,31 @@
-// TODO: change this
-#![allow(dead_code, unused)]
-use std::{
-    cell::{Ref, RefCell},
-    collections::HashMap,
-    os::fd::AsRawFd,
-    rc::Rc,
-    sync::{atomic::AtomicUsize, Arc, Mutex},
-};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::os::fd::AsRawFd;
+use std::rc::Rc;
+use std::sync::atomic::AtomicUsize;
 
 use anyhow::{bail, Context};
-use mio::{unix::SourceFd, Events, Interest, Poll, Token};
-use smithay_client_toolkit::{
-    compositor::{CompositorHandler, CompositorState, SurfaceData},
-    delegate_compositor, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell,
-    delegate_xdg_window,
-    output::{OutputHandler, OutputState},
-    registry::{ProvidesRegistryState, RegistryState},
-    registry_handlers,
-    shell::{
-        xdg::{
-            window::{Window, WindowConfigure, WindowHandler, WindowState as SCTKWindowState},
-            XdgShell,
-        },
-        WaylandSurface,
-    },
-    shm::{slot::SlotPool, Shm, ShmHandler},
-};
-use wayland_client::{
-    backend::WaylandError,
-    globals::{registry_queue_init, GlobalList},
-    protocol::wl_surface::WlSurface,
-    Connection as WConnection, EventQueue, Proxy,
-};
+use mio::unix::SourceFd;
+use mio::{Events, Interest, Poll, Token};
+use wayland_client::backend::WaylandError;
+use wayland_client::globals::registry_queue_init;
+use wayland_client::{Connection as WConnection, EventQueue};
 
-use crate::{
-    screen::{ScreenInfo, Screens},
-    spawn::SPAWN_QUEUE,
-    Connection, ConnectionOps, ScreenRect, WindowState,
-};
+use crate::screen::{ScreenInfo, Screens};
+use crate::spawn::SPAWN_QUEUE;
+use crate::{Connection, ConnectionOps, ScreenRect};
 
-use super::{PendingEvent, SurfaceUserData, WaylandWindowInner};
+use super::state::WaylandState;
+use super::WaylandWindowInner;
 
 pub struct WaylandConnection {
     pub(crate) should_terminate: RefCell<bool>,
     pub(crate) next_window_id: AtomicUsize,
-
-    pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
-
-    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
-
-    pub(crate) connection: WConnection,
-    pub(crate) event_queue: RefCell<EventQueue<WaylandState>>,
-
-    pub(crate) wayland_state: RefCell<WaylandState>,
-}
-
-// We can't combine WaylandState and WaylandConnection together because
-// the run_message_loop has &self(WaylandConnection) and needs to update WaylandState as mut
-pub(crate) struct WaylandState {
-    registry: RegistryState,
-    output: OutputState,
-    pub(crate) compositor: CompositorState,
-    pub(crate) xdg: XdgShell,
-
-    shm: Shm,
-    pub(crate) mem_pool: RefCell<SlotPool>,
+    pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
+    pub(super) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
+    pub(super) connection: WConnection,
+    pub(super) event_queue: RefCell<EventQueue<WaylandState>>,
+    pub(super) wayland_state: RefCell<WaylandState>,
 }
 
 impl WaylandConnection {
@@ -73,26 +34,14 @@ impl WaylandConnection {
         let (globals, event_queue) = registry_queue_init::<WaylandState>(&conn)?;
         let qh = event_queue.handle();
 
-        let shm = Shm::bind(&globals, &qh)?;
-        let mem_pool = SlotPool::new(1, &shm)?;
-        let wayland_state = WaylandState {
-            registry: RegistryState::new(&globals),
-            output: OutputState::new(&globals, &qh),
-            compositor: CompositorState::bind(&globals, &qh)?,
-            xdg: XdgShell::bind(&globals, &qh)?,
-            shm,
-            mem_pool: RefCell::new(mem_pool),
-        };
-
+        let wayland_state = WaylandState::new(&globals, &qh)?;
         let wayland_connection = WaylandConnection {
             connection: conn,
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
             gl_connection: RefCell::new(None),
             windows: RefCell::new(HashMap::default()),
-
             event_queue: RefCell::new(event_queue),
-
             wayland_state: RefCell::new(wayland_state),
         };
 
@@ -206,178 +155,6 @@ impl WaylandConnection {
     }
 }
 
-impl WaylandState {
-    fn handle_window_event(&self, window: &Window, event: WindowEvent) {
-        let surface_data = SurfaceUserData::from_wl(window.wl_surface());
-        let window_id = surface_data.window_id;
-        let wconn = WaylandConnection::get()
-            .expect("should be wayland connection")
-            .wayland();
-        let window_inner = wconn
-            .window_by_id(window_id)
-            .expect("Inner Window should exist");
-
-        let p = window_inner.borrow().pending_event.clone();
-        let mut pending_event = p.lock().unwrap();
-
-        let changed = match event {
-            WindowEvent::Close => {
-                // TODO: This should the new queue function
-                // p.queue_close()
-                if !pending_event.close {
-                    pending_event.close = true;
-                    true
-                } else {
-                    false
-                }
-            }
-            WindowEvent::Request(configure) => {
-                // TODO: This should the new queue function
-                // p.queue_configure(&configure)
-                //
-                let mut changed;
-                pending_event.had_configure_event = true;
-                if let (Some(w), Some(h)) = configure.new_size {
-                    changed = pending_event.configure.is_none();
-                    pending_event.configure.replace((w.get(), h.get()));
-                } else {
-                    changed = true;
-                }
-
-                let mut state = WindowState::default();
-                if configure.state.contains(SCTKWindowState::FULLSCREEN) {
-                    state |= WindowState::FULL_SCREEN;
-                }
-                let fs_bits = SCTKWindowState::MAXIMIZED
-                    | SCTKWindowState::TILED_LEFT
-                    | SCTKWindowState::TILED_RIGHT
-                    | SCTKWindowState::TILED_TOP
-                    | SCTKWindowState::TILED_BOTTOM;
-                if !((configure.state & fs_bits).is_empty()) {
-                    state |= WindowState::MAXIMIZED;
-                }
-
-                log::debug!(
-                    "Config: self.window_state={:?}, states: {:?} {:?}",
-                    pending_event.window_state,
-                    state,
-                    configure.state
-                );
-
-                if pending_event.window_state.is_none() && state != WindowState::default() {
-                    changed = true;
-                }
-
-                pending_event.window_state.replace(state);
-                changed
-            }
-        };
-        if changed {
-            WaylandConnection::with_window_inner(window_id, move |inner| {
-                inner.dispatch_pending_event();
-                Ok(())
-            });
-        }
-    }
-}
-
-impl CompositorHandler for WaylandState {
-    fn scale_factor_changed(
-        &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        surface: &wayland_client::protocol::wl_surface::WlSurface,
-        new_factor: i32,
-    ) {
-        // We do nothing, we get the scale_factor from surface_data
-    }
-
-    fn frame(
-        &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        surface: &wayland_client::protocol::wl_surface::WlSurface,
-        time: u32,
-    ) {
-        log::trace!("frame: CompositorHandler");
-        let surface_data = SurfaceUserData::from_wl(surface);
-        let window_id = surface_data.window_id;
-
-        WaylandConnection::with_window_inner(window_id, |inner| {
-            inner.next_frame_is_ready();
-            Ok(())
-        });
-    }
-}
-
-impl OutputHandler for WaylandState {
-    fn output_state(&mut self) -> &mut smithay_client_toolkit::output::OutputState {
-        &mut self.output
-    }
-
-    fn new_output(
-        &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-        log::trace!("new output: OutputHandler");
-    }
-
-    fn update_output(
-        &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-        log::trace!("update output: OutputHandler");
-        todo!()
-    }
-
-    fn output_destroyed(
-        &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-        log::trace!("output destroyed: OutputHandler");
-        todo!()
-    }
-}
-
-enum WindowEvent {
-    Close,
-    Request(WindowConfigure),
-}
-
-impl WindowHandler for WaylandState {
-    fn request_close(
-        &mut self,
-        _conn: &WConnection,
-        _qh: &wayland_client::QueueHandle<Self>,
-        window: &Window,
-    ) {
-        self.handle_window_event(window, WindowEvent::Close);
-    }
-
-    fn configure(
-        &mut self,
-        _conn: &WConnection,
-        _qh: &wayland_client::QueueHandle<Self>,
-        window: &Window,
-        configure: WindowConfigure,
-        _serial: u32,
-    ) {
-        self.handle_window_event(window, WindowEvent::Request(configure));
-    }
-}
-
-impl ShmHandler for WaylandState {
-    fn shm_state(&mut self) -> &mut Shm {
-        &mut self.shm
-    }
-}
-
 impl ConnectionOps for WaylandConnection {
     fn name(&self) -> String {
         "Wayland".to_string()
@@ -481,26 +258,4 @@ impl ConnectionOps for WaylandConnection {
             virtual_rect,
         })
     }
-}
-
-// Undocumented in sctk 0.17: This is required to use have user data with a surface
-// Will be just delegate_compositor!(WaylandState, surface: [SurfaceData, SurfaceUserData]) in 0.18
-wayland_client::delegate_dispatch!(WaylandState: [ WlSurface: SurfaceUserData] => CompositorState);
-delegate_compositor!(WaylandState);
-
-delegate_output!(WaylandState);
-
-delegate_xdg_shell!(WaylandState);
-delegate_xdg_window!(WaylandState);
-
-delegate_shm!(WaylandState);
-
-delegate_registry!(WaylandState);
-
-impl ProvidesRegistryState for WaylandState {
-    fn registry(&mut self) -> &mut RegistryState {
-        &mut self.registry
-    }
-
-    registry_handlers!(OutputState);
 }
