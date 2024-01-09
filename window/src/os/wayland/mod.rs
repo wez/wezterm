@@ -11,6 +11,7 @@ pub use connection::*;
 // mod drag_and_drop;
 // mod frame;
 // mod pointer;
+mod state;
 
 /// Returns the id of a wayland proxy object, suitable for using
 /// a key into hash maps

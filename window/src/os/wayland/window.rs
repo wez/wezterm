@@ -1,58 +1,42 @@
-// TODO: change this
-// TODO: change a lot of the pubstruct crates
-#![allow(dead_code, unused)]
-
 use std::any::Any;
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::rc::Rc;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use config::configuration;
 use config::ConfigHandle;
 use promise::Future;
-use raw_window_handle::HasRawDisplayHandle;
-use raw_window_handle::HasRawWindowHandle;
-use raw_window_handle::RawDisplayHandle;
-use raw_window_handle::RawWindowHandle;
-use raw_window_handle::WaylandDisplayHandle;
-use raw_window_handle::WaylandWindowHandle;
-use smithay_client_toolkit::compositor::CompositorState;
-use smithay_client_toolkit::compositor::SurfaceData;
-use smithay_client_toolkit::compositor::SurfaceDataExt;
-use smithay_client_toolkit::registry::ProvidesRegistryState;
-use smithay_client_toolkit::shell::xdg::window::DecorationMode;
-use smithay_client_toolkit::shell::xdg::window::Window as XdgWindow;
-use smithay_client_toolkit::shell::xdg::window::WindowDecorations as Decorations;
-use smithay_client_toolkit::shell::xdg::XdgShell;
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WaylandDisplayHandle, WaylandWindowHandle,
+};
+use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
+use smithay_client_toolkit::shell::xdg::window::{
+    DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
+    WindowHandler, WindowState as SCTKWindowState,
+};
 use smithay_client_toolkit::shell::WaylandSurface;
-use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_surface::WlSurface;
-use wayland_client::Proxy;
+use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::KeyboardLedStatus;
-use wezterm_input_types::Modifiers;
-use wezterm_input_types::MouseButtons;
 use wezterm_input_types::WindowDecorations;
 
 use crate::wayland::WaylandConnection;
-use crate::Clipboard;
-use crate::Connection;
-use crate::ConnectionOps;
-use crate::Dimensions;
-use crate::MouseCursor;
-use crate::RequestedWindowGeometry;
-use crate::ResolvedGeometry;
-use crate::Window;
-use crate::WindowEvent;
-use crate::WindowEventSender;
-use crate::WindowOps;
-use crate::WindowState;
+use crate::{
+    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, RequestedWindowGeometry,
+    ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowOps, WindowState,
+};
+
+use super::state::WaylandState;
+
+enum WaylandWindowEvent {
+    Close,
+    Request(WindowConfigure),
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct WaylandWindow(usize);
@@ -63,7 +47,7 @@ impl WaylandWindow {
         name: &str,
         geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
-        font_config: Rc<FontConfiguration>,
+        _font_config: Rc<FontConfiguration>,
         event_handler: F,
     ) -> anyhow::Result<Window>
     where
@@ -89,15 +73,15 @@ impl WaylandWindow {
 
         let qh = conn.event_queue.borrow().handle();
 
-        let compositor = &conn.wayland_state.borrow().compositor;
-        let surface = compositor.create_surface(&qh);
-
         // We need user data so we can get the window_id => WaylandWindowInner during a handler
         let surface_data = SurfaceUserData {
             surface_data: SurfaceData::default(),
             window_id,
         };
-        let surface = compositor.create_surface_with_data(&qh, surface_data);
+        let surface = {
+            let compositor = &conn.wayland_state.borrow().compositor;
+            compositor.create_surface_with_data(&qh, surface_data)
+        };
 
         let ResolvedGeometry {
             x: _,
@@ -112,8 +96,10 @@ impl WaylandWindow {
             dpi: config.dpi.unwrap_or(crate::DEFAULT_DPI) as usize,
         };
 
-        let xdg_shell = &conn.wayland_state.borrow().xdg;
-        let window = xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh);
+        let window = {
+            let xdg_shell = &conn.wayland_state.borrow().xdg;
+            xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh)
+        };
 
         window.set_app_id(class_name.to_string());
         // TODO: investigate the resizable thing
@@ -145,7 +131,6 @@ impl WaylandWindow {
         // conn.pointer.borrow().add_window(&surface, &pending_mouse);
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
-            window_id,
             events: WindowEventSender::new(event_handler),
             surface_factor: 1.0,
 
@@ -217,7 +202,6 @@ impl WindowOps for WaylandWindow {
         .await
     }
 
-    #[doc = r" Hide a visible window"]
     fn hide(&self) {
         todo!()
     }
@@ -229,8 +213,7 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    #[doc = r" Change the cursor"]
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+    fn set_cursor(&self, _cursor: Option<MouseCursor>) {
         todo!()
     }
 
@@ -249,44 +232,19 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    #[doc = r" Resize the inner or client area of the window"]
-    fn set_inner_size(&self, width: usize, height: usize) {
+    fn set_inner_size(&self, _width: usize, _height: usize) {
         todo!()
     }
 
     #[doc = r" Initiate textual transfer from the clipboard"]
-    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
+    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         todo!()
     }
 
-    #[doc = r" Set some text in the clipboard"]
-    fn set_clipboard(&self, clipboard: Clipboard, text: String) {
+    fn set_clipboard(&self, _clipboard: Clipboard, _text: String) {
         todo!()
     }
 }
-
-unsafe impl HasRawDisplayHandle for WaylandWindow {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        let mut handle = WaylandDisplayHandle::empty();
-        let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.backend().display_ptr() as *mut _;
-        RawDisplayHandle::Wayland(handle)
-    }
-}
-
-unsafe impl HasRawWindowHandle for WaylandWindow {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
-        let handle = conn
-            .wayland()
-            .window_by_id(self.0)
-            .expect("window handle invalid!?");
-
-        let inner = handle.borrow();
-        inner.raw_window_handle()
-    }
-}
-
 #[derive(Default, Clone, Debug)]
 pub(crate) struct PendingEvent {
     pub(crate) close: bool,
@@ -298,7 +256,7 @@ pub(crate) struct PendingEvent {
 }
 
 pub struct WaylandWindowInner {
-    window_id: usize,
+    // window_id: usize,
     pub(crate) events: WindowEventSender,
     surface_factor: f64,
     // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
@@ -591,8 +549,6 @@ impl WaylandWindowInner {
 
         // Ask the compositor to wake us up when its time to paint the next frame,
         // note that this only happens _after_ the next commit
-        let window_id = self.window_id;
-
         let conn = WaylandConnection::get().unwrap().wayland();
         let qh = conn.event_queue.borrow().handle();
 
@@ -627,6 +583,150 @@ impl WaylandWindowInner {
     }
 }
 
+impl WaylandState {
+    fn handle_window_event(&self, window: &XdgWindow, event: WaylandWindowEvent) {
+        let surface_data = SurfaceUserData::from_wl(window.wl_surface());
+        let window_id = surface_data.window_id;
+        let wconn = WaylandConnection::get()
+            .expect("should be wayland connection")
+            .wayland();
+        let window_inner = wconn
+            .window_by_id(window_id)
+            .expect("Inner Window should exist");
+
+        let p = window_inner.borrow().pending_event.clone();
+        let mut pending_event = p.lock().unwrap();
+
+        let changed = match event {
+            WaylandWindowEvent::Close => {
+                // TODO: This should the new queue function
+                // p.queue_close()
+                if !pending_event.close {
+                    pending_event.close = true;
+                    true
+                } else {
+                    false
+                }
+            }
+            WaylandWindowEvent::Request(configure) => {
+                // TODO: This should the new queue function
+                // p.queue_configure(&configure)
+                //
+                let mut changed;
+                pending_event.had_configure_event = true;
+                if let (Some(w), Some(h)) = configure.new_size {
+                    changed = pending_event.configure.is_none();
+                    pending_event.configure.replace((w.get(), h.get()));
+                } else {
+                    changed = true;
+                }
+
+                let mut state = WindowState::default();
+                if configure.state.contains(SCTKWindowState::FULLSCREEN) {
+                    state |= WindowState::FULL_SCREEN;
+                }
+                let fs_bits = SCTKWindowState::MAXIMIZED
+                    | SCTKWindowState::TILED_LEFT
+                    | SCTKWindowState::TILED_RIGHT
+                    | SCTKWindowState::TILED_TOP
+                    | SCTKWindowState::TILED_BOTTOM;
+                if !((configure.state & fs_bits).is_empty()) {
+                    state |= WindowState::MAXIMIZED;
+                }
+
+                log::debug!(
+                    "Config: self.window_state={:?}, states: {:?} {:?}",
+                    pending_event.window_state,
+                    state,
+                    configure.state
+                );
+
+                if pending_event.window_state.is_none() && state != WindowState::default() {
+                    changed = true;
+                }
+
+                pending_event.window_state.replace(state);
+                changed
+            }
+        };
+        if changed {
+            WaylandConnection::with_window_inner(window_id, move |inner| {
+                inner.dispatch_pending_event();
+                Ok(())
+            });
+        }
+    }
+}
+
+impl CompositorHandler for WaylandState {
+    fn scale_factor_changed(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _new_factor: i32,
+    ) {
+        // We do nothing, we get the scale_factor from surface_data
+    }
+
+    fn frame(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _time: u32,
+    ) {
+        log::trace!("frame: CompositorHandler");
+        let surface_data = SurfaceUserData::from_wl(surface);
+        let window_id = surface_data.window_id;
+
+        WaylandConnection::with_window_inner(window_id, |inner| {
+            inner.next_frame_is_ready();
+            Ok(())
+        });
+    }
+}
+
+impl WindowHandler for WaylandState {
+    fn request_close(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        window: &XdgWindow,
+    ) {
+        self.handle_window_event(window, WaylandWindowEvent::Close);
+    }
+
+    fn configure(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        window: &XdgWindow,
+        configure: WindowConfigure,
+        _serial: u32,
+    ) {
+        self.handle_window_event(window, WaylandWindowEvent::Request(configure));
+    }
+}
+
+pub(super) struct SurfaceUserData {
+    surface_data: SurfaceData,
+    window_id: usize,
+}
+
+impl SurfaceUserData {
+    pub(crate) fn from_wl(wl: &WlSurface) -> &Self {
+        wl.data()
+            .expect("User data should be associated with WlSurface")
+    }
+}
+
+impl SurfaceDataExt for SurfaceUserData {
+    fn surface_data(&self) -> &SurfaceData {
+        &self.surface_data
+    }
+}
+
 unsafe impl HasRawDisplayHandle for WaylandWindowInner {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         // let mut handle = WaylandDisplayHandle::empty();
@@ -646,20 +746,24 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
     }
 }
 
-pub(crate) struct SurfaceUserData {
-    surface_data: SurfaceData,
-    pub(crate) window_id: usize,
-}
-
-impl SurfaceUserData {
-    pub(crate) fn from_wl(wl: &WlSurface) -> &Self {
-        wl.data()
-            .expect("User data should be associated with WlSurface")
+unsafe impl HasRawDisplayHandle for WaylandWindow {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = WaylandDisplayHandle::empty();
+        let conn = WaylandConnection::get().unwrap().wayland();
+        handle.display = conn.connection.backend().display_ptr() as *mut _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 
-impl SurfaceDataExt for SurfaceUserData {
-    fn surface_data(&self) -> &smithay_client_toolkit::compositor::SurfaceData {
-        &self.surface_data
+unsafe impl HasRawWindowHandle for WaylandWindow {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
+        let handle = conn
+            .wayland()
+            .window_by_id(self.0)
+            .expect("window handle invalid!?");
+
+        let inner = handle.borrow();
+        inner.raw_window_handle()
     }
 }
