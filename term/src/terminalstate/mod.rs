@@ -804,6 +804,8 @@ impl TerminalState {
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the writer as-is.
+    /// De-fang the text by removing any embedded bracketed paste
+    /// sequence that may be present.
     pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
         let mut buf = String::new();
         if self.bracketed_paste {
@@ -817,7 +819,8 @@ impl TerminalState {
         };
 
         let canon = canon.canonicalize(text);
-        buf.push_str(&canon);
+        let de_fanged = canon.replace("\x1b[200~", "").replace("\x1b[201~", "");
+        buf.push_str(&de_fanged);
 
         if self.bracketed_paste {
             buf.push_str("\x1b[201~");

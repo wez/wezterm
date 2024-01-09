@@ -135,6 +135,9 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: honor the `window_close_confirmation` config option when quitting the
   application. Thanks to @quantonganh! #4420 #4362
 * terminfo: added missing terminator to Sync capability. Thanks to @gpanders! #4578
+* bracketed paste escape sequences are now always stripped out of text
+  that is pasted into the terminal. This happens even if bracketed paste
+  mode is disabled. #4765
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
