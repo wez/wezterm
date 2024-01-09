@@ -138,6 +138,7 @@ As features stabilize some brief notes about them will accumulate here.
 * bracketed paste escape sequences are now always stripped out of text
   that is pasted into the terminal. This happens even if bracketed paste
   mode is disabled. #4765
+* Sixel parser ignores P2 parameter if P1 is blank. Thanks to @joouha! #4730
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
