@@ -437,9 +437,9 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
-version = "0.21.5"
+version = "0.21.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35636a1494ede3b646cc98f74f8e62c773a38a659ebc777a2cf26b9b74171df9"
+checksum = "c79fed4cdb43e993fcdadc7e58a09fd0e3e649c4436fa11da71c9f1f3ee7feb9"
 
 [[package]]
 name = "base91"
@@ -723,9 +723,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.13"
+version = "4.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52bdc885e4cacc7f7c9eedc1ef6da641603180c783c41a15c264944deeaab642"
+checksum = "33e92c5c1a78c62968ec57dbc2440366a2d6e5a23faf829970ff1585dc6b18e2"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -733,14 +733,14 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.12"
+version = "4.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb7fb5e4e979aec3be7791562fcba452f94ad85e954da024396433e0e25a79e9"
+checksum = "f4323769dc8a61e2c39ad7dc26f6f2800524691a44d74fe3d1071a5c24db6370"
 dependencies = [
  "anstream",
  "anstyle",
  "clap_lex 0.6.0",
- "strsim",
+ "strsim 0.10.0",
  "terminal_size 0.3.0",
 ]
 
@@ -750,7 +750,7 @@ version = "4.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97aeaa95557bd02f23fbb662f981670c3d20c5a26e69f7354b28f57092437fcd"
 dependencies = [
- "clap 4.4.13",
+ "clap 4.4.14",
 ]
 
 [[package]]
@@ -759,7 +759,7 @@ version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87e571d70e22ec91d34e1c5317c8308035a2280d925167646bf094fc5de1737c"
 dependencies = [
- "clap 4.4.13",
+ "clap 4.4.14",
  "clap_complete",
 ]
 
@@ -1314,7 +1314,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim",
+ "strsim 0.10.0",
  "syn 2.0.48",
 ]
 
@@ -2403,7 +2403,7 @@ version = "7.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "765c9198f173dd59ce26ff9f95ef0aafd0a0fe01fb9d72841bc5066a4c06511d"
 dependencies = [
- "base64 0.21.5",
+ "base64 0.21.6",
  "byteorder",
  "crossbeam-channel",
  "flate2",
@@ -3387,7 +3387,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64 0.21.5",
+ "base64 0.21.6",
  "bintree",
  "bitflags 1.3.2",
  "chrono",
@@ -4069,7 +4069,7 @@ version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5699cc8a63d1aa2b1ee8e12b9ad70ac790d65788cd36101fa37f87ea46c4cef"
 dependencies = [
- "base64 0.21.5",
+ "base64 0.21.6",
  "indexmap 2.1.0",
  "line-wrap",
  "quick-xml 0.31.0",
@@ -4523,7 +4523,7 @@ version = "0.11.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37b1ae8d9ac08420c66222fb9096fc5de435c3c48542bc5336c51892cffafb41"
 dependencies = [
- "base64 0.21.5",
+ "base64 0.21.6",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -5240,7 +5240,7 @@ checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 4.4.13",
+ "clap 4.4.14",
  "termwiz",
 ]
 
@@ -5249,6 +5249,12 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strsim"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
 
 [[package]]
 name = "svg_fmt"
@@ -5452,7 +5458,7 @@ name = "termwiz"
 version = "0.22.0"
 dependencies = [
  "anyhow",
- "base64 0.21.5",
+ "base64 0.21.6",
  "bitflags 2.4.1",
  "cassowary",
  "criterion 0.4.0",
@@ -6223,7 +6229,7 @@ dependencies = [
  "anyhow",
  "cc",
  "chrono",
- "clap 4.4.13",
+ "clap 4.4.14",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -6343,7 +6349,7 @@ dependencies = [
  "log",
  "maplit",
  "ordered-float",
- "strsim",
+ "strsim 0.11.0",
  "thiserror",
  "wezterm-dynamic-derive",
 ]
@@ -6407,7 +6413,7 @@ dependencies = [
  "bytemuck",
  "cc",
  "chrono",
- "clap 4.4.13",
+ "clap 4.4.14",
  "codec",
  "colorgrad",
  "config",
@@ -6492,7 +6498,7 @@ name = "wezterm-gui-subcommands"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.4.13",
+ "clap 4.4.14",
  "config",
 ]
 
@@ -6514,7 +6520,7 @@ dependencies = [
  "anyhow",
  "async_ossl",
  "cc",
- "clap 4.4.13",
+ "clap 4.4.14",
  "config",
  "embed-resource",
  "env-bootstrap",
@@ -6573,10 +6579,10 @@ dependencies = [
  "anyhow",
  "assert_fs",
  "async_ossl",
- "base64 0.21.5",
+ "base64 0.21.6",
  "bitflags 1.3.2",
  "camino",
- "clap 4.4.13",
+ "clap 4.4.14",
  "dirs-next",
  "env_logger",
  "filedescriptor",
