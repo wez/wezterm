@@ -1,13 +1,16 @@
 use std::borrow::BorrowMut;
+use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use smithay_client_toolkit::seat::keyboard::{KeyEvent, KeyboardHandler};
+use smithay_client_toolkit::seat::keyboard::{KeyEvent, KeyboardHandler, Keymap};
 use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, Proxy, QueueHandle};
+
+use crate::x11::KeyboardWithFallback;
 
 use super::state::WaylandState;
 use super::{KeyRepeatState, SurfaceUserData};
@@ -115,29 +118,29 @@ impl KeyboardHandler for WaylandState {
         let Some(&window_id) = self.keyboard_window_id.as_ref() else {
             return;
         };
-        let Some(mut win) = self.window_by_id(window_id) else {
+        let Some(win) = self.window_by_id(window_id) else {
             return;
         };
-        let inner = win.borrow_mut();
 
-        let events = &mut inner.as_ref().borrow_mut().events;
+        let inner = win.as_ref().borrow_mut();
+        let (mut events, mut key_repeat) =
+            RefMut::map_split(inner, |w| (&mut w.events, &mut w.key_repeat));
+
         let mapper = self.keyboard_mapper.borrow_mut();
         let mapper = mapper.as_mut().expect("no keymap");
 
         // TODO: not sure if i should use keysym vs rawcode
         let key = event.keysym;
-        let key_repeat = &mut inner.as_ref().borrow_mut().key_repeat;
-        if let Some(event) = mapper.process_wayland_key(key, true, events) {
+        if let Some(event) = mapper.process_wayland_key(key, true, &mut events) {
             let rep = Arc::new(Mutex::new(KeyRepeatState {
                 when: Instant::now(),
                 event,
             }));
 
-            let kp = &mut inner.as_ref().borrow_mut().key_repeat;
-            kp.replace((key, Arc::clone(&rep)));
+            key_repeat.replace((key, Arc::clone(&rep)));
 
             KeyRepeatState::schedule(rep, window_id);
-        } else if let Some((cur_key, _)) = key_repeat {
+        } else if let Some((cur_key, _)) = key_repeat.as_mut() {
             if *cur_key == key {
                 key_repeat.take();
             }
@@ -157,29 +160,29 @@ impl KeyboardHandler for WaylandState {
         let Some(&window_id) = self.keyboard_window_id.as_ref() else {
             return;
         };
-        let Some(mut win) = self.window_by_id(window_id) else {
+        let Some(win) = self.window_by_id(window_id) else {
             return;
         };
-        let inner = win.borrow_mut();
 
-        let events = &mut inner.as_ref().borrow_mut().events;
+        let inner = win.as_ref().borrow_mut();
+        let (mut events, mut key_repeat) =
+            RefMut::map_split(inner, |w| (&mut w.events, &mut w.key_repeat));
+
         let mapper = self.keyboard_mapper.borrow_mut();
         let mapper = mapper.as_mut().expect("no keymap");
 
         // TODO: not sure if i should use keysym vs rawcode
         let key = event.keysym;
-        let key_repeat = &mut inner.as_ref().borrow_mut().key_repeat;
-        if let Some(event) = mapper.process_wayland_key(key, false, events) {
+        if let Some(event) = mapper.process_wayland_key(key, false, &mut events) {
             let rep = Arc::new(Mutex::new(KeyRepeatState {
                 when: Instant::now(),
                 event,
             }));
 
-            let kp = &mut inner.as_ref().borrow_mut().key_repeat;
-            kp.replace((key, Arc::clone(&rep)));
+            key_repeat.replace((key, Arc::clone(&rep)));
 
             KeyRepeatState::schedule(rep, window_id);
-        } else if let Some((cur_key, _)) = key_repeat {
+        } else if let Some((cur_key, _)) = key_repeat.as_mut() {
             if *cur_key == key {
                 key_repeat.take();
             }
@@ -201,9 +204,17 @@ impl KeyboardHandler for WaylandState {
         &mut self,
         _conn: &Connection,
         _qh: &QueueHandle<Self>,
-        _keyboard: &wayland_client::protocol::wl_keyboard::WlKeyboard,
-        _keymap: smithay_client_toolkit::seat::keyboard::Keymap<'_>,
+        _keyboard: &WlKeyboard,
+        keymap: Keymap<'_>,
     ) {
-        todo!()
+        let keymap_str = keymap.as_string();
+        match KeyboardWithFallback::new_from_string(keymap_str) {
+            Ok(k) => {
+                self.keyboard_mapper.replace(k);
+            }
+            Err(err) => {
+                log::error!("Error processing keymap change: {:#}", err);
+            }
+        }
     }
 }
