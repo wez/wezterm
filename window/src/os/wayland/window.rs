@@ -315,8 +315,11 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_cursor(&self, _cursor: Option<MouseCursor>) {
-        todo!()
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_cursor(cursor);
+            Ok(())
+        });
     }
 
     fn invalidate(&self) {
@@ -615,6 +618,20 @@ impl WaylandWindowInner {
                 notify.try_send(()).ok();
             }
         }
+    }
+
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        // TODO: Deal with cursors later
+        let _names: &[&str] = match cursor {
+            Some(MouseCursor::Arrow) => &["arrow"],
+            Some(MouseCursor::Hand) => &["hand"],
+            Some(MouseCursor::SizeUpDown) => &["ns-resize"],
+            Some(MouseCursor::SizeLeftRight) => &["ew-resize"],
+            Some(MouseCursor::Text) => &["xterm"],
+            None => &[],
+        };
+        // let conn = Connection::get().unwrap().wayland();
+        // conn.pointer.borrow().set_cursor(names, None);
     }
 
     fn invalidate(&mut self) {
