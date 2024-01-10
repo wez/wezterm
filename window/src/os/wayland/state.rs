@@ -5,17 +5,22 @@ use std::rc::Rc;
 use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
+use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell,
-    delegate_xdg_window, registry_handlers,
+    delegate_compositor, delegate_keyboard, delegate_output, delegate_registry, delegate_seat,
+    delegate_shm, delegate_xdg_shell, delegate_xdg_window, registry_handlers,
 };
+use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_output::WlOutput;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
+
+use crate::x11::KeyboardWithFallback;
 
 use super::{SurfaceUserData, WaylandWindowInner};
 
@@ -25,8 +30,17 @@ pub(super) struct WaylandState {
     registry: RegistryState,
     pub(super) output: OutputState,
     pub(super) compositor: CompositorState,
+    pub(super) seat: SeatState,
     pub(super) xdg: XdgShell,
     pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
+
+    pub(super) active_surface_id: RefCell<Option<ObjectId>>,
+    pub(super) last_serial: RefCell<u32>,
+    pub(super) keyboard: Option<WlKeyboard>,
+    pub(super) keyboard_mapper: Option<KeyboardWithFallback>,
+    pub(super) key_repeat_delay: i32,
+    pub(super) key_repeat_rate: i32,
+    pub(super) keyboard_window_id: RefCell<Option<usize>>,
 
     shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
@@ -41,7 +55,15 @@ impl WaylandState {
             output: OutputState::new(globals, qh),
             compositor: CompositorState::bind(globals, qh)?,
             windows: RefCell::new(HashMap::new()),
+            seat: SeatState::new(globals, qh),
             xdg: XdgShell::bind(globals, qh)?,
+            active_surface_id: RefCell::new(None),
+            last_serial: RefCell::new(0),
+            keyboard: None,
+            keyboard_mapper: None,
+            key_repeat_rate: 25,
+            key_repeat_delay: 400,
+            keyboard_window_id: RefCell::new(None),
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
@@ -54,7 +76,7 @@ impl ProvidesRegistryState for WaylandState {
         &mut self.registry
     }
 
-    registry_handlers!(OutputState);
+    registry_handlers![OutputState, SeatState];
 }
 
 impl ShmHandler for WaylandState {
@@ -92,6 +114,9 @@ delegate_shm!(WaylandState);
 
 delegate_output!(WaylandState);
 delegate_compositor!(WaylandState);
+
+delegate_seat!(WaylandState);
+delegate_keyboard!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
