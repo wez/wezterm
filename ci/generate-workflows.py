@@ -593,7 +593,16 @@ cargo build --all --release""",
         patterns.append("*.sha256")
         glob = " ".join(patterns)
 
-        return steps + [
+        if self.container == "ubuntu:22.04":
+            steps += [
+                RunStep(
+                    "Upload to gemfury",
+                    f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
+                    env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
+                ),
+            ]
+
+        return [
             ActionStep(
                 "Download artifact",
                 action="actions/download-artifact@v3",
@@ -605,7 +614,7 @@ cargo build --all --release""",
                 f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
             ),
-        ]
+        ] + steps
 
     def upload_asset_tag(self):
         steps = []

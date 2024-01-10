@@ -251,9 +251,19 @@ EOF
       Ubuntu*|Debian*)
         rm -rf pkg
         mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN pkg/debian/usr/share/{applications,wezterm}
+
+        if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+          pkgname=wezterm-nightly
+          conflicts=wezterm
+        else
+          pkgname=wezterm
+          conflicts=wezterm-nightly
+        fi
+
         cat > pkg/debian/control <<EOF
-Package: wezterm
+Package: $pkgname
 Version: ${TAG_NAME#nightly-}
+Conflicts: $conflicts
 Architecture: $(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
 Maintainer: Wez Furlong <wez@wezfurlong.org>
 Section: utils
