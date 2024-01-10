@@ -3,8 +3,10 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::anyhow;
+use async_io::Timer;
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::Future;
@@ -23,15 +25,106 @@ use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::WindowDecorations;
+use wezterm_input_types::{Modifiers, WindowDecorations};
 
 use crate::wayland::WaylandConnection;
 use crate::{
-    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, RequestedWindowGeometry,
-    ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Rect, RequestedWindowGeometry,
+    ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowKeyEvent, WindowOps,
+    WindowState,
 };
 
 use super::state::WaylandState;
+
+#[derive(Debug)]
+pub(super) struct KeyRepeatState {
+    pub(super) when: Instant,
+    pub(super) event: WindowKeyEvent,
+}
+
+impl KeyRepeatState {
+    pub(super) fn schedule(state: Arc<Mutex<Self>>, window_id: usize) {
+        promise::spawn::spawn_into_main_thread(async move {
+            let delay;
+            let gap;
+            {
+                let conn = WaylandConnection::get().unwrap().wayland();
+                let (rate, ddelay) = {
+                    let wstate = conn.wayland_state.borrow();
+                    (
+                        wstate.key_repeat_rate as u64,
+                        wstate.key_repeat_delay as u64,
+                    )
+                };
+                if rate == 0 {
+                    return;
+                }
+                delay = Duration::from_millis(ddelay);
+                gap = Duration::from_millis(1000 / rate);
+            }
+
+            let mut initial = true;
+            Timer::after(delay).await;
+            loop {
+                {
+                    let handle = {
+                        let conn = WaylandConnection::get().unwrap().wayland();
+                        match conn.window_by_id(window_id) {
+                            Some(handle) => handle,
+                            None => return,
+                        }
+                    };
+
+                    let mut inner = handle.borrow_mut();
+
+                    if inner.key_repeat.as_ref().map(|(_, k)| Arc::as_ptr(k))
+                        != Some(Arc::as_ptr(&state))
+                    {
+                        // Key was released and/or some other key is doing
+                        // its own repetition now
+                        return;
+                    }
+
+                    let mut st = state.lock().unwrap();
+
+                    let mut repeat_count = 1;
+
+                    let mut elapsed = st.when.elapsed();
+                    if initial {
+                        elapsed -= delay;
+                        initial = false;
+                    }
+
+                    // If our scheduling interval is longer than the repeat
+                    // gap, we need to inflate the repeat count to match
+                    // the intended rate
+                    while elapsed >= gap {
+                        repeat_count += 1;
+                        elapsed -= gap;
+                    }
+
+                    let event = match st.event.clone() {
+                        WindowKeyEvent::KeyEvent(mut key) => {
+                            key.repeat_count = repeat_count;
+                            WindowEvent::KeyEvent(key)
+                        }
+                        WindowKeyEvent::RawKeyEvent(mut raw) => {
+                            raw.repeat_count = repeat_count;
+                            WindowEvent::RawKeyEvent(raw)
+                        }
+                    };
+
+                    inner.events.dispatch(event);
+
+                    st.when = Instant::now();
+                }
+
+                Timer::after(gap).await;
+            }
+        })
+        .detach();
+    }
+}
 
 enum WaylandWindowEvent {
     Close,
@@ -140,10 +233,15 @@ impl WaylandWindow {
             resize_increments: None,
             window_state: WindowState::default(),
 
+            _modifiers: Modifiers::NONE,
+
+            key_repeat: None,
             pending_event,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
+
+            _text_cursor: None,
 
             config,
 
@@ -271,24 +369,24 @@ pub struct WaylandWindowInner {
     // mouse_buttons: MouseButtons,
     // hscroll_remainder: f64,
     // vscroll_remainder: f64,
-    // modifiers: Modifiers,
+    _modifiers: Modifiers,
     // leds: KeyboardLedStatus,
-    // key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
+    pub(super) key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
     // pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
     frame_callback: Option<WlCallback>,
     invalidated: bool,
     // font_config: Rc<FontConfiguration>,
-    // text_cursor: Option<Rect>,
+    _text_cursor: Option<Rect>,
     // appearance: Appearance,
     config: ConfigHandle,
     // // cache the title for comparison to avoid spamming
     // // the compositor with updates that don't actually change it
     title: Option<String>,
-    // // wegl_surface is listed before gl_state because it
-    // // must be dropped before gl_state otherwise the underlying
-    // // libraries will segfault on shutdown
+    // wegl_surface is listed before gl_state because it
+    // must be dropped before gl_state otherwise the underlying
+    // libraries will segfault on shutdown
     wegl_surface: Option<WlEglSurface>,
     gl_state: Option<Rc<glium::backend::Context>>,
 }
@@ -584,6 +682,20 @@ impl WaylandWindowInner {
             self.do_paint().ok();
         }
     }
+
+    // pub(crate) fn emit_focus(&mut self, mapper: &mut KeyboardWithFallback, focused: bool) {
+    //     // Clear the modifiers when we change focus, otherwise weird
+    //     // things can happen.  For instance, if we lost focus because
+    //     // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
+    //     // left stuck with CTRL+SHIFT held down and the window would
+    //     // be left in a broken state.
+    //
+    //     self.modifiers = Modifiers::NONE;
+    //     mapper.update_modifier_state(0, 0, 0, 0);
+    //     self.key_repeat.take();
+    //     self.events.dispatch(WindowEvent::FocusChanged(focused));
+    //     self.text_cursor.take();
+    // }
 }
 
 impl WaylandState {
@@ -716,13 +828,16 @@ impl WindowHandler for WaylandState {
 
 pub(super) struct SurfaceUserData {
     surface_data: SurfaceData,
-    window_id: usize,
+    pub(super) window_id: usize,
 }
 
 impl SurfaceUserData {
-    pub(crate) fn from_wl(wl: &WlSurface) -> &Self {
+    pub(super) fn from_wl(wl: &WlSurface) -> &Self {
         wl.data()
             .expect("User data should be associated with WlSurface")
+    }
+    pub(super) fn try_from_wl(wl: &WlSurface) -> Option<&SurfaceUserData> {
+        wl.data()
     }
 }
 
