@@ -64,7 +64,7 @@ impl KeyboardHandler for WaylandState {
         _keyboard: &WlKeyboard,
         surface: &WlSurface,
         serial: u32,
-        _raw: &[u32],
+        raw: &[u32],
         keysyms: &[u32],
     ) {
         *self.active_surface_id.borrow_mut() = Some(surface.id());
@@ -85,7 +85,11 @@ impl KeyboardHandler for WaylandState {
         };
 
         // TODO: not sure if this is correct; is it keycodes?
-        log::trace!("keyboard event: Enter with keys: {:?}", keysyms);
+        log::trace!(
+            "keyboard event: Enter with keysyms: {:?}, raw: {:?}",
+            keysyms,
+            raw
+        );
 
         let inner = win.borrow_mut();
         let mapper = self.keyboard_mapper.borrow_mut();
@@ -129,8 +133,7 @@ impl KeyboardHandler for WaylandState {
         let mapper = self.keyboard_mapper.borrow_mut();
         let mapper = mapper.as_mut().expect("no keymap");
 
-        // TODO: not sure if i should use keysym vs rawcode
-        let key = event.keysym;
+        let key = event.raw_code;
         if let Some(event) = mapper.process_wayland_key(key, true, &mut events) {
             let rep = Arc::new(Mutex::new(KeyRepeatState {
                 when: Instant::now(),
@@ -171,8 +174,7 @@ impl KeyboardHandler for WaylandState {
         let mapper = self.keyboard_mapper.borrow_mut();
         let mapper = mapper.as_mut().expect("no keymap");
 
-        // TODO: not sure if i should use keysym vs rawcode
-        let key = event.keysym;
+        let key = event.raw_code;
         if let Some(event) = mapper.process_wayland_key(key, false, &mut events) {
             let rep = Arc::new(Mutex::new(KeyRepeatState {
                 when: Instant::now(),
