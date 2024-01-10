@@ -7,10 +7,10 @@ use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
-use wayland_client::{Connection, QueueHandle};
+use wayland_client::{Connection, Proxy, QueueHandle};
 
 use super::state::WaylandState;
-use super::KeyRepeatState;
+use super::{KeyRepeatState, SurfaceUserData};
 
 impl SeatHandler for WaylandState {
     fn seat_state(&mut self) -> &mut SeatState {
@@ -59,24 +59,36 @@ impl KeyboardHandler for WaylandState {
         _conn: &Connection,
         _qh: &QueueHandle<Self>,
         _keyboard: &WlKeyboard,
-        _surface: &WlSurface,
-        _serial: u32,
+        surface: &WlSurface,
+        serial: u32,
         _raw: &[u32],
-        _keysyms: &[u32],
+        keysyms: &[u32],
     ) {
-        // *self.active_surface_id.borrow_mut() = Some(surface.id());
-        // *self.last_serial.borrow_mut() = serial;
-        // if let Some(sud) = SurfaceUserData::try_from_wl(surface) {
-        //     let window_id = sud.window_id;
-        //     self.keyboard_window_id.borrow_mut().replace(window_id);
-        //     // TODO: env with inner seems to IME stuff
-        // } else {
-        //     log::warn!("{:?}, no known surface", "WlKeyboardEnter");
-        // }
-        //
-        // if let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() {
-        //     // if let Some(win) = self.
-        // }
+        *self.active_surface_id.borrow_mut() = Some(surface.id());
+        *self.last_serial.borrow_mut() = serial;
+        if let Some(sud) = SurfaceUserData::try_from_wl(surface) {
+            let window_id = sud.window_id;
+            self.keyboard_window_id.borrow_mut().replace(window_id);
+            // TODO: env with inner seems to IME stuff
+        } else {
+            log::warn!("{:?}, no known surface", "WlKeyboardEnter");
+        }
+
+        let Some(&window_id) = self.keyboard_window_id.as_ref() else {
+            return;
+        };
+        let Some(mut win) = self.window_by_id(window_id) else {
+            return;
+        };
+
+        // TODO: not sure if this is correct; is it keycodes?
+        log::trace!("keyboard event: Enter with keys: {:?}", keysyms);
+
+        let inner = win.borrow_mut();
+        let mapper = self.keyboard_mapper.borrow_mut();
+        let mapper = mapper.as_mut().expect("no keymap");
+
+        inner.as_ref().borrow_mut().emit_focus(mapper, true);
     }
 
     fn leave(
@@ -100,7 +112,7 @@ impl KeyboardHandler for WaylandState {
         event: KeyEvent,
     ) {
         *self.last_serial.borrow_mut() = serial;
-        let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() else {
+        let Some(&window_id) = self.keyboard_window_id.as_ref() else {
             return;
         };
         let Some(mut win) = self.window_by_id(window_id) else {
@@ -142,7 +154,7 @@ impl KeyboardHandler for WaylandState {
     ) {
         // TODO: copy paste of press_key except process is false
         *self.last_serial.borrow_mut() = serial;
-        let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() else {
+        let Some(&window_id) = self.keyboard_window_id.as_ref() else {
             return;
         };
         let Some(mut win) = self.window_by_id(window_id) else {
@@ -192,5 +204,6 @@ impl KeyboardHandler for WaylandState {
         _keyboard: &wayland_client::protocol::wl_keyboard::WlKeyboard,
         _keymap: smithay_client_toolkit::seat::keyboard::Keymap<'_>,
     ) {
+        todo!()
     }
 }

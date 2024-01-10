@@ -28,6 +28,7 @@ use wezterm_font::FontConfiguration;
 use wezterm_input_types::{Modifiers, WindowDecorations};
 
 use crate::wayland::WaylandConnection;
+use crate::x11::KeyboardWithFallback;
 use crate::{
     Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Rect, RequestedWindowGeometry,
     ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowKeyEvent, WindowOps,
@@ -233,7 +234,7 @@ impl WaylandWindow {
             resize_increments: None,
             window_state: WindowState::default(),
 
-            _modifiers: Modifiers::NONE,
+            modifiers: Modifiers::NONE,
 
             key_repeat: None,
             pending_event,
@@ -241,7 +242,7 @@ impl WaylandWindow {
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
 
-            _text_cursor: None,
+            text_cursor: None,
 
             config,
 
@@ -369,7 +370,7 @@ pub struct WaylandWindowInner {
     // mouse_buttons: MouseButtons,
     // hscroll_remainder: f64,
     // vscroll_remainder: f64,
-    _modifiers: Modifiers,
+    modifiers: Modifiers,
     // leds: KeyboardLedStatus,
     pub(super) key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
@@ -378,7 +379,7 @@ pub struct WaylandWindowInner {
     frame_callback: Option<WlCallback>,
     invalidated: bool,
     // font_config: Rc<FontConfiguration>,
-    _text_cursor: Option<Rect>,
+    text_cursor: Option<Rect>,
     // appearance: Appearance,
     config: ConfigHandle,
     // // cache the title for comparison to avoid spamming
@@ -683,19 +684,19 @@ impl WaylandWindowInner {
         }
     }
 
-    // pub(crate) fn emit_focus(&mut self, mapper: &mut KeyboardWithFallback, focused: bool) {
-    //     // Clear the modifiers when we change focus, otherwise weird
-    //     // things can happen.  For instance, if we lost focus because
-    //     // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
-    //     // left stuck with CTRL+SHIFT held down and the window would
-    //     // be left in a broken state.
-    //
-    //     self.modifiers = Modifiers::NONE;
-    //     mapper.update_modifier_state(0, 0, 0, 0);
-    //     self.key_repeat.take();
-    //     self.events.dispatch(WindowEvent::FocusChanged(focused));
-    //     self.text_cursor.take();
-    // }
+    pub(crate) fn emit_focus(&mut self, mapper: &mut KeyboardWithFallback, focused: bool) {
+        // Clear the modifiers when we change focus, otherwise weird
+        // things can happen.  For instance, if we lost focus because
+        // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
+        // left stuck with CTRL+SHIFT held down and the window would
+        // be left in a broken state.
+
+        self.modifiers = Modifiers::NONE;
+        mapper.update_modifier_state(0, 0, 0, 0);
+        self.key_repeat.take();
+        self.events.dispatch(WindowEvent::FocusChanged(focused));
+        self.text_cursor.take();
+    }
 }
 
 impl WaylandState {

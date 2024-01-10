@@ -40,7 +40,7 @@ pub(super) struct WaylandState {
     pub(super) keyboard_mapper: Option<KeyboardWithFallback>,
     pub(super) key_repeat_delay: i32,
     pub(super) key_repeat_rate: i32,
-    pub(super) keyboard_window_id: RefCell<Option<usize>>,
+    pub(super) keyboard_window_id: Option<usize>,
 
     shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
@@ -63,7 +63,7 @@ impl WaylandState {
             keyboard_mapper: None,
             key_repeat_rate: 25,
             key_repeat_delay: 400,
-            keyboard_window_id: RefCell::new(None),
+            keyboard_window_id: None,
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
