@@ -21,7 +21,6 @@ use super::WaylandWindowInner;
 pub struct WaylandConnection {
     pub(crate) should_terminate: RefCell<bool>,
     pub(crate) next_window_id: AtomicUsize,
-    pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
     pub(super) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(super) connection: WConnection,
     pub(super) event_queue: RefCell<EventQueue<WaylandState>>,
@@ -40,7 +39,6 @@ impl WaylandConnection {
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
             gl_connection: RefCell::new(None),
-            windows: RefCell::new(HashMap::default()),
             event_queue: RefCell::new(event_queue),
             wayland_state: RefCell::new(wayland_state),
         };
@@ -127,7 +125,7 @@ impl WaylandConnection {
     }
 
     pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
-        self.windows.borrow().get(&window_id).map(Rc::clone)
+        self.wayland_state.borrow().window_by_id(window_id)
     }
 
     pub(crate) fn with_window_inner<
@@ -170,7 +168,7 @@ impl ConnectionOps for WaylandConnection {
         // Ensure that we drop these eagerly, to avoid
         // noisy errors wrt. global destructors unwinding
         // in unexpected places
-        self.windows.borrow_mut().clear();
+        self.wayland_state.borrow().windows.borrow_mut().clear();
         res
     }
 

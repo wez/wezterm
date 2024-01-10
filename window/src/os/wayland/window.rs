@@ -160,7 +160,10 @@ impl WaylandWindow {
             .events
             .assign_window(window_handle.clone());
 
-        conn.windows.borrow_mut().insert(window_id, inner.clone());
+        {
+            let windows = &conn.wayland_state.borrow().windows;
+            windows.borrow_mut().insert(window_id, inner.clone());
+        };
 
         wait_configure.recv().await?;
 
@@ -584,13 +587,15 @@ impl WaylandWindowInner {
 }
 
 impl WaylandState {
+    pub(super) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
+        self.windows.borrow().get(&window_id).map(Rc::clone)
+    }
+
     fn handle_window_event(&self, window: &XdgWindow, event: WaylandWindowEvent) {
         let surface_data = SurfaceUserData::from_wl(window.wl_surface());
         let window_id = surface_data.window_id;
-        let wconn = WaylandConnection::get()
-            .expect("should be wayland connection")
-            .wayland();
-        let window_inner = wconn
+
+        let window_inner = self
             .window_by_id(window_id)
             .expect("Inner Window should exist");
 

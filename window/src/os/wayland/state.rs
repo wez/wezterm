@@ -1,23 +1,23 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
+use smithay_client_toolkit::compositor::CompositorState;
+use smithay_client_toolkit::output::{OutputHandler, OutputState};
+use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
+use smithay_client_toolkit::shell::xdg::XdgShell;
+use smithay_client_toolkit::shm::slot::SlotPool;
+use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::{
-    compositor::CompositorState,
     delegate_compositor, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell,
-    delegate_xdg_window,
-    output::{OutputHandler, OutputState},
-    registry::{ProvidesRegistryState, RegistryState},
-    registry_handlers,
-    shell::xdg::XdgShell,
-    shm::{slot::SlotPool, Shm, ShmHandler},
+    delegate_xdg_window, registry_handlers,
 };
-use wayland_client::{
-    delegate_dispatch,
-    globals::GlobalList,
-    protocol::{wl_output::WlOutput, wl_surface::WlSurface},
-    Connection, QueueHandle,
-};
+use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::{delegate_dispatch, Connection, QueueHandle};
 
-use super::SurfaceUserData;
+use super::{SurfaceUserData, WaylandWindowInner};
 
 // We can't combine WaylandState and WaylandConnection together because
 // the run_message_loop has &self(WaylandConnection) and needs to update WaylandState as mut
@@ -26,6 +26,7 @@ pub(super) struct WaylandState {
     pub(super) output: OutputState,
     pub(super) compositor: CompositorState,
     pub(super) xdg: XdgShell,
+    pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
     shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
@@ -39,6 +40,7 @@ impl WaylandState {
             registry: RegistryState::new(globals),
             output: OutputState::new(globals, qh),
             compositor: CompositorState::bind(globals, qh)?,
+            windows: RefCell::new(HashMap::new()),
             xdg: XdgShell::bind(globals, qh)?,
             shm,
             mem_pool: RefCell::new(mem_pool),
