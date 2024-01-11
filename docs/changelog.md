@@ -143,6 +143,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Sixel parser ignores P2 parameter if P1 is blank. Thanks to @joouha! #4730
 * X11: synthesize raw modifiers to resolve some issues with synthetic/injected
   key press events experienced by Espanso. Thanks to @bew! #4151 #3840
+* `freetype_load_target` had no effect. Thanks to @dkoukola! #4775 #4770
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
