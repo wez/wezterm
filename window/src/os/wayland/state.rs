@@ -10,8 +10,8 @@ use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_keyboard, delegate_output, delegate_registry, delegate_seat,
-    delegate_shm, delegate_xdg_shell, delegate_xdg_window, registry_handlers,
+    delegate_compositor, delegate_output, delegate_registry, delegate_seat, delegate_shm,
+    delegate_xdg_shell, delegate_xdg_window, registry_handlers,
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
@@ -116,7 +116,6 @@ delegate_output!(WaylandState);
 delegate_compositor!(WaylandState);
 
 delegate_seat!(WaylandState);
-delegate_keyboard!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);

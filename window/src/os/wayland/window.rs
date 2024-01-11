@@ -21,11 +21,12 @@ use smithay_client_toolkit::shell::xdg::window::{
 };
 use smithay_client_toolkit::shell::WaylandSurface;
 use wayland_client::protocol::wl_callback::WlCallback;
+use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{Modifiers, WindowDecorations};
+use wezterm_input_types::{KeyboardLedStatus, Modifiers, WindowDecorations};
 
 use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
@@ -235,6 +236,7 @@ impl WaylandWindow {
             window_state: WindowState::default(),
 
             modifiers: Modifiers::NONE,
+            leds: KeyboardLedStatus::empty(),
 
             key_repeat: None,
             pending_event,
@@ -374,7 +376,7 @@ pub struct WaylandWindowInner {
     // hscroll_remainder: f64,
     // vscroll_remainder: f64,
     modifiers: Modifiers,
-    // leds: KeyboardLedStatus,
+    leds: KeyboardLedStatus,
     pub(super) key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
     // pending_mouse: Arc<Mutex<PendingMouse>>,
@@ -713,6 +715,76 @@ impl WaylandWindowInner {
         self.key_repeat.take();
         self.events.dispatch(WindowEvent::FocusChanged(focused));
         self.text_cursor.take();
+    }
+
+    pub(super) fn keyboard_event(
+        &mut self,
+        mapper: &mut KeyboardWithFallback,
+        event: WlKeyboardEvent,
+    ) {
+        match event {
+            WlKeyboardEvent::Enter { keys, .. } => {
+                let key_codes = keys
+                    .chunks_exact(4)
+                    .map(|c| u32::from_ne_bytes(c.try_into().unwrap()))
+                    .collect::<Vec<_>>();
+                log::trace!("keyboard event: Enter with keys: {:?}", key_codes);
+                self.emit_focus(mapper, true);
+            }
+            WlKeyboardEvent::Leave { .. } => {
+                self.emit_focus(mapper, false);
+            }
+            WlKeyboardEvent::Key { key, state, .. } => {
+                if let Some(event) = mapper.process_wayland_key(
+                    key,
+                    state.into_result().unwrap() == KeyState::Pressed,
+                    &mut self.events,
+                ) {
+                    let rep = Arc::new(Mutex::new(KeyRepeatState {
+                        when: Instant::now(),
+                        event,
+                    }));
+                    self.key_repeat.replace((key, Arc::clone(&rep)));
+                    let window_id = SurfaceUserData::from_wl(
+                        self.window
+                            .as_ref()
+                            .expect("window should exist")
+                            .wl_surface(),
+                    )
+                    .window_id;
+                    KeyRepeatState::schedule(rep, window_id);
+                } else if let Some((cur_key, _)) = self.key_repeat.as_ref() {
+                    // important to check that it's the same key, because the release of the previously
+                    // repeated key can come right after the press of the newly held key
+                    if *cur_key == key {
+                        self.key_repeat.take();
+                    }
+                }
+            }
+            WlKeyboardEvent::Modifiers {
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                group,
+                ..
+            } => {
+                mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
+
+                let mods = mapper.get_key_modifiers();
+                let leds = mapper.get_led_status();
+
+                let changed = (mods != self.modifiers) || (leds != self.leds);
+
+                self.modifiers = mapper.get_key_modifiers();
+                self.leds = mapper.get_led_status();
+
+                if changed {
+                    self.events
+                        .dispatch(WindowEvent::AdviseModifiersLedStatus(mods, leds));
+                }
+            }
+            _ => {}
+        }
     }
 }
 

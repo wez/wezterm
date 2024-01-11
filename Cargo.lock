@@ -5037,7 +5037,6 @@ dependencies = [
  "log",
  "memmap2 0.5.10",
  "nix 0.26.4",
- "pkg-config",
  "thiserror",
  "wayland-backend",
  "wayland-client",
@@ -5045,7 +5044,6 @@ dependencies = [
  "wayland-protocols",
  "wayland-protocols-wlr",
  "wayland-scanner",
- "xkbcommon",
 ]
 
 [[package]]
