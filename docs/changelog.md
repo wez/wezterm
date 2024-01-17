@@ -38,6 +38,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [PaneSelect](config/lua/keyassignment/PaneSelect.md) new modes `MoveToNewTab`,
   `MoveToNewWindow`, and `SwapWithActiveKeepFocus`, as well as
   `show_pane_ids=true` to show the pane ids.  #4147 #3014
+* Nightly `.deb` packages are now named `wezterm-nightly` rather than `wezterm`,
+  and are set to conflict with `wezterm`.
 
 #### New
 * [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and
@@ -135,6 +137,13 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: honor the `window_close_confirmation` config option when quitting the
   application. Thanks to @quantonganh! #4420 #4362
 * terminfo: added missing terminator to Sync capability. Thanks to @gpanders! #4578
+* bracketed paste escape sequences are now always stripped out of text
+  that is pasted into the terminal. This happens even if bracketed paste
+  mode is disabled. #4765
+* Sixel parser ignores P2 parameter if P1 is blank. Thanks to @joouha! #4730
+* X11: synthesize raw modifiers to resolve some issues with synthetic/injected
+  key press events experienced by Espanso. Thanks to @bew! #4151 #3840
+* `freetype_load_target` had no effect. Thanks to @dkoukola! #4775 #4770
 
 #### Updated
 * Bundled harfbuzz to 8.3.0

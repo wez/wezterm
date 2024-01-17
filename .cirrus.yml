@@ -46,6 +46,7 @@ task:
     memory: 12G
   environment:
     GITHUB_TOKEN: ENCRYPTED[23bd9513fa7174e74eaddce6a3099cabb22118423591553b23518e8c34bf155e07c559838b1d3422f561c73c1e31e6fc]
+    FURY_TOKEN: ENCRYPTED[833e7ce9bfd87970b321dd621677f792a65f485b40819cad30258d3a1e1569f9cb4878a2958efecdf40a5050354edd54]
 
   stateful: false
   install_rust_script:
@@ -71,6 +72,7 @@ task:
     - "./ci/deploy.sh"
     - "ls -l *.deb"
     - "bash ci/retry.sh gh release upload --clobber ${RELEASE} *.deb"
+    - "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
 
 task:
   name: debian-12-arm

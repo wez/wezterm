@@ -166,7 +166,33 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) -> Option<WindowKeyEvent> {
         let want_repeat = self.selected.wayland_key_repeats(code);
-        self.process_key_event_impl(code + 8, pressed, events, want_repeat)
+        self.process_key_event_impl(code + 8, Modifiers::default(), pressed, events, want_repeat)
+    }
+
+    /// When XKB doesn't have modifiers in its state but there are modifiers given in the X
+    /// event, use these as fallback.
+    ///
+    /// This can happen (FIXME: WHY) for example when Espanso (a text expander/injector)
+    /// simulate inputs.
+    ///
+    /// This also happens intermittently for wez on an Ubuntu system where
+    /// the XServer clears the mask state seemingly at the wrong time via
+    /// a call into process_xkb_event that zeroes out all the modifier states.
+    fn modifiers_from_btn_mask(mask: xcb::x::KeyButMask) -> Modifiers {
+        let mut res = Modifiers::default();
+        if mask.contains(xcb::x::KeyButMask::SHIFT) {
+            res |= Modifiers::SHIFT;
+        }
+        if mask.contains(xcb::x::KeyButMask::CONTROL) {
+            res |= Modifiers::CTRL;
+        }
+        if mask.contains(xcb::x::KeyButMask::MOD1) {
+            res |= Modifiers::ALT;
+        }
+        if mask.contains(xcb::x::KeyButMask::MOD4) {
+            res |= Modifiers::SUPER;
+        }
+        res
     }
 
     pub fn process_key_press_event(
@@ -175,7 +201,13 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, true, events, false);
+        self.process_key_event_impl(
+            xcode,
+            Self::modifiers_from_btn_mask(xcb_ev.state()),
+            true,
+            events,
+            false,
+        );
     }
 
     pub fn process_key_release_event(
@@ -184,18 +216,25 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, false, events, false);
+        self.process_key_event_impl(
+            xcode,
+            Self::modifiers_from_btn_mask(xcb_ev.state()),
+            false,
+            events,
+            false,
+        );
     }
 
     fn process_key_event_impl(
         &self,
         xcode: xkb::Keycode,
+        additional_x_raw_modifiers: Modifiers,
         pressed: bool,
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
-        let raw_modifiers = self.get_key_modifiers();
+        let raw_modifiers = self.get_key_modifiers() | additional_x_raw_modifiers;
         let leds = self.get_led_status();
 
         let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
