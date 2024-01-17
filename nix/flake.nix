@@ -33,22 +33,12 @@
     };
   };
 
-  outputs = {
-    self,
-    flake-utils,
-    rust-overlay,
-    nixpkgs,
-    freetype2,
-    harfbuzz,
-    libpng,
-    zlib,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      overlays = [(import rust-overlay)];
-      pkgs = import nixpkgs {inherit system overlays;};
+  outputs = inputs @ {self, ...}:
+    inputs.flake-utils.lib.eachDefaultSystem (system: let
+      overlays = [(import inputs.rust-overlay)];
+      pkgs = import (inputs.nixpkgs) {inherit system overlays;};
 
-      inherit (nixpkgs) lib;
+      inherit (inputs.nixpkgs) lib;
       inherit (pkgs) stdenv;
 
       nativeBuildInputs = with pkgs;
@@ -57,12 +47,6 @@
           ncurses # tic for terminfo
           pkg-config
           python3
-
-          rust-bin.stable.latest.minimal
-          rust-bin.stable.latest.clippy
-
-          rust-bin.nightly.latest.rustfmt
-          rust-bin.nightly.latest.rust-analyzer
         ]
         ++ lib.optional stdenv.isDarwin perl;
 
@@ -72,11 +56,12 @@
           pkgs.zlib
         ]
         ++ lib.optionals stdenv.isLinux [
-          xorg.libX11
-          xorg.libxcb
           libxkbcommon
           openssl
           wayland
+
+          xorg.libX11
+          xorg.libxcb
           xorg.xcbutil
           xorg.xcbutilimage
           xorg.xcbutilkeysyms
@@ -92,7 +77,11 @@
           ++ [pkgs.libiconv]
         );
 
-      libPath = lib.makeLibraryPath (with pkgs; [libGL vulkan-loader]);
+      libPath = lib.makeLibraryPath (with pkgs; [
+        xorg.xcbutilimage
+        libGL
+        vulkan-loader
+      ]);
 
       rustPlatform = pkgs.makeRustPlatform {
         cargo = pkgs.rust-bin.stable.latest.minimal;
@@ -104,7 +93,6 @@
 
         name = "wezterm";
         src = ./..;
-        PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
         version = self.shortRev or "dev";
 
         cargoLock = {
@@ -119,10 +107,10 @@
           rm -rf deps/freetype/freetype2 deps/freetype/libpng \
             deps/freetype/zlib deps/harfbuzz/harfbuzz
 
-          ln -s ${freetype2} deps/freetype/freetype2
-          ln -s ${libpng} deps/freetype/libpng
-          ln -s ${zlib} deps/freetype/zlib
-          ln -s ${harfbuzz} deps/harfbuzz/harfbuzz
+          ln -s ${inputs.freetype2} deps/freetype/freetype2
+          ln -s ${inputs.libpng} deps/freetype/libpng
+          ln -s ${inputs.zlib} deps/freetype/zlib
+          ln -s ${inputs.harfbuzz} deps/harfbuzz/harfbuzz
         '';
 
         postPatch = ''
@@ -142,9 +130,20 @@
 
       devShell = pkgs.mkShell {
         name = "wezterm-shell";
-        inherit buildInputs nativeBuildInputs;
+        inherit nativeBuildInputs;
+
+        buildInputs =
+          buildInputs
+          ++ (with pkgs.rust-bin; [
+            stable.latest.minimal
+            stable.latest.clippy
+
+            nightly.latest.rustfmt
+            nightly.latest.rust-analyzer
+          ]);
 
         LD_LIBRARY_PATH = libPath;
+        RUST_BACKTRACE = 1;
       };
     });
 }
