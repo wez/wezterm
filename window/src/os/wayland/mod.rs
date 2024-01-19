@@ -10,8 +10,8 @@ pub use connection::*;
 // mod copy_and_paste;
 // mod drag_and_drop;
 // mod frame;
-// mod pointer;
 mod keyboard;
+mod pointer;
 mod seat;
 mod state;
 
