@@ -27,6 +27,15 @@ impl SeatHandler for WaylandState {
             let keyboard = seat.get_keyboard(qh, KeyboardData {});
             self.keyboard = Some(keyboard)
         }
+
+        if capability == Capability::Pointer && self.pointer.is_none() {
+            log::trace!("Setting pointer capability");
+            let pointer = self
+                .seat_state()
+                .get_pointer(qh, &seat)
+                .expect("Failed to create pointer");
+            self.pointer = Some(pointer);
+        }
     }
 
     fn remove_capability(

@@ -10,13 +10,14 @@ use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_output, delegate_registry, delegate_seat, delegate_shm,
-    delegate_xdg_shell, delegate_xdg_window, registry_handlers,
+    delegate_compositor, delegate_output, delegate_pointer, delegate_registry, delegate_seat,
+    delegate_shm, delegate_xdg_shell, delegate_xdg_window, registry_handlers,
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_pointer::WlPointer;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
 
@@ -42,6 +43,8 @@ pub(super) struct WaylandState {
     pub(super) key_repeat_rate: i32,
     pub(super) keyboard_window_id: Option<usize>,
 
+    pub(super) pointer: Option<WlPointer>,
+
     shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
 }
@@ -64,6 +67,7 @@ impl WaylandState {
             key_repeat_rate: 25,
             key_repeat_delay: 400,
             keyboard_window_id: None,
+            pointer: None,
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
@@ -116,6 +120,7 @@ delegate_output!(WaylandState);
 delegate_compositor!(WaylandState);
 
 delegate_seat!(WaylandState);
+delegate_pointer!(WaylandState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
