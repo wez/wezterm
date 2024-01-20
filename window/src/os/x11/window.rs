@@ -1558,8 +1558,8 @@ impl XWindowInner {
         self.conn().send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
-            property: xcb::x::ATOM_WM_SIZE_HINTS,
-            r#type: xcb::x::ATOM_CARDINAL,
+            property: xcb::x::ATOM_WM_NORMAL_HINTS,
+            r#type: xcb::x::ATOM_WM_SIZE_HINTS,
             data,
         })?;
 
