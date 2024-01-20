@@ -327,7 +327,8 @@ impl WebGpuState {
                         wgpu::Limits::downlevel_webgl2_defaults()
                     } else {
                         wgpu::Limits::downlevel_defaults()
-                    },
+                    }
+                    .using_resolution(adapter.limits()),
                     label: None,
                 },
                 None, // Trace path
