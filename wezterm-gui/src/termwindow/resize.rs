@@ -63,12 +63,7 @@ impl super::TermWindow {
         self.emit_window_event("window-resized", None);
     }
 
-    pub fn apply_scale_change(
-        &mut self,
-        dimensions: &Dimensions,
-        font_scale: f64,
-        window: &Window,
-    ) {
+    pub fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
         let config = &self.config;
         let font_size = config.font_size * font_scale;
         let theoretical_height = font_size * dimensions.dpi as f64 / 72.0;
@@ -100,15 +95,6 @@ impl super::TermWindow {
                 self.fonts.change_scaling(prior_font, prior_dpi);
             }
         }
-
-        window.set_resize_increments(if self.config.use_resize_increments {
-            ResizeIncrement {
-                x: self.render_metrics.cell_size.width as u16,
-                y: self.render_metrics.cell_size.height as u16,
-            }
-        } else {
-            ResizeIncrement::disabled()
-        });
 
         if let Err(err) = self.recreate_texture_atlas(None) {
             log::error!("recreate_texture_atlas: {:#}", err);
@@ -269,6 +255,15 @@ impl super::TermWindow {
         self.invalidate_fancy_tab_bar();
         self.update_title();
 
+        window.set_resize_increments(if self.config.use_resize_increments {
+            ResizeIncrement {
+                x: self.render_metrics.cell_size.width as u16,
+                y: self.render_metrics.cell_size.height as u16,
+            }
+        } else {
+            ResizeIncrement::disabled()
+        });
+
         // Queue up a speculative resize in order to preserve the number of rows+cols
         if let Some(cell_dims) = scale_changed_cells {
             // If we don't think the dimensions have changed, don't request
@@ -371,7 +366,7 @@ impl super::TermWindow {
         let cell_dims = self.current_cell_dimensions();
 
         if scale_changed {
-            self.apply_scale_change(&dimensions, font_scale, window);
+            self.apply_scale_change(&dimensions, font_scale);
         }
 
         let scale_changed_cells = if font_scale_changed || simple_dpi_change {
@@ -409,7 +404,7 @@ impl super::TermWindow {
         } else {
             let dimensions = self.dimensions;
             // Compute new font metrics
-            self.apply_scale_change(&dimensions, font_scale, window);
+            self.apply_scale_change(&dimensions, font_scale);
             // Now revise the pty size to fit the window
             self.apply_dimensions(&dimensions, None, window);
         }
@@ -475,7 +470,7 @@ impl super::TermWindow {
             dpi: self.dimensions.dpi,
         };
 
-        self.apply_scale_change(&dimensions, 1.0, window);
+        self.apply_scale_change(&dimensions, 1.0);
         self.apply_dimensions(
             &dimensions,
             Some(RowsAndCols {

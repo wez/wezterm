@@ -1708,7 +1708,7 @@ impl TermWindow {
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
             self.load_os_parameters();
-            self.apply_scale_change(&dimensions, self.fonts.get_font_scale(), &window);
+            self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
             self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);
             window.invalidate();
