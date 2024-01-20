@@ -822,13 +822,13 @@ impl WindowOps for Window {
         _config: &ConfigHandle,
         window_state: WindowState,
     ) -> anyhow::Result<Option<Parameters>> {
-        let raw = self.raw_window_handle();
+        let raw = self.window_handle()?;
 
         // We implement this method primarily to provide Notch-avoidance for
         // systems with a notch.
         // We only need this for non-native full screen mode.
 
-        let native_full_screen = match raw {
+        let native_full_screen = match raw.as_raw() {
             RawWindowHandle::AppKit(raw) => {
                 let style_mask = unsafe { NSWindow::styleMask(raw.ns_window as *mut Object) };
                 style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
