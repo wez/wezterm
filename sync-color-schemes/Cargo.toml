@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "1.0"
 color-funcs = { path = "../lua-api-crates/color-funcs" }
 config = { path = "../config" }
-env_logger = "0.10"
+env_logger = "0.11"
 futures = "0.3"
 lazy_static = "1.4"
 libflate = "2"
