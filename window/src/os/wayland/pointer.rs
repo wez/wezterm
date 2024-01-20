@@ -10,8 +10,6 @@ use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, Proxy, QueueHandle};
 use wezterm_input_types::MousePress;
 
-use crate::ConnectionOps;
-
 use super::state::WaylandState;
 use super::WaylandConnection;
 
@@ -123,7 +121,7 @@ impl PendingMouse {
                 self.surface_coords.replace(evt.position);
                 changed
             }
-            PointerEventKind::Press { button, .. } => {
+            PointerEventKind::Press { button, .. } | PointerEventKind::Release { button, .. } => {
                 fn linux_button(b: u32) -> Option<MousePress> {
                     // See BTN_LEFT and friends in <linux/input-event-codes.h>
                     match b {
@@ -138,7 +136,12 @@ impl PendingMouse {
                     None => return false,
                 };
                 let changed = self.button.is_empty();
-                self.button.push((button, ButtonState::Pressed));
+                let button_state = match evt.kind {
+                    PointerEventKind::Press { .. } => ButtonState::Pressed,
+                    PointerEventKind::Release { .. } => ButtonState::Released,
+                    _ => unreachable!(),
+                };
+                self.button.push((button, button_state));
                 changed
             }
             PointerEventKind::Axis {
@@ -152,7 +155,6 @@ impl PendingMouse {
                     .replace((x + horizontal.absolute, y + vertical.absolute));
                 changed
             }
-            _ => false,
         }
     }
 
