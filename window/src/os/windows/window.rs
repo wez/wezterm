@@ -198,7 +198,7 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
 impl HasDisplayHandle for WindowInner {
     fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
         unsafe {
-            Ok(DisplayHandle::from_raw(RawDisplayHandle::Windows(
+            Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Windows(
                 WindowsDisplayHandle::new(),
             )))
         }
@@ -210,7 +210,7 @@ impl HasWindowHandle for WindowInner {
         let mut handle =
             Win32WindowHandle::new(NonZeroIsize::new(self.hwnd.0 as _).expect("non-zero"));
         handle.hinstance = NonZeroIsize::new(unsafe { GetModuleHandleW(null()) } as _);
-        unsafe { Ok(WindowHandle::from_raw(RawWindowHandle::Win32(handle))) }
+        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::Win32(handle))) }
     }
 }
 
@@ -734,7 +734,7 @@ impl HasWindowHandle for Window {
         let handle = conn.get_window(self.0).expect("window handle invalid!?");
 
         let inner = handle.borrow();
-        inner.raw_window_handle()
+        inner.window_handle()
     }
 }
 
