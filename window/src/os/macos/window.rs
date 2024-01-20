@@ -38,8 +38,8 @@ use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
 use raw_window_handle::{
-    AppKitDisplayHandle, AppKitWindowHandle, HasRawDisplayHandle, HasRawWindowHandle,
-    RawDisplayHandle, RawWindowHandle,
+    AppKitDisplayHandle, AppKitWindowHandle, DisplayHandle, HandleError, HasDisplayHandle,
+    HasWindowHandle, RawDisplayHandle, RawWindowHandle, WindowHandle,
 };
 use std::any::Any;
 use std::cell::RefCell;
@@ -649,18 +649,21 @@ impl Window {
     }
 }
 
-unsafe impl HasRawDisplayHandle for Window {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        RawDisplayHandle::AppKit(AppKitDisplayHandle::empty())
+impl HasDisplayHandle for Window {
+    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
+        unsafe {
+            Ok(DisplayHandle::from_raw(RawDisplayHandle::AppKit(
+                AppKitDisplayHandle::new(),
+            )))
+        }
     }
 }
 
-unsafe impl HasRawWindowHandle for Window {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let mut handle = AppKitWindowHandle::empty();
-        handle.ns_window = self.ns_window as *mut _;
-        handle.ns_view = self.ns_view as *mut _;
-        RawWindowHandle::AppKit(handle)
+impl HasWindowHandle for Window {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+        let mut handle =
+            AppKitWindowHandle::new(NonNull::new(self.ns_view as *mut _).expect("non-null"));
+        unsafe { Ok(WindowHandle::from_raw(RawWindowHandle::AppKit(handle))) }
     }
 }
 
