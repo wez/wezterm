@@ -13,8 +13,8 @@ use config::{ConfigHandle, ImePreeditRendering, SystemBackdrop};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::{
-    DisplayHandle, HandleError, RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowHandle,
-    WindowsDisplayHandle,
+    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle,
+    RawWindowHandle, Win32WindowHandle, WindowHandle, WindowsDisplayHandle,
 };
 use shared_library::shared_library;
 use std::any::Any;
