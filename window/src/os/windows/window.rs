@@ -721,7 +721,7 @@ impl WindowInner {
 impl HasDisplayHandle for Window {
     fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
         unsafe {
-            Ok(DisplayHandle::from_raw(RawDisplayHandle::Windows(
+            Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Windows(
                 WindowsDisplayHandle::new(),
             )))
         }
