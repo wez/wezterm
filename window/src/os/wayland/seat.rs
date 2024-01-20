@@ -1,3 +1,4 @@
+use smithay_client_toolkit::seat::pointer::ThemeSpec;
 use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, QueueHandle};
@@ -33,7 +34,12 @@ impl SeatHandler for WaylandState {
             log::trace!("Setting pointer capability");
             let pointer = self
                 .seat_state()
-                .get_pointer_with_data(qh, &seat, PointerUserData::new(seat.clone()))
+                .get_pointer_with_theme_and_data(
+                    qh,
+                    &seat,
+                    ThemeSpec::System,
+                    PointerUserData::new(seat.clone()),
+                )
                 .expect("Failed to create pointer");
             self.pointer = Some(pointer);
         }

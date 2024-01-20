@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
+use smithay_client_toolkit::seat::pointer::ThemedPointer;
 use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
@@ -45,10 +46,10 @@ pub(super) struct WaylandState {
     pub(super) key_repeat_rate: i32,
     pub(super) keyboard_window_id: Option<usize>,
 
-    pub(super) pointer: Option<WlPointer>,
+    pub(super) pointer: Option<ThemedPointer<PointerUserData>>,
     pub(super) surface_to_pending: HashMap<ObjectId, Arc<Mutex<PendingMouse>>>,
 
-    shm: Shm,
+    pub(super) shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
 }
 
