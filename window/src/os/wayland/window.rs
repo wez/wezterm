@@ -22,20 +22,25 @@ use smithay_client_toolkit::shell::xdg::window::{
 use smithay_client_toolkit::shell::WaylandSurface;
 use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
+use wayland_client::protocol::wl_pointer::ButtonState;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{KeyboardLedStatus, Modifiers, WindowDecorations};
+use wezterm_input_types::{
+    KeyboardLedStatus, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress,
+    ScreenPoint, WindowDecorations,
+};
 
 use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
 use crate::{
-    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Rect, RequestedWindowGeometry,
-    ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowKeyEvent, WindowOps,
-    WindowState,
+    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
+    RequestedWindowGeometry, ResolvedGeometry, Window, WindowEvent, WindowEventSender,
+    WindowKeyEvent, WindowOps, WindowState,
 };
 
+use super::pointer::PendingMouse;
 use super::state::WaylandState;
 
 #[derive(Debug)]
@@ -219,9 +224,15 @@ impl WaylandWindow {
 
         window.commit();
         //
-        // TODO:
+        // TODO: copy and paste
         // let copy_and_paste = CopyAndPaste::create();
         // let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
+        let pending_mouse = PendingMouse::create(window_id);
+
+        {
+            let surface_to_pending = &mut conn.wayland_state.borrow_mut().surface_to_pending;
+            surface_to_pending.insert(surface.id(), Arc::clone(&pending_mouse));
+        }
 
         // conn.pointer.borrow().add_window(&surface, &pending_mouse);
 
@@ -234,12 +245,17 @@ impl WaylandWindow {
             dimensions,
             resize_increments: None,
             window_state: WindowState::default(),
+            last_mouse_coords: Point::new(0, 0),
+            mouse_buttons: MouseButtons::NONE,
+            hscroll_remainder: 0.0,
+            vscroll_remainder: 0.0,
 
             modifiers: Modifiers::NONE,
             leds: KeyboardLedStatus::empty(),
 
             key_repeat: None,
             pending_event,
+            pending_mouse,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
@@ -371,15 +387,15 @@ pub struct WaylandWindowInner {
     dimensions: Dimensions,
     resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
-    // last_mouse_coords: Point,
-    // mouse_buttons: MouseButtons,
-    // hscroll_remainder: f64,
-    // vscroll_remainder: f64,
+    last_mouse_coords: Point,
+    mouse_buttons: MouseButtons,
+    hscroll_remainder: f64,
+    vscroll_remainder: f64,
     modifiers: Modifiers,
     leds: KeyboardLedStatus,
     pub(super) key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
-    pub(crate) pending_event: Arc<Mutex<PendingEvent>>,
-    // pending_mouse: Arc<Mutex<PendingMouse>>,
+    pub(super) pending_event: Arc<Mutex<PendingEvent>>,
+    pub(super) pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
     frame_callback: Option<WlCallback>,
     invalidated: bool,
@@ -488,6 +504,110 @@ impl WaylandWindowInner {
         // and that can effectively lose the final row of the
         // terminal
         ((pixels as f64) / self.get_dpi_factor()).ceil() as i32
+    }
+
+    pub(crate) fn dispatch_pending_mouse(&mut self) {
+        let pending_mouse = Arc::clone(&self.pending_mouse);
+
+        if let Some((x, y)) = PendingMouse::coords(&pending_mouse) {
+            let coords = Point::new(
+                self.surface_to_pixels(x as i32) as isize,
+                self.surface_to_pixels(y as i32) as isize,
+            );
+            self.last_mouse_coords = coords;
+            let event = MouseEvent {
+                kind: MouseEventKind::Move,
+                coords,
+                screen_coords: ScreenPoint::new(
+                    coords.x + self.dimensions.pixel_width as isize,
+                    coords.y + self.dimensions.pixel_height as isize,
+                ),
+                mouse_buttons: self.mouse_buttons,
+                modifiers: self.modifiers,
+            };
+            self.events.dispatch(WindowEvent::MouseEvent(event));
+            self.refresh_frame();
+        }
+
+        while let Some((button, state)) = PendingMouse::next_button(&pending_mouse) {
+            let button_mask = match button {
+                MousePress::Left => MouseButtons::LEFT,
+                MousePress::Right => MouseButtons::RIGHT,
+                MousePress::Middle => MouseButtons::MIDDLE,
+            };
+
+            if state == ButtonState::Pressed {
+                self.mouse_buttons |= button_mask;
+            } else {
+                self.mouse_buttons -= button_mask;
+            }
+
+            let event = MouseEvent {
+                kind: match state {
+                    ButtonState::Pressed => MouseEventKind::Press(button),
+                    ButtonState::Released => MouseEventKind::Release(button),
+                    _ => continue,
+                },
+                coords: self.last_mouse_coords,
+                screen_coords: ScreenPoint::new(
+                    self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                    self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
+                ),
+                mouse_buttons: self.mouse_buttons,
+                modifiers: self.modifiers,
+            };
+            self.events.dispatch(WindowEvent::MouseEvent(event));
+        }
+
+        if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
+            let factor = self.get_dpi_factor() as f64;
+
+            if value_x.signum() != self.hscroll_remainder.signum() {
+                // reset accumulator when changing scroll direction
+                self.hscroll_remainder = 0.0;
+            }
+            let scaled_x = (value_x * factor) + self.hscroll_remainder;
+            let discrete_x = scaled_x.trunc();
+            self.hscroll_remainder = scaled_x - discrete_x;
+            if discrete_x != 0. {
+                let event = MouseEvent {
+                    kind: MouseEventKind::HorzWheel(-discrete_x as i16),
+                    coords: self.last_mouse_coords,
+                    screen_coords: ScreenPoint::new(
+                        self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                        self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
+                    ),
+                    mouse_buttons: self.mouse_buttons,
+                    modifiers: self.modifiers,
+                };
+                self.events.dispatch(WindowEvent::MouseEvent(event));
+            }
+
+            if value_y.signum() != self.vscroll_remainder.signum() {
+                self.vscroll_remainder = 0.0;
+            }
+            let scaled_y = (value_y * factor) + self.vscroll_remainder;
+            let discrete_y = scaled_y.trunc();
+            self.vscroll_remainder = scaled_y - discrete_y;
+            if discrete_y != 0. {
+                let event = MouseEvent {
+                    kind: MouseEventKind::VertWheel(-discrete_y as i16),
+                    coords: self.last_mouse_coords,
+                    screen_coords: ScreenPoint::new(
+                        self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                        self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
+                    ),
+                    mouse_buttons: self.mouse_buttons,
+                    modifiers: self.modifiers,
+                };
+                self.events.dispatch(WindowEvent::MouseEvent(event));
+            }
+        }
+
+        if !PendingMouse::in_window(&pending_mouse) {
+            self.events.dispatch(WindowEvent::MouseLeave);
+            self.refresh_frame();
+        }
     }
 
     pub(crate) fn dispatch_pending_event(&mut self) {

@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
@@ -10,8 +11,8 @@ use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_output, delegate_pointer, delegate_registry, delegate_seat,
-    delegate_shm, delegate_xdg_shell, delegate_xdg_window, registry_handlers,
+    delegate_compositor, delegate_output, delegate_registry, delegate_seat, delegate_shm,
+    delegate_xdg_shell, delegate_xdg_window, registry_handlers,
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
@@ -23,6 +24,7 @@ use wayland_client::{delegate_dispatch, Connection, QueueHandle};
 
 use crate::x11::KeyboardWithFallback;
 
+use super::pointer::{PendingMouse, PointerUserData};
 use super::{SurfaceUserData, WaylandWindowInner};
 
 // We can't combine WaylandState and WaylandConnection together because
@@ -44,6 +46,7 @@ pub(super) struct WaylandState {
     pub(super) keyboard_window_id: Option<usize>,
 
     pub(super) pointer: Option<WlPointer>,
+    pub(super) surface_to_pending: HashMap<ObjectId, Arc<Mutex<PendingMouse>>>,
 
     shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
@@ -68,6 +71,7 @@ impl WaylandState {
             key_repeat_delay: 400,
             keyboard_window_id: None,
             pointer: None,
+            surface_to_pending: HashMap::new(),
             shm,
             mem_pool: RefCell::new(mem_pool),
         };
@@ -120,7 +124,10 @@ delegate_output!(WaylandState);
 delegate_compositor!(WaylandState);
 
 delegate_seat!(WaylandState);
-delegate_pointer!(WaylandState);
+
+// Updating to 0.18 should have this be able to work
+// delegate_pointer!(WaylandState, pointer: [PointerUserData]);
+delegate_dispatch!(WaylandState: [WlPointer: PointerUserData] => SeatState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);

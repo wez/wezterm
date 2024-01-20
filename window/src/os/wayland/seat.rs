@@ -3,6 +3,7 @@ use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, QueueHandle};
 
 use crate::wayland::keyboard::KeyboardData;
+use crate::wayland::pointer::PointerUserData;
 
 use super::state::WaylandState;
 
@@ -32,7 +33,7 @@ impl SeatHandler for WaylandState {
             log::trace!("Setting pointer capability");
             let pointer = self
                 .seat_state()
-                .get_pointer(qh, &seat)
+                .get_pointer_with_data(qh, &seat, PointerUserData::new(seat.clone()))
                 .expect("Failed to create pointer");
             self.pointer = Some(pointer);
         }
