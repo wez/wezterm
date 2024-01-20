@@ -40,6 +40,8 @@ As features stabilize some brief notes about them will accumulate here.
   `show_pane_ids=true` to show the pane ids.  #4147 #3014
 * Nightly `.deb` packages are now named `wezterm-nightly` rather than `wezterm`,
   and are set to conflict with `wezterm`.
+* Allow `window_frame` colors now allow specifying the alpha channel value,
+  which enables transparent fancy tab bar backgrounds. ?4816 #3580 ?4311
 
 #### New
 * [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and

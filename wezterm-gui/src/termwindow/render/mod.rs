@@ -27,7 +27,7 @@ use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use wezterm_font::shaper::PresentationWidth;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
-use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
+use wezterm_term::color::{ColorAttribute, ColorPalette};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::color::LinearRgba;
 
@@ -851,15 +851,6 @@ impl crate::TermWindow {
         self.line_state_cache.borrow_mut().put(id, state);
         shape_hash
     }
-}
-
-pub fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
-    rgbcolor_alpha_to_window_color(color, 1.0)
-}
-
-pub fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
-    let (red, green, blue, _) = color.to_linear_tuple_rgba().tuple();
-    LinearRgba::with_components(red, green, blue, alpha)
 }
 
 fn resolve_fg_color_attr(
