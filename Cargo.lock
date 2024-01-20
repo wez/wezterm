@@ -746,7 +746,7 @@ dependencies = [
  "anstream",
  "anstyle",
  "clap_lex 0.6.0",
- "strsim",
+ "strsim 0.10.0",
  "terminal_size 0.3.0",
 ]
 
@@ -994,7 +994,7 @@ dependencies = [
  "colorgrad",
  "dirs-next",
  "enum-display-derive",
- "env_logger",
+ "env_logger 0.10.2",
  "hostname",
  "lazy_static",
  "libc",
@@ -1336,7 +1336,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim",
+ "strsim 0.10.0",
  "syn 2.0.48",
 ]
 
@@ -1584,7 +1584,7 @@ dependencies = [
  "color-funcs",
  "config",
  "dirs-next",
- "env_logger",
+ "env_logger 0.10.2",
  "filesystem",
  "json",
  "lazy_static",
@@ -1607,6 +1607,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_filter"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
+dependencies = [
+ "log",
+ "regex",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1617,6 +1627,19 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eeb342678d785662fd2514be38c459bb925f02b68dd2a3e0f21d7ef82d979dd"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "env_filter",
+ "humantime",
+ "log",
 ]
 
 [[package]]
@@ -5233,6 +5256,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "strsim"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
+
+[[package]]
 name = "svg_fmt"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5267,7 +5296,7 @@ dependencies = [
  "anyhow",
  "color-funcs",
  "config",
- "env_logger",
+ "env_logger 0.11.0",
  "futures",
  "lazy_static",
  "libflate",
@@ -5428,7 +5457,7 @@ dependencies = [
  "bitflags 2.4.2",
  "cassowary",
  "criterion 0.4.0",
- "env_logger",
+ "env_logger 0.10.2",
  "fancy-regex",
  "filedescriptor",
  "finl_unicode",
@@ -6232,7 +6261,7 @@ dependencies = [
 name = "wezterm-bidi"
 version = "0.2.2"
 dependencies = [
- "env_logger",
+ "env_logger 0.11.0",
  "k9 0.12.0",
  "log",
  "wezterm-dynamic",
@@ -6315,7 +6344,7 @@ dependencies = [
  "log",
  "maplit",
  "ordered-float",
- "strsim",
+ "strsim 0.11.0",
  "thiserror",
  "wezterm-dynamic-derive",
 ]
@@ -6342,7 +6371,7 @@ dependencies = [
  "dwrote",
  "encoding_rs",
  "enum-display-derive",
- "env_logger",
+ "env_logger 0.10.2",
  "euclid",
  "finl_unicode",
  "fontconfig",
@@ -6389,7 +6418,7 @@ dependencies = [
  "embed-resource",
  "emojis",
  "env-bootstrap",
- "env_logger",
+ "env_logger 0.11.0",
  "euclid",
  "fastrand 2.0.1",
  "filedescriptor",
@@ -6550,7 +6579,7 @@ dependencies = [
  "camino",
  "clap 4.4.18",
  "dirs-next",
- "env_logger",
+ "env_logger 0.11.0",
  "filedescriptor",
  "filenamegen",
  "gethostname",
@@ -6581,7 +6610,7 @@ dependencies = [
  "bitflags 1.3.2",
  "csscolorparser",
  "downcast-rs",
- "env_logger",
+ "env_logger 0.10.2",
  "finl_unicode",
  "hex",
  "humansize",
