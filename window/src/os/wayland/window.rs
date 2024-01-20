@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -183,6 +183,11 @@ impl WaylandWindow {
             compositor.create_surface_with_data(&qh, surface_data)
         };
 
+        let pointer_surface = {
+            let compositor = &conn.wayland_state.borrow().compositor;
+            compositor.create_surface(&qh)
+        };
+
         let ResolvedGeometry {
             x: _,
             y: _,
@@ -256,6 +261,7 @@ impl WaylandWindow {
             key_repeat: None,
             pending_event,
             pending_mouse,
+            pointer_surface,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
@@ -387,6 +393,7 @@ pub struct WaylandWindowInner {
     dimensions: Dimensions,
     resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
+    pointer_surface: WlSurface,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     hscroll_remainder: f64,
@@ -743,17 +750,28 @@ impl WaylandWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        // TODO: Deal with cursors later
-        let _names: &[&str] = match cursor {
-            Some(MouseCursor::Arrow) => &["arrow"],
-            Some(MouseCursor::Hand) => &["hand"],
-            Some(MouseCursor::SizeUpDown) => &["ns-resize"],
-            Some(MouseCursor::SizeLeftRight) => &["ew-resize"],
-            Some(MouseCursor::Text) => &["xterm"],
-            None => &[],
-        };
-        // let conn = Connection::get().unwrap().wayland();
-        // conn.pointer.borrow().set_cursor(names, None);
+        let name = cursor.map_or("none", |cursor| match cursor {
+            MouseCursor::Arrow => "arrow",
+            MouseCursor::Hand => "hand",
+            MouseCursor::SizeUpDown => "ns-resize",
+            MouseCursor::SizeLeftRight => "ew-resize",
+            MouseCursor::Text => "xterm",
+        });
+        let conn = Connection::get().unwrap().wayland();
+        let state = conn.wayland_state.borrow_mut();
+        let (shm, pointer) =
+            RefMut::map_split(state, |s| (&mut s.shm, s.pointer.as_mut().unwrap()));
+
+        // Much different API in 0.18
+        if let Err(err) = pointer.set_cursor(
+            &conn.connection,
+            name,
+            shm.wl_shm(),
+            &self.pointer_surface,
+            1,
+        ) {
+            log::error!("set_cursor: {}", err);
+        }
     }
 
     fn invalidate(&mut self) {
