@@ -257,8 +257,11 @@ impl FrameDecoder {
             ImageFormat::Gif => {
                 let mut reader = reader.into_inner();
                 reader.rewind().context("rewinding reader for gif")?;
-                let decoder = image::codecs::gif::GifDecoder::with_limits(reader, limits)
-                    .context("GifDecoder::with_limits")?;
+                let mut decoder =
+                    image::codecs::gif::GifDecoder::new(reader).context("GifDecoder::new")?;
+                decoder
+                    .set_limits(limits)
+                    .context("GifDecoder::set_limits")?;
                 decoder.into_frames()
             }
             ImageFormat::Png => {
