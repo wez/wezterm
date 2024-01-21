@@ -533,7 +533,7 @@ impl WebGpuState {
             #[cfg(windows)]
             RawWindowHandle::Win32(h) => {
                 let mut rect = unsafe { std::mem::zeroed() };
-                unsafe { winapi::um::winuser::GetClientRect(h.hwnd as _, &mut rect) };
+                unsafe { winapi::um::winuser::GetClientRect(h.hwnd.get() as _, &mut rect) };
                 dims.pixel_width = (rect.right - rect.left) as usize;
                 dims.pixel_height = (rect.bottom - rect.top) as usize;
             }
