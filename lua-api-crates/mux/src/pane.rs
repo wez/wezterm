@@ -3,6 +3,7 @@ use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
 use mlua::Value;
 use mux::pane::CachePolicy;
 use std::cmp::Ordering;
+use std::io::Write;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
 use termwiz_funcs::lines_to_escapes;
@@ -280,6 +281,17 @@ impl UserData for MuxPane {
                 Some(name) => Ok(name),
                 None => Ok("".to_string()),
             }
+        });
+
+        methods.add_method("save_pane_to", |_, this, file: String| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+            let lines = pane.get_logical_lines_raw(0..isize::MAX);
+            let mut file = std::fs::File::create(&file).unwrap();
+            for line in lines.into_iter() {
+                writeln!(file, "{}", line).unwrap();
+            }
+            Ok(())
         });
 
         methods.add_method("inject_output", |_, this, text: String| {

@@ -257,6 +257,17 @@ impl From<SrgbaTuple> for ColorSpec {
     }
 }
 
+impl From<ColorAttribute> for ColorSpec {
+    fn from(attr: ColorAttribute) -> Self {
+        match attr {
+            ColorAttribute::Default => ColorSpec::Default,
+            ColorAttribute::PaletteIndex(idx) => ColorSpec::PaletteIndex(idx),
+            ColorAttribute::TrueColorWithDefaultFallback(color) |
+            ColorAttribute::TrueColorWithPaletteFallback(color, _) => ColorSpec::TrueColor(color),
+        }
+    }
+}
+
 /// Specifies the color to be used when rendering a cell.  This is the
 /// type used in the `CellAttributes` struct and can specify an optional
 /// TrueColor value, allowing a fallback to a more traditional palette

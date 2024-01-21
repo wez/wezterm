@@ -9,9 +9,9 @@ use std::num::NonZeroU8;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-struct Cluster {
-    cell_width: u16,
-    attrs: CellAttributes,
+pub(crate) struct Cluster {
+    pub(crate) cell_width: u16,
+    pub(crate) attrs: CellAttributes,
 }
 
 /// Stores line data as a contiguous string and a series of
@@ -28,8 +28,8 @@ pub(crate) struct ClusteredLine {
             serialize_with = "serialize_bitset"
         )
     )]
-    is_double_wide: Option<Box<FixedBitSet>>,
-    clusters: Vec<Cluster>,
+    pub(crate) is_double_wide: Option<Box<FixedBitSet>>,
+    pub(crate) clusters: Vec<Cluster>,
     /// Length, measured in cells
     len: u16,
     last_cell_width: Option<NonZeroU8>,

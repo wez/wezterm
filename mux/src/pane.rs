@@ -192,6 +192,10 @@ pub trait Pane: Downcast + Send + Sync {
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine>;
 
+    fn get_logical_lines_raw(&self, lines: Range<StableRowIndex>) -> Vec<String> {
+        self.get_logical_lines(lines).into_iter().map(|l| l.logical.to_raw_line()).collect()
+    }
+
     fn apply_hyperlinks(&self, lines: Range<StableRowIndex>, rules: &[Rule]) {
         struct ApplyHyperLinks<'a> {
             rules: &'a [Rule],

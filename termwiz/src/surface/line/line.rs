@@ -1,5 +1,6 @@
 use crate::cell::{Cell, CellAttributes, SemanticType, UnicodeVersion};
 use crate::cellcluster::CellCluster;
+use crate::escape::csi::Sgr;
 use crate::hyperlink::Rule;
 use crate::surface::line::cellref::CellRef;
 use crate::surface::line::clusterline::ClusteredLine;
@@ -16,6 +17,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, Weak};
+use std::fmt::Write;
 use wezterm_bidi::{Direction, ParagraphDirectionHint};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
@@ -1185,6 +1187,52 @@ impl Line {
         }
 
         result
+    }
+
+    fn diff_attrs(buf: &mut String, _old: &CellAttributes, new: &CellAttributes) {
+        // let reset = new.intensity() as u8 == 0 || new.underline() as u8 == 0 || new.blink() as u8 == 0 || !new.italic() || !new.reverse() || !new.strikethrough() || !new.overline() || new.vertical_align() as u8 == 0 || new.foreground() == ColorAttribute::Default || new.background() == ColorAttribute::Default;
+        write!(buf, "\x1b[{}", Sgr::Intensity(new.intensity())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Underline(new.underline())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Blink(new.blink())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Italic(new.italic())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Inverse(new.reverse())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::StrikeThrough(new.strikethrough())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Invisible(new.invisible())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Overline(new.overline())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::VerticalAlign(new.vertical_align())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Foreground(new.foreground().into())).unwrap();
+        write!(buf, "\x1b[{}", Sgr::Background(new.background().into())).unwrap();
+        // TODO image hyperlink & semantic zone
+    }
+
+    pub fn to_raw_line(&self) -> String {
+        let clusters = match &self.cells {
+            CellStorage::C(clus) => Cow::Borrowed(clus),
+            CellStorage::V(_) => {
+                let mut new = self.clone();
+                new.compress_for_scrollback();
+                match new.cells {
+                    CellStorage::V(_) => unreachable!(),
+                    CellStorage::C(clus) => Cow::Owned(clus),
+                }
+            }
+        };
+        let mut out = String::new();
+        let mut chars = clusters.text.chars().enumerate();
+        for clu in clusters.clusters.iter() {
+            Line::diff_attrs(&mut out, &clu.attrs, &clu.attrs);     // TODO actually diff
+            let mut cell = 0;
+            while cell < clu.cell_width {
+                let (i, c) = chars.next().unwrap();
+                out.push(c);
+                if clusters.is_double_wide.as_ref().map(|set| set.contains(i)).unwrap_or(false) {
+                    cell += 2;
+                } else {
+                    cell += 1;
+                }
+            }
+        }
+        out
     }
 }
 
