@@ -321,6 +321,27 @@ pub trait WindowOps {
     ) -> anyhow::Result<Option<os::parameters::Parameters>> {
         Ok(None)
     }
+
+    // Used for macos, to calculate the traffic lights padding
+    fn get_title_bar_horizontal_padding(
+        &self,
+        config: &ConfigHandle,
+        _window_state: WindowState,
+        _tab_bar_height: f32,
+    ) -> (Dimension, Dimension) {
+        let window_buttons_at_left = config
+            .window_decorations
+            .contains(wezterm_input_types::WindowDecorations::INTEGRATED_BUTTONS)
+            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left;
+
+        let left_padding = if window_buttons_at_left {
+            Dimension::Pixels(0.0)
+        } else {
+            Dimension::Cells(0.5)
+        };
+
+        (left_padding, Default::default())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
