@@ -1,3 +1,4 @@
+use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, ResizeIncrement, Window, WindowOps, WindowState};
 use config::{ConfigHandle, DimensionContext};
@@ -146,7 +147,7 @@ impl super::TermWindow {
 
         let border = self.get_os_border();
 
-        let (size, dims) = if let Some(cell_dims) = scale_changed_cells {
+        let (size, dims, ri_calc) = if let Some(cell_dims) = scale_changed_cells {
             // Scaling preserves existing terminal dimensions, yielding a new
             // overall set of window dimensions
             let size = TerminalSize {
@@ -191,7 +192,18 @@ impl super::TermWindow {
                 dpi: dimensions.dpi,
             };
 
-            (size, dims)
+            let ri_calc = ResizeIncrementCalculator {
+                x: self.render_metrics.cell_size.width as u16,
+                y: self.render_metrics.cell_size.height as u16,
+                padding_left: padding_left,
+                padding_top: padding_top,
+                padding_right: padding_right,
+                padding_bottom: padding_bottom,
+                border: border,
+                tab_bar_height: tab_bar_height as usize,
+            };
+
+            (size, dims, ri_calc)
         } else {
             // Resize of the window dimensions may result in changed terminal dimensions
 
@@ -238,7 +250,18 @@ impl super::TermWindow {
                 dpi: dimensions.dpi as u32,
             };
 
-            (size, *dimensions)
+            let ri_calc = ResizeIncrementCalculator {
+                x: self.render_metrics.cell_size.width as u16,
+                y: self.render_metrics.cell_size.height as u16,
+                padding_left: padding_left,
+                padding_top: padding_top,
+                padding_right: padding_right,
+                padding_bottom: padding_bottom,
+                border: border,
+                tab_bar_height: tab_bar_height as usize,
+            };
+
+            (size, *dimensions, ri_calc)
         };
 
         log::trace!("apply_dimensions computed size {:?}, dims {:?}", size, dims);
@@ -256,10 +279,7 @@ impl super::TermWindow {
         self.update_title();
 
         window.set_resize_increments(if self.config.use_resize_increments {
-            ResizeIncrement {
-                x: self.render_metrics.cell_size.width as u16,
-                y: self.render_metrics.cell_size.height as u16,
-            }
+            ri_calc.into()
         } else {
             ResizeIncrement::disabled()
         });

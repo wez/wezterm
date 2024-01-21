@@ -9,6 +9,7 @@ use crate::overlay::{
     start_overlay, start_overlay_pane, CopyModeParams, CopyOverlay, LauncherArgs, LauncherFlags,
     QuickSelectOverlay,
 };
+use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::scripting::guiwin::GuiWin;
 use crate::scrollbar::*;
 use crate::selection::Selection;
@@ -842,10 +843,19 @@ impl TermWindow {
             };
             myself.config_subscription.replace(config_subscription);
             if config.use_resize_increments {
-                window.set_resize_increments(ResizeIncrement {
-                    x: myself.render_metrics.cell_size.width as u16,
-                    y: myself.render_metrics.cell_size.height as u16,
-                });
+                window.set_resize_increments(
+                    ResizeIncrementCalculator {
+                        x: myself.render_metrics.cell_size.width as u16,
+                        y: myself.render_metrics.cell_size.height as u16,
+                        padding_left: padding_left,
+                        padding_top: padding_top,
+                        padding_right: padding_right,
+                        padding_bottom: padding_bottom,
+                        border: border,
+                        tab_bar_height: tab_bar_height,
+                    }
+                    .into(),
+                );
             }
 
             if let Some(gl) = gl {
