@@ -12,21 +12,21 @@ Accepted values:
 
 ```lua
 config.keys = {
-    {
-        key = '[',
-        mods = 'CMD',
-        action = wezterm.action.SetWindowLevel("AlwaysOnBottom")
-    }, 
-    {
-        key = '0',
-        mods = 'CMD|SHIFT',
-        action = wezterm.action.SetWindowLevel("Normal")
-    }, 
-    {
-        key = ']',
-        mods = 'CMD',
-        action = wezterm.action.SetWindowLevel("AlwaysOnTop")
-    }, 
+  {
+    key = '[',
+    mods = 'CMD',
+    action = wezterm.action.SetWindowLevel 'AlwaysOnBottom',
+  },
+  {
+    key = '0',
+    mods = 'CMD|SHIFT',
+    action = wezterm.action.SetWindowLevel 'Normal',
+  },
+  {
+    key = ']',
+    mods = 'CMD',
+    action = wezterm.action.SetWindowLevel 'AlwaysOnTop',
+  },
 }
 ```
 

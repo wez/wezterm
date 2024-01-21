@@ -107,6 +107,11 @@ As features stabilize some brief notes about them will accumulate here.
 * [command_palette_rows](config/lua/config/command_palette_rows.md) to
   control how many rows are displayed in the command palette. Thanks to
   @exastone! #4595
+* [ToggleAlwaysOnTop](config/lua/keyassignment/ToggleAlwaysOnTop.md),
+  [ToggleAlwaysOnBottom](config/lua/keyassignment/ToggleAlwaysOnBottom.md) and
+  [SetWindowLevel](config/lua/keyassignment/SetWindowLevel.md) key assignments
+  for manipulating the window level. These are currently implemented only
+  on macOS. Thanks to @rawnly! #4567
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
