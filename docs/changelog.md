@@ -152,6 +152,8 @@ As features stabilize some brief notes about them will accumulate here.
   key press events experienced by Espanso. Thanks to @bew! #4151 #3840
 * `freetype_load_target` had no effect. Thanks to @dkoukola! #4775 #4770
 * Incorrect sunset / sunrise progression. Thanks to @mikyk10! #4809 #4810
+* retro tab bar indented too far on macOS when using integrated titlebar buttons.
+  Thanks to @0xdead10cd! #4505
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
