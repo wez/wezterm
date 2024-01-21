@@ -92,17 +92,14 @@ impl Compose {
                     // we don't have a fantastic way to indicate what is
                     // currently being composed, so we try to get something
                     // that might be meaningful by getting the utf8 for that
-                    // key if known, or falling back to the name of the keysym.
-                    // The keysym name is likely much wider than the utf8, but
-                    // it's probably better than nothing.
-                    // An alternative we could use if folks don't like it is
-                    // either a space or an underscore.
+                    // key if known.
+                    // We used to fall back to the name of the keysym, but
+                    // feedback was that is was undesirable
+                    // <https://github.com/wez/wezterm/issues/4511>
                     let key_state = key_state.borrow();
                     let utf8 = key_state.key_get_utf8(xcode);
                     if !utf8.is_empty() {
                         self.composition.push_str(&utf8);
-                    } else {
-                        self.composition.push_str(&xkb::keysym_get_name(xsym));
                     }
                 }
                 FeedResult::Composing(self.composition.clone())

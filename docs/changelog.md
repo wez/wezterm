@@ -156,6 +156,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Incorrect sunset / sunrise progression. Thanks to @mikyk10! #4809 #4810
 * retro tab bar indented too far on macOS when using integrated titlebar buttons.
   Thanks to @0xdead10cd! #4505
+* x11/wayland: avoid including keysym name in deadkey compose cursor. #4511
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
