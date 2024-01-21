@@ -364,11 +364,18 @@ pub struct ResolvedGeometry {
 pub struct ResizeIncrement {
     pub x: u16,
     pub y: u16,
+    pub base_width: u16,
+    pub base_height: u16,
 }
 
 impl ResizeIncrement {
     /// Use this as a readable shorthand for disabling the feature
     pub fn disabled() -> Self {
-        Self { x: 1, y: 1 }
+        Self {
+            x: 1,
+            y: 1,
+            base_width: 0,
+            base_height: 0,
+        }
     }
 }
