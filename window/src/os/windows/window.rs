@@ -734,7 +734,8 @@ impl HasWindowHandle for Window {
         let handle = conn.get_window(self.0).expect("window handle invalid!?");
 
         let inner = handle.borrow();
-        inner.window_handle()
+        let handle = inner.window_handle()?;
+        unsafe { Ok(WindowHandle::borrow_raw(handle.as_raw())) }
     }
 }
 
