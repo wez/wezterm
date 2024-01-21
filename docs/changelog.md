@@ -112,6 +112,8 @@ As features stabilize some brief notes about them will accumulate here.
   [SetWindowLevel](config/lua/keyassignment/SetWindowLevel.md) key assignments
   for manipulating the window level. These are currently implemented only
   on macOS. Thanks to @rawnly! #4567
+* Double click on the tab bar to toggle maximize/normal state. Thanks to
+  @junnplus! #3698 #3699
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
