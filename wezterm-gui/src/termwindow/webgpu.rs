@@ -6,8 +6,7 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use window::bitmaps::Texture2d;
 use window::raw_window_handle::{
-    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle,
-    RawWindowHandle, WindowHandle,
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 use window::{BitmapImage, Dimensions, Rect, Window};
 
@@ -24,7 +23,7 @@ pub struct ShaderUniform {
 pub struct WebGpuState {
     pub adapter_info: wgpu::AdapterInfo,
     pub downlevel_caps: wgpu::DownlevelCapabilities,
-    pub surface: wgpu::Surface<'static>,
+    pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: Arc<wgpu::Queue>,
     pub config: RefCell<wgpu::SurfaceConfiguration>,
@@ -45,21 +44,21 @@ pub struct RawHandlePair {
 impl RawHandlePair {
     fn new(window: &Window) -> Self {
         Self {
-            window: window.window_handle().expect("window handle").as_raw(),
-            display: window.display_handle().expect("display handle").as_raw(),
+            window: window.raw_window_handle(),
+            display: window.raw_display_handle(),
         }
     }
 }
 
-impl HasWindowHandle for RawHandlePair {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
-        unsafe { Ok(WindowHandle::borrow_raw(self.window)) }
+unsafe impl HasRawWindowHandle for RawHandlePair {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        self.window
     }
 }
 
-impl HasDisplayHandle for RawHandlePair {
-    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
-        unsafe { Ok(DisplayHandle::borrow_raw(self.display)) }
+unsafe impl HasRawDisplayHandle for RawHandlePair {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        self.display
     }
 }
 
@@ -195,7 +194,6 @@ fn compute_compatibility_list(
 ) -> Vec<String> {
     instance
         .enumerate_adapters(backends)
-        .into_iter()
         .map(|a| {
             let info = adapter_info_to_gpu_info(a.get_info());
             let compatible = a.is_surface_supported(&surface);
@@ -228,9 +226,7 @@ impl WebGpuState {
             backends,
             ..Default::default()
         });
-        let surface = unsafe {
-            instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(&handle)?)?
-        };
+        let surface = unsafe { instance.create_surface(&handle)? };
 
         let mut adapter: Option<wgpu::Adapter> = None;
 
@@ -320,10 +316,10 @@ impl WebGpuState {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    required_features: wgpu::Features::empty(),
+                    features: wgpu::Features::empty(),
                     // WebGL doesn't support all of wgpu's features, so if
                     // we're building for the web we'll have to disable some.
-                    required_limits: if cfg!(target_arch = "wasm32") {
+                    limits: if cfg!(target_arch = "wasm32") {
                         wgpu::Limits::downlevel_webgl2_defaults()
                     } else {
                         wgpu::Limits::downlevel_defaults()
@@ -378,7 +374,6 @@ impl WebGpuState {
                 wgpu::CompositeAlphaMode::Auto
             },
             view_formats,
-            desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
 
@@ -533,7 +528,7 @@ impl WebGpuState {
             #[cfg(windows)]
             RawWindowHandle::Win32(h) => {
                 let mut rect = unsafe { std::mem::zeroed() };
-                unsafe { winapi::um::winuser::GetClientRect(h.hwnd.get() as _, &mut rect) };
+                unsafe { winapi::um::winuser::GetClientRect(h.hwnd as _, &mut rect) };
                 dims.pixel_width = (rect.right - rect.left) as usize;
                 dims.pixel_height = (rect.bottom - rect.top) as usize;
             }

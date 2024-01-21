@@ -38,14 +38,13 @@ use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
 use raw_window_handle::{
-    AppKitDisplayHandle, AppKitWindowHandle, DisplayHandle, HandleError, HasDisplayHandle,
-    HasWindowHandle, RawDisplayHandle, RawWindowHandle, WindowHandle,
+    AppKitDisplayHandle, AppKitWindowHandle, HasRawDisplayHandle, HasRawWindowHandle,
+    RawDisplayHandle, RawWindowHandle,
 };
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::path::PathBuf;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
@@ -650,21 +649,18 @@ impl Window {
     }
 }
 
-impl HasDisplayHandle for Window {
-    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
-        unsafe {
-            Ok(DisplayHandle::borrow_raw(RawDisplayHandle::AppKit(
-                AppKitDisplayHandle::new(),
-            )))
-        }
+unsafe impl HasRawDisplayHandle for Window {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        RawDisplayHandle::AppKit(AppKitDisplayHandle::empty())
     }
 }
 
-impl HasWindowHandle for Window {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
-        let mut handle =
-            AppKitWindowHandle::new(NonNull::new(self.ns_view as *mut _).expect("non-null"));
-        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::AppKit(handle))) }
+unsafe impl HasRawWindowHandle for Window {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let mut handle = AppKitWindowHandle::empty();
+        handle.ns_window = self.ns_window as *mut _;
+        handle.ns_view = self.ns_view as *mut _;
+        RawWindowHandle::AppKit(handle)
     }
 }
 
@@ -823,13 +819,18 @@ impl WindowOps for Window {
         _config: &ConfigHandle,
         window_state: WindowState,
     ) -> anyhow::Result<Option<Parameters>> {
+        let raw = self.raw_window_handle();
+
         // We implement this method primarily to provide Notch-avoidance for
         // systems with a notch.
         // We only need this for non-native full screen mode.
 
-        let native_full_screen = {
-            let style_mask = unsafe { NSWindow::styleMask(self.ns_window) };
-            style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+        let native_full_screen = match raw {
+            RawWindowHandle::AppKit(raw) => {
+                let style_mask = unsafe { NSWindow::styleMask(raw.ns_window as *mut Object) };
+                style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+            }
+            _ => false,
         };
 
         let border_dimensions =

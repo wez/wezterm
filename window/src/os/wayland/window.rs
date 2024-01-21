@@ -17,8 +17,8 @@ use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use raw_window_handle::{
-    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle,
-    RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle, WindowHandle,
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WaylandDisplayHandle, WaylandWindowHandle,
 };
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
@@ -27,7 +27,6 @@ use std::convert::TryInto;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -395,22 +394,20 @@ impl WaylandWindow {
     }
 }
 
-impl HasDisplayHandle for WaylandWindowInner {
-    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
+unsafe impl HasRawDisplayHandle for WaylandWindowInner {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = WaylandDisplayHandle::empty();
         let conn = WaylandConnection::get().unwrap().wayland();
-        let handle = WaylandDisplayHandle::new(
-            NonNull::new(conn.display.borrow().c_ptr() as _).expect("non-null"),
-        );
-        unsafe { Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Wayland(handle))) }
+        handle.display = conn.display.borrow().c_ptr() as _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 
-impl HasWindowHandle for WaylandWindowInner {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
-        let handle = WaylandWindowHandle::new(
-            NonNull::new(self.surface.as_ref().c_ptr() as _).expect("non-null"),
-        );
-        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::Wayland(handle))) }
+unsafe impl HasRawWindowHandle for WaylandWindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let mut handle = WaylandWindowHandle::empty();
+        handle.surface = self.surface.as_ref().c_ptr() as *mut _;
+        RawWindowHandle::Wayland(handle)
     }
 }
 
@@ -847,18 +844,17 @@ impl WaylandWindowInner {
     }
 }
 
-impl HasDisplayHandle for WaylandWindow {
-    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
+unsafe impl HasRawDisplayHandle for WaylandWindow {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = WaylandDisplayHandle::empty();
         let conn = WaylandConnection::get().unwrap().wayland();
-        let handle = WaylandDisplayHandle::new(
-            NonNull::new(conn.display.borrow().c_ptr() as _).expect("non-null"),
-        );
-        unsafe { Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Wayland(handle))) }
+        handle.display = conn.display.borrow().c_ptr() as _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 
-impl HasWindowHandle for WaylandWindow {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+unsafe impl HasRawWindowHandle for WaylandWindow {
+    fn raw_window_handle(&self) -> RawWindowHandle {
         let conn = Connection::get().expect("raw_window_handle only callable on main thread");
         let handle = conn
             .wayland()
@@ -866,8 +862,7 @@ impl HasWindowHandle for WaylandWindow {
             .expect("window handle invalid!?");
 
         let inner = handle.borrow();
-        let handle = inner.window_handle()?;
-        unsafe { Ok(WindowHandle::borrow_raw(handle.as_raw())) }
+        inner.raw_window_handle()
     }
 }
 
