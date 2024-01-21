@@ -391,6 +391,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_zoom_out", '\u{eb82}'),                                   // 
     ("custom_asm", '\u{e6ab}'),                                     // 
     ("custom_c", '\u{e61e}'),                                       // 
+    ("custom_common_lisp", '\u{e6b0}'),                             // 
     ("custom_cpp", '\u{e61d}'),                                     // 
     ("custom_crystal", '\u{e62f}'),                                 // 
     ("custom_default", '\u{e612}'),                                 // 
@@ -398,6 +399,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_elixir", '\u{e62d}'),                                  // 
     ("custom_elm", '\u{e62c}'),                                     // 
     ("custom_emacs", '\u{e632}'),                                   // 
+    ("custom_fennel", '\u{e6af}'),                                  // 
     ("custom_folder", '\u{e5ff}'),                                  // 
     ("custom_folder_config", '\u{e5fc}'),                           // 
     ("custom_folder_git", '\u{e5fb}'),                              // 
@@ -409,9 +411,12 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_home", '\u{e617}'),                                    // 
     ("custom_kotlin", '\u{e634}'),                                  // 
     ("custom_msdos", '\u{e629}'),                                   // 
+    ("custom_neovim", '\u{e6ae}'),                                  // 
     ("custom_orgmode", '\u{e633}'),                                 // 
     ("custom_play_arrow", '\u{e602}'),                              // 
     ("custom_purescript", '\u{e630}'),                              // 
+    ("custom_scheme", '\u{e6b1}'),                                  // 
+    ("custom_toml", '\u{e6b2}'),                                    // 
     ("custom_v_lang", '\u{e6ac}'),                                  // 
     ("custom_vim", '\u{e62b}'),                                     // 
     ("custom_windows", '\u{e62a}'),                                 // 
@@ -1461,49 +1466,116 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_alpine", '\u{f300}'),                                   // 
     ("linux_aosc", '\u{f301}'),                                     // 
     ("linux_apple", '\u{f302}'),                                    // 
+    ("linux_archcraft", '\u{f345}'),                                // 
     ("linux_archlabs", '\u{f31e}'),                                 // 
     ("linux_archlinux", '\u{f303}'),                                // 
+    ("linux_arcolinux", '\u{f346}'),                                // 
+    ("linux_arduino", '\u{f34b}'),                                  // 
     ("linux_artix", '\u{f31f}'),                                    // 
+    ("linux_awesome", '\u{f354}'),                                  // 
+    ("linux_biglinux", '\u{f347}'),                                 // 
+    ("linux_bspwm", '\u{f355}'),                                    // 
     ("linux_budgie", '\u{f320}'),                                   // 
     ("linux_centos", '\u{f304}'),                                   // 
+    ("linux_cinnamon", '\u{f35f}'),                                 // 
+    ("linux_codeberg", '\u{f330}'),                                 // 
     ("linux_coreos", '\u{f305}'),                                   // 
+    ("linux_crystal", '\u{f348}'),                                  // 
     ("linux_debian", '\u{f306}'),                                   // 
     ("linux_deepin", '\u{f321}'),                                   // 
     ("linux_devuan", '\u{f307}'),                                   // 
     ("linux_docker", '\u{f308}'),                                   // 
+    ("linux_dwm", '\u{f356}'),                                      // 
     ("linux_elementary", '\u{f309}'),                               // 
     ("linux_endeavour", '\u{f322}'),                                // 
+    ("linux_enlightenment", '\u{f357}'),                            // 
+    ("linux_fdroid", '\u{f36a}'),                                   // 
     ("linux_fedora", '\u{f30a}'),                                   // 
     ("linux_fedora_inverse", '\u{f30b}'),                           // 
     ("linux_ferris", '\u{f323}'),                                   // 
     ("linux_flathub", '\u{f324}'),                                  // 
+    ("linux_fluxbox", '\u{f358}'),                                  // 
+    ("linux_forgejo", '\u{f335}'),                                  // 
+    ("linux_fosdem", '\u{f36b}'),                                   // 
     ("linux_freebsd", '\u{f30c}'),                                  // 
+    ("linux_freecad", '\u{f336}'),                                  // 
+    ("linux_freedesktop", '\u{f360}'),                              // 
+    ("linux_garuda", '\u{f337}'),                                   // 
     ("linux_gentoo", '\u{f30d}'),                                   // 
+    ("linux_gimp", '\u{f338}'),                                     // 
+    ("linux_gitea", '\u{f339}'),                                    // 
+    ("linux_gnome", '\u{f361}'),                                    // 
     ("linux_gnu_guix", '\u{f325}'),                                 // 
+    ("linux_gtk", '\u{f362}'),                                      // 
+    ("linux_hyperbola", '\u{f33a}'),                                // 
+    ("linux_hyprland", '\u{f359}'),                                 // 
+    ("linux_i3", '\u{f35a}'),                                       // 
     ("linux_illumos", '\u{f326}'),                                  // 
+    ("linux_inkscape", '\u{f33b}'),                                 // 
+    ("linux_jwm", '\u{f35b}'),                                      // 
     ("linux_kali_linux", '\u{f327}'),                               // 
+    ("linux_kde_neon", '\u{f331}'),                                 // 
+    ("linux_kde_plasma", '\u{f332}'),                               // 
+    ("linux_kdenlive", '\u{f33c}'),                                 // 
+    ("linux_kicad", '\u{f34c}'),                                    // 
+    ("linux_krita", '\u{f33d}'),                                    // 
+    ("linux_kubuntu", '\u{f333}'),                                  // 
+    ("linux_kubuntu_inverse", '\u{f334}'),                          // 
     ("linux_linuxmint", '\u{f30e}'),                                // 
     ("linux_linuxmint_inverse", '\u{f30f}'),                        // 
+    ("linux_locos", '\u{f349}'),                                    // 
+    ("linux_lxde", '\u{f363}'),                                     // 
+    ("linux_lxle", '\u{f33e}'),                                     // 
+    ("linux_lxqt", '\u{f364}'),                                     // 
     ("linux_mageia", '\u{f310}'),                                   // 
     ("linux_mandriva", '\u{f311}'),                                 // 
     ("linux_manjaro", '\u{f312}'),                                  // 
+    ("linux_mate", '\u{f365}'),                                     // 
+    ("linux_mpv", '\u{f36e}'),                                      // 
+    ("linux_mxlinux", '\u{f33f}'),                                  // 
+    ("linux_neovim", '\u{f36f}'),                                   // 
     ("linux_nixos", '\u{f313}'),                                    // 
+    ("linux_octoprint", '\u{f34d}'),                                // 
     ("linux_openbsd", '\u{f328}'),                                  // 
+    ("linux_openscad", '\u{f34e}'),                                 // 
     ("linux_opensuse", '\u{f314}'),                                 // 
+    ("linux_osh", '\u{f34f}'),                                      // 
+    ("linux_oshwa", '\u{f350}'),                                    // 
+    ("linux_osi", '\u{f36c}'),                                      // 
+    ("linux_parabola", '\u{f340}'),                                 // 
     ("linux_parrot", '\u{f329}'),                                   // 
     ("linux_pop_os", '\u{f32a}'),                                   // 
+    ("linux_prusaslicer", '\u{f351}'),                              // 
+    ("linux_puppy", '\u{f341}'),                                    // 
+    ("linux_qtile", '\u{f35c}'),                                    // 
+    ("linux_qubesos", '\u{f342}'),                                  // 
     ("linux_raspberry_pi", '\u{f315}'),                             // 
     ("linux_redhat", '\u{f316}'),                                   // 
+    ("linux_reprap", '\u{f352}'),                                   // 
+    ("linux_riscv", '\u{f353}'),                                    // 
     ("linux_rocky_linux", '\u{f32b}'),                              // 
     ("linux_sabayon", '\u{f317}'),                                  // 
     ("linux_slackware", '\u{f318}'),                                // 
     ("linux_slackware_inverse", '\u{f319}'),                        // 
     ("linux_snappy", '\u{f32c}'),                                   // 
     ("linux_solus", '\u{f32d}'),                                    // 
+    ("linux_sway", '\u{f35d}'),                                     // 
+    ("linux_tails", '\u{f343}'),                                    // 
+    ("linux_thunderbird", '\u{f370}'),                              // 
+    ("linux_tor", '\u{f371}'),                                      // 
+    ("linux_trisquel", '\u{f344}'),                                 // 
     ("linux_tux", '\u{f31a}'),                                      // 
     ("linux_ubuntu", '\u{f31b}'),                                   // 
     ("linux_ubuntu_inverse", '\u{f31c}'),                           // 
+    ("linux_vanilla", '\u{f366}'),                                  // 
     ("linux_void", '\u{f32e}'),                                     // 
+    ("linux_vscodium", '\u{f372}'),                                 // 
+    ("linux_wayland", '\u{f367}'),                                  // 
+    ("linux_wikimedia", '\u{f36d}'),                                // 
+    ("linux_xerolinux", '\u{f34a}'),                                // 
+    ("linux_xfce", '\u{f368}'),                                     // 
+    ("linux_xmonad", '\u{f35e}'),                                   // 
+    ("linux_xorg", '\u{f369}'),                                     // 
     ("linux_zorin", '\u{f32f}'),                                    // 
     ("md_ab_testing", '\u{f01c9}'),                                 // 󰇉
     ("md_abacus", '\u{f16e0}'),                                     // 󱛠
