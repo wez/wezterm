@@ -169,15 +169,8 @@ impl KeyboardWithFallback {
         self.process_key_event_impl(code + 8, Modifiers::default(), pressed, events, want_repeat)
     }
 
-    /// When XKB doesn't have modifiers in its state but there are modifiers given in the X
-    /// event, use these as fallback.
-    ///
-    /// This can happen (FIXME: WHY) for example when Espanso (a text expander/injector)
-    /// simulate inputs.
-    ///
-    /// This also happens intermittently for wez on an Ubuntu system where
-    /// the XServer clears the mask state seemingly at the wrong time via
-    /// a call into process_xkb_event that zeroes out all the modifier states.
+    /// Compute the Modifier mask equivalent from the button mask
+    /// provided in an XCB keyboard event
     fn modifiers_from_btn_mask(mask: xcb::x::KeyButMask) -> Modifiers {
         let mut res = Modifiers::default();
         if mask.contains(xcb::x::KeyButMask::SHIFT) {
@@ -228,13 +221,29 @@ impl KeyboardWithFallback {
     fn process_key_event_impl(
         &self,
         xcode: xkb::Keycode,
-        additional_x_raw_modifiers: Modifiers,
+        modifiers_from_event: Modifiers,
         pressed: bool,
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
-        let raw_modifiers = self.get_key_modifiers() | additional_x_raw_modifiers;
+
+        let modifiers_from_state = self.get_key_modifiers();
+        // When XKB doesn't have modifiers in its state but there are modifiers
+        // given in the X event, use the values from the X event.
+        //
+        // This can happen (FIXME: WHY) for example when Espanso
+        // (a text expander/injector) simulate inputs.
+        //
+        // This also happens intermittently for wez on an Ubuntu system where
+        // the XServer clears the mask state seemingly at the wrong time via
+        // a call into process_xkb_event that zeroes out all the modifier states.
+        let raw_modifiers = if modifiers_from_state.is_empty() {
+            modifiers_from_event
+        } else {
+            modifiers_from_state
+        };
+
         let leds = self.get_led_status();
 
         let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
