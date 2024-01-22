@@ -157,6 +157,8 @@ As features stabilize some brief notes about them will accumulate here.
 * retro tab bar indented too far on macOS when using integrated titlebar buttons.
   Thanks to @0xdead10cd! #4505
 * x11/wayland: avoid including keysym name in deadkey compose cursor. #4511
+* Mouse wheel scrolling now works correctly when hovering over the inactive pane.
+  Thanks to @tradiff! #4339 #2373
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
