@@ -94,7 +94,11 @@ impl DataDeviceHandler for WaylandState {
         _qh: &wayland_client::QueueHandle<Self>,
         data_device: DataDevice,
     ) {
-        // TODO: handle mime types
+        let mime_types = data_device.selection_mime_types();
+        if !mime_types.iter().any(|s| s == TEXT_MIME_TYPE) {
+            return;
+        }
+
         if let Some(offer) = data_device.selection_offer() {
             if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
                 copy_and_paste
@@ -168,6 +172,7 @@ impl DataOfferHandler for WaylandState {
     }
 }
 
+// We seem to to ignore all events other than sending_request and cancelled
 impl DataSourceHandler for WaylandState {
     fn accept_mime(
         &mut self,
@@ -176,7 +181,6 @@ impl DataSourceHandler for WaylandState {
         _source: &wayland_client::protocol::wl_data_source::WlDataSource,
         _mime: Option<String>,
     ) {
-        todo!()
     }
 
     fn send_request(
@@ -216,7 +220,6 @@ impl DataSourceHandler for WaylandState {
         _qh: &wayland_client::QueueHandle<Self>,
         _source: &wayland_client::protocol::wl_data_source::WlDataSource,
     ) {
-        todo!()
     }
 
     fn dnd_finished(
@@ -225,7 +228,6 @@ impl DataSourceHandler for WaylandState {
         _qh: &wayland_client::QueueHandle<Self>,
         _source: &wayland_client::protocol::wl_data_source::WlDataSource,
     ) {
-        todo!()
     }
 
     fn action(
@@ -235,7 +237,6 @@ impl DataSourceHandler for WaylandState {
         _source: &wayland_client::protocol::wl_data_source::WlDataSource,
         _action: wayland_client::protocol::wl_data_device_manager::DndAction,
     ) {
-        todo!()
     }
 }
 
