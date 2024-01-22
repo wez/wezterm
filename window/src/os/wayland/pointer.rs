@@ -11,6 +11,7 @@ use wayland_client::{Connection, Proxy, QueueHandle};
 use wezterm_input_types::MousePress;
 
 use super::copy_and_paste::CopyAndPaste;
+use super::drag_and_drop::DragAndDrop;
 use super::state::WaylandState;
 use super::WaylandConnection;
 
@@ -55,10 +56,9 @@ impl PointerHandler for WaylandState {
     }
 }
 
-#[derive(Debug)]
 pub(super) struct PointerUserData {
     pdata: PointerData,
-    state: Mutex<PointerState>,
+    pub(super) state: Mutex<PointerState>,
 }
 
 impl PointerUserData {
@@ -70,10 +70,10 @@ impl PointerUserData {
     }
 }
 
-#[derive(Debug, Default)]
-struct PointerState {
+#[derive(Default)]
+pub(super) struct PointerState {
     active_surface_id: Option<ObjectId>,
-    // TODO: drag_and_drop: DragAndDrop,
+    pub(super) drag_and_drop: DragAndDrop,
     serial: u32,
 }
 
