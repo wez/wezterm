@@ -1,15 +1,18 @@
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::convert::TryInto;
+use std::io::Read;
+use std::os::fd::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use async_io::Timer;
 use async_trait::async_trait;
 use config::ConfigHandle;
-use promise::Future;
+use filedescriptor::FileDescriptor;
+use promise::{Future, Promise};
 use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
     WaylandDisplayHandle, WaylandWindowHandle,
@@ -362,8 +365,35 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
-    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
-        todo!()
+    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let promise = Arc::new(Mutex::new(promise));
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            let read = inner
+                .copy_and_paste
+                .lock()
+                .unwrap()
+                .get_clipboard_data(clipboard)?;
+            let promise = Arc::clone(&promise);
+            std::thread::spawn(move || {
+                let mut promise = promise.lock().unwrap();
+                match read_pipe_with_timeout(read) {
+                    Ok(result) => {
+                        // Normalize the text to unix line endings, otherwise
+                        // copying from eg: firefox inserts a lot of blank
+                        // lines, and that is super annoying.
+                        promise.ok(result.replace("\r\n", "\n"));
+                    }
+                    Err(e) => {
+                        log::error!("while reading clipboard: {}", e);
+                        promise.err(anyhow!("{}", e));
+                    }
+                };
+            });
+            Ok(())
+        });
+        future
     }
 
     fn set_clipboard(&self, clipboard: Clipboard, text: String) {
@@ -385,6 +415,37 @@ pub(crate) struct PendingEvent {
     pub(crate) configure: Option<(u32, u32)>,
     pub(crate) dpi: Option<i32>,
     pub(crate) window_state: Option<WindowState>,
+}
+
+pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
+    let mut result = Vec::new();
+
+    file.set_non_blocking(true)?;
+    let mut pfd = libc::pollfd {
+        fd: file.as_raw_fd(),
+        events: libc::POLLIN,
+        revents: 0,
+    };
+
+    let mut buf = [0u8; 8192];
+
+    loop {
+        if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
+            match file.read(&mut buf) {
+                Ok(size) if size == 0 => {
+                    break;
+                }
+                Ok(size) => {
+                    result.extend_from_slice(&buf[..size]);
+                }
+                Err(e) => bail!("error reading from pipe: {}", e),
+            }
+        } else {
+            bail!("timed out reading from pipe");
+        }
+    }
+
+    Ok(String::from_utf8(result)?)
 }
 
 pub struct WaylandWindowInner {
