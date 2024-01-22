@@ -27,13 +27,13 @@ impl SeatHandler for WaylandState {
         if capability == Capability::Keyboard && self.keyboard.is_none() {
             log::trace!("Setting keyboard capability");
             let keyboard = seat.get_keyboard(qh, KeyboardData {});
-            self.keyboard = Some(keyboard)
+            self.keyboard = Some(keyboard.clone());
         }
 
         if capability == Capability::Pointer && self.pointer.is_none() {
             log::trace!("Setting pointer capability");
             let pointer = self
-                .seat_state()
+                .seat
                 .get_pointer_with_theme_and_data(
                     qh,
                     &seat,
@@ -42,6 +42,10 @@ impl SeatHandler for WaylandState {
                 )
                 .expect("Failed to create pointer");
             self.pointer = Some(pointer);
+
+            let data_device_manager = &self.data_device_manager_state;
+            let data_device = data_device_manager.get_data_device(qh, &seat);
+            self.data_device.replace(data_device);
         }
     }
 
