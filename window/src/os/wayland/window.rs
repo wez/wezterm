@@ -3,6 +3,7 @@ use std::cell::{RefCell, RefMut};
 use std::convert::TryInto;
 use std::io::Read;
 use std::os::fd::AsRawFd;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -575,6 +576,10 @@ impl WaylandWindowInner {
         // and that can effectively lose the final row of the
         // terminal
         ((pixels as f64) / self.get_dpi_factor()).ceil() as i32
+    }
+
+    pub(super) fn dispatch_dropped_files(&mut self, paths: Vec<PathBuf>) {
+        self.events.dispatch(WindowEvent::DroppedFile(paths));
     }
 
     pub(crate) fn dispatch_pending_mouse(&mut self) {
