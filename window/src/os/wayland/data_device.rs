@@ -1,6 +1,5 @@
-use std::fs::File;
 use std::io::Write;
-use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd, OwnedFd};
+use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 
 use anyhow::bail;
 use filedescriptor::FileDescriptor;
@@ -86,6 +85,7 @@ impl DataOfferHandler for WaylandState {
         }
     }
 
+    // Ignore drag and drop events
     fn source_actions(
         &mut self,
         _conn: &wayland_client::Connection,
@@ -93,7 +93,6 @@ impl DataOfferHandler for WaylandState {
         _offer: &mut smithay_client_toolkit::data_device_manager::data_offer::DragOffer,
         _actions: wayland_client::protocol::wl_data_device_manager::DndAction,
     ) {
-        todo!()
     }
 
     fn selected_action(
@@ -103,7 +102,6 @@ impl DataOfferHandler for WaylandState {
         _offer: &mut smithay_client_toolkit::data_device_manager::data_offer::DragOffer,
         _actions: wayland_client::protocol::wl_data_device_manager::DndAction,
     ) {
-        todo!()
     }
 }
 
@@ -143,9 +141,10 @@ impl DataSourceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _source: &wayland_client::protocol::wl_data_source::WlDataSource,
+        source: &wayland_client::protocol::wl_data_source::WlDataSource,
     ) {
-        todo!()
+        self.copy_paste_source.take();
+        source.destroy();
     }
 
     fn dnd_dropped(
