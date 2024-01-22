@@ -40,6 +40,7 @@ use crate::{
     WindowKeyEvent, WindowOps, WindowState,
 };
 
+use super::copy_and_paste::CopyAndPaste;
 use super::pointer::PendingMouse;
 use super::state::WaylandState;
 
@@ -229,22 +230,18 @@ impl WaylandWindow {
 
         window.commit();
         //
-        // TODO: copy and paste
-        // let copy_and_paste = CopyAndPaste::create();
-        // let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
-        let pending_mouse = PendingMouse::create(window_id);
+        let copy_and_paste = CopyAndPaste::create();
+        let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
         {
             let surface_to_pending = &mut conn.wayland_state.borrow_mut().surface_to_pending;
             surface_to_pending.insert(surface.id(), Arc::clone(&pending_mouse));
         }
 
-        // conn.pointer.borrow().add_window(&surface, &pending_mouse);
-
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
             surface_factor: 1.0,
-
+            copy_and_paste,
             invalidated: false,
             window: Some(window),
             dimensions,
@@ -365,13 +362,19 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
-    #[doc = r" Initiate textual transfer from the clipboard"]
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         todo!()
     }
 
-    fn set_clipboard(&self, _clipboard: Clipboard, _text: String) {
-        todo!()
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner
+                .copy_and_paste
+                .lock()
+                .unwrap()
+                .set_clipboard_data(clipboard, text);
+            Ok(())
+        });
     }
 }
 #[derive(Default, Clone, Debug)]
@@ -388,7 +391,7 @@ pub struct WaylandWindowInner {
     // window_id: usize,
     pub(crate) events: WindowEventSender,
     surface_factor: f64,
-    // copy_and_paste: Arc<Mutex<CopyAndPaste>>,
+    copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<XdgWindow>,
     dimensions: Dimensions,
     resize_increments: Option<(u16, u16)>,

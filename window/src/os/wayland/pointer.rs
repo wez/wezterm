@@ -10,6 +10,7 @@ use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, Proxy, QueueHandle};
 use wezterm_input_types::MousePress;
 
+use super::copy_and_paste::CopyAndPaste;
 use super::state::WaylandState;
 use super::WaylandConnection;
 
@@ -85,7 +86,7 @@ impl PointerDataExt for PointerUserData {
 #[derive(Clone, Debug)]
 pub struct PendingMouse {
     window_id: usize,
-    // TODO: copy_and_paste: Arc<Mutex<CopyAndPaste>>,
+    pub(super) copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     surface_coords: Option<(f64, f64)>,
     button: Vec<(MousePress, ButtonState)>,
     scroll: Option<(f64, f64)>,
@@ -93,10 +94,13 @@ pub struct PendingMouse {
 }
 
 impl PendingMouse {
-    // TODO: copy and paste
-    pub(super) fn create(window_id: usize) -> Arc<Mutex<Self>> {
+    pub(super) fn create(
+        window_id: usize,
+        copy_and_paste: &Arc<Mutex<CopyAndPaste>>,
+    ) -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Self {
             window_id,
+            copy_and_paste: Arc::clone(copy_and_paste),
             button: vec![],
             scroll: None,
             surface_coords: None,
