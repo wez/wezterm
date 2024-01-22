@@ -262,8 +262,8 @@ impl From<ColorAttribute> for ColorSpec {
         match attr {
             ColorAttribute::Default => ColorSpec::Default,
             ColorAttribute::PaletteIndex(idx) => ColorSpec::PaletteIndex(idx),
-            ColorAttribute::TrueColorWithDefaultFallback(color) |
-            ColorAttribute::TrueColorWithPaletteFallback(color, _) => ColorSpec::TrueColor(color),
+            ColorAttribute::TrueColorWithDefaultFallback(color)
+            | ColorAttribute::TrueColorWithPaletteFallback(color, _) => ColorSpec::TrueColor(color),
         }
     }
 }

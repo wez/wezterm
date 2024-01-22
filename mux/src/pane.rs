@@ -8,14 +8,22 @@ use parking_lot::MappedMutexGuard;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::ops::Range;
 use std::sync::Arc;
+use termwiz::cell::CellAttributes;
+use termwiz::color::ColorSpec;
+use termwiz::escape::csi::Sgr;
 use termwiz::hyperlink::Rule;
 use termwiz::input::KeyboardEncoding;
-use termwiz::surface::{Line, SequenceNo};
+use termwiz::surface::{line::CellStorage, Line, SequenceNo};
 use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
+use wezterm_term::Blink;
+use wezterm_term::Intensity;
+use wezterm_term::Underline;
+use wezterm_term::VerticalAlign;
 use wezterm_term::{
     Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
     TerminalConfiguration, TerminalSize,
@@ -145,6 +153,178 @@ impl LogicalLine {
     }
 }
 
+fn diff_attrs(buf: &mut String, old: Option<&CellAttributes>, new: &CellAttributes) {
+    struct UnpackedSgr {
+        intensity: Option<Intensity>,
+        underline: Option<Underline>,
+        blink: Option<Blink>,
+        italic: Option<bool>,
+        inverse: Option<bool>,
+        strikethrough: Option<bool>,
+        invisible: Option<bool>,
+        overline: Option<bool>,
+        vertical_align: Option<VerticalAlign>,
+        foreground: Option<ColorSpec>,
+        background: Option<ColorSpec>,
+    }
+    let diff = if let Some(old) = old {
+        UnpackedSgr {
+            intensity: (old.intensity() != new.intensity()).then(|| new.intensity()),
+            underline: (old.underline() != new.underline()).then(|| new.underline()),
+            blink: (old.blink() != new.blink()).then(|| new.blink()),
+            italic: (old.italic() != new.italic()).then(|| new.italic()),
+            inverse: (old.reverse() != new.reverse()).then(|| new.reverse()),
+            strikethrough: (old.strikethrough() != new.strikethrough())
+                .then(|| new.strikethrough()),
+            invisible: (old.invisible() != new.invisible()).then(|| new.invisible()),
+            overline: (old.overline() != new.overline()).then(|| new.overline()),
+            vertical_align: (old.vertical_align() != new.vertical_align())
+                .then(|| new.vertical_align()),
+            foreground: (old.foreground() != new.foreground()).then(|| new.foreground().into()),
+            background: (old.background() != new.background()).then(|| new.background().into()),
+        }
+    } else {
+        UnpackedSgr {
+            intensity: Some(new.intensity()),
+            underline: Some(new.underline()),
+            blink: Some(new.blink()),
+            italic: Some(new.italic()),
+            inverse: Some(new.reverse()),
+            strikethrough: Some(new.strikethrough()),
+            invisible: Some(new.invisible()),
+            overline: Some(new.overline()),
+            vertical_align: Some(new.vertical_align()),
+            foreground: Some(new.foreground().into()),
+            background: Some(new.background().into()),
+        }
+    };
+    let reset = diff
+        .intensity
+        .map(|i| if i as u8 == 0 { 1 } else { 0 })
+        .unwrap_or(0)
+        + diff
+            .underline
+            .map(|u| if u as u8 == 0 { 1 } else { 0 })
+            .unwrap_or(0)
+        + diff
+            .blink
+            .map(|b| if b as u8 == 0 { 1 } else { 0 })
+            .unwrap_or(0)
+        + diff.italic.map(|i| if i { 0 } else { 1 }).unwrap_or(0)
+        + diff.inverse.map(|r| if r { 0 } else { 1 }).unwrap_or(0)
+        + diff
+            .strikethrough
+            .map(|s| if s { 0 } else { 1 })
+            .unwrap_or(0)
+        + diff.overline.map(|o| if o { 0 } else { 1 }).unwrap_or(0)
+        + diff
+            .vertical_align
+            .map(|v| if v as u8 == 0 { 1 } else { 0 })
+            .unwrap_or(0)
+        + diff
+            .foreground
+            .map(|f| if f == ColorSpec::Default { 1 } else { 0 })
+            .unwrap_or(0)
+        + diff
+            .background
+            .map(|b| if b == ColorSpec::Default { 1 } else { 0 })
+            .unwrap_or(0);
+    if reset > 1 {
+        // TODO heuristic
+        write!(buf, "\x1b[{}", Sgr::Reset).unwrap();
+        if let Some(intensity) = diff.intensity {
+            if intensity as u8 != 0 {
+                write!(buf, "\x1b[{}", Sgr::Intensity(intensity)).unwrap();
+            }
+        }
+        if let Some(underline) = diff.underline {
+            if underline as u8 != 0 {
+                write!(buf, "\x1b[{}", Sgr::Underline(underline)).unwrap();
+            }
+        }
+        if let Some(blink) = diff.blink {
+            if blink as u8 != 0 {
+                write!(buf, "\x1b[{}", Sgr::Blink(blink)).unwrap();
+            }
+        }
+        if let Some(italic) = diff.italic {
+            if italic {
+                write!(buf, "\x1b[{}", Sgr::Italic(italic)).unwrap();
+            }
+        }
+        if let Some(inverse) = diff.inverse {
+            if inverse {
+                write!(buf, "\x1b[{}", Sgr::Inverse(inverse)).unwrap();
+            }
+        }
+        if let Some(strikethrough) = diff.strikethrough {
+            if strikethrough {
+                write!(buf, "\x1b[{}", Sgr::StrikeThrough(strikethrough)).unwrap();
+            }
+        }
+        if let Some(invisible) = diff.invisible {
+            if invisible {
+                write!(buf, "\x1b[{}", Sgr::Invisible(invisible)).unwrap();
+            }
+        }
+        if let Some(overline) = diff.overline {
+            if overline as u8 != 0 {
+                write!(buf, "\x1b[{}", Sgr::Overline(overline)).unwrap();
+            }
+        }
+        if let Some(vertical_align) = diff.vertical_align {
+            if vertical_align as u8 != 0 {
+                write!(buf, "\x1b[{}", Sgr::VerticalAlign(vertical_align)).unwrap();
+            }
+        }
+        if let Some(foreground) = diff.foreground {
+            if foreground != ColorSpec::Default {
+                write!(buf, "\x1b[{}", Sgr::Foreground(foreground)).unwrap();
+            }
+        }
+        if let Some(background) = diff.background {
+            if background != ColorSpec::Default {
+                write!(buf, "\x1b[{}", Sgr::Background(background)).unwrap();
+            }
+        }
+    } else {
+        if let Some(intensity) = diff.intensity {
+            write!(buf, "\x1b[{}", Sgr::Intensity(intensity)).unwrap();
+        }
+        if let Some(underline) = diff.underline {
+            write!(buf, "\x1b[{}", Sgr::Underline(underline)).unwrap();
+        }
+        if let Some(blink) = diff.blink {
+            write!(buf, "\x1b[{}", Sgr::Blink(blink)).unwrap();
+        }
+        if let Some(italic) = diff.italic {
+            write!(buf, "\x1b[{}", Sgr::Italic(italic)).unwrap();
+        }
+        if let Some(reverse) = diff.inverse {
+            write!(buf, "\x1b[{}", Sgr::Inverse(reverse)).unwrap();
+        }
+        if let Some(strikethrough) = diff.strikethrough {
+            write!(buf, "\x1b[{}", Sgr::StrikeThrough(strikethrough)).unwrap();
+        }
+        if let Some(invisible) = diff.invisible {
+            write!(buf, "\x1b[{}", Sgr::Invisible(invisible)).unwrap();
+        }
+        if let Some(overline) = diff.overline {
+            write!(buf, "\x1b[{}", Sgr::Overline(overline)).unwrap();
+        }
+        if let Some(vertical_align) = diff.vertical_align {
+            write!(buf, "\x1b[{}", Sgr::VerticalAlign(vertical_align)).unwrap();
+        }
+        if let Some(foreground) = diff.foreground {
+            write!(buf, "\x1b[{}", Sgr::Foreground(foreground)).unwrap();
+        }
+        if let Some(background) = diff.background {
+            write!(buf, "\x1b[{}", Sgr::Background(background)).unwrap();
+        }
+    }
+    // TODO image hyperlink & semantic zone
+}
+
 /// A Pane represents a view on a terminal
 #[async_trait(?Send)]
 pub trait Pane: Downcast + Send + Sync {
@@ -192,8 +372,35 @@ pub trait Pane: Downcast + Send + Sync {
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine>;
 
-    fn get_logical_lines_raw(&self, lines: Range<StableRowIndex>) -> Vec<String> {
-        self.get_logical_lines(lines).into_iter().map(|l| l.logical.to_raw_line()).collect()
+    fn get_logical_lines_raw(&self, lines: Range<StableRowIndex>) -> String {
+        let mut last = None;
+        let mut out = String::new();
+        for line in self.get_logical_lines(lines).into_iter() {
+            let mut line = line.logical;
+            line.compress_for_scrollback();
+            let mut clusters = match line.cells {
+                CellStorage::C(clus) => clus,
+                CellStorage::V(_) => unreachable!(),
+            };
+            clusters.prune_trailing_blanks();
+            let mut chars = clusters.text.chars().enumerate();
+            for clu in clusters.clusters.iter() {
+                diff_attrs(&mut out, last.as_ref(), &clu.attrs); // TODO actually diff
+                let mut cell = 0;
+                while cell < clu.cell_width {
+                    let (i, c) = chars.next().unwrap();
+                    out.push(c);
+                    if clusters.is_double_wide(i) {
+                        cell += 2;
+                    } else {
+                        cell += 1;
+                    }
+                }
+                last = Some(clu.attrs.clone());
+            }
+            out.push('\n');
+        }
+        out
     }
 
     fn apply_hyperlinks(&self, lines: Range<StableRowIndex>, rules: &[Rule]) {

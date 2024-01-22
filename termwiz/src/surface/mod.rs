@@ -14,7 +14,7 @@ pub mod change;
 pub mod line;
 
 pub use self::change::{Change, Image, LineAttribute, TextureCoordinate};
-pub use self::line::Line;
+pub use self::line::{CellStorage, Line};
 
 /// Position holds 0-based positioning information, where
 /// Absolute(0) is the start of the line or column,
