@@ -7,6 +7,7 @@ use smithay_client_toolkit::compositor::CompositorState;
 use smithay_client_toolkit::data_device_manager::data_device::DataDevice;
 use smithay_client_toolkit::data_device_manager::data_source::CopyPasteSource;
 use smithay_client_toolkit::data_device_manager::DataDeviceManagerState;
+use smithay_client_toolkit::globals::GlobalData;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
 use smithay_client_toolkit::seat::pointer::ThemedPointer;
@@ -26,9 +27,12 @@ use wayland_client::protocol::wl_output::WlOutput;
 use wayland_client::protocol::wl_pointer::WlPointer;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
+use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_manager_v3::ZwpTextInputManagerV3;
+use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_v3::ZwpTextInputV3;
 
 use crate::x11::KeyboardWithFallback;
 
+use super::inputhandler::{TextInputData, TextInputState};
 use super::pointer::{PendingMouse, PointerUserData};
 use super::{SurfaceUserData, WaylandWindowInner};
 
@@ -147,3 +151,6 @@ delegate_dispatch!(WaylandState: [WlPointer: PointerUserData] => SeatState);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
+
+delegate_dispatch!(WaylandState: [ZwpTextInputManagerV3: GlobalData] => TextInputState);
+delegate_dispatch!(WaylandState: [ZwpTextInputV3: TextInputData] => TextInputState);
