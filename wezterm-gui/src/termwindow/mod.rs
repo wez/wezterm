@@ -2317,11 +2317,7 @@ impl TermWindow {
         &cache.zones
     }
 
-    fn scroll_to_prompt(&mut self, amount: isize) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_to_prompt(&mut self, amount: isize, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2344,11 +2340,7 @@ impl TermWindow {
         Ok(())
     }
 
-    fn scroll_by_page(&mut self, amount: f64) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_by_page(&mut self, amount: f64, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2609,10 +2601,10 @@ impl TermWindow {
             ReloadConfiguration => config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
-            ScrollByPage(n) => self.scroll_by_page(**n)?,
+            ScrollByPage(n) => self.scroll_by_page(**n, pane)?,
             ScrollByLine(n) => self.scroll_by_line(*n, pane)?,
             ScrollByCurrentEventWheelDelta => self.scroll_by_current_event_wheel_delta(pane)?,
-            ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
+            ScrollToPrompt(n) => self.scroll_to_prompt(*n, pane)?,
             ScrollToTop => self.scroll_to_top(pane),
             ScrollToBottom => self.scroll_to_bottom(pane),
             ShowTabNavigator => self.show_tab_navigator(),
