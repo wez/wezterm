@@ -657,6 +657,8 @@ pub struct Config {
 
     #[dynamic(default = "default_true")]
     pub use_ime: bool,
+    #[dynamic(default = "default_true")]
+    pub x11_use_passive_key_updates: bool,
     #[dynamic(default)]
     pub xim_im_name: Option<String>,
     #[dynamic(default)]
