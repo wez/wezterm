@@ -679,6 +679,11 @@ impl XWindowInner {
         .normalize_shift()
         .resurface_positional_modifier_key();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));
+        // Since we just composed, synthesize a cleared status, as we
+        // are not guaranteed to receive an event notification to
+        // trigger dispatch_ime_compose_status() above.
+        // <https://github.com/wez/wezterm/issues/4841>
+        self.events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
     }
 
     /// If we own the selection, make sure that the X server reflects
