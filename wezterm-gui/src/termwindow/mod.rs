@@ -947,7 +947,11 @@ impl TermWindow {
                 Ok(true)
             }
             WindowEvent::AdviseDeadKeyStatus(status) => {
-                log::trace!("DeadKeyStatus now: {:?}", status);
+                if self.config.debug_key_events {
+                    log::info!("DeadKeyStatus now: {:?}", status);
+                } else {
+                    log::trace!("DeadKeyStatus now: {:?}", status);
+                }
                 self.dead_key_status = status;
                 self.update_title();
                 // Ensure that we repaint so that any composing
