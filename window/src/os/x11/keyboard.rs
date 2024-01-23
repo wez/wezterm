@@ -163,7 +163,8 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) -> Option<WindowKeyEvent> {
         let want_repeat = self.selected.wayland_key_repeats(code);
-        self.process_key_event_impl(code + 8, Modifiers::default(), pressed, events, want_repeat)
+        let raw_modifiers = self.get_key_modifiers();
+        self.process_key_event_impl(code + 8, raw_modifiers, pressed, events, want_repeat)
     }
 
     /// Compute the Modifier mask equivalent from the button mask
@@ -215,31 +216,21 @@ impl KeyboardWithFallback {
         );
     }
 
+    // for X11 we always pass down raw_modifiers from the incoming
+    // key event to use in preference to whatever is computed by XKB.
+    // The reason is that the update_state() call triggered by the XServer
+    // doesn't know about state managed by the IME, so we cannot trust
+    // that the modifiers are right.
+    // <https://github.com/ibus/ibus/issues/2600#issuecomment-1904322441>
     fn process_key_event_impl(
         &self,
         xcode: xkb::Keycode,
-        modifiers_from_event: Modifiers,
+        raw_modifiers: Modifiers,
         pressed: bool,
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
-
-        let modifiers_from_state = self.get_key_modifiers();
-        // When XKB doesn't have modifiers in its state but there are modifiers
-        // given in the X event, use the values from the X event.
-        //
-        // This can happen (FIXME: WHY) for example when Espanso
-        // (a text expander/injector) simulate inputs.
-        //
-        // This also happens intermittently for wez on an Ubuntu system where
-        // the XServer clears the mask state seemingly at the wrong time via
-        // a call into process_xkb_event that zeroes out all the modifier states.
-        let raw_modifiers = if modifiers_from_state.is_empty() {
-            modifiers_from_event
-        } else {
-            modifiers_from_state
-        };
 
         let leds = self.get_led_status();
 
