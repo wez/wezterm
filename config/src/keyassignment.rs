@@ -229,7 +229,7 @@ impl SpawnCommand {
         if let Some(label) = &self.label {
             Some(label.to_string())
         } else if let Some(args) = &self.args {
-            Some(shlex::join(args.iter().map(|s| s.as_str())))
+            Some(shlex::try_join(args.iter().map(|s| s.as_str())).ok()?)
         } else {
             None
         }

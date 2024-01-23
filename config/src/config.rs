@@ -1935,7 +1935,9 @@ impl DroppedFileQuoting {
             Self::None => s.to_string(),
             Self::SpacesOnly => s.replace(" ", "\\ "),
             // https://docs.rs/shlex/latest/shlex/fn.quote.html
-            Self::Posix => shlex::quote(s).into_owned(),
+            Self::Posix => shlex::try_quote(s)
+                .unwrap_or_else(|_| "".into())
+                .into_owned(),
             Self::Windows => {
                 let chars_need_quoting = [' ', '\t', '\n', '\x0b', '\"'];
                 if s.chars().any(|c| chars_need_quoting.contains(&c)) {

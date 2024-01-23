@@ -412,11 +412,13 @@ fn shell_split<'lua>(_: &'lua Lua, line: String) -> mlua::Result<Vec<String>> {
 }
 
 fn shell_join_args<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<String> {
-    Ok(shlex::join(args.iter().map(|arg| arg.as_ref())))
+    Ok(shlex::try_join(args.iter().map(|arg| arg.as_ref())).map_err(mlua::Error::external)?)
 }
 
 fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
-    Ok(shlex::quote(&arg).into_owned())
+    Ok(shlex::try_quote(&arg)
+        .map_err(mlua::Error::external)?
+        .into_owned())
 }
 
 /// Returns the system hostname.
