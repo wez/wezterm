@@ -683,7 +683,8 @@ impl XWindowInner {
         // are not guaranteed to receive an event notification to
         // trigger dispatch_ime_compose_status() above.
         // <https://github.com/wez/wezterm/issues/4841>
-        self.events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+        self.events
+            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
     }
 
     /// If we own the selection, make sure that the X server reflects
