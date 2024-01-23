@@ -159,6 +159,8 @@ As features stabilize some brief notes about them will accumulate here.
 * x11/wayland: avoid including keysym name in deadkey compose cursor. #4511
 * Mouse wheel scrolling now works correctly when hovering over the inactive pane.
   Thanks to @tradiff! #4339 #2373
+* Scrolling glitch in Command Palette, Launcher and InputSelector. Thanks to
+  @metiftikci! #4839
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
