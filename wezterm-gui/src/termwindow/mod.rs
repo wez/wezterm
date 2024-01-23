@@ -842,10 +842,10 @@ impl TermWindow {
             };
             myself.config_subscription.replace(config_subscription);
             if config.use_resize_increments {
-                window.set_resize_increments(
-                    myself.render_metrics.cell_size.width as u16,
-                    myself.render_metrics.cell_size.height as u16,
-                );
+                window.set_resize_increments(ResizeIncrement {
+                    x: myself.render_metrics.cell_size.width as u16,
+                    y: myself.render_metrics.cell_size.height as u16,
+                });
             }
 
             if let Some(gl) = gl {

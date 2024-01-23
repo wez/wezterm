@@ -9,8 +9,8 @@ use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::screen::Screens;
 use crate::{
-    Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ScreenPoint, WindowEvent,
-    WindowOps,
+    Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ScreenPoint, WindowEvent, WindowOps,
 };
 use async_trait::async_trait;
 use config::ConfigHandle;
@@ -314,11 +314,11 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         match self {
-            Self::X11(x11) => x11.set_resize_increments(x, y),
+            Self::X11(x11) => x11.set_resize_increments(incr),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.set_resize_increments(x, y),
+            Self::Wayland(w) => w.set_resize_increments(incr),
         }
     }
 
