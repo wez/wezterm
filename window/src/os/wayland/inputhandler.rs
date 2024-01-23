@@ -106,6 +106,22 @@ impl TextInputState {
             .keyboard_to_seat
             .insert(keyboard_id, seat_id);
     }
+
+    /// Workaround for <https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4776>
+    /// If we make sure to disable things before we close the app,
+    /// mutter is less likely to get in a bad state
+    pub fn shutdown(&self) {
+        self.inner.lock().unwrap().disable_all();
+    }
+}
+
+impl Inner {
+    fn disable_all(&mut self) {
+        for input in self.input_by_seat.values() {
+            input.disable();
+            input.commit();
+        }
+    }
 }
 
 #[derive(Default)]
@@ -201,5 +217,11 @@ impl WaylandState {
                 inner.events.dispatch(event);
             }
         }
+    }
+}
+
+impl Drop for WaylandState {
+    fn drop(&mut self) {
+        self.text_input.shutdown();
     }
 }
