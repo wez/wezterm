@@ -1532,13 +1532,15 @@ impl XWindowInner {
     fn set_resize_increments(&mut self, incr: ResizeIncrement) -> anyhow::Result<()> {
         use xcb_util::*;
         let hints = xcb_size_hints_t {
-            flags: XCB_ICCCM_SIZE_HINT_P_RESIZE_INC | XCB_ICCCM_SIZE_HINT_BASE_SIZE,
+            flags: XCB_ICCCM_SIZE_HINT_P_MIN_SIZE
+                | XCB_ICCCM_SIZE_HINT_P_RESIZE_INC
+                | XCB_ICCCM_SIZE_HINT_BASE_SIZE,
             x: 0,
             y: 0,
             width: 0,
             height: 0,
-            min_width: 0,
-            min_height: 0,
+            min_width: (incr.base_width + incr.x).into(),
+            min_height: (incr.base_height + incr.y).into(),
             max_width: 0,
             max_height: 0,
             width_inc: incr.x.into(),
