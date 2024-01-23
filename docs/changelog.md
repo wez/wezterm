@@ -114,6 +114,10 @@ As features stabilize some brief notes about them will accumulate here.
   on macOS. Thanks to @rawnly! #4567
 * Double click on the tab bar to toggle maximize/normal state. Thanks to
   @junnplus! #3698 #3699
+* [freetype_load_target](config/lua/config/freetype_load_target.md) and
+* [freetype_render_target](config/lua/config/freetype_render_target.md) can now
+  be set to `VerticalLcd` for vertically decimated LCD displays. Thanks to
+  @xiaopengli89! #4426
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
