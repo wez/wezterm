@@ -7,8 +7,8 @@ use crate::os::wayland::wl_id;
 use crate::os::x11::keyboard::KeyboardWithFallback;
 use crate::{
     Appearance, Clipboard, Connection, Dimensions, MouseCursor, Point, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Window, WindowEvent, WindowEventSender,
-    WindowKeyEvent, WindowOps, WindowState,
+    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Window, WindowEvent,
+    WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
@@ -133,7 +133,7 @@ pub struct WaylandWindowInner {
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
-    resize_increments: Option<(u16, u16)>,
+    resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
@@ -668,9 +668,9 @@ impl WaylandWindowInner {
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
 
                 if self.window_state.can_resize() {
-                    if let Some((x, y)) = self.resize_increments {
-                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
-                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                    if let Some(incr) = self.resize_increments {
+                        let desired_pixel_width = pixel_width - (pixel_width % incr.x as i32);
+                        let desired_pixel_height = pixel_height - (pixel_height % incr.y as i32);
                         w = self.pixels_to_surface(desired_pixel_width) as u32;
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
@@ -995,9 +995,9 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            Ok(inner.set_resize_increments(x, y))
+            Ok(inner.set_resize_increments(incr))
         });
     }
 
@@ -1229,8 +1229,8 @@ impl WaylandWindowInner {
         self.title = Some(title);
     }
 
-    fn set_resize_increments(&mut self, x: u16, y: u16) {
-        self.resize_increments = Some((x, y));
+    fn set_resize_increments(&mut self, incr: ResizeIncrement) {
+        self.resize_increments = Some(incr);
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {

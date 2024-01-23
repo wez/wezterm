@@ -10,8 +10,8 @@ use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
     Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Size, ULength, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps, WindowState,
+    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Size, ULength,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -827,9 +827,9 @@ impl WindowOps for Window {
         });
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         Connection::with_window_inner(self.id, move |inner| {
-            inner.set_resize_increments(x, y);
+            inner.set_resize_increments(incr);
             Ok(())
         });
     }
@@ -1256,10 +1256,10 @@ impl WindowInner {
         }
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         unsafe {
             self.window
-                .setResizeIncrements_(NSSize::new(x.into(), y.into()));
+                .setResizeIncrements_(NSSize::new(incr.x.into(), incr.y.into()));
         }
     }
 

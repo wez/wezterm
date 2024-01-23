@@ -4,9 +4,9 @@ use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResolvedGeometry,
-    ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ResolvedGeometry, ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -1563,7 +1563,7 @@ impl XWindowInner {
             });
     }
 
-    fn set_resize_increments(&mut self, x: u16, y: u16) -> anyhow::Result<()> {
+    fn set_resize_increments(&mut self, incr: ResizeIncrement) -> anyhow::Result<()> {
         use xcb_util::*;
         let hints = xcb_size_hints_t {
             flags: XCB_ICCCM_SIZE_HINT_P_RESIZE_INC,
@@ -1575,8 +1575,8 @@ impl XWindowInner {
             min_height: 0,
             max_width: 0,
             max_height: 0,
-            width_inc: x.into(),
-            height_inc: y.into(),
+            width_inc: incr.x.into(),
+            height_inc: incr.y.into(),
             min_aspect_num: 0,
             min_aspect_den: 0,
             max_aspect_num: 0,
@@ -1787,9 +1787,9 @@ impl WindowOps for XWindow {
         });
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         XConnection::with_window_inner(self.0, move |inner| {
-            if let Err(err) = inner.set_resize_increments(x, y) {
+            if let Err(err) = inner.set_resize_increments(incr) {
                 log::error!("set_resize_increments failed: {:#}", err);
             }
             Ok(())

@@ -1,5 +1,5 @@
 use crate::utilsprites::RenderMetrics;
-use ::window::{Dimensions, Window, WindowOps, WindowState};
+use ::window::{Dimensions, ResizeIncrement, Window, WindowOps, WindowState};
 use config::{ConfigHandle, DimensionContext};
 use mux::Mux;
 use std::rc::Rc;
@@ -101,18 +101,14 @@ impl super::TermWindow {
             }
         }
 
-        window.set_resize_increments(
-            if self.config.use_resize_increments {
-                self.render_metrics.cell_size.width as u16
-            } else {
-                1
-            },
-            if self.config.use_resize_increments {
-                self.render_metrics.cell_size.height as u16
-            } else {
-                1
-            },
-        );
+        window.set_resize_increments(if self.config.use_resize_increments {
+            ResizeIncrement {
+                x: self.render_metrics.cell_size.width as u16,
+                y: self.render_metrics.cell_size.height as u16,
+            }
+        } else {
+            ResizeIncrement::disabled()
+        });
 
         if let Err(err) = self.recreate_texture_atlas(None) {
             log::error!("recreate_texture_atlas: {:#}", err);

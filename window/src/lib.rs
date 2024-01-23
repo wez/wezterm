@@ -330,7 +330,7 @@ pub trait WindowOps {
     /// the x and y values specified.
     /// This may not be supported or respected by the desktop
     /// environment.
-    fn set_resize_increments(&self, _x: u16, _y: u16) {}
+    fn set_resize_increments(&self, _incr: ResizeIncrement) {}
 
     fn get_os_parameters(
         &self,
@@ -358,4 +358,17 @@ pub struct ResolvedGeometry {
     pub y: Option<i32>,
     pub width: usize,
     pub height: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ResizeIncrement {
+    pub x: u16,
+    pub y: u16,
+}
+
+impl ResizeIncrement {
+    /// Use this as a readable shorthand for disabling the feature
+    pub fn disabled() -> Self {
+        Self { x: 1, y: 1 }
+    }
 }
