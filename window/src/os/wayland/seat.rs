@@ -28,6 +28,8 @@ impl SeatHandler for WaylandState {
             log::trace!("Setting keyboard capability");
             let keyboard = seat.get_keyboard(qh, KeyboardData {});
             self.keyboard = Some(keyboard.clone());
+
+            self.text_input.advise_seat(&seat, &keyboard, qh);
         }
 
         if capability == Capability::Pointer && self.pointer.is_none() {

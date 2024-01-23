@@ -354,6 +354,13 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
+            Ok(())
+        });
+    }
+
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         WaylandConnection::with_window_inner(self.0, |inner| {
@@ -849,6 +856,34 @@ impl WaylandWindowInner {
             return;
         }
         self.do_paint().unwrap();
+    }
+
+    fn set_text_cursor_position(&mut self, rect: Rect) {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let state = &conn.wayland_state.borrow();
+        let surface = self.surface().clone();
+
+        let surface_id = surface.id();
+        let active_surface_id = state.active_surface_id.borrow().as_ref().unwrap().clone();
+
+        if surface_id == active_surface_id {
+            if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
+                self.text_cursor.replace(rect);
+
+                let surface_udata = SurfaceUserData::from_wl(&surface);
+                let factor = surface_udata.surface_data().scale_factor();
+
+                if let Some(input) = state.text_input.get_text_input_for_surface(&surface) {
+                    input.set_cursor_rectangle(
+                        rect.min_x() as i32 / factor,
+                        rect.min_y() as i32 / factor,
+                        rect.width() as i32 / factor,
+                        rect.height() as i32 / factor,
+                    );
+                    input.commit();
+                }
+            }
+        }
     }
 
     fn set_title(&mut self, title: String) {
