@@ -12,7 +12,6 @@ use std::os::unix::ffi::OsStrExt;
 use wezterm_input_types::{KeyboardLedStatus, PhysKeyCode};
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
-use xkbcommon::xkb::KeyDirection;
 
 pub struct Keyboard {
     context: xkb::Context,
@@ -224,12 +223,6 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
-        let x11_use_passive_key_updates = config::configuration().x11_use_passive_key_updates;
-
-        if !x11_use_passive_key_updates {
-            self.update_key(xcode, pressed);
-        }
-
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
 
         let modifiers_from_state = self.get_key_modifiers();
@@ -242,7 +235,7 @@ impl KeyboardWithFallback {
         // This also happens intermittently for wez on an Ubuntu system where
         // the XServer clears the mask state seemingly at the wrong time via
         // a call into process_xkb_event that zeroes out all the modifier states.
-        let raw_modifiers = if modifiers_from_state.is_empty() && x11_use_passive_key_updates {
+        let raw_modifiers = if modifiers_from_state.is_empty() {
             modifiers_from_event
         } else {
             modifiers_from_state
@@ -461,9 +454,7 @@ impl KeyboardWithFallback {
 
         match event {
             xcb::Event::Xkb(xcb::xkb::Event::StateNotify(e)) => {
-                if config::configuration().x11_use_passive_key_updates {
-                    self.update_state(e);
-                }
+                self.update_state(e);
             }
             xcb::Event::Xkb(
                 xcb::xkb::Event::MapNotify(_) | xcb::xkb::Event::NewKeyboardNotify(_),
@@ -495,15 +486,6 @@ impl KeyboardWithFallback {
             .update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
     }
 
-    /// Use either this method OR update_state, not both!
-    pub fn update_key(&self, xcode: xkb::Keycode, pressed: bool) {
-        self.selected.update_key(xcode, pressed);
-        self.fallback.update_key(xcode, pressed);
-    }
-
-    /// Use either this method OR update_key, not both!
-    /// Per <https://docs.rs/xkbcommon/latest/xkbcommon/xkb/struct.State.html#method.update_key>
-    /// you MUST call this method on Wayland.
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
         self.selected.update_state(ev);
         self.fallback.update_state(ev);
@@ -679,17 +661,6 @@ impl Keyboard {
             0,
             0,
             xkb::LayoutIndex::from(group),
-        );
-    }
-
-    pub fn update_key(&self, xcode: xkb::Keycode, pressed: bool) {
-        self.state.borrow_mut().update_key(
-            xcode,
-            if pressed {
-                KeyDirection::Down
-            } else {
-                KeyDirection::Up
-            },
         );
     }
 
