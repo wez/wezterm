@@ -156,7 +156,7 @@ impl Dispatch<ZwlrOutputManagerV1, GlobalData, WaylandState> for OutputManagerSt
         _qhandle: &wayland_client::QueueHandle<WaylandState>,
     ) {
         log::debug!("handle_zwlr_output_event {event:?}");
-        let mut inner = state.output_manager.unwrap().inner.lock().unwrap();
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
 
         match event {
             ZwlrOutputEvent::Head { head } => {
@@ -182,7 +182,7 @@ impl Dispatch<ZwlrOutputHeadV1, OutputManagerData, WaylandState> for OutputManag
     ) {
         log::debug!("handle_zwlr_head_event {event:?}");
 
-        let mut inner = state.output_manager.unwrap().inner.lock().unwrap();
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
         let id = head.id();
         let info = inner
             .zwlr_head_info
@@ -259,7 +259,7 @@ impl Dispatch<ZwlrOutputModeV1, OutputManagerData, WaylandState> for OutputManag
         _qhandle: &wayland_client::QueueHandle<WaylandState>,
     ) {
         log::debug!("handle_zwlr_mode_event {event:?}");
-        let mut inner = state.output_manager.unwrap().inner.lock().unwrap();
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
 
         let id = mode.id();
         let info = inner
