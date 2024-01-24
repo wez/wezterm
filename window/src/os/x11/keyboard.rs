@@ -65,7 +65,7 @@ impl Compose {
 
         let previously_composing = !self.composition.is_empty();
         let feed_result = self.state.feed(xsym);
-        log::trace!("feed {xsym} -> result {feed_result:?}");
+        log::trace!("feed {xsym:?} -> result {feed_result:?}");
 
         match self.state.status() {
             ComposeStatus::Composing => {
@@ -169,7 +169,13 @@ impl KeyboardWithFallback {
     ) -> Option<WindowKeyEvent> {
         let want_repeat = self.selected.wayland_key_repeats(code);
         let raw_modifiers = self.get_key_modifiers();
-        self.process_key_event_impl(code + 8, raw_modifiers, pressed, events, want_repeat)
+        self.process_key_event_impl(
+            xkb::Keycode::new(code + 8),
+            raw_modifiers,
+            pressed,
+            events,
+            want_repeat,
+        )
     }
 
     /// Compute the Modifier mask equivalent from the button mask
@@ -246,10 +252,10 @@ impl KeyboardWithFallback {
         let raw_key_event = RawKeyEvent {
             key: match phys_code {
                 Some(phys) => KeyCode::Physical(phys),
-                None => KeyCode::RawCode(xcode),
+                None => KeyCode::RawCode(xcode.into()),
             },
             phys_code,
-            raw_code: xcode,
+            raw_code: xcode.into(),
             modifiers: raw_modifiers,
             leds,
             repeat_count: 1,
@@ -343,7 +349,9 @@ impl KeyboardWithFallback {
                         && raw_modifiers
                             .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
                     {
-                        match keysym_to_keycode(sym).or_else(|| keysym_to_keycode(xsym)) {
+                        match keysym_to_keycode(sym.into())
+                            .or_else(|| keysym_to_keycode(xsym.into()))
+                        {
                             Some(crate::KeyCode::Char(c)) if !c.is_ascii() => {
                                 // Potentially a Cyrillic or other non-european layout.
                                 // Consider shortcuts like CTRL-C against the default
@@ -356,7 +364,7 @@ impl KeyboardWithFallback {
                                     ) => {
                                         log::trace!(
                                             "process_key_event: RawKeyEvent using fallback \
-                                             sym {fb_sym} because layout would expand to \
+                                             sym {fb_sym:?} because layout would expand to \
                                              non-ascii text {c:?}"
                                         );
                                         fb_sym
@@ -382,7 +390,8 @@ impl KeyboardWithFallback {
 
         let kc = match kc {
             Some(kc) => kc,
-            None => match keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym)) {
+            None => match keysym_to_keycode(ksym.into()).or_else(|| keysym_to_keycode(xsym.into()))
+            {
                 Some(kc) => kc,
                 None => {
                     log::trace!("keysym_to_keycode for {:?} and {:?} -> None", ksym, xsym);
@@ -641,7 +650,9 @@ impl Keyboard {
 
     /// Returns true if a given wayland keycode allows for automatic key repeats
     pub fn wayland_key_repeats(&self, code: u32) -> bool {
-        self.keymap.borrow().key_repeats(code + 8)
+        self.keymap
+            .borrow()
+            .key_repeats(xkb::Keycode::new(code + 8))
     }
 
     pub fn get_device_id(&self) -> i32 {
