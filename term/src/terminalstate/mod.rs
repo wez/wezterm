@@ -836,6 +836,7 @@ impl TerminalState {
     /// We need to resize both the primary and alt screens, adjusting
     /// the cursor positions of both accordingly.
     pub fn resize(&mut self, size: TerminalSize) {
+        self.increment_seqno();
         let (cursor_main, cursor_alt) = if self.screen.alt_screen_is_active {
             (
                 self.screen
