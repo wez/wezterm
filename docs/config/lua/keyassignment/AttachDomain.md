@@ -3,7 +3,7 @@
 {{since('20220624-141144-bd1b7c5d')}}
 
 Attempts to attach the named multiplexing domain.  The name can be any of the
-names used in you `ssh_domains`, `unix_domains` or `tls_clients`
+names used in your `ssh_domains`, `unix_domains` or `tls_clients`
 configurations.
 
 Attaching a domain will attempt to import the windows, tabs and panes from the
