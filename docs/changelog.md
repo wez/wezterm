@@ -169,6 +169,8 @@ As features stabilize some brief notes about them will accumulate here.
   to a cache invalidation issue. #4828
 * X11: Fix an issue where SHIFT and other modifiers could be inaccurate for automated
   or high speed keyboard inputs. #4615 #3840
+* X11: can now paste STRING (latin-1) data from the clipboard, in addition to
+  UTF-8 string data. #4402
 
 #### Updated
 * Bundled harfbuzz to 8.3.0

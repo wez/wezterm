@@ -881,6 +881,40 @@ impl XWindowInner {
                         log::error!("clipboard: err while getting clipboard property: {:?}", err);
                     }
                 }
+            } else if selection.property() != xcb::x::ATOM_NONE
+                && selection.target() == xcb::x::ATOM_STRING
+            {
+                log::trace!(
+                    "SEL: window_id={window_id:?} requesting selection from window {:?}",
+                    selection.requestor()
+                );
+
+                match conn.send_and_wait_request(&xcb::x::GetProperty {
+                    delete: false,
+                    window: selection.requestor(),
+                    property: selection.property(),
+                    r#type: xcb::x::ATOM_STRING,
+                    long_offset: 0,
+                    long_length: u32::max_value(),
+                }) {
+                    Ok(prop) => {
+                        if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
+                        {
+                            fn latin1_to_string(s: &[u8]) -> String {
+                                s.iter().map(|&c| c as char).collect()
+                            }
+
+                            promise.ok(latin1_to_string(prop.value()));
+                        }
+                        conn.send_request_no_reply(&xcb::x::DeleteProperty {
+                            window: self.window_id,
+                            property: conn.atom_xsel_data,
+                        })?;
+                    }
+                    Err(err) => {
+                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                    }
+                }
             } else if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
                 log::trace!(
                     "SEL: window_id={window_id:?} weird state, fulfil promise with empty string"
