@@ -198,6 +198,11 @@ impl ExitStatus {
     pub fn exit_code(&self) -> u32 {
         self.code
     }
+
+    /// Returns the signal if present that this ExitStatus was constructed with
+    pub fn signal(&self) -> Option<&str> {
+        self.signal.as_deref()
+    }
 }
 
 impl From<std::process::ExitStatus> for ExitStatus {
