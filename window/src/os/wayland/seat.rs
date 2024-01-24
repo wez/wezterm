@@ -3,6 +3,7 @@ use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, QueueHandle};
 
+use crate::wayland::copy_and_paste::PrimarySelectionManagerData;
 use crate::wayland::keyboard::KeyboardData;
 use crate::wayland::pointer::PointerUserData;
 
@@ -48,6 +49,12 @@ impl SeatHandler for WaylandState {
             let data_device_manager = &self.data_device_manager_state;
             let data_device = data_device_manager.get_data_device(qh, &seat);
             self.data_device.replace(data_device);
+
+            let primary_select_device = self.primary_selection_manager.as_ref().map(|m| {
+                m.manager
+                    .get_device(&seat, qh, PrimarySelectionManagerData::default())
+            });
+            self.primary_select_device = primary_select_device;
         }
     }
 
