@@ -70,7 +70,7 @@ winreg = "0.10"
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
-x11 = {version ="2.19", features = ["xlib_xcb", "xlib"]}
+x11 = {version ="2.21", features = ["xlib_xcb", "xlib"]}
 xcb = {version="1.2", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "present", "as-raw-xcb-connection"]}
 xkbcommon = { version = "0.7.0", features = ["x11", "wayland"] }
 mio = {version="0.8", features=["os-ext"]}
