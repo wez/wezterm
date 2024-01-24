@@ -24,5 +24,29 @@ def write_chunked(**cmd):
       sys.stdout.flush()
       cmd.clear()
 
-with open(sys.argv[-1], 'rb') as f:
-   write_chunked(a='T', f=100, data=f.read())
+def just_print(img):
+    write_chunked(a='T', f=100, data=img)
+
+def test_x_y_w_h_c_r(img):
+    write_chunked(a='T', f=100, y=150, h=105, C=1, data=img)
+    write_chunked(a='T', f=100, y=200, w=1, data=img)
+    write_chunked(a='T', f=100, y=200, h=1, data=img)
+    write_chunked(a='T', f=100, x=300, y=100, h=10, w=10, data=img)
+    write_chunked(a='T', f=100, x=300, y=100, h=10, w=10, r=15, data=img)
+    write_chunked(a='T', f=100, x=300, y=100, h=10, w=10, c=1, data=img)
+    write_chunked(a='T', f=100, x=300, y=100, h=10, w=10, r=1, data=img)
+    write_chunked(a='T', f=100, x=300, y=100, h=10, w=10, r=15, c=20, data=img)
+
+
+def test_cell_offsets(img):
+    write_chunked(a='T', f=100, h=10, w=10, X=2, Y=2, data=img)
+    write_chunked(a='T', f=100, h=20, w=10, X=2, Y=2, data=img)
+    write_chunked(a='T', f=100, h=2, Y=20, data=img)
+    write_chunked(a='T', f=100, h=38, w=2, X=19, data=img)
+
+if __name__ == "__main__":
+    with open(sys.argv[-1], 'rb') as f:
+        img = f.read()
+    just_print(img)
+    # test_x_y_w_h_c_r(img)
+    # test_cell_offsets(img)
