@@ -173,16 +173,14 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn screens(&self) -> anyhow::Result<crate::screen::Screens> {
-        // TODO: implement for the outputhandler
-        // if let Some(screens) = self
-        //     .environment
-        //     .with_inner(|env| env.output_handler.screens())
-        // {
-        //     return Ok(screens);
-        // }
-        //
-
         log::trace!("Getting screens for wayland connection");
+
+        if let Some(output_manager) = &self.wayland_state.borrow().output_manager {
+            if let Some(screens) = output_manager.screens() {
+                return Ok(screens);
+            }
+        }
+
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
         let config = config::configuration();
