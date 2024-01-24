@@ -1,7 +1,5 @@
-use std::io::Write;
-use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
+use std::os::fd::{FromRawFd, IntoRawFd};
 
-use anyhow::bail;
 use filedescriptor::FileDescriptor;
 use smithay_client_toolkit::data_device_manager::data_device::{
     DataDevice, DataDeviceDataExt, DataDeviceHandler,
@@ -16,6 +14,7 @@ use crate::wayland::drag_and_drop::SurfaceAndOffer;
 use crate::wayland::pointer::PointerUserData;
 use crate::wayland::SurfaceUserData;
 
+use super::copy_and_paste::write_selection_to_pipe;
 use super::drag_and_drop::{DragAndDrop, SurfaceAndPipe};
 use super::state::WaylandState;
 
@@ -238,39 +237,4 @@ impl DataSourceHandler for WaylandState {
         _action: wayland_client::protocol::wl_data_device_manager::DndAction,
     ) {
     }
-}
-
-fn write_selection_to_pipe(fd: FileDescriptor, text: &str) {
-    if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
-        log::error!("while sending primary selection to pipe: {}", e);
-    }
-}
-
-fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> anyhow::Result<()> {
-    file.set_non_blocking(true)?;
-    let mut pfd = libc::pollfd {
-        fd: file.as_raw_fd(),
-        events: libc::POLLOUT,
-        revents: 0,
-    };
-
-    let mut buf = data;
-
-    while !buf.is_empty() {
-        if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
-            match file.write(buf) {
-                Ok(size) if size == 0 => {
-                    bail!("zero byte write");
-                }
-                Ok(size) => {
-                    buf = &buf[size..];
-                }
-                Err(e) => bail!("error writing to pipe: {}", e),
-            }
-        } else {
-            bail!("timed out writing to pipe");
-        }
-    }
-
-    Ok(())
 }
