@@ -165,6 +165,8 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @tradiff! #4339 #2373
 * Scrolling glitch in Command Palette, Launcher and InputSelector. Thanks to
   @metiftikci! #4839
+* Pane resizing, especially around zooming, could sometimes leave artifacts due
+  to a cache invalidation issue. #4828
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
