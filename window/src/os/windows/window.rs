@@ -2570,9 +2570,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
     let mut leds = KeyboardLedStatus::empty();
     if keys[VK_CAPITAL as usize] & 1 != 0 {
+        modifiers |= Modifiers::CAPS_LOCK;
         leds |= KeyboardLedStatus::CAPS_LOCK;
     }
     if keys[VK_NUMLOCK as usize] & 1 != 0 {
+        modifiers |= Modifiers::NUM_LOCK;
         leds |= KeyboardLedStatus::NUM_LOCK;
     }
 
