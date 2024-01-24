@@ -38,7 +38,7 @@ struct Compose {
 enum FeedResult {
     Composing(String),
     Composed(String, xkb::Keysym),
-    Nothing(String, xkb::Keysym, bool),
+    Nothing(String, xkb::Keysym),
     Cancelled,
 }
 
@@ -54,8 +54,6 @@ impl Compose {
         xsym: xkb::Keysym,
         key_state: &RefCell<xkb::State>,
     ) -> FeedResult {
-        let had_composition = !self.composition.is_empty();
-
         if matches!(
             self.state.status(),
             ComposeStatus::Nothing | ComposeStatus::Cancelled | ComposeStatus::Composed
@@ -104,6 +102,10 @@ impl Compose {
                     if !utf8.is_empty() {
                         self.composition.push_str(&utf8);
                     }
+                    if self.composition.is_empty() {
+                        // Ensure that we have something in the composition
+                        self.composition.push(' ');
+                    }
                 }
                 FeedResult::Composing(self.composition.clone())
             }
@@ -115,9 +117,7 @@ impl Compose {
             }
             ComposeStatus::Nothing => {
                 let utf8 = key_state.borrow().key_get_utf8(xcode);
-                let clear_dead_key_state = had_composition;
-                self.composition.clear();
-                FeedResult::Nothing(utf8, xsym, clear_dead_key_state)
+                FeedResult::Nothing(utf8, xsym)
             }
             ComposeStatus::Cancelled => {
                 self.state.reset();
@@ -303,7 +303,7 @@ impl KeyboardWithFallback {
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     sym
                 }
-                FeedResult::Nothing(utf8, sym, clear_dead_key_state) => {
+                FeedResult::Nothing(utf8, sym) => {
                     // Composition had no special expansion.
                     // Xkb will return a textual representation of the key even when
                     // it is not generally useful; for example, when CTRL, ALT or SUPER
@@ -326,19 +326,8 @@ impl KeyboardWithFallback {
 
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Nothing: \
-                                {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?} \
-                                clear_dead_key_state={clear_dead_key_state}"
+                         {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?}"
                     );
-
-                    if clear_dead_key_state {
-                        // Some setups don't guarantee to trigger a state transition
-                        // that will clear out the composition state, so we will
-                        // synthesize it for ourselves here: since the
-                        // FeedResult::Nothing case will emit a key to the GUI
-                        // layer we take that as a signal that composition is
-                        // complete and emit an event to clear it
-                        events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                    }
 
                     // If we have a modified key, and its expansion is non-ascii, such as cyrillic
                     // "Es" (which appears visually similar to "c" in latin texts), then consider
@@ -357,11 +346,7 @@ impl KeyboardWithFallback {
                                 // Consider shortcuts like CTRL-C against the default
                                 // latin layout
                                 match fallback_feed {
-                                    FeedResult::Nothing(
-                                        _fb_utf8,
-                                        fb_sym,
-                                        _clear_dead_key_state,
-                                    ) => {
+                                    FeedResult::Nothing(_fb_utf8, fb_sym) => {
                                         log::trace!(
                                             "process_key_event: RawKeyEvent using fallback \
                                              sym {fb_sym:?} because layout would expand to \
