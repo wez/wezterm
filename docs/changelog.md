@@ -167,6 +167,8 @@ As features stabilize some brief notes about them will accumulate here.
   @metiftikci! #4839
 * Pane resizing, especially around zooming, could sometimes leave artifacts due
   to a cache invalidation issue. #4828
+* X11: Fix an issue where SHIFT and other modifiers could be inaccurate for automated
+  or high speed keyboard inputs. #4615 #3840
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
