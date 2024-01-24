@@ -9,6 +9,9 @@ use smithay_client_toolkit::data_device_manager::data_source::CopyPasteSource;
 use smithay_client_toolkit::data_device_manager::DataDeviceManagerState;
 use smithay_client_toolkit::globals::GlobalData;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
 use smithay_client_toolkit::seat::pointer::ThemedPointer;
 use smithay_client_toolkit::seat::SeatState;
@@ -34,7 +37,7 @@ use crate::x11::KeyboardWithFallback;
 
 use super::inputhandler::{TextInputData, TextInputState};
 use super::pointer::{PendingMouse, PointerUserData};
-use super::{SurfaceUserData, WaylandWindowInner};
+use super::{OutputManagerData, OutputManagerState, SurfaceUserData, WaylandWindowInner};
 
 // We can't combine WaylandState and WaylandConnection together because
 // the run_message_loop has &self(WaylandConnection) and needs to update WaylandState as mut
@@ -43,6 +46,7 @@ pub(super) struct WaylandState {
     pub(super) output: OutputState,
     pub(super) compositor: CompositorState,
     pub(super) text_input: TextInputState,
+    pub(super) output_manager: Option<OutputManagerState>,
     pub(super) seat: SeatState,
     pub(super) xdg: XdgShell,
     pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
@@ -74,6 +78,11 @@ impl WaylandState {
             output: OutputState::new(globals, qh),
             compositor: CompositorState::bind(globals, qh)?,
             text_input: TextInputState::bind(globals, qh)?,
+            output_manager: if config::configuration().enable_zwlr_output_manager {
+                Some(OutputManagerState::bind(globals, qh)?)
+            } else {
+                None
+            },
             windows: RefCell::new(HashMap::new()),
             seat: SeatState::new(globals, qh),
             xdg: XdgShell::bind(globals, qh)?,
@@ -156,3 +165,7 @@ delegate_xdg_window!(WaylandState);
 
 delegate_dispatch!(WaylandState: [ZwpTextInputManagerV3: GlobalData] => TextInputState);
 delegate_dispatch!(WaylandState: [ZwpTextInputV3: TextInputData] => TextInputState);
+
+delegate_dispatch!(WaylandState: [ZwlrOutputManagerV1: GlobalData] => OutputManagerState);
+delegate_dispatch!(WaylandState: [ZwlrOutputHeadV1: OutputManagerData] => OutputManagerState);
+delegate_dispatch!(WaylandState: [ZwlrOutputModeV1: OutputManagerData] => OutputManagerState);
