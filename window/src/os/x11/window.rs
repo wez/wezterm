@@ -849,11 +849,35 @@ impl XWindowInner {
         );
 
         if let Some(clipboard) = self.selection_atom_to_clipboard(selection.selection()) {
-            if selection.property() != xcb::x::ATOM_NONE
-                // Restrict to strictly UTF-8 to avoid crashing; see
-                // <https://github.com/meh/rust-xcb-util/issues/21>
-                && selection.target() == conn.atom_utf8_string
-            {
+            if selection.property() == xcb::x::ATOM_NONE {
+                if selection.target() == conn.atom_utf8_string {
+                    log::trace!(
+                        "SEL: window_id={window_id:?} -> UTF-8 selection data \
+                         available, requesting STRING instead"
+                    );
+                    conn.send_request_no_reply_log(&xcb::x::ConvertSelection {
+                        requestor: window_id,
+                        selection: selection.selection(),
+                        target: xcb::x::ATOM_STRING,
+                        property: conn.atom_xsel_data,
+                        time: self.copy_and_paste.time,
+                    });
+                    return Ok(());
+                }
+
+                if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                    log::trace!(
+                        "SEL: window_id={window_id:?} -> no compatible selection data \
+                                available, fulfil promise with empty string"
+                    );
+                    promise.ok("".to_owned());
+                    return Ok(());
+                }
+
+                return Ok(());
+            }
+
+            if selection.target() == conn.atom_utf8_string {
                 log::trace!(
                     "SEL: window_id={window_id:?} requesting selection from window {:?}",
                     selection.requestor()
@@ -881,9 +905,7 @@ impl XWindowInner {
                         log::error!("clipboard: err while getting clipboard property: {:?}", err);
                     }
                 }
-            } else if selection.property() != xcb::x::ATOM_NONE
-                && selection.target() == xcb::x::ATOM_STRING
-            {
+            } else if selection.target() == xcb::x::ATOM_STRING {
                 log::trace!(
                     "SEL: window_id={window_id:?} requesting selection from window {:?}",
                     selection.requestor()
