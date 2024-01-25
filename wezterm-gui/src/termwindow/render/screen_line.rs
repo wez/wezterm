@@ -357,7 +357,7 @@ impl crate::TermWindow {
                 };
                 let mut quad = layers
                     .allocate(cursor_layer)
-                    .context(format!("layers.allocate({cursor_layer})"))?;
+                    .with_context(||format!("layers.allocate({cursor_layer})"))?;
                 quad.set_hsv(hsv);
                 quad.set_has_color(false);
 
