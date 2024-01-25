@@ -171,6 +171,8 @@ As features stabilize some brief notes about them will accumulate here.
   or high speed keyboard inputs. #4615 #3840
 * X11: can now paste STRING (latin-1) data from the clipboard, in addition to
   UTF-8 string data. #4402
+* [use_resize_increments](config/lua/config/use_resize_increments.html) now
+  accounts for window padding. Thanks to @jknockel! #4824
 
 #### Updated
 * Bundled harfbuzz to 8.3.0

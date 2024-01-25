@@ -11,3 +11,6 @@ This option is only respected on X11, Wayland and macOS systems.
 Note that if you have configured [window_padding](window_padding.md) then the
 resize increments don't take the padding into account.
 
+{{since('nightly')}}
+
+Window padding is now accounted for.
