@@ -868,80 +868,56 @@ impl XWindowInner {
                 if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
                     log::trace!(
                         "SEL: window_id={window_id:?} -> no compatible selection data \
-                                available, fulfil promise with empty string"
+                         available, fulfil promise with empty string"
                     );
                     promise.ok("".to_owned());
                     return Ok(());
                 }
+                log::trace!(
+                    "SEL: window_id={window_id:?} -> no compatible selection data \
+                     available, and no promise. weird!"
+                );
 
                 return Ok(());
             }
 
-            if selection.target() == conn.atom_utf8_string {
-                log::trace!(
-                    "SEL: window_id={window_id:?} requesting selection from window {:?}",
-                    selection.requestor()
-                );
-
-                match conn.send_and_wait_request(&xcb::x::GetProperty {
-                    delete: false,
-                    window: selection.requestor(),
-                    property: selection.property(),
-                    r#type: conn.atom_utf8_string,
-                    long_offset: 0,
-                    long_length: u32::max_value(),
-                }) {
-                    Ok(prop) => {
-                        if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
-                        {
-                            promise.ok(String::from_utf8_lossy(prop.value()).to_string());
+            match conn.send_and_wait_request(&xcb::x::GetProperty {
+                delete: false,
+                window: selection.requestor(),
+                property: selection.property(),
+                r#type: selection.target(),
+                long_offset: 0,
+                long_length: u32::max_value(),
+            }) {
+                Ok(prop) => {
+                    if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                        fn latin1_to_string(s: &[u8]) -> String {
+                            s.iter().map(|&c| c as char).collect()
                         }
-                        conn.send_request_no_reply(&xcb::x::DeleteProperty {
-                            window: self.window_id,
-                            property: conn.atom_xsel_data,
-                        })?;
+
+                        let data = if selection.target() == xcb::x::ATOM_STRING {
+                            latin1_to_string(prop.value())
+                        } else {
+                            // selection.target() is probably == conn.atom_utf8_string,
+                            // because we only ever ask for either STRING or UTF8_STRING.
+                            // If it isn't, we'll just try to convert it anyway.
+                            String::from_utf8_lossy(prop.value()).to_string()
+                        };
+
+                        promise.ok(data);
                     }
-                    Err(err) => {
-                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
+
+                    conn.send_request_no_reply(&xcb::x::DeleteProperty {
+                        window: self.window_id,
+                        property: conn.atom_xsel_data,
+                    })?;
+                }
+                Err(err) => {
+                    log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                    if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                        promise.ok("".to_owned());
                     }
                 }
-            } else if selection.target() == xcb::x::ATOM_STRING {
-                log::trace!(
-                    "SEL: window_id={window_id:?} requesting selection from window {:?}",
-                    selection.requestor()
-                );
-
-                match conn.send_and_wait_request(&xcb::x::GetProperty {
-                    delete: false,
-                    window: selection.requestor(),
-                    property: selection.property(),
-                    r#type: xcb::x::ATOM_STRING,
-                    long_offset: 0,
-                    long_length: u32::max_value(),
-                }) {
-                    Ok(prop) => {
-                        if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
-                        {
-                            fn latin1_to_string(s: &[u8]) -> String {
-                                s.iter().map(|&c| c as char).collect()
-                            }
-
-                            promise.ok(latin1_to_string(prop.value()));
-                        }
-                        conn.send_request_no_reply(&xcb::x::DeleteProperty {
-                            window: self.window_id,
-                            property: conn.atom_xsel_data,
-                        })?;
-                    }
-                    Err(err) => {
-                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
-                    }
-                }
-            } else if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
-                log::trace!(
-                    "SEL: window_id={window_id:?} weird state, fulfil promise with empty string"
-                );
-                promise.ok("".to_owned());
             }
         } else {
             log::trace!("SEL: window_id={window_id:?} unknown selection {selection_name}");
