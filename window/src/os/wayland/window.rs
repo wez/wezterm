@@ -860,27 +860,28 @@ impl WaylandWindowInner {
 
     fn set_text_cursor_position(&mut self, rect: Rect) {
         let conn = WaylandConnection::get().unwrap().wayland();
-        let state = &conn.wayland_state.borrow();
+        let state = conn.wayland_state.borrow();
         let surface = self.surface().clone();
-
+        let active_surface_id = state.active_surface_id.borrow();
         let surface_id = surface.id();
-        let active_surface_id = state.active_surface_id.borrow().as_ref().unwrap().clone();
 
-        if surface_id == active_surface_id {
-            if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
-                self.text_cursor.replace(rect);
+        if let Some(active_surface_id) = active_surface_id.as_ref() {
+            if surface_id == active_surface_id.clone() {
+                if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
+                    self.text_cursor.replace(rect);
 
-                let surface_udata = SurfaceUserData::from_wl(&surface);
-                let factor = surface_udata.surface_data().scale_factor();
+                    let surface_udata = SurfaceUserData::from_wl(&surface);
+                    let factor = surface_udata.surface_data().scale_factor();
 
-                if let Some(input) = state.text_input.get_text_input_for_surface(&surface) {
-                    input.set_cursor_rectangle(
-                        rect.min_x() as i32 / factor,
-                        rect.min_y() as i32 / factor,
-                        rect.width() as i32 / factor,
-                        rect.height() as i32 / factor,
-                    );
-                    input.commit();
+                    if let Some(input) = state.text_input.get_text_input_for_surface(&surface) {
+                        input.set_cursor_rectangle(
+                            rect.min_x() as i32 / factor,
+                            rect.min_y() as i32 / factor,
+                            rect.width() as i32 / factor,
+                            rect.height() as i32 / factor,
+                        );
+                        input.commit();
+                    }
                 }
             }
         }
@@ -1176,16 +1177,6 @@ impl SurfaceUserData {
 impl SurfaceDataExt for SurfaceUserData {
     fn surface_data(&self) -> &SurfaceData {
         &self.surface_data
-    }
-}
-
-unsafe impl HasRawDisplayHandle for WaylandWindowInner {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        // let mut handle = WaylandDisplayHandle::empty();
-        // let conn = WaylandConnection::get().unwrap().wayland();
-        // handle.display = conn.display.borrow().c_ptr() as _;
-        // RawDisplayHandle::Wayland(handle)
-        todo!()
     }
 }
 
