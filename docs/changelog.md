@@ -115,7 +115,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Double click on the tab bar to toggle maximize/normal state. Thanks to
   @junnplus! #3698 #3699
 * [freetype_load_target](config/lua/config/freetype_load_target.md) and
-* [freetype_render_target](config/lua/config/freetype_render_target.md) can now
+  [freetype_render_target](config/lua/config/freetype_render_target.md) can now
   be set to `VerticalLcd` for vertically decimated LCD displays. Thanks to
   @xiaopengli89! #4426
 
