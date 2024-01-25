@@ -23,6 +23,7 @@ use raw_window_handle::{
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
+use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
@@ -669,8 +670,16 @@ impl WaylandWindowInner {
 
                 if self.window_state.can_resize() {
                     if let Some(incr) = self.resize_increments {
-                        let desired_pixel_width = pixel_width - (pixel_width % incr.x as i32);
-                        let desired_pixel_height = pixel_height - (pixel_height % incr.y as i32);
+                        let min_width = incr.base_width + incr.x;
+                        let min_height = incr.base_height + incr.y;
+                        let desired_pixel_width = max(
+                            pixel_width - (pixel_width % incr.x as i32),
+                            min_width as i32,
+                        );
+                        let desired_pixel_height = max(
+                            pixel_height - (pixel_height % incr.y as i32),
+                            min_height as i32,
+                        );
                         w = self.pixels_to_surface(desired_pixel_width) as u32;
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
