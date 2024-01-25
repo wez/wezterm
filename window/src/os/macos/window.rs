@@ -1257,9 +1257,15 @@ impl WindowInner {
     }
 
     fn set_resize_increments(&self, incr: ResizeIncrement) {
+        let min_width = incr.base_width + incr.x;
+        let min_height = incr.base_height + incr.y;
         unsafe {
             self.window
                 .setResizeIncrements_(NSSize::new(incr.x.into(), incr.y.into()));
+            let () = msg_send![
+                *self.window,
+                setContentMinSize: NSSize::new(min_width.into(), min_height.into())
+            ];
         }
     }
 
