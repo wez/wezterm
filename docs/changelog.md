@@ -173,6 +173,8 @@ As features stabilize some brief notes about them will accumulate here.
   UTF-8 string data. #4402
 * [use_resize_increments](config/lua/config/use_resize_increments.md) now
   accounts for window padding. Thanks to @jknockel! #4824
+* Bar shaped text cursors are now rendered above text. Thanks to
+  @ErrorNoInternet! #4850
 
 #### Updated
 * Bundled harfbuzz to 8.3.0
