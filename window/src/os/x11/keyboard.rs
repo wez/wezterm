@@ -210,30 +210,6 @@ impl KeyboardWithFallback {
         res
     }
 
-    fn mod_mask_from_modifiers(mods: Modifiers) -> xkbcommon::xkb::ModMask {
-        // KeyButMask is bit compatible (for the keys at least)
-        // with ModMask, and gives us identifiers/constants we can
-        // use without hardcoding numbers here. Seems to be a gap in
-        // the API surface of the xkbcommon crate which just exposes a u32
-        // for ModMask
-        let mut result = KeyButMask::empty();
-
-        if mods.contains(Modifiers::SHIFT) {
-            result |= KeyButMask::SHIFT;
-        }
-        if mods.contains(Modifiers::CTRL) {
-            result |= KeyButMask::CONTROL;
-        }
-        if mods.contains(Modifiers::ALT) {
-            result |= KeyButMask::MOD1;
-        }
-        if mods.contains(Modifiers::SUPER) {
-            result |= KeyButMask::MOD4;
-        }
-
-        result.bits() as _
-    }
-
     pub fn process_key_press_event(
         &self,
         xcb_ev: &xcb::x::KeyPressEvent,
@@ -272,11 +248,11 @@ impl KeyboardWithFallback {
     ) -> Option<WindowKeyEvent> {
         // extract current modifiers
         let event_modifiers = Self::modifiers_from_btn_mask(state);
-        // compute the raw modifier mask from it (maybe a more direct bit op is ok here?)
-        let raw_mod_mask = Self::mod_mask_from_modifiers(event_modifiers);
+        // take the raw modifier mask
+        let raw_mod_mask = state.bits();
         // and apply it to the underlying state so that eg: shifted keys
         // are correctly represented
-        self.update_modifier_state(raw_mod_mask, 0, 0, 0);
+        self.merge_current_xcb_modifiers(raw_mod_mask);
 
         // now do the regular processing
         let result = self.process_key_event_impl(xcode, event_modifiers, pressed, events, false);
@@ -555,6 +531,11 @@ impl KeyboardWithFallback {
         self.fallback.reapply_last_xcb_state();
     }
 
+    pub fn merge_current_xcb_modifiers(&self, mods: ModMask) {
+        self.selected.merge_current_xcb_modifiers(mods);
+        self.fallback.merge_current_xcb_modifiers(mods);
+    }
+
     pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
         self.selected.update_keymap(connection)
     }
@@ -742,6 +723,7 @@ impl Keyboard {
             latched_layout: ev.latched_group() as xkb::LayoutIndex,
             locked_layout: xkb::LayoutIndex::from(ev.locked_group() as u32),
         };
+        log::trace!("update_state with {state:?}");
 
         self.state.borrow_mut().update_mask(
             state.depressed_mods,
@@ -753,6 +735,18 @@ impl Keyboard {
         );
 
         *self.last_xcb_state.borrow_mut() = state;
+    }
+
+    pub fn merge_current_xcb_modifiers(&self, mods: ModMask) {
+        let state = self.last_xcb_state.borrow().clone();
+        self.state.borrow_mut().update_mask(
+            mods,
+            0,
+            0,
+            state.depressed_layout,
+            state.latched_layout,
+            state.locked_layout,
+        );
     }
 
     pub fn reapply_last_xcb_state(&self) {
