@@ -32,4 +32,4 @@ jobs:
           flake-lock-path: ./nix/flake.lock
           ignore-missing-flake-lock: false
       - name: Build default package
-        run: nix build nix
+        run: nix build ./nix
