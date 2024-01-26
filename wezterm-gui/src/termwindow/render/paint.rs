@@ -114,7 +114,6 @@ impl crate::TermWindow {
         );
         metrics::histogram!("gui.paint.impl", self.last_frame_duration);
         metrics::histogram!("gui.paint.impl.rate", 1.);
-        self.update_title_post_status();
 
         // If self.has_animation is some, then the last render detected
         // image attachments with multiple frames, so we also need to

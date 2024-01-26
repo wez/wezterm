@@ -175,6 +175,8 @@ As features stabilize some brief notes about them will accumulate here.
   accounts for window padding. Thanks to @jknockel! #4824
 * Bar shaped text cursors are now rendered above text. Thanks to
   @ErrorNoInternet! #4850
+* `format-tab-title` event was triggered excessively for background tabs/panes.
+  Thanks to @crides for investigating! #4788
 
 #### Updated
 * Bundled harfbuzz to 8.3.0

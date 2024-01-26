@@ -1228,7 +1228,8 @@ impl TermWindow {
                     // Handled by frontend
                 }
                 MuxNotification::PaneFocused(_) => {
-                    // Handled by clientpane
+                    // Also handled by clientpane
+                    self.update_title_post_status();
                 }
                 MuxNotification::TabResized(_) => {
                     // Handled by wezterm-client

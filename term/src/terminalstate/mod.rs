@@ -378,7 +378,10 @@ pub struct TerminalState {
 
     accumulating_title: Option<String>,
 
+    /// seqno when we last lost focus
     lost_focus_seqno: SequenceNo,
+    /// seqno when we last emitted Alert::OutputSinceFocusLost
+    lost_focus_alerted_seqno: SequenceNo,
     focused: bool,
 
     /// True if lines should be marked as bidi-enabled, and thus
@@ -575,6 +578,7 @@ impl TerminalState {
             enable_conpty_quirks: false,
             accumulating_title: None,
             lost_focus_seqno: seqno,
+            lost_focus_alerted_seqno: seqno,
             focused: true,
             bidi_enabled: None,
             bidi_hint: None,
@@ -795,8 +799,15 @@ impl TerminalState {
 
     pub(crate) fn trigger_unseen_output_notif(&mut self) {
         if self.has_unseen_output() {
-            if let Some(handler) = self.alert_handler.as_mut() {
-                handler.alert(Alert::OutputSinceFocusLost);
+            // We want to avoid over-notifying about output events,
+            // so here we gate the notification to the case where
+            // we have lost the focus more recently than the last
+            // time we notified about it
+            if self.lost_focus_seqno > self.lost_focus_alerted_seqno {
+                self.lost_focus_alerted_seqno = self.seqno;
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::OutputSinceFocusLost);
+                }
             }
         }
     }
