@@ -50,7 +50,7 @@ pub(super) struct WaylandState {
     registry: RegistryState,
     pub(super) output: OutputState,
     pub(super) compositor: CompositorState,
-    pub(super) text_input: TextInputState,
+    pub(super) text_input: Option<TextInputState>,
     pub(super) output_manager: Option<OutputManagerState>,
     pub(super) seat: SeatState,
     pub(super) xdg: XdgShell,
@@ -85,7 +85,7 @@ impl WaylandState {
             registry: RegistryState::new(globals),
             output: OutputState::new(globals, qh),
             compositor: CompositorState::bind(globals, qh)?,
-            text_input: TextInputState::bind(globals, qh)?,
+            text_input: TextInputState::bind(globals, qh).ok(),
             output_manager: if config::configuration().enable_zwlr_output_manager {
                 Some(OutputManagerState::bind(globals, qh)?)
             } else {
@@ -141,12 +141,10 @@ impl OutputHandler for WaylandState {
 
     fn update_output(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: WlOutput) {
         log::trace!("update output: OutputHandler");
-        todo!()
     }
 
     fn output_destroyed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: WlOutput) {
         log::trace!("output destroyed: OutputHandler");
-        todo!()
     }
 }
 // Undocumented in sctk 0.17: This is required to use have user data with a surface

@@ -30,7 +30,9 @@ impl SeatHandler for WaylandState {
             let keyboard = seat.get_keyboard(qh, KeyboardData {});
             self.keyboard = Some(keyboard.clone());
 
-            self.text_input.advise_seat(&seat, &keyboard, qh);
+            if let Some(text_input) = &self.text_input {
+                text_input.advise_seat(&seat, &keyboard, qh);
+            }
         }
 
         if capability == Capability::Pointer && self.pointer.is_none() {
