@@ -158,7 +158,7 @@ impl Dispatch<ZwpTextInputV3, TextInputData, WaylandState> for TextInputState {
     ) {
         log::trace!("ZwpTextInputEvent: {event:?}");
         let mut pending_state = {
-            let text_input = &mut state.text_input;
+            let text_input = state.text_input.as_mut().unwrap();
             let mut inner = text_input.inner.lock().unwrap();
             inner.pending_state.entry(input.id()).or_default().clone()
         };
@@ -201,6 +201,8 @@ impl Dispatch<ZwpTextInputV3, TextInputData, WaylandState> for TextInputState {
 
         state
             .text_input
+            .as_ref()
+            .unwrap()
             .inner
             .lock()
             .unwrap()
@@ -222,6 +224,8 @@ impl WaylandState {
 
 impl Drop for WaylandState {
     fn drop(&mut self) {
-        self.text_input.shutdown();
+        if let Some(text_input) = self.text_input.as_mut() {
+            text_input.shutdown();
+        }
     }
 }

@@ -873,14 +873,16 @@ impl WaylandWindowInner {
                     let surface_udata = SurfaceUserData::from_wl(&surface);
                     let factor = surface_udata.surface_data().scale_factor();
 
-                    if let Some(input) = state.text_input.get_text_input_for_surface(&surface) {
-                        input.set_cursor_rectangle(
-                            rect.min_x() as i32 / factor,
-                            rect.min_y() as i32 / factor,
-                            rect.width() as i32 / factor,
-                            rect.height() as i32 / factor,
-                        );
-                        input.commit();
+                    if let Some(text_input) = &state.text_input {
+                        if let Some(input) = text_input.get_text_input_for_surface(&surface) {
+                            input.set_cursor_rectangle(
+                                rect.min_x() as i32 / factor,
+                                rect.min_y() as i32 / factor,
+                                rect.width() as i32 / factor,
+                                rect.height() as i32 / factor,
+                            );
+                            input.commit();
+                        }
                     }
                 }
             }
