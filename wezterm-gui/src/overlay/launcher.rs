@@ -509,7 +509,7 @@ impl LauncherState {
                     self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('G'),
+                    key: KeyCode::Char('G') | KeyCode::Char('['),
                     modifiers: Modifiers::CTRL,
                 })
                 | InputEvent::Key(KeyEvent {

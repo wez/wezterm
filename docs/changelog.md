@@ -118,6 +118,7 @@ As features stabilize some brief notes about them will accumulate here.
   [freetype_render_target](config/lua/config/freetype_render_target.md) can now
   be set to `VerticalLcd` for vertically decimated LCD displays. Thanks to
   @xiaopengli89! #4426
+* Pressing `CTRL-[` in the launcher menu will close it. #4722
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
