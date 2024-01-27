@@ -18,10 +18,9 @@ use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
 use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
+use smithay_client_toolkit::subcompositor::SubcompositorState;
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_data_device, delegate_data_device_manager, delegate_data_offer,
-    delegate_data_source, delegate_output, delegate_registry, delegate_seat, delegate_shm,
-    delegate_xdg_shell, delegate_xdg_window, registry_handlers,
+    delegate_compositor, delegate_data_device, delegate_data_device_manager, delegate_data_offer, delegate_data_source, delegate_output, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
@@ -50,6 +49,7 @@ pub(super) struct WaylandState {
     registry: RegistryState,
     pub(super) output: OutputState,
     pub(super) compositor: CompositorState,
+    pub(super) subcompositor: Arc<SubcompositorState>,
     pub(super) text_input: Option<TextInputState>,
     pub(super) output_manager: Option<OutputManagerState>,
     pub(super) seat: SeatState,
@@ -81,10 +81,16 @@ impl WaylandState {
     pub(super) fn new(globals: &GlobalList, qh: &QueueHandle<Self>) -> anyhow::Result<Self> {
         let shm = Shm::bind(&globals, qh)?;
         let mem_pool = SlotPool::new(1, &shm)?;
+
+        let compositor = CompositorState::bind(globals, qh)?;
+        let subcompositor =
+            SubcompositorState::bind(compositor.wl_compositor().clone(), globals, qh)?;
+
         let wayland_state = WaylandState {
             registry: RegistryState::new(globals),
             output: OutputState::new(globals, qh),
-            compositor: CompositorState::bind(globals, qh)?,
+            compositor,
+            subcompositor: Arc::new(subcompositor),
             text_input: TextInputState::bind(globals, qh).ok(),
             output_manager: if config::configuration().enable_zwlr_output_manager {
                 Some(OutputManagerState::bind(globals, qh)?)
@@ -157,6 +163,7 @@ delegate_shm!(WaylandState);
 
 delegate_output!(WaylandState);
 delegate_compositor!(WaylandState);
+delegate_subcompositor!(WaylandState);
 
 delegate_seat!(WaylandState);
 
