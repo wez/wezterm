@@ -6237,7 +6237,7 @@ dependencies = [
 
 [[package]]
 name = "wezterm-bidi"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "env_logger 0.11.0",
  "k9 0.12.0",
