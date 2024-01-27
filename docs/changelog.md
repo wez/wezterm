@@ -65,7 +65,12 @@ As features stabilize some brief notes about them will accumulate here.
   In addition, there are now a number of options for explicitly resizing
   as a preprocessing step, and controlling the filtering and format used
   by the resizing, along with showing diagnostics around the resize operation. #3264
-* Color schemes: [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
+* Color schemes: [Aardvark Blue](colorschemes/a/index.md#aardvark-blue),
+  [alacritty](colorschemes/a/index.md#alacritty),
+  [Apple System Colors](colorschemes/a/index.md#apple-system-colors),
+  [Bamboo Light](colorschemes/b/index.md#bamboo-light),
+  [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
+  [Ef-Arbutus](colorschemes/e/index.md#ef-arbutus),
   [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
   [Ef-Day](colorschemes/e/index.md#ef-day),
   [Ef-Deuteranopia-Dark](colorschemes/e/index.md#ef-deuteranopia-dark),
@@ -79,8 +84,17 @@ As features stabilize some brief notes about them will accumulate here.
   [Ef-Light](colorschemes/e/index.md#ef-light),
   [Ef-Maris-Dark](colorschemes/e/index.md#ef-maris-dark),
   [Ef-Maris-Light](colorschemes/e/index.md#ef-maris-light),
+  [Ef-Melissa-Dark](colorschemes/e/index.md#ef-melissa-dark),
+  [Ef-Melissa-Light](colorschemes/e/index.md#ef-melissa-light),
   [Ef-Night](colorschemes/e/index.md#ef-night),
+  [Ef-Rosa](colorschemes/e/index.md#ef-rosa),
   [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
+  [farmhouse-dark](colorschemes/f/index.md#farmhouse-dark),
+  [farmhouse-light](colorschemes/f/index.md#farmhouse-light),
+  [Firefly Traditional](colorschemes/f/index.md#firefly-traditional),
+  [flexoki-dark](colorschemes/f/index.md#flexoki-dark),
+  [flexoki-light](colorschemes/f/index.md#flexoki-light),
+  [Github Dark (Gogh)](colorschemes/g/index.md#github-dark-gogh),
   [iTerm2 Dark Background](colorschemes/i/index.md#iterm2-dark-background),
   [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
   [iTerm2 Light Background](colorschemes/i/index.md#iterm2-light-background),
@@ -93,8 +107,13 @@ As features stabilize some brief notes about them will accumulate here.
   [Modus-Vivendi-Deuteranopia](colorschemes/m/index.md#modus-vivendi-deuteranopia),
   [Modus-Vivendi-Tinted](colorschemes/m/index.md#modus-vivendi-tinted),
   [Modus-Vivendi-Tritanopia](colorschemes/m/index.md#modus-vivendi-tritanopia),
+  [Moonfly (Gogh)](colorschemes/m/index.md#moonfly-gogh),
+  [Nightfly (Gogh)](colorschemes/n/index.md#nightfly-gogh),
   [Oxocarbon Dark (Gogh)](colorschemes/o/index.md#oxocarbon-dark-gogh),
-  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
+  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16),
+  [Selenized Dark (Gogh)](colorschemes/s/index.md#selenized-dark-gogh),
+  [Selenized Light (Gogh)](colorschemes/s/index.md#selenized-light-gogh),
+  [Website (Gogh)](colorschemes/w/index.md#website-gogh)
 * Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
   more recent versions of Noto Color Emoji. #4148
 * [wezterm cli zoom-pane](cli/cli/zoom-pane.md). Thanks to @quantonganh! #4160
