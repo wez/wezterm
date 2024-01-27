@@ -45,14 +45,9 @@ pub struct GoghTheme {
 
 impl GoghTheme {
     pub fn load_all(slice: &[u8]) -> anyhow::Result<Vec<ColorSchemeFile>> {
-        #[derive(Deserialize, Debug)]
-        struct Themes {
-            themes: Vec<GoghTheme>,
-        }
-
-        let data: Themes = serde_json::from_slice(slice)?;
+        let data: Vec<GoghTheme> = serde_json::from_slice(slice)?;
         let mut schemes = vec![];
-        for s in data.themes {
+        for s in data {
             let cursor = RgbaColor::try_from(s.cursorColor)?;
             let name = s.name;
             let background = RgbaColor::try_from(s.background)?;
