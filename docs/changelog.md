@@ -22,6 +22,11 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+* Not yet!
+
+### 20240127-113634-bbcac864
+
+#### Changed
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
 * The return type of
   [pane.get_current_working_dir](config/lua/pane/get_current_working_dir.md)
