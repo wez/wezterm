@@ -3445,6 +3445,7 @@ dependencies = [
  "portable-pty",
  "smol",
  "termwiz",
+ "termwiz-funcs",
  "url-funcs",
  "wezterm-dynamic",
  "wezterm-term",

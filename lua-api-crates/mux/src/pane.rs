@@ -4,6 +4,7 @@ use mlua::Value;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
+use termwiz_funcs::lines_to_escapes;
 use url_funcs::Url;
 use wezterm_term::{SemanticZone, StableRowIndex};
 
@@ -222,6 +223,18 @@ impl UserData for MuxPane {
             }
             let trimmed = text.trim_end().len();
             text.truncate(trimmed);
+            Ok(text)
+        });
+
+        methods.add_method("get_lines_as_escapes", |_, this, nlines: Option<usize>| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+            let dims = pane.get_dimensions();
+            let nlines = nlines.unwrap_or(dims.viewport_rows);
+            let bottom_row = dims.physical_top + dims.viewport_rows as isize;
+            let top_row = bottom_row.saturating_sub(nlines as isize);
+            let (_first_row, lines) = pane.get_lines(top_row..bottom_row);
+            let text = lines_to_escapes(lines).map_err(mlua::Error::external)?;
             Ok(text)
         });
 

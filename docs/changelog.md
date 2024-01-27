@@ -119,6 +119,8 @@ As features stabilize some brief notes about them will accumulate here.
   be set to `VerticalLcd` for vertically decimated LCD displays. Thanks to
   @xiaopengli89! #4426
 * Pressing `CTRL-[` in the launcher menu will close it. #4722
+* [pane:get_lines_as_escapes()](config/lua/pane/get_lines_as_escapes.md) to
+  retrieve text + style/formatting. #4780
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
