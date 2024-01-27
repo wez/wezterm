@@ -13,7 +13,7 @@ exclude = ["/data", "/tests"]
 
 [dependencies]
 log = "0.4"
-wezterm-dynamic = { version = "0.1", path = "../wezterm-dynamic" }
+wezterm-dynamic = { version = "0.2", path = "../wezterm-dynamic" }
 
 [dev-dependencies]
 k9 = "0.12.0"
