@@ -699,23 +699,6 @@
   },
   {
     "colors": {
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [
-        "tokyonight_day",
-        "tokyonight_moon",
-        "tokyonight_night",
-        "tokyonight_storm"
-      ],
-      "name": "alacritty",
-      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
-      "prefix": "a",
-      "wezterm_version": "20240127-113634-bbcac864"
-    }
-  },
-  {
-    "colors": {
       "ansi": [
         "#112616",
         "#7f2b27",
