@@ -2,6 +2,9 @@
 name = "wezterm-blob-leases"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/wez/wezterm"
+description = "Manage image blob caching/leasing for wezterm"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
