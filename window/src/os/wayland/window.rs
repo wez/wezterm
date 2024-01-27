@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::convert::TryInto;
 use std::io::Read;
+use std::num::NonZeroU32;
 use std::os::fd::AsRawFd;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -19,6 +20,8 @@ use raw_window_handle::{
     WaylandDisplayHandle, WaylandWindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
+use smithay_client_toolkit::shell::xdg::frame::fallback_frame::FallbackFrame;
+use smithay_client_toolkit::shell::xdg::frame::DecorationsFrame;
 use smithay_client_toolkit::shell::xdg::window::{
     DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
     WindowHandler, WindowState as SCTKWindowState,
@@ -28,7 +31,7 @@ use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_client::protocol::wl_pointer::ButtonState;
 use wayland_client::protocol::wl_surface::WlSurface;
-use wayland_client::{Connection as WConnection, Proxy};
+use wayland_client::{Connection as WConnection, Proxy, QueueHandle};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{
@@ -212,8 +215,6 @@ impl WaylandWindow {
         };
 
         window.set_app_id(class_name.to_string());
-        // TODO: investigate the resizable thing
-        // window.set_resizable(true);
         window.set_title(name.to_string());
         let decorations = config.window_decorations;
 
@@ -225,6 +226,27 @@ impl WaylandWindow {
             Some(DecorationMode::Client)
         };
         window.request_decoration_mode(decor_mode);
+
+        let mut window_frame = {
+            let wayland_state = &conn.wayland_state.borrow();
+            let shm = &wayland_state.shm;
+            let subcompositor = wayland_state.subcompositor.clone();
+            FallbackFrame::new(&window, shm, subcompositor, qh.clone())
+                .expect("failed to create csd frame")
+        };
+        let hidden = if let Some(decor) = decor_mode {
+            match decor {
+                DecorationMode::Client => false,
+                _ => true,
+            }
+        } else {
+            true
+        };
+        window_frame.set_hidden(hidden);
+        window_frame.resize(
+            NonZeroU32::new(dimensions.pixel_width as u32).unwrap(),
+            NonZeroU32::new(dimensions.pixel_height as u32).unwrap(),
+        );
 
         // TODO: I don't want to deal with CSD right now, since my current tiling window manager
         // Hyprland doesn't support it
@@ -248,6 +270,7 @@ impl WaylandWindow {
             copy_and_paste,
             invalidated: false,
             window: Some(window),
+            window_frame,
             dimensions,
             resize_increments: None,
             window_state: WindowState::default(),
@@ -457,11 +480,11 @@ pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result
 }
 
 pub struct WaylandWindowInner {
-    // window_id: usize,
     pub(crate) events: WindowEventSender,
     surface_factor: f64,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<XdgWindow>,
+    window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
     resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
@@ -482,8 +505,8 @@ pub struct WaylandWindowInner {
     text_cursor: Option<Rect>,
     // appearance: Appearance,
     config: ConfigHandle,
-    // // cache the title for comparison to avoid spamming
-    // // the compositor with updates that don't actually change it
+    // cache the title for comparison to avoid spamming
+    // the compositor with updates that don't actually change it
     title: Option<String>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
@@ -509,8 +532,9 @@ impl WaylandWindowInner {
 
     fn refresh_frame(&mut self) {
         if let Some(window) = self.window.as_mut() {
-            // TODO: refresh frame
-            // window.refresh();
+            if self.window_frame.is_dirty() && !self.window_frame.is_hidden() {
+                self.window_frame.draw();
+            }
             window.wl_surface().commit();
         }
     }
@@ -753,7 +777,12 @@ impl WaylandWindowInner {
                 }
 
                 // TODO: Update the window decoration size
-                // self.window.as_mut().unwrap().resize(w, h);
+                log::trace!("Resizing frame");
+                self.window_frame.resize(
+                    w.try_into().unwrap_or(NonZeroU32::new(1).unwrap()),
+                    h.try_into().unwrap_or(NonZeroU32::new(1).unwrap()),
+                );
+                self.window_frame.add_borders(w, h);
 
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
