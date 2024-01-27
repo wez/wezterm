@@ -756,7 +756,7 @@ impl WaylandWindowInner {
             }
         }
 
-        if let Some(window_config) = pending.window_configure {
+        if let Some(ref window_config) = pending.window_configure {
             self.window_frame.update_state(window_config.state);
             self.window_frame
                 .update_wm_capabilities(window_config.capabilities);
@@ -789,16 +789,14 @@ impl WaylandWindowInner {
                     }
                 }
 
-                // TODO: Update the window decoration size
                 log::trace!("Resizing frame");
-                let (width, height) = self
-                    .window_frame
-                    .subtract_borders(NonZeroU32::new(w).unwrap(), NonZeroU32::new(h).unwrap());
-
+                let (width, height) = self.window_frame.subtract_borders(
+                    NonZeroU32::new(pixel_width as u32).unwrap(),
+                    NonZeroU32::new(pixel_height as u32).unwrap(),
+                );
                 // Clamp the size to at least one pixel.
                 let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
                 let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
-
                 self.window_frame.resize(width, height);
                 let (x, y) = self.window_frame.location();
                 let outer_size = self.window_frame.add_borders(width.get(), height.get());
@@ -807,7 +805,7 @@ impl WaylandWindowInner {
                     .unwrap()
                     .xdg_surface()
                     .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
-
+                // }
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
