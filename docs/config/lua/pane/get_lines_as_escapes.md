@@ -1,6 +1,6 @@
 # `pane:get_lines_as_escapes([nlines])`
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 Returns the textual representation (*including* color and other attributes) of
 the *physical* lines of text in the viewport as a string with embedded ANSI

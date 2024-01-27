@@ -30,7 +30,7 @@ correct render mode to activate: setting it only in a
 [wezterm.font](../wezterm/font.md) override is not sufficient.
 
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 It is now possible to select `"VerticalLcd"` to use a subpixel-rendering
 variant of `Normal` optimized for vertically decimated LCD displays.

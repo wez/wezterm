@@ -1,6 +1,6 @@
 # `wezterm cli zoom-pane`
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 *Run `wezterm cli zoom-pane --help` to see more help*
 

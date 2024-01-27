@@ -1,6 +1,6 @@
 # `SetWindowLevel`
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 Set window level specified by the argument value. eg: `AlwaysOnTop` keeps the current window on top of other windows.
 

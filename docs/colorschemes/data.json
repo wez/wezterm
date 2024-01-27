@@ -314,7 +314,7 @@
       "name": "Aardvark Blue",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -711,7 +711,7 @@
       "name": "alacritty",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -953,7 +953,7 @@
       "name": "Apple System Colors",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -3402,7 +3402,7 @@
       "name": "Bamboo Light",
       "origin_url": "https://github.com/ribru17/bamboo.nvim",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -6217,7 +6217,7 @@
       "name": "Campbell (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -10972,7 +10972,7 @@
       "name": "Ef-Arbutus",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-arbutus-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11132,7 +11132,7 @@
       "name": "Ef-Cyprus",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-cyprus-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11212,7 +11212,7 @@
       "name": "Ef-Day",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-day-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11252,7 +11252,7 @@
       "name": "Ef-Deuteranopia-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11292,7 +11292,7 @@
       "name": "Ef-Deuteranopia-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11332,7 +11332,7 @@
       "name": "Ef-Duo-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11372,7 +11372,7 @@
       "name": "Ef-Duo-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11412,7 +11412,7 @@
       "name": "Ef-Elea-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11452,7 +11452,7 @@
       "name": "Ef-Elea-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11492,7 +11492,7 @@
       "name": "Ef-Frost",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-frost-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11532,7 +11532,7 @@
       "name": "Ef-Kassio",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-kassio-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11572,7 +11572,7 @@
       "name": "Ef-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11612,7 +11612,7 @@
       "name": "Ef-Maris-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11652,7 +11652,7 @@
       "name": "Ef-Maris-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11692,7 +11692,7 @@
       "name": "Ef-Melissa-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-melissa-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11732,7 +11732,7 @@
       "name": "Ef-Melissa-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-melissa-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11772,7 +11772,7 @@
       "name": "Ef-Night",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-night-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11812,7 +11812,7 @@
       "name": "Ef-Rosa",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-rosa-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11932,7 +11932,7 @@
       "name": "Ef-Symbiosis",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-symbiosis-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -13649,7 +13649,7 @@
       "name": "farmhouse-dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -13688,7 +13688,7 @@
       "name": "farmhouse-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -13801,7 +13801,7 @@
       "name": "Firefly Traditional",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -14271,7 +14271,7 @@
       "name": "flexoki-dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -14310,7 +14310,7 @@
       "name": "flexoki-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -15161,7 +15161,7 @@
       "name": "Github Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19416,7 +19416,7 @@
       "name": "iTerm2 Dark Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19455,7 +19455,7 @@
       "name": "iTerm2 Default",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19494,7 +19494,7 @@
       "name": "iTerm2 Light Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19533,7 +19533,7 @@
       "name": "iTerm2 Pastel Dark Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19572,7 +19572,7 @@
       "name": "iTerm2 Smoooooth",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19611,7 +19611,7 @@
       "name": "iTerm2 Tango Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19650,7 +19650,7 @@
       "name": "iTerm2 Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23107,7 +23107,7 @@
       "name": "Modus-Operandi-Deuteranopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-deuteranopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23147,7 +23147,7 @@
       "name": "Modus-Operandi-Tinted",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-tinted-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23227,7 +23227,7 @@
       "name": "Modus-Vivendi-Deuteranopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-deuteranopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23267,7 +23267,7 @@
       "name": "Modus-Vivendi-Tinted",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tinted-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23307,7 +23307,7 @@
       "name": "Modus-Vivendi-Tritanopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tritanopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -24230,7 +24230,7 @@
       "name": "Moonfly (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -25066,7 +25066,7 @@
       "name": "Nightfly (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -26950,7 +26950,7 @@
       "name": "Oxocarbon Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -30290,7 +30290,7 @@
       "name": "Rosé Pine Moon (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -31003,7 +31003,7 @@
       "name": "Selenized Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -31040,7 +31040,7 @@
       "name": "Selenized Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -38254,7 +38254,7 @@
       "name": "Website (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {

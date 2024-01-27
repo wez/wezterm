@@ -29,7 +29,7 @@ it is possible for an application to set it to an FTP URL or some
 other kind of URL, which is why this method doesn't simply return
 a file path string.
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 This method now returns a [Url](../wezterm.url/Url.md) object which
 provides a convenient way to decode and operate on the URL.
