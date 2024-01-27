@@ -21,17 +21,18 @@ use raw_window_handle::{
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
 use smithay_client_toolkit::shell::xdg::frame::fallback_frame::FallbackFrame;
-use smithay_client_toolkit::shell::xdg::frame::DecorationsFrame;
+use smithay_client_toolkit::shell::xdg::frame::{DecorationsFrame, FrameAction};
 use smithay_client_toolkit::shell::xdg::window::{
     DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
     WindowHandler, WindowState as SCTKWindowState,
 };
+use smithay_client_toolkit::shell::xdg::XdgSurface;
 use smithay_client_toolkit::shell::WaylandSurface;
 use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
-use wayland_client::protocol::wl_pointer::ButtonState;
+use wayland_client::protocol::wl_pointer::{ButtonState, WlPointer};
 use wayland_client::protocol::wl_surface::WlSurface;
-use wayland_client::{Connection as WConnection, Proxy, QueueHandle};
+use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{
@@ -48,7 +49,7 @@ use crate::{
 };
 
 use super::copy_and_paste::CopyAndPaste;
-use super::pointer::PendingMouse;
+use super::pointer::{PendingMouse, PointerUserData};
 use super::state::WaylandState;
 
 #[derive(Debug)]
@@ -248,14 +249,17 @@ impl WaylandWindow {
             NonZeroU32::new(dimensions.pixel_height as u32).unwrap(),
         );
 
-        // TODO: I don't want to deal with CSD right now, since my current tiling window manager
-        // Hyprland doesn't support it
-        //         window.set_frame_config(ConceptConfig {
-
         window.set_min_size(Some((32, 32)));
-
+        let (w, h) = window_frame.add_borders(
+            dimensions.pixel_width as u32,
+            dimensions.pixel_height as u32,
+        );
+        let (x, y) = window_frame.location();
+        window
+            .xdg_surface()
+            .set_window_geometry(x, y, w as i32, h as i32);
         window.commit();
-        //
+
         let copy_and_paste = CopyAndPaste::create();
         let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
@@ -443,7 +447,10 @@ pub(crate) struct PendingEvent {
     pub(crate) close: bool,
     pub(crate) had_configure_event: bool,
     refresh_decorations: bool,
+    // XXX: configure and window_configure could probably be combined, but right now configure only
+    // queues a new size, so it can be out of sync. Example would be maximizing and minimizing winodw
     pub(crate) configure: Option<(u32, u32)>,
+    pub(crate) window_configure: Option<WindowConfigure>,
     pub(crate) dpi: Option<i32>,
     pub(crate) window_state: Option<WindowState>,
 }
@@ -484,7 +491,7 @@ pub struct WaylandWindowInner {
     surface_factor: f64,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<XdgWindow>,
-    window_frame: FallbackFrame<WaylandState>,
+    pub(super) window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
     resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
@@ -749,6 +756,12 @@ impl WaylandWindowInner {
             }
         }
 
+        if let Some(window_config) = pending.window_configure {
+            self.window_frame.update_state(window_config.state);
+            self.window_frame
+                .update_wm_capabilities(window_config.capabilities);
+        }
+
         if let Some((mut w, mut h)) = pending.configure.take() {
             log::trace!("Pending configure: w:{w}, h{h} -- {:?}", self.window);
             if self.window.is_some() {
@@ -778,11 +791,22 @@ impl WaylandWindowInner {
 
                 // TODO: Update the window decoration size
                 log::trace!("Resizing frame");
-                self.window_frame.resize(
-                    w.try_into().unwrap_or(NonZeroU32::new(1).unwrap()),
-                    h.try_into().unwrap_or(NonZeroU32::new(1).unwrap()),
-                );
-                self.window_frame.add_borders(w, h);
+                let (width, height) = self
+                    .window_frame
+                    .subtract_borders(NonZeroU32::new(w).unwrap(), NonZeroU32::new(h).unwrap());
+
+                // Clamp the size to at least one pixel.
+                let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
+                let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
+
+                self.window_frame.resize(width, height);
+                let (x, y) = self.window_frame.location();
+                let outer_size = self.window_frame.add_borders(width.get(), height.get());
+                self.window
+                    .as_mut()
+                    .unwrap()
+                    .xdg_surface()
+                    .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
 
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
@@ -1060,6 +1084,25 @@ impl WaylandWindowInner {
             _ => {}
         }
     }
+
+    pub(super) fn frame_action(&mut self, pointer: &WlPointer, serial: u32, action: FrameAction) {
+        let pointer_data = pointer.data::<PointerUserData>().unwrap();
+        let seat = pointer_data.pdata.seat();
+        match action {
+            FrameAction::Close => self.events.dispatch(WindowEvent::CloseRequested),
+            FrameAction::Minimize => self.window.as_ref().unwrap().set_minimized(),
+            FrameAction::Maximize => self.window.as_ref().unwrap().set_maximized(),
+            FrameAction::UnMaximize => self.window.as_ref().unwrap().unset_maximized(),
+            FrameAction::ShowMenu(x, y) => {
+                self.window
+                    .as_ref()
+                    .unwrap()
+                    .show_window_menu(seat, serial, (x, y))
+            }
+            FrameAction::Resize(edge) => self.window.as_ref().unwrap().resize(seat, serial, edge),
+            FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
+        }
+    }
 }
 
 impl WaylandState {
@@ -1090,6 +1133,7 @@ impl WaylandState {
                 }
             }
             WaylandWindowEvent::Request(configure) => {
+                pending_event.window_configure.replace(configure.clone());
                 // TODO: This should the new queue function
                 // p.queue_configure(&configure)
                 //
