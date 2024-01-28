@@ -28,8 +28,8 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: System LastResort font would be taken in preference to other fonts
   in some cases when trying to find the fallback for bold fonts. #4877
 * The fancy tab bar could take a few moments to update after closing a tab. #4880
-* Kitty Image Protocol: fixed numerous issues. Thanks to @jonboh! #1156 #1156
-  #1663 #2084 #2422 #2761 #3918 #4233 #4847
+* Kitty Image Protocol: fixed numerous issues. Thanks to @jonboh! #1156 #1663
+  #2084 #2422 #2761 #3918 #4233 #4847
 
 ### 20240127-113634-bbcac864
 
