@@ -23,6 +23,10 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * Not yet!
+#### New
+#### Fixed
+* macOS: System LastResort font would be taken in preference to other fonts
+  in some cases when trying to find the fallback for bold fonts. #4877
 
 ### 20240127-113634-bbcac864
 

@@ -146,6 +146,14 @@ impl FontLocator for CoreTextFontLocator {
             let candidates = handles_from_descriptor(&font.copy_descriptor());
 
             for font in candidates {
+                if font.names().family == ".LastResort"
+                    || font.names().postscript_name.as_deref() == Some("LastResort")
+                {
+                    // Always exclude a last resort font, as it has
+                    // placeholder glyphs for everything
+                    continue;
+                }
+
                 if let Ok(cov) = font.coverage_intersection(&wanted) {
                     if !cov.is_empty() {
                         matches.push((cov.len(), font));
