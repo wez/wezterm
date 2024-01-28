@@ -1,6 +1,7 @@
 use crate::{Position, StableRowIndex, TerminalState};
 use anyhow::Context;
 use humansize::{SizeFormatter, DECIMAL};
+use num_traits::{One, Zero};
 use ordered_float::NotNan;
 use std::sync::Arc;
 use termwiz::cell::Cell;
@@ -132,8 +133,8 @@ impl TerminalState {
 
         let cursor_x = self.cursor.x;
 
-        let width_in_cells = fullcells_width + (remainder_width_cell > 0) as usize;
-        let height_in_cells = fullcells_height + (remainder_height_cell > 0) as usize;
+        let width_in_cells = fullcells_width + one_or_zero::<usize>(remainder_width_cell > 0);
+        let height_in_cells = fullcells_height + one_or_zero::<usize>(remainder_height_cell > 0);
         let height_in_cells = if params.do_not_move_cursor {
             height_in_cells.min(self.screen().physical_rows - self.cursor.y as usize)
         } else {
@@ -222,10 +223,12 @@ impl TerminalState {
         }
 
         // adjust cursor position if the drawn cells move beyond current cell
-        let x_padding_shift = (draw_width as usize + cell_padding_left as usize
-            > cell_pixel_width * width_in_cells) as i64;
-        let y_padding_shift = (draw_height as usize + cell_padding_top as usize
-            > cell_pixel_height * height_in_cells) as i64;
+        let x_padding_shift: i64 = one_or_zero(
+            draw_width as usize + cell_padding_left as usize > cell_pixel_width * width_in_cells,
+        );
+        let y_padding_shift: i64 = one_or_zero(
+            draw_height as usize + cell_padding_top as usize > cell_pixel_height * height_in_cells,
+        );
         if !params.do_not_move_cursor {
             // Sixel places the cursor under the left corner of the image,
             // unless sixel_scrolls_right is enabled.
@@ -304,4 +307,13 @@ pub(crate) fn dimensions(data: &[u8]) -> anyhow::Result<ImageInfo> {
         height,
         format,
     })
+}
+
+/// Returns `1` if `b` is true, else `0`,
+fn one_or_zero<T: Zero + One>(b: bool) -> T {
+    if b {
+        T::one()
+    } else {
+        T::zero()
+    }
 }
