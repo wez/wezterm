@@ -282,6 +282,9 @@ _wezterm() {
             case "${prev}" in
                 --config-file)
                     COMPREPLY=($(compgen -f "${cur}"))
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o filenames
+                    fi
                     return 0
                     ;;
                 --config)
@@ -937,7 +940,10 @@ _wezterm() {
                     return 0
                     ;;
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --workspace)
@@ -971,7 +977,10 @@ _wezterm() {
                     return 0
                     ;;
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --move-pane-id)
@@ -1723,7 +1732,10 @@ _wezterm() {
             fi
             case "${prev}" in
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --class)
@@ -1752,4 +1764,8 @@ _wezterm() {
     esac
 }
 
-complete -F _wezterm -o nosort -o bashdefault -o default wezterm
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _wezterm -o nosort -o bashdefault -o default wezterm
+else
+    complete -F _wezterm -o bashdefault -o default wezterm
+fi
