@@ -112,7 +112,7 @@ you can try the AppImage download which should work on most Linux systems.
 |Debian12    |[amd64]({{ debian12_deb_stable }}) |[arm64]({{ debian12_arm64_deb_stable }})|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
 
 To download and install from the CLI, you can use something like this, which
-shows how to install the Ubuntu 20 package:
+shows how to install the Ubuntu 22 package:
 
 ```console
 $ curl -LO {{ ubuntu22_deb_stable }}
