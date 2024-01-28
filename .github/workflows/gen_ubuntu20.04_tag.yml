@@ -11,6 +11,10 @@ jobs:
     container:
       image: "ubuntu:20.04"
       options: --privileged
+    env:
+      CARGO_INCREMENTAL: "0"
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: "set APT to non-interactive"
@@ -43,10 +47,20 @@ jobs:
           submodules: "recursive"
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
-      - name: "Cache cargo"
-        uses: Swatinem/rust-cache@v2
+      - name: "Compile with sccache"
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: "Cache Rust Dependencies"
+        uses: actions/cache@v3
+        id: cache-cargo-vendor
         with:
-          key: "ubuntu20.04-None-2-${{ runner.os }}-cargo"
+          path: |
+            vendor
+            .cargo/config
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+      - name: "Vendor dependecies"
+        if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
+        shell: bash
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -93,7 +107,7 @@ jobs:
         shell: bash
         run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
       - name: "Commit linuxbrew tap changes"
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Automated update to match latest tag"
           repository: "linuxbrew-wezterm"
