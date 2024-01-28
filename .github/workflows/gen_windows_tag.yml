@@ -9,6 +9,10 @@ jobs:
   build:
     runs-on: "windows-latest"
     
+    env:
+      CARGO_INCREMENTAL: "0"
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: "checkout repo"
@@ -19,10 +23,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           target: "x86_64-pc-windows-msvc"
-      - name: "Cache cargo"
-        uses: Swatinem/rust-cache@v2
+      - name: "Compile with sccache"
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: "Cache Rust Dependencies"
+        uses: actions/cache@v3
+        id: cache-cargo-vendor
         with:
-          key: "windows-x86_64-pc-windows-msvc-2-${{ runner.os }}-cargo"
+          path: |
+            vendor
+            .cargo/config
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+      - name: "Vendor dependecies"
+        if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
+        shell: bash
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
       - name: "Build (Release mode)"
         shell: cmd
         run: |
