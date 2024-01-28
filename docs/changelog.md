@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * macOS: System LastResort font would be taken in preference to other fonts
   in some cases when trying to find the fallback for bold fonts. #4877
+* The fancy tab bar could take a few moments to update after closing a tab. #4880
 
 ### 20240127-113634-bbcac864
 

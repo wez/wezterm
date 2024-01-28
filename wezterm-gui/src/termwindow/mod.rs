@@ -1217,6 +1217,7 @@ impl TermWindow {
                 }
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
+                    self.update_title_post_status();
                 }
                 MuxNotification::WindowRemoved(_window_id) => {
                     // Handled by frontend
