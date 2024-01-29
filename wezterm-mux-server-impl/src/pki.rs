@@ -35,7 +35,7 @@ impl Pki {
         // Create the CA certificate
         let mut ca_params = CertificateParams::new(alt_names.clone());
         ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(1));
-        ca_params.serial_number = Some(0);
+        ca_params.serial_number = Some(0.into());
         let ca_cert = Certificate::from_params(ca_params)?;
         let ca_pem = ca_cert.serialize_pem()?;
         let ca_pem_path = pki_dir.join("ca.pem");
