@@ -22,13 +22,19 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+* Not yet!
+#### New
+#### Fixed
+
+### 20240128-202157-1e552d76
+
+#### Changed
 * The default for [front_end](config/lua/config/front_end.md) is again
   `OpenGL`.
 * The default for
   [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
   `NO_HINTING`. #4874
 
-#### New
 #### Fixed
 * macOS: System LastResort font would be taken in preference to other fonts
   in some cases when trying to find the fallback for bold fonts. #4877

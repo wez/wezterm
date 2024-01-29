@@ -33,7 +33,7 @@ Available flags are:
 config.freetype_load_flags = 'NO_HINTING|MONOCHROME'
 ```
 
-{{since('nightly')}}
+{{since('20240128-202157-1e552d76')}}
 
 The default value has changed to `NO_HINTING` as that generally works
 more predictably and with fewer surprising artifacts.
