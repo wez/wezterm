@@ -9,6 +9,7 @@ use crate::overlay::{
     start_overlay, start_overlay_pane, CopyModeParams, CopyOverlay, LauncherArgs, LauncherFlags,
     QuickSelectOverlay,
 };
+use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::scripting::guiwin::GuiWin;
 use crate::scrollbar::*;
 use crate::selection::Selection;
@@ -32,6 +33,7 @@ use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
     RotationDirection, SpawnCommand, SplitSize,
 };
+use config::window::WindowLevel;
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
     GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
@@ -842,8 +844,17 @@ impl TermWindow {
             myself.config_subscription.replace(config_subscription);
             if config.use_resize_increments {
                 window.set_resize_increments(
-                    myself.render_metrics.cell_size.width as u16,
-                    myself.render_metrics.cell_size.height as u16,
+                    ResizeIncrementCalculator {
+                        x: myself.render_metrics.cell_size.width as u16,
+                        y: myself.render_metrics.cell_size.height as u16,
+                        padding_left: padding_left,
+                        padding_top: padding_top,
+                        padding_right: padding_right,
+                        padding_bottom: padding_bottom,
+                        border: border,
+                        tab_bar_height: tab_bar_height,
+                    }
+                    .into(),
                 );
             }
 
@@ -946,7 +957,11 @@ impl TermWindow {
                 Ok(true)
             }
             WindowEvent::AdviseDeadKeyStatus(status) => {
-                log::trace!("DeadKeyStatus now: {:?}", status);
+                if self.config.debug_key_events {
+                    log::info!("DeadKeyStatus now: {:?}", status);
+                } else {
+                    log::trace!("DeadKeyStatus now: {:?}", status);
+                }
                 self.dead_key_status = status;
                 self.update_title();
                 // Ensure that we repaint so that any composing
@@ -1202,6 +1217,7 @@ impl TermWindow {
                 }
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
+                    self.update_title_post_status();
                 }
                 MuxNotification::WindowRemoved(_window_id) => {
                     // Handled by frontend
@@ -1213,7 +1229,8 @@ impl TermWindow {
                     // Handled by frontend
                 }
                 MuxNotification::PaneFocused(_) => {
-                    // Handled by clientpane
+                    // Also handled by clientpane
+                    self.update_title_post_status();
                 }
                 MuxNotification::TabResized(_) => {
                     // Handled by wezterm-client
@@ -1703,7 +1720,7 @@ impl TermWindow {
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
             self.load_os_parameters();
-            self.apply_scale_change(&dimensions, self.fonts.get_font_scale(), &window);
+            self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
             self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);
             window.invalidate();
@@ -2316,11 +2333,7 @@ impl TermWindow {
         &cache.zones
     }
 
-    fn scroll_to_prompt(&mut self, amount: isize) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_to_prompt(&mut self, amount: isize, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2343,11 +2356,7 @@ impl TermWindow {
         Ok(())
     }
 
-    fn scroll_by_page(&mut self, amount: f64) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_by_page(&mut self, amount: f64, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2360,22 +2369,18 @@ impl TermWindow {
         Ok(())
     }
 
-    fn scroll_by_current_event_wheel_delta(&mut self) -> anyhow::Result<()> {
+    fn scroll_by_current_event_wheel_delta(&mut self, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         if let Some(event) = &self.current_mouse_event {
             let amount = match event.kind {
                 MouseEventKind::VertWheel(amount) => -amount,
                 _ => return Ok(()),
             };
-            self.scroll_by_line(amount.into())?;
+            self.scroll_by_line(amount.into(), pane)?;
         }
         Ok(())
     }
 
-    fn scroll_by_line(&mut self, amount: isize) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_by_line(&mut self, amount: isize, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2507,6 +2512,36 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
+            ToggleAlwaysOnTop => {
+                let window = self.window.clone().unwrap();
+                let current_level = self.window_state.as_window_level();
+
+                match current_level {
+                    WindowLevel::AlwaysOnTop => {
+                        window.set_window_level(WindowLevel::Normal);
+                    }
+                    WindowLevel::AlwaysOnBottom | WindowLevel::Normal => {
+                        window.set_window_level(WindowLevel::AlwaysOnTop);
+                    }
+                }
+            }
+            ToggleAlwaysOnBottom => {
+                let window = self.window.clone().unwrap();
+                let current_level = self.window_state.as_window_level();
+
+                match current_level {
+                    WindowLevel::AlwaysOnBottom => {
+                        window.set_window_level(WindowLevel::Normal);
+                    }
+                    WindowLevel::AlwaysOnTop | WindowLevel::Normal => {
+                        window.set_window_level(WindowLevel::AlwaysOnBottom);
+                    }
+                }
+            }
+            SetWindowLevel(level) => {
+                let window = self.window.clone().unwrap();
+                window.set_window_level(level.clone());
+            }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);
@@ -2582,10 +2617,10 @@ impl TermWindow {
             ReloadConfiguration => config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
-            ScrollByPage(n) => self.scroll_by_page(**n)?,
-            ScrollByLine(n) => self.scroll_by_line(*n)?,
-            ScrollByCurrentEventWheelDelta => self.scroll_by_current_event_wheel_delta()?,
-            ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
+            ScrollByPage(n) => self.scroll_by_page(**n, pane)?,
+            ScrollByLine(n) => self.scroll_by_line(*n, pane)?,
+            ScrollByCurrentEventWheelDelta => self.scroll_by_current_event_wheel_delta(pane)?,
+            ScrollToPrompt(n) => self.scroll_to_prompt(*n, pane)?,
             ScrollToTop => self.scroll_to_top(pane),
             ScrollToBottom => self.scroll_to_bottom(pane),
             ShowTabNavigator => self.show_tab_navigator(),

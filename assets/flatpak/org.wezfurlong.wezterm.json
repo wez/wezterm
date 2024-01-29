@@ -1,7 +1,7 @@
 {
     "app-id": "org.wezfurlong.wezterm",
     "runtime": "org.freedesktop.Platform",
-    "runtime-version": "21.08",
+    "runtime-version": "23.08",
     "sdk": "org.freedesktop.Sdk",
     "sdk-extensions" : [
         "org.freedesktop.Sdk.Extension.rust-stable"
@@ -10,13 +10,12 @@
     "finish-args": [
         "--share=ipc",
         "--filesystem=home:ro",
+        "--filesystem=xdg-config/wezterm",
         "--socket=fallback-x11",
         "--socket=wayland",
         "--device=dri",
         "--talk-name=org.freedesktop.Flatpak",
         "--talk-name=org.freedesktop.Notifications",
-        "--talk-name=org.freedesktop.portal.Desktop",
-        "--talk-name=org.freedesktop.portal.Settings",
         "--share=network"
     ],
     "build-options": {

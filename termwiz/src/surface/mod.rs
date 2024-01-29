@@ -137,14 +137,18 @@ impl DiffState {
         if cell.same_contents(&other_cell) {
             return;
         }
+
+        self.set_cell(col_num, row_num, other_cell);
+    }
+
+    #[inline]
+    fn set_cell(&mut self, col_num: usize, row_num: usize, other_cell: CellRef) {
         self.cursor = match self.cursor.take() {
-            Some((cursor_row, cursor_col))
-                if cursor_row == row_num && cursor_col == col_num - 1 =>
-            {
-                // It is on the column prior, so we don't need
-                // to explicitly move it.  Record the effective
-                // position for next time.
-                Some((row_num, col_num))
+            Some((cursor_row, cursor_col)) if cursor_row == row_num && cursor_col == col_num => {
+                // It is on the current column, so we don't need
+                // to explicitly move it.  Move the cursor by the
+                // width of the text we're about to add.
+                Some((row_num, col_num + other_cell.width()))
             }
             _ => {
                 // Need to explicitly move the cursor
@@ -152,8 +156,8 @@ impl DiffState {
                     y: Position::Absolute(row_num),
                     x: Position::Absolute(col_num),
                 });
-                // and remember the position for next time
-                Some((row_num, col_num))
+                // and update the position for next time
+                Some((row_num, col_num + other_cell.width()))
             }
         };
 
@@ -747,14 +751,15 @@ impl Surface {
             .take_while(|(row_num, _)| *row_num < y + height)
             .zip(other.lines.iter().skip(other_y))
         {
-            for (cell, other_cell) in line
-                .visible_cells()
-                .skip(x)
-                .take_while(|cell| cell.cell_index() < x + width)
-                .zip(other_line.visible_cells().skip(other_x))
-            {
-                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
-            }
+            diff_line(
+                &mut diff_state,
+                line,
+                row_num,
+                other_line,
+                x,
+                width,
+                other_x,
+            );
         }
 
         diff_state.changes
@@ -763,9 +768,7 @@ impl Surface {
     pub fn diff_lines(&self, other_lines: Vec<&Line>) -> Vec<Change> {
         let mut diff_state = DiffState::default();
         for ((row_num, line), other_line) in self.lines.iter().enumerate().zip(other_lines.iter()) {
-            for (cell, other_cell) in line.visible_cells().zip(other_line.visible_cells()) {
-                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
-            }
+            diff_line(&mut diff_state, line, row_num, other_line, 0, line.len(), 0);
         }
         diff_state.changes
     }
@@ -773,9 +776,7 @@ impl Surface {
     pub fn diff_against_numbered_line(&self, row_num: usize, other_line: &Line) -> Vec<Change> {
         let mut diff_state = DiffState::default();
         if let Some(line) = self.lines.get(row_num) {
-            for (cell, other_cell) in line.visible_cells().zip(other_line.visible_cells()) {
-                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
-            }
+            diff_line(&mut diff_state, line, row_num, other_line, 0, line.len(), 0);
         }
         diff_state.changes
     }
@@ -822,6 +823,58 @@ impl Surface {
     ) -> SequenceNo {
         let changes = self.diff_region(dest_x, dest_y, width, height, self, src_x, src_y);
         self.add_changes(changes)
+    }
+}
+
+/// Populate `diff_state` with changes to replace contents of `line` in range [x,x+width)
+/// with the contents of `other_line` in range [other_x,other_x+width).
+fn diff_line(
+    diff_state: &mut DiffState,
+    line: &Line,
+    row_num: usize,
+    other_line: &Line,
+    x: usize,
+    width: usize,
+    other_x: usize,
+) {
+    let mut cells = line
+        .visible_cells()
+        .skip_while(|cell| cell.cell_index() < x)
+        .take_while(|cell| cell.cell_index() < x + width)
+        .peekable();
+    let other_cells = other_line
+        .visible_cells()
+        .skip_while(|cell| cell.cell_index() < other_x)
+        .take_while(|cell| cell.cell_index() < other_x + width);
+
+    for other_cell in other_cells {
+        let rel_x = other_cell.cell_index() - other_x;
+        let mut comparison_cell = None;
+
+        // Advance the `cells` iterator to try to find the visible cell in `line` in the equivalent
+        // position to `other_cell`. If there is no visible cell in equivalent position, advance
+        // one past and wait for next iteration.
+        while let Some(cell) = cells.peek() {
+            let cell_rel_x = cell.cell_index() - x;
+
+            if cell_rel_x == rel_x {
+                comparison_cell = Some(*cell);
+                break;
+            } else if cell_rel_x > rel_x {
+                break;
+            }
+
+            cells.next();
+        }
+
+        // If we find a cell in the equivalent position, diff against it. If not, we know
+        // there is a multi-cell grapheme in `line` that partially overlaps `other_cell`,
+        // so we have to overwrite anyway.
+        if let Some(comparison_cell) = comparison_cell {
+            diff_state.diff_cells(x + rel_x, row_num, comparison_cell, other_cell);
+        } else {
+            diff_state.set_cell(x + rel_x, row_num, other_cell);
+        }
     }
 }
 
@@ -1530,6 +1583,48 @@ mod test {
         });
         s.add_change("x");
         assert_eq!(s.screen_chars_to_string(), " ax \n");
+    }
+
+    #[test]
+    fn draw_double_width() {
+        let mut s = Surface::new(4, 1);
+        s.add_change("か a");
+        assert_eq!(s.screen_chars_to_string(), "か a\n");
+
+        let mut s2 = Surface::new(4, 1);
+        s2.draw_from_screen(&s, 0, 0);
+        // Verify no issue when the second visible cells on both sides
+        // are identical (' 's) but they are at different cell indices.
+        assert_eq!(s2.screen_chars_to_string(), "か a\n");
+
+        let s3 = Surface::new(4, 1);
+        s2.draw_from_screen(&s3, 0, 0);
+        // Verify same but in other direction
+        assert_eq!(s2.screen_chars_to_string(), "    \n");
+
+        let mut s4 = Surface::new(4, 1);
+        s4.add_change("abcd");
+        s.draw_from_screen(&s4, 0, 0);
+        // Verify that all overlapping cells are updated when cell widths
+        // differ on each side.
+        assert_eq!(s.screen_chars_to_string(), "abcd\n");
+    }
+
+    #[test]
+    fn diff_cursor_double_width() {
+        let mut s = Surface::new(3, 1);
+        s.add_change("かa");
+
+        let s2 = Surface::new(3, 1);
+        let changes = s2.diff_region(0, 0, 3, 1, &s, 0, 0);
+
+        assert_eq!(
+            changes
+                .iter()
+                .filter(|change| matches!(change, Change::CursorPosition { .. }))
+                .count(),
+            1
+        );
     }
 
     #[test]

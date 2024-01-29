@@ -262,7 +262,7 @@ impl PolyStyle {
                 let mut stroke = Stroke::default();
                 stroke.width = width;
                 if self == PolyStyle::OutlineHeavy {
-                    stroke.width *= 3.0; // NOTE: Using 2.0, the difference is almost invisible
+                    stroke.width *= 3.01; // NOTE: Changing this makes block cursor disproportionate at different font sizes and resolutions
                 } else if self == PolyStyle::OutlineThin {
                     stroke.width = 1.2;
                 }

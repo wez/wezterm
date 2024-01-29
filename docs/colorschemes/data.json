@@ -281,6 +281,45 @@
   {
     "colors": {
       "ansi": [
+        "#191919",
+        "#aa342e",
+        "#4b8c0f",
+        "#dbba00",
+        "#1370d3",
+        "#c43ac3",
+        "#008eb0",
+        "#bebebe"
+      ],
+      "background": "#102040",
+      "brights": [
+        "#454545",
+        "#f05b50",
+        "#95dc55",
+        "#ffe763",
+        "#60a4ec",
+        "#e26be2",
+        "#60b6cb",
+        "#f7f7f7"
+      ],
+      "cursor_bg": "#007acc",
+      "cursor_border": "#007acc",
+      "cursor_fg": "#bfdbfe",
+      "foreground": "#dddddd",
+      "indexed": {},
+      "selection_bg": "#bfdbfe",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Aardvark Blue",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "a",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#cd0000",
         "#00cd00",
@@ -859,6 +898,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
       "wezterm_version": "20230320-124340-559cb7b0"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1a1a1a",
+        "#cc372e",
+        "#26a439",
+        "#cdac08",
+        "#0869cb",
+        "#9647bf",
+        "#479ec2",
+        "#98989d"
+      ],
+      "background": "#1e1e1e",
+      "brights": [
+        "#464646",
+        "#ff453a",
+        "#32d74b",
+        "#ffd60a",
+        "#0a84ff",
+        "#bf5af2",
+        "#76d6ff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#98989d",
+      "cursor_border": "#98989d",
+      "cursor_fg": "#ffffff",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#3f638b",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Apple System Colors",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "a",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -3155,8 +3233,9 @@
         "#57a5e5",
         "#aaaaff",
         "#70c2be",
-        "#f1e9d2"
+        "#fff8f0"
       ],
+      "compose_cursor": "#ff9966",
       "cursor_bg": "#fff8f0",
       "cursor_border": "#fff8f0",
       "cursor_fg": "#0f0800",
@@ -3165,11 +3244,11 @@
       "scrollbar_thumb": "#1c1e1b",
       "selection_bg": "#5b5e5a",
       "selection_fg": "#f1e9d2",
-      "split": "#3a3d37",
+      "split": "#838781",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#111210",
-          "fg_color": "#f1e9d2",
+          "bg_color": "#f1e9d2",
+          "fg_color": "#111210",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -3224,6 +3303,94 @@
   {
     "colors": {
       "ansi": [
+        "#dadac2",
+        "#c72a3c",
+        "#4fa533",
+        "#bb9651",
+        "#1765d5",
+        "#8a4adf",
+        "#00a2be",
+        "#3a4238"
+      ],
+      "background": "#fafae0",
+      "brights": [
+        "#c7c7af",
+        "#c72a3c",
+        "#4fa533",
+        "#bb9651",
+        "#1765d5",
+        "#8a4adf",
+        "#00a2be",
+        "#252623"
+      ],
+      "compose_cursor": "#df7946",
+      "cursor_bg": "#0f0800",
+      "cursor_border": "#0f0800",
+      "cursor_fg": "#fff8f0",
+      "foreground": "#3a4238",
+      "indexed": {},
+      "scrollbar_thumb": "#c7c7af",
+      "selection_bg": "#a1a7a0",
+      "selection_fg": "#3a4238",
+      "split": "#838781",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#3a4238",
+          "fg_color": "#fafae0",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#e4e4cc",
+        "inactive_tab": {
+          "bg_color": "#c7c7af",
+          "fg_color": "#5b5e5a",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#dadac2",
+        "inactive_tab_hover": {
+          "bg_color": "#838781",
+          "fg_color": "#dadac2",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#a1a7a0",
+          "fg_color": "#dadac2",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#838781",
+          "fg_color": "#3a4238",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#e4e4cc"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Riley Bruins",
+      "name": "Bamboo Light",
+      "origin_url": "https://github.com/ribru17/bamboo.nvim",
+      "prefix": "b",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#171f17",
         "#dc4f62",
         "#81af58",
@@ -3242,8 +3409,9 @@
         "#5692c4",
         "#ae93e0",
         "#71ada2",
-        "#ece1c0"
+        "#fff8f0"
       ],
+      "compose_cursor": "#d99058",
       "cursor_bg": "#fff8f0",
       "cursor_border": "#fff8f0",
       "cursor_fg": "#0f0800",
@@ -3252,11 +3420,11 @@
       "scrollbar_thumb": "#171f17",
       "selection_bg": "#5a5e5a",
       "selection_fg": "#ece1c0",
-      "split": "#383d37",
+      "split": "#818781",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#101210",
-          "fg_color": "#ece1c0",
+          "bg_color": "#ece1c0",
+          "fg_color": "#101210",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -6032,7 +6200,7 @@
       "name": "Campbell (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -9206,71 +9374,18 @@
         "#488d93",
         "#f4ece6"
       ],
-      "compose_cursor": "#955f61",
       "cursor_bg": "#3d2b5a",
       "cursor_border": "#3d2b5a",
       "cursor_fg": "#f6f2ee",
       "foreground": "#3d2b5a",
-      "indexed": {
-        "16": "#a440b5",
-        "17": "#955f61"
-      },
-      "scrollbar_thumb": "#824d5b",
+      "indexed": {},
       "selection_bg": "#e7d2be",
-      "selection_fg": "#3d2b5a",
-      "split": "#e4dcd4",
-      "tab_bar": {
-        "active_tab": {
-          "bg_color": "#824d5b",
-          "fg_color": "#f6f2ee",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "background": "#e4dcd4",
-        "inactive_tab": {
-          "bg_color": "#dbd1dd",
-          "fg_color": "#643f61",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "inactive_tab_edge": "#e4dcd4",
-        "inactive_tab_edge_hover": "#dbd1dd",
-        "inactive_tab_hover": {
-          "bg_color": "#d3c7bb",
-          "fg_color": "#3d2b5a",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
-          "bg_color": "#f6f2ee",
-          "fg_color": "#643f61",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab_hover": {
-          "bg_color": "#d3c7bb",
-          "fg_color": "#3d2b5a",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        }
-      },
-      "visual_bell": "#3d2b5a"
+      "selection_fg": "#3d2b5a"
     },
     "metadata": {
       "aliases": [],
-      "author": "EdenEast",
       "name": "dayfox",
-      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -10806,6 +10921,46 @@
   {
     "colors": {
       "ansi": [
+        "#f0d8cf",
+        "#b0000f",
+        "#007000",
+        "#906200",
+        "#375cc6",
+        "#a23ea4",
+        "#3f69af",
+        "#393330"
+      ],
+      "background": "#ffead8",
+      "brights": [
+        "#c7b2ab",
+        "#aa184f",
+        "#00704f",
+        "#8a6340",
+        "#265fbf",
+        "#6448ca",
+        "#0f7688",
+        "#6e678f"
+      ],
+      "cursor_bg": "#208f10",
+      "cursor_border": "#208f10",
+      "cursor_fg": "#ffead8",
+      "foreground": "#393330",
+      "indexed": {},
+      "selection_bg": "#dbe0c0",
+      "selection_fg": "#393330"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Arbutus",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-arbutus-theme.el",
+      "prefix": "e",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#26211d",
         "#ef656a",
         "#2fa526",
@@ -10960,7 +11115,7 @@
       "name": "Ef-Cyprus",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-cyprus-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11040,7 +11195,7 @@
       "name": "Ef-Day",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-day-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11080,7 +11235,7 @@
       "name": "Ef-Deuteranopia-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11120,7 +11275,7 @@
       "name": "Ef-Deuteranopia-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11160,7 +11315,7 @@
       "name": "Ef-Duo-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11200,7 +11355,7 @@
       "name": "Ef-Duo-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11240,7 +11395,7 @@
       "name": "Ef-Elea-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11280,7 +11435,7 @@
       "name": "Ef-Elea-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11320,7 +11475,7 @@
       "name": "Ef-Frost",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-frost-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11360,7 +11515,7 @@
       "name": "Ef-Kassio",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-kassio-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11400,7 +11555,7 @@
       "name": "Ef-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11440,7 +11595,7 @@
       "name": "Ef-Maris-Dark",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-dark-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11480,7 +11635,87 @@
       "name": "Ef-Maris-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#483426",
+        "#ff7f7f",
+        "#6fd560",
+        "#e4b53f",
+        "#57aff6",
+        "#f0aac5",
+        "#6fcad0",
+        "#e8e4b1"
+      ],
+      "background": "#352718",
+      "brights": [
+        "#79665f",
+        "#ff8f98",
+        "#65d590",
+        "#e7a06f",
+        "#62cfef",
+        "#c6a2fe",
+        "#70e0cf",
+        "#90918a"
+      ],
+      "cursor_bg": "#f9cf7a",
+      "cursor_border": "#f9cf7a",
+      "cursor_fg": "#352718",
+      "foreground": "#e8e4b1",
+      "indexed": {},
+      "selection_bg": "#443a4f",
+      "selection_fg": "#e8e4b1"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Melissa-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-melissa-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f5e9cb",
+        "#ba2d2f",
+        "#007a0a",
+        "#a46110",
+        "#375cc6",
+        "#aa3e74",
+        "#3f60af",
+        "#484431"
+      ],
+      "background": "#fff6d8",
+      "brights": [
+        "#c7b7a6",
+        "#c03f3f",
+        "#008250",
+        "#946830",
+        "#265fbf",
+        "#6448ca",
+        "#0f708a",
+        "#68708a"
+      ],
+      "cursor_bg": "#a07f00",
+      "cursor_border": "#a07f00",
+      "cursor_fg": "#fff6d8",
+      "foreground": "#484431",
+      "indexed": {},
+      "selection_bg": "#f0d4d8",
+      "selection_fg": "#484431"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Melissa-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-melissa-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11520,7 +11755,47 @@
       "name": "Ef-Night",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-night-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#432e32",
+        "#ff707f",
+        "#55cb56",
+        "#e4c53f",
+        "#57aff6",
+        "#ffb2d6",
+        "#5fc0dc",
+        "#e4d3e1"
+      ],
+      "background": "#322023",
+      "brights": [
+        "#6a5862",
+        "#f0888f",
+        "#49d081",
+        "#eec26f",
+        "#62cff7",
+        "#cfb1ff",
+        "#80dfbf",
+        "#9d9d9d"
+      ],
+      "cursor_bg": "#ef607a",
+      "cursor_border": "#ef607a",
+      "cursor_fg": "#322023",
+      "foreground": "#e4d3e1",
+      "indexed": {},
+      "selection_bg": "#45524a",
+      "selection_fg": "#e4d3e1"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Rosa",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-rosa-theme.el",
+      "prefix": "e",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -11640,7 +11915,7 @@
       "name": "Ef-Symbiosis",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-symbiosis-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -13324,6 +13599,84 @@
   {
     "colors": {
       "ansi": [
+        "#1d2027",
+        "#ba0004",
+        "#549d00",
+        "#c87300",
+        "#0049e6",
+        "#9f1b61",
+        "#1fb65c",
+        "#e8e4e1"
+      ],
+      "background": "#1d2027",
+      "brights": [
+        "#394047",
+        "#eb0009",
+        "#7ac100",
+        "#ea9a00",
+        "#006efe",
+        "#bf3b7f",
+        "#19e062",
+        "#f4eef0"
+      ],
+      "cursor_bg": "#006efe",
+      "cursor_border": "#006efe",
+      "cursor_fg": "#e8e4e1",
+      "foreground": "#e8e4e1",
+      "indexed": {},
+      "selection_bg": "#4d5658",
+      "selection_fg": "#b3b1aa"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "farmhouse-dark",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2027",
+        "#8d0003",
+        "#3a7d00",
+        "#a95600",
+        "#092ccd",
+        "#820046",
+        "#229256",
+        "#e8e4e1"
+      ],
+      "background": "#e8e4e1",
+      "brights": [
+        "#394047",
+        "#eb0009",
+        "#7ac100",
+        "#ea9a00",
+        "#006efe",
+        "#bf3b7f",
+        "#19e062",
+        "#f4eef0"
+      ],
+      "cursor_bg": "#006efe",
+      "cursor_border": "#006efe",
+      "cursor_fg": "#1d2027",
+      "foreground": "#1d2027",
+      "indexed": {},
+      "selection_bg": "#b3b1aa",
+      "selection_fg": "#4d5658"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "farmhouse-light",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#303030",
         "#a43261",
         "#006ca5",
@@ -13393,6 +13746,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c23720",
+        "#33bc26",
+        "#afad24",
+        "#5a63ff",
+        "#d53ad2",
+        "#33bbc7",
+        "#cccccc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#828282",
+        "#ff3b1e",
+        "#2ee720",
+        "#ecec16",
+        "#838dff",
+        "#ff5cfe",
+        "#29f0f0",
+        "#ebebeb"
+      ],
+      "cursor_bg": "#00f900",
+      "cursor_border": "#00f900",
+      "cursor_fg": "#ffffff",
+      "foreground": "#f5f5f5",
+      "indexed": {},
+      "selection_bg": "#cfeac6",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Firefly Traditional",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -13824,6 +14216,84 @@
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
       "wezterm_version": "20230712-072601-f4abf8fd"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c1b1a",
+        "#d14d41",
+        "#879a39",
+        "#d0a215",
+        "#4385be",
+        "#ce5d97",
+        "#3aa99f",
+        "#b7b5ac"
+      ],
+      "background": "#1c1b1a",
+      "brights": [
+        "#575653",
+        "#d14d41",
+        "#879a39",
+        "#d0a215",
+        "#4385be",
+        "#ce5d97",
+        "#3aa99f",
+        "#cecdc3"
+      ],
+      "cursor_bg": "#cecdc3",
+      "cursor_border": "#cecdc3",
+      "cursor_fg": "#1c1b1a",
+      "foreground": "#cecdc3",
+      "indexed": {},
+      "selection_bg": "#cecdc3",
+      "selection_fg": "#4385be"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "flexoki-dark",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#100f0f",
+        "#af3029",
+        "#66800b",
+        "#ad8301",
+        "#205ea6",
+        "#a02f6f",
+        "#24837b",
+        "#f2f0e5"
+      ],
+      "background": "#fffcf0",
+      "brights": [
+        "#575653",
+        "#d14d41",
+        "#879a39",
+        "#d0a215",
+        "#4385be",
+        "#ce5d97",
+        "#3aa99f",
+        "#fffcf0"
+      ],
+      "cursor_bg": "#100f0f",
+      "cursor_border": "#100f0f",
+      "cursor_fg": "#fffcf0",
+      "foreground": "#100f0f",
+      "indexed": {},
+      "selection_bg": "#cecdc3",
+      "selection_fg": "#100f0f"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "flexoki-light",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -14592,7 +15062,9 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Github Light (Gogh)"
+      ],
       "name": "Github (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -14636,6 +15108,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#f78166",
+        "#56d364",
+        "#e3b341",
+        "#6ca4f8",
+        "#db61a2",
+        "#2b7489",
+        "#ffffff"
+      ],
+      "background": "#101216",
+      "brights": [
+        "#4d4d4d",
+        "#f78166",
+        "#56d364",
+        "#e3b341",
+        "#6ca4f8",
+        "#db61a2",
+        "#2b7489",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c9d1d9",
+      "cursor_border": "#c9d1d9",
+      "cursor_fg": "#101216",
+      "foreground": "#8b949e",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Github Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "g",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -18890,7 +19399,7 @@
       "name": "iTerm2 Dark Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -18929,7 +19438,7 @@
       "name": "iTerm2 Default",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -18968,7 +19477,7 @@
       "name": "iTerm2 Light Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19007,7 +19516,7 @@
       "name": "iTerm2 Pastel Dark Background",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19046,7 +19555,7 @@
       "name": "iTerm2 Smoooooth",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19085,7 +19594,7 @@
       "name": "iTerm2 Tango Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -19124,7 +19633,7 @@
       "name": "iTerm2 Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -22505,39 +23014,39 @@
   {
     "colors": {
       "ansi": [
-        "#d7d7d7",
-        "#972500",
-        "#315b00",
-        "#70480f",
-        "#2544bb",
-        "#8f0075",
-        "#30517f",
+        "#f2f2f2",
+        "#a60000",
+        "#006800",
+        "#6f5500",
+        "#0031a9",
+        "#721045",
+        "#005e8b",
         "#000000"
       ],
       "background": "#ffffff",
       "brights": [
-        "#505050",
-        "#a60000",
-        "#005e00",
-        "#813e00",
-        "#0031a9",
-        "#721045",
-        "#00538b",
+        "#c4c4c4",
+        "#a0132f",
+        "#00663f",
+        "#7a4f2f",
+        "#0000b0",
+        "#531ab6",
+        "#005f5f",
         "#595959"
       ],
-      "cursor_bg": "#282828",
-      "cursor_border": "#282828",
-      "cursor_fg": "#d7d7d7",
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#ffffff",
       "foreground": "#000000",
       "indexed": {},
-      "selection_bg": "#bcbcbc",
+      "selection_bg": "#bdbdbd",
       "selection_fg": "#000000"
     },
     "metadata": {
       "aliases": [],
       "author": "anhsirk0",
       "name": "Modus-Operandi",
-      "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-operandi-theme.el",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-theme.el",
       "prefix": "m",
       "wezterm_version": "20230408-112425-69ae8472"
     }
@@ -22565,8 +23074,8 @@
         "#005f5f",
         "#595959"
       ],
-      "cursor_bg": "#dfa0f0",
-      "cursor_border": "#dfa0f0",
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
       "cursor_fg": "#ffffff",
       "foreground": "#000000",
       "indexed": {},
@@ -22581,7 +23090,7 @@
       "name": "Modus-Operandi-Deuteranopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-deuteranopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -22607,8 +23116,8 @@
         "#005f5f",
         "#595959"
       ],
-      "cursor_bg": "#dfa0f0",
-      "cursor_border": "#dfa0f0",
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
       "cursor_fg": "#fbf7f0",
       "foreground": "#000000",
       "indexed": {},
@@ -22621,14 +23130,14 @@
       "name": "Modus-Operandi-Tinted",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-tinted-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
     "colors": {
       "ansi": [
-        "#323232",
-        "#ff8059",
+        "#1e1e1e",
+        "#ff5f59",
         "#44bc44",
         "#d0bc00",
         "#2fafff",
@@ -22639,27 +23148,27 @@
       "background": "#000000",
       "brights": [
         "#535353",
-        "#ef8b50",
-        "#70b900",
-        "#c0c530",
-        "#79a8ff",
-        "#f78fe7",
-        "#4ae2f0",
+        "#ff7f9f",
+        "#00c06f",
+        "#dfaf7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
         "#989898"
       ],
-      "cursor_bg": "#f4f4f4",
-      "cursor_border": "#f4f4f4",
-      "cursor_fg": "#323232",
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {},
-      "selection_bg": "#3c3c3c",
+      "selection_bg": "#5a5a5a",
       "selection_fg": "#ffffff"
     },
     "metadata": {
       "aliases": [],
       "author": "anhsirk0",
       "name": "Modus-Vivendi",
-      "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-vivendi-theme.el",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-theme.el",
       "prefix": "m",
       "wezterm_version": "20230408-112425-69ae8472"
     }
@@ -22687,8 +23196,8 @@
         "#6ae4b9",
         "#989898"
       ],
-      "cursor_bg": "#7030af",
-      "cursor_border": "#7030af",
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
       "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {},
@@ -22701,7 +23210,7 @@
       "name": "Modus-Vivendi-Deuteranopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-deuteranopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -22727,8 +23236,8 @@
         "#6ae4b9",
         "#989898"
       ],
-      "cursor_bg": "#7030af",
-      "cursor_border": "#7030af",
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
       "cursor_fg": "#0d0e1c",
       "foreground": "#ffffff",
       "indexed": {},
@@ -22741,7 +23250,7 @@
       "name": "Modus-Vivendi-Tinted",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tinted-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -22767,8 +23276,8 @@
         "#6ae4b9",
         "#989898"
       ],
-      "cursor_bg": "#7030af",
-      "cursor_border": "#7030af",
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
       "cursor_fg": "#000000",
       "foreground": "#ffffff",
       "indexed": {},
@@ -22781,7 +23290,7 @@
       "name": "Modus-Vivendi-Tritanopia",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tritanopia-theme.el",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -23673,6 +24182,43 @@
   {
     "colors": {
       "ansi": [
+        "#323437",
+        "#ff5454",
+        "#8cc85f",
+        "#e3c78a",
+        "#80a0ff",
+        "#cf87e8",
+        "#79dac8",
+        "#c6c6c6"
+      ],
+      "background": "#080808",
+      "brights": [
+        "#949494",
+        "#ff5189",
+        "#36c692",
+        "#c2c292",
+        "#74b2ff",
+        "#ae81ff",
+        "#85dc85",
+        "#e4e4e4"
+      ],
+      "cursor_bg": "#9e9e9e",
+      "cursor_border": "#9e9e9e",
+      "cursor_fg": "#080808",
+      "foreground": "#bdbdbd",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Moonfly (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#040404",
         "#0f49c4",
         "#48b117",
@@ -24472,6 +25018,43 @@
   {
     "colors": {
       "ansi": [
+        "#1d3b53",
+        "#fc514e",
+        "#a1cd5e",
+        "#e3d18a",
+        "#82aaff",
+        "#c792ea",
+        "#7fdbca",
+        "#a1aab8"
+      ],
+      "background": "#011627",
+      "brights": [
+        "#7c8f8f",
+        "#ff5874",
+        "#21c7a8",
+        "#ecc48d",
+        "#82aaff",
+        "#ae81ff",
+        "#7fdbca",
+        "#d6deeb"
+      ],
+      "cursor_bg": "#9ca1aa",
+      "cursor_border": "#9ca1aa",
+      "cursor_fg": "#011627",
+      "foreground": "#bdc1c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Nightfly (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "n",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#393b44",
         "#c94f6d",
         "#81b29a",
@@ -24492,71 +25075,18 @@
         "#7ad5d6",
         "#e4e4e5"
       ],
-      "compose_cursor": "#f4a261",
       "cursor_bg": "#cdcecf",
       "cursor_border": "#cdcecf",
       "cursor_fg": "#192330",
       "foreground": "#cdcecf",
-      "indexed": {
-        "16": "#d67ad2",
-        "17": "#f4a261"
-      },
-      "scrollbar_thumb": "#71839b",
+      "indexed": {},
       "selection_bg": "#2b3b51",
-      "selection_fg": "#cdcecf",
-      "split": "#131a24",
-      "tab_bar": {
-        "active_tab": {
-          "bg_color": "#71839b",
-          "fg_color": "#192330",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "background": "#131a24",
-        "inactive_tab": {
-          "bg_color": "#212e3f",
-          "fg_color": "#aeafb0",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "inactive_tab_edge": "#131a24",
-        "inactive_tab_edge_hover": "#212e3f",
-        "inactive_tab_hover": {
-          "bg_color": "#29394f",
-          "fg_color": "#cdcecf",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
-          "bg_color": "#192330",
-          "fg_color": "#aeafb0",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab_hover": {
-          "bg_color": "#29394f",
-          "fg_color": "#cdcecf",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        }
-      },
-      "visual_bell": "#cdcecf"
+      "selection_fg": "#cdcecf"
     },
     "metadata": {
       "aliases": [],
-      "author": "EdenEast",
       "name": "nightfox",
-      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -26403,7 +26933,7 @@
       "name": "Oxocarbon Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -29743,7 +30273,7 @@
       "name": "Rosé Pine Moon (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -30420,6 +30950,80 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#103c48",
+        "#fa5750",
+        "#75b938",
+        "#dbb32d",
+        "#4695f7",
+        "#f275be",
+        "#41c7b9",
+        "#adbcbc"
+      ],
+      "background": "#103c48",
+      "brights": [
+        "#184956",
+        "#ff665c",
+        "#84c747",
+        "#ebc13d",
+        "#58a3ff",
+        "#ff84cd",
+        "#53d6c7",
+        "#cad8d9"
+      ],
+      "cursor_bg": "#adbcbc",
+      "cursor_border": "#adbcbc",
+      "cursor_fg": "#103c48",
+      "foreground": "#adbcbc",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Selenized Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s",
+      "wezterm_version": "20240127-113634-bbcac864"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fbf3db",
+        "#d2212d",
+        "#489100",
+        "#ad8900",
+        "#0072d4",
+        "#ca4898",
+        "#009c8f",
+        "#53676d"
+      ],
+      "background": "#fbf3db",
+      "brights": [
+        "#ece3cc",
+        "#cc1729",
+        "#428b00",
+        "#a78300",
+        "#006dce",
+        "#c44392",
+        "#00978a",
+        "#3a4d53"
+      ],
+      "cursor_bg": "#53676d",
+      "cursor_border": "#53676d",
+      "cursor_fg": "#fbf3db",
+      "foreground": "#53676d",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Selenized Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {
@@ -34015,71 +34619,18 @@
         "#afd4de",
         "#eeeeee"
       ],
-      "compose_cursor": "#ff8349",
       "cursor_bg": "#e6eaea",
       "cursor_border": "#e6eaea",
       "cursor_fg": "#152528",
       "foreground": "#e6eaea",
-      "indexed": {
-        "16": "#cb7985",
-        "17": "#ff8349"
-      },
-      "scrollbar_thumb": "#587b7b",
+      "indexed": {},
       "selection_bg": "#293e40",
-      "selection_fg": "#e6eaea",
-      "split": "#0f1c1e",
-      "tab_bar": {
-        "active_tab": {
-          "bg_color": "#587b7b",
-          "fg_color": "#152528",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "background": "#0f1c1e",
-        "inactive_tab": {
-          "bg_color": "#1d3337",
-          "fg_color": "#cbd9d8",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "inactive_tab_edge": "#0f1c1e",
-        "inactive_tab_edge_hover": "#1d3337",
-        "inactive_tab_hover": {
-          "bg_color": "#254147",
-          "fg_color": "#e6eaea",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
-          "bg_color": "#152528",
-          "fg_color": "#cbd9d8",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab_hover": {
-          "bg_color": "#254147",
-          "fg_color": "#e6eaea",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        }
-      },
-      "visual_bell": "#e6eaea"
+      "selection_fg": "#e6eaea"
     },
     "metadata": {
       "aliases": [],
-      "author": "EdenEast",
       "name": "terafox",
-      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -35168,25 +35719,28 @@
         "#007197",
         "#3760bf"
       ],
+      "compose_cursor": "#b15c00",
       "cursor_bg": "#3760bf",
       "cursor_border": "#3760bf",
       "cursor_fg": "#e1e2e7",
       "foreground": "#3760bf",
       "indexed": {},
-      "selection_bg": "#99a7df",
+      "scrollbar_thumb": "#c4c8da",
+      "selection_bg": "#b6bfe2",
       "selection_fg": "#3760bf",
+      "split": "#2e7de9",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#e1e2e7",
-          "fg_color": "#2e7de9",
+          "bg_color": "#2e7de9",
+          "fg_color": "#e9e9ec",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "background": "#191b28",
+        "background": "#e1e2e7",
         "inactive_tab": {
-          "bg_color": "#e9e9ec",
+          "bg_color": "#c4c8da",
           "fg_color": "#8990b3",
           "intensity": "Normal",
           "italic": false,
@@ -35195,7 +35749,7 @@
         },
         "inactive_tab_edge": "#e9e9ec",
         "inactive_tab_hover": {
-          "bg_color": "#e9e9ec",
+          "bg_color": "#c4c8da",
           "fg_color": "#2e7de9",
           "intensity": "Normal",
           "italic": false,
@@ -35203,7 +35757,7 @@
           "underline": "None"
         },
         "new_tab": {
-          "bg_color": "#191b28",
+          "bg_color": "#e1e2e7",
           "fg_color": "#2e7de9",
           "intensity": "Normal",
           "italic": false,
@@ -35211,9 +35765,9 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#2e7de9",
-          "fg_color": "#e9e9ec",
-          "intensity": "Normal",
+          "bg_color": "#e1e2e7",
+          "fg_color": "#2e7de9",
+          "intensity": "Bold",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
@@ -35224,6 +35778,7 @@
       "aliases": [
         "tokyonight-day"
       ],
+      "author": "folke",
       "name": "tokyonight_day",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
@@ -35253,25 +35808,28 @@
         "#86e1fc",
         "#c8d3f5"
       ],
+      "compose_cursor": "#ff966c",
       "cursor_bg": "#c8d3f5",
       "cursor_border": "#c8d3f5",
       "cursor_fg": "#222436",
       "foreground": "#c8d3f5",
       "indexed": {},
-      "selection_bg": "#3654a7",
+      "scrollbar_thumb": "#2f334d",
+      "selection_bg": "#2d3f76",
       "selection_fg": "#c8d3f5",
+      "split": "#82aaff",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#222436",
-          "fg_color": "#82aaff",
+          "bg_color": "#82aaff",
+          "fg_color": "#1e2030",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "background": "#191b28",
+        "background": "#222436",
         "inactive_tab": {
-          "bg_color": "#1e2030",
+          "bg_color": "#2f334d",
           "fg_color": "#545c7e",
           "intensity": "Normal",
           "italic": false,
@@ -35280,7 +35838,7 @@
         },
         "inactive_tab_edge": "#1e2030",
         "inactive_tab_hover": {
-          "bg_color": "#1e2030",
+          "bg_color": "#2f334d",
           "fg_color": "#82aaff",
           "intensity": "Normal",
           "italic": false,
@@ -35288,7 +35846,7 @@
           "underline": "None"
         },
         "new_tab": {
-          "bg_color": "#191b28",
+          "bg_color": "#222436",
           "fg_color": "#82aaff",
           "intensity": "Normal",
           "italic": false,
@@ -35296,9 +35854,9 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#82aaff",
-          "fg_color": "#1e2030",
-          "intensity": "Normal",
+          "bg_color": "#222436",
+          "fg_color": "#82aaff",
+          "intensity": "Bold",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
@@ -35307,6 +35865,7 @@
     },
     "metadata": {
       "aliases": [],
+      "author": "folke",
       "name": "tokyonight_moon",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
@@ -35336,25 +35895,28 @@
         "#7dcfff",
         "#c0caf5"
       ],
+      "compose_cursor": "#ff9e64",
       "cursor_bg": "#c0caf5",
       "cursor_border": "#c0caf5",
       "cursor_fg": "#1a1b26",
       "foreground": "#c0caf5",
       "indexed": {},
-      "selection_bg": "#33467c",
+      "scrollbar_thumb": "#292e42",
+      "selection_bg": "#283457",
       "selection_fg": "#c0caf5",
+      "split": "#7aa2f7",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#1a1b26",
-          "fg_color": "#7aa2f7",
+          "bg_color": "#7aa2f7",
+          "fg_color": "#16161e",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "background": "#191b28",
+        "background": "#1a1b26",
         "inactive_tab": {
-          "bg_color": "#16161e",
+          "bg_color": "#292e42",
           "fg_color": "#545c7e",
           "intensity": "Normal",
           "italic": false,
@@ -35363,7 +35925,7 @@
         },
         "inactive_tab_edge": "#16161e",
         "inactive_tab_hover": {
-          "bg_color": "#16161e",
+          "bg_color": "#292e42",
           "fg_color": "#7aa2f7",
           "intensity": "Normal",
           "italic": false,
@@ -35371,7 +35933,7 @@
           "underline": "None"
         },
         "new_tab": {
-          "bg_color": "#191b28",
+          "bg_color": "#1a1b26",
           "fg_color": "#7aa2f7",
           "intensity": "Normal",
           "italic": false,
@@ -35379,9 +35941,9 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#7aa2f7",
-          "fg_color": "#16161e",
-          "intensity": "Normal",
+          "bg_color": "#1a1b26",
+          "fg_color": "#7aa2f7",
+          "intensity": "Bold",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
@@ -35392,6 +35954,7 @@
       "aliases": [
         "tokyonight"
       ],
+      "author": "folke",
       "name": "tokyonight_night",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
@@ -35421,25 +35984,28 @@
         "#7dcfff",
         "#c0caf5"
       ],
+      "compose_cursor": "#ff9e64",
       "cursor_bg": "#c0caf5",
       "cursor_border": "#c0caf5",
       "cursor_fg": "#24283b",
       "foreground": "#c0caf5",
       "indexed": {},
-      "selection_bg": "#364a82",
+      "scrollbar_thumb": "#292e42",
+      "selection_bg": "#2e3c64",
       "selection_fg": "#c0caf5",
+      "split": "#7aa2f7",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#24283b",
-          "fg_color": "#7aa2f7",
+          "bg_color": "#7aa2f7",
+          "fg_color": "#1f2335",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "background": "#191b28",
+        "background": "#24283b",
         "inactive_tab": {
-          "bg_color": "#1f2335",
+          "bg_color": "#292e42",
           "fg_color": "#545c7e",
           "intensity": "Normal",
           "italic": false,
@@ -35448,7 +36014,7 @@
         },
         "inactive_tab_edge": "#1f2335",
         "inactive_tab_hover": {
-          "bg_color": "#1f2335",
+          "bg_color": "#292e42",
           "fg_color": "#7aa2f7",
           "intensity": "Normal",
           "italic": false,
@@ -35456,7 +36022,7 @@
           "underline": "None"
         },
         "new_tab": {
-          "bg_color": "#191b28",
+          "bg_color": "#24283b",
           "fg_color": "#7aa2f7",
           "intensity": "Normal",
           "italic": false,
@@ -35464,9 +36030,9 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#7aa2f7",
-          "fg_color": "#1f2335",
-          "intensity": "Normal",
+          "bg_color": "#24283b",
+          "fg_color": "#7aa2f7",
+          "intensity": "Bold",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
@@ -35477,6 +36043,7 @@
       "aliases": [
         "tokyonight-storm"
       ],
+      "author": "folke",
       "name": "tokyonight_storm",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
@@ -35682,7 +36249,7 @@
       ],
       "background": "#1d1f21",
       "brights": [
-        "#000000",
+        "#808080",
         "#cc6666",
         "#b5bd68",
         "#f0c574",
@@ -37634,6 +38201,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#183c44",
+        "#da4949",
+        "#bcca15",
+        "#ffb02e",
+        "#35a6e6",
+        "#d343a2",
+        "#38c995",
+        "#ffe8c1"
+      ],
+      "background": "#132f35",
+      "brights": [
+        "#235662",
+        "#ff5757",
+        "#ecff14",
+        "#ffd694",
+        "#4cbfff",
+        "#ff4cc2",
+        "#35ffb6",
+        "#ffd48f"
+      ],
+      "cursor_bg": "#d1b890",
+      "cursor_border": "#d1b890",
+      "cursor_fg": "#132f35",
+      "foreground": "#d1b890",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Website (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "w",
+      "wezterm_version": "20240127-113634-bbcac864"
     }
   },
   {

@@ -35,7 +35,9 @@ impl KittyImageState {
     }
 
     fn record_id_to_data(&mut self, image_id: u32, data: Arc<ImageData>) {
-        self.remove_data_for_id(image_id);
+        if image_id != 0 {
+            self.remove_data_for_id(image_id);
+        }
         self.prune_unreferenced();
         self.used_memory += data.len();
         self.id_to_data.insert(image_id, data);
@@ -98,7 +100,9 @@ impl TerminalState {
             placement,
             verbosity
         );
-        self.kitty_remove_placement(image_id, placement.placement_id);
+        if image_id != 0 {
+            self.kitty_remove_placement(image_id, placement.placement_id);
+        }
         let img = Arc::clone(self.kitty_img.id_to_data.get(&image_id).ok_or_else(|| {
             anyhow::anyhow!(
                 "no matching image id {} in id_to_data for image_number {:?}",
@@ -112,12 +116,12 @@ impl TerminalState {
         let info = self.assign_image_to_cells(ImageAttachParams {
             image_width,
             image_height,
-            source_width: placement.w.unwrap_or(image_width),
-            source_height: placement.h.unwrap_or(image_height),
+            source_width: placement.w,
+            source_height: placement.h,
             source_origin_x: placement.x.unwrap_or(0),
             source_origin_y: placement.y.unwrap_or(0),
-            padding_left: placement.x_offset.unwrap_or(0) as u16,
-            padding_top: placement.y_offset.unwrap_or(0) as u16,
+            cell_padding_left: placement.x_offset.unwrap_or(0) as u16,
+            cell_padding_top: placement.y_offset.unwrap_or(0) as u16,
             data: img,
             style: ImageAttachStyle::Kitty,
             z_index: placement.z_index.unwrap_or(0),

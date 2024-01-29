@@ -1,11 +1,3 @@
-/* prevent selection of prefix and output for console syntax */
-.language-console .gp, .language-console .go {
-  user-select: none;
-  -webkit-user-select: none; /* Chrome/Safari */
-  -ms-user-select: none; /* IE10+ */
-  color: !important pink;
-}
-
 @font-face {
   font-family: "Symbols Nerd Font Mono";
   src: url(fonts/SymbolsNerdFontMono-Regular.ttf) format("truetype");

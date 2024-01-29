@@ -146,8 +146,8 @@ pub fn set_lang_from_locale() {
                 let country_code = nsstring_to_str(country_code_obj);
 
                 let candidate = format!("{}_{}.UTF-8", lang_code, country_code);
-                let candidate_cstr = std::ffi::CString::new(candidate.as_bytes().clone())
-                    .expect("make cstr from str");
+                let candidate_cstr =
+                    std::ffi::CString::new(candidate.as_bytes()).expect("make cstr from str");
 
                 // If this looks like a working locale then export it to
                 // the environment so that our child processes inherit it.

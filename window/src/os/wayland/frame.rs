@@ -3,7 +3,7 @@
 //! and provided under the terms of the MIT license.
 
 use crate::os::wayland::pointer::make_theme_manager;
-use config::{ConfigHandle, RgbColor, WindowFrameConfig};
+use config::{ConfigHandle, RgbaColor, WindowFrameConfig};
 use smithay_client_toolkit::output::{add_output_listener, with_output_info, OutputListener};
 use smithay_client_toolkit::seat::pointer::{ThemeManager, ThemedPointer};
 use smithay_client_toolkit::shm::DoubleMemPool;
@@ -21,13 +21,14 @@ use wayland_client::protocol::{
     wl_surface,
 };
 use wayland_client::{Attached, DispatchData, Main};
+use wezterm_color_types::SrgbaTuple;
 use wezterm_font::{FontConfiguration, FontMetrics, GlyphInfo, RasterizedGlyph};
 use wezterm_input_types::WindowDecorations;
 
-fn color_to_paint(c: RgbColor) -> Paint<'static> {
+fn color_to_paint(c: RgbaColor) -> Paint<'static> {
     let mut paint = Paint::default();
-    let (red, green, blue) = c.to_tuple_rgb8();
-    paint.set_color_rgba8(blue, green, red, 0xff);
+    let (red, green, blue, alpha) = c.as_rgba_u8();
+    paint.set_color_rgba8(blue, green, red, alpha);
     paint.anti_alias = true;
     paint
 }
@@ -469,8 +470,7 @@ impl ConceptFrame {
         let title_color = match self.active {
             WindowState::Active => colors.active_titlebar_fg,
             WindowState::Inactive => colors.inactive_titlebar_fg,
-        }
-        .to_tuple_rgba();
+        };
 
         for info in infos {
             if let Ok(mut glyph) = font.rasterize_glyph(info.glyph_pos, info.font_idx) {
@@ -1216,7 +1216,7 @@ fn request_for_location_on_rmb(pointer_data: &PointerUserData) -> Option<FrameRe
 
 // average of the two colors, approximately taking into account gamma correction
 // result is as transparent as the most transparent color
-fn mix_colors(x: RgbColor, y: RgbColor) -> RgbColor {
+fn mix_colors(x: RgbaColor, y: RgbaColor) -> RgbaColor {
     #[inline]
     fn gamma_mix(x: f32, y: f32) -> f32 {
         let z = ((x * x + y * y) / 2.0).sqrt();
@@ -1226,11 +1226,13 @@ fn mix_colors(x: RgbColor, y: RgbColor) -> RgbColor {
     let x = x.to_tuple_rgba();
     let y = y.to_tuple_rgba();
 
-    RgbColor::new_f32(
+    SrgbaTuple(
         gamma_mix(x.0, y.0),
         gamma_mix(x.1, y.1),
         gamma_mix(x.2, y.2),
+        gamma_mix(x.3, y.3),
     )
+    .into()
 }
 
 fn draw_buttons(
@@ -1275,7 +1277,7 @@ fn draw_buttons(
         colors: &WindowFrameConfig,
         btn_state: ButtonState,
         state: WindowState,
-    ) -> (RgbColor, RgbColor) {
+    ) -> (RgbaColor, RgbaColor) {
         match (btn_state, state) {
             (ButtonState::Hovered, _) => (colors.button_hover_bg, colors.button_hover_fg),
             (_, WindowState::Inactive) => {

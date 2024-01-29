@@ -1,6 +1,6 @@
 [package]
 name = "wezterm-bidi"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 repository = "https://github.com/wez/wezterm"
 description = "The Unicode Bidi Algorithm (UBA)"
@@ -13,8 +13,8 @@ exclude = ["/data", "/tests"]
 
 [dependencies]
 log = "0.4"
-wezterm-dynamic = { version = "0.1", path = "../wezterm-dynamic" }
+wezterm-dynamic = { version = "0.2", path = "../wezterm-dynamic" }
 
 [dev-dependencies]
-k9 = "0.11.0"
-env_logger = "0.10"
+k9 = "0.12.0"
+env_logger = "0.11"

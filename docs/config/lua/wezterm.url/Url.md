@@ -1,6 +1,6 @@
 # Url object
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 The `Url` object represents a parsed Url.  It has the following fields:
 

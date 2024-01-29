@@ -14,7 +14,7 @@ dirs-next = "2.0"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
-env_logger = "0.10"
+env_logger = "0.10" # Note: we rely on filter::Builder which is gone in 0.11
 termwiz = { path = "../termwiz" }
 battery = { path = "../lua-api-crates/battery" }
 color-funcs = { path = "../lua-api-crates/color-funcs" }

@@ -10,8 +10,10 @@ use std::collections::HashMap;
 use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
 use wezterm_input_types::{KeyboardLedStatus, PhysKeyCode};
+use xcb::x::KeyButMask;
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
+use xkbcommon::xkb::{LayoutIndex, ModMask};
 
 pub struct Keyboard {
     context: xkb::Context,
@@ -22,6 +24,17 @@ pub struct Keyboard {
     compose_state: RefCell<Compose>,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
     mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
+    last_xcb_state: RefCell<StateFromXcbStateNotify>,
+}
+
+#[derive(Default, Debug, Clone, Copy)]
+struct StateFromXcbStateNotify {
+    depressed_mods: ModMask,
+    latched_mods: ModMask,
+    locked_mods: ModMask,
+    depressed_layout: LayoutIndex,
+    latched_layout: LayoutIndex,
+    locked_layout: LayoutIndex,
 }
 
 pub struct KeyboardWithFallback {
@@ -62,7 +75,8 @@ impl Compose {
         }
 
         let previously_composing = !self.composition.is_empty();
-        self.state.feed(xsym);
+        let feed_result = self.state.feed(xsym);
+        log::trace!("feed {xsym:?} -> result {feed_result:?}");
 
         match self.state.status() {
             ComposeStatus::Composing => {
@@ -92,17 +106,18 @@ impl Compose {
                     // we don't have a fantastic way to indicate what is
                     // currently being composed, so we try to get something
                     // that might be meaningful by getting the utf8 for that
-                    // key if known, or falling back to the name of the keysym.
-                    // The keysym name is likely much wider than the utf8, but
-                    // it's probably better than nothing.
-                    // An alternative we could use if folks don't like it is
-                    // either a space or an underscore.
+                    // key if known.
+                    // We used to fall back to the name of the keysym, but
+                    // feedback was that is was undesirable
+                    // <https://github.com/wez/wezterm/issues/4511>
                     let key_state = key_state.borrow();
                     let utf8 = key_state.key_get_utf8(xcode);
                     if !utf8.is_empty() {
                         self.composition.push_str(&utf8);
-                    } else {
-                        self.composition.push_str(&xkb::keysym_get_name(xsym));
+                    }
+                    if self.composition.is_empty() {
+                        // Ensure that we have something in the composition
+                        self.composition.push(' ');
                     }
                 }
                 FeedResult::Composing(self.composition.clone())
@@ -166,7 +181,33 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) -> Option<WindowKeyEvent> {
         let want_repeat = self.selected.wayland_key_repeats(code);
-        self.process_key_event_impl(code + 8, pressed, events, want_repeat)
+        let raw_modifiers = self.get_key_modifiers();
+        self.process_key_event_impl(
+            xkb::Keycode::new(code + 8),
+            raw_modifiers,
+            pressed,
+            events,
+            want_repeat,
+        )
+    }
+
+    /// Compute the Modifier mask equivalent from the button mask
+    /// provided in an XCB keyboard event
+    fn modifiers_from_btn_mask(mask: xcb::x::KeyButMask) -> Modifiers {
+        let mut res = Modifiers::default();
+        if mask.contains(xcb::x::KeyButMask::SHIFT) {
+            res |= Modifiers::SHIFT;
+        }
+        if mask.contains(xcb::x::KeyButMask::CONTROL) {
+            res |= Modifiers::CTRL;
+        }
+        if mask.contains(xcb::x::KeyButMask::MOD1) {
+            res |= Modifiers::ALT;
+        }
+        if mask.contains(xcb::x::KeyButMask::MOD4) {
+            res |= Modifiers::SUPER;
+        }
+        res
     }
 
     pub fn process_key_press_event(
@@ -175,7 +216,7 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, true, events, false);
+        self.process_xcb_key_event_impl(xcode, xcb_ev.state(), true, events);
     }
 
     pub fn process_key_release_event(
@@ -184,18 +225,54 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, false, events, false);
+        self.process_xcb_key_event_impl(xcode, xcb_ev.state(), false, events);
+    }
+
+    // for X11 we always pass down raw_modifiers from the incoming
+    // key event to use in preference to whatever is computed by XKB.
+    // The reason is that the update_state() call triggered by the XServer
+    // doesn't know about state managed by the IME, so we cannot trust
+    // that the modifiers are right.
+    // <https://github.com/ibus/ibus/issues/2600#issuecomment-1904322441>
+    //
+    // As part of this, we need to update the mask with the currently
+    // known modifiers in order for automation scenarios to work out:
+    // <https://github.com/fcitx/fcitx5/issues/893>
+    // <https://github.com/wez/wezterm/issues/4615>
+    fn process_xcb_key_event_impl(
+        &self,
+        xcode: xkb::Keycode,
+        state: KeyButMask,
+        pressed: bool,
+        events: &mut WindowEventSender,
+    ) -> Option<WindowKeyEvent> {
+        // extract current modifiers
+        let event_modifiers = Self::modifiers_from_btn_mask(state);
+        // take the raw modifier mask
+        let raw_mod_mask = state.bits();
+        // and apply it to the underlying state so that eg: shifted keys
+        // are correctly represented
+        self.merge_current_xcb_modifiers(raw_mod_mask);
+
+        // now do the regular processing
+        let result = self.process_key_event_impl(xcode, event_modifiers, pressed, events, false);
+
+        // and restore the prior modifier state
+        self.reapply_last_xcb_state();
+
+        result
     }
 
     fn process_key_event_impl(
         &self,
         xcode: xkb::Keycode,
+        raw_modifiers: Modifiers,
         pressed: bool,
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
-        let raw_modifiers = self.get_key_modifiers();
+
         let leds = self.get_led_status();
 
         let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
@@ -205,10 +282,10 @@ impl KeyboardWithFallback {
         let raw_key_event = RawKeyEvent {
             key: match phys_code {
                 Some(phys) => KeyCode::Physical(phys),
-                None => KeyCode::RawCode(xcode),
+                None => KeyCode::RawCode(xcode.into()),
             },
             phys_code,
-            raw_code: xcode,
+            raw_code: xcode.into(),
             modifiers: raw_modifiers,
             leds,
             repeat_count: 1,
@@ -279,7 +356,7 @@ impl KeyboardWithFallback {
 
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Nothing: \
-                                {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?}"
+                         {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?}"
                     );
 
                     // If we have a modified key, and its expansion is non-ascii, such as cyrillic
@@ -291,7 +368,9 @@ impl KeyboardWithFallback {
                         && raw_modifiers
                             .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
                     {
-                        match keysym_to_keycode(sym).or_else(|| keysym_to_keycode(xsym)) {
+                        match keysym_to_keycode(sym.into())
+                            .or_else(|| keysym_to_keycode(xsym.into()))
+                        {
                             Some(crate::KeyCode::Char(c)) if !c.is_ascii() => {
                                 // Potentially a Cyrillic or other non-european layout.
                                 // Consider shortcuts like CTRL-C against the default
@@ -300,7 +379,7 @@ impl KeyboardWithFallback {
                                     FeedResult::Nothing(_fb_utf8, fb_sym) => {
                                         log::trace!(
                                             "process_key_event: RawKeyEvent using fallback \
-                                             sym {fb_sym} because layout would expand to \
+                                             sym {fb_sym:?} because layout would expand to \
                                              non-ascii text {c:?}"
                                         );
                                         fb_sym
@@ -326,7 +405,8 @@ impl KeyboardWithFallback {
 
         let kc = match kc {
             Some(kc) => kc,
-            None => match keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym)) {
+            None => match keysym_to_keycode(ksym.into()).or_else(|| keysym_to_keycode(xsym.into()))
+            {
                 Some(kc) => kc,
                 None => {
                     log::trace!("keysym_to_keycode for {:?} and {:?} -> None", ksym, xsym);
@@ -446,6 +526,16 @@ impl KeyboardWithFallback {
         self.fallback.update_state(ev);
     }
 
+    pub fn reapply_last_xcb_state(&self) {
+        self.selected.reapply_last_xcb_state();
+        self.fallback.reapply_last_xcb_state();
+    }
+
+    pub fn merge_current_xcb_modifiers(&self, mods: ModMask) {
+        self.selected.merge_current_xcb_modifiers(mods);
+        self.fallback.merge_current_xcb_modifiers(mods);
+    }
+
     pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
         self.selected.update_keymap(connection)
     }
@@ -478,6 +568,7 @@ impl Keyboard {
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
+            last_xcb_state: RefCell::new(Default::default()),
         })
     }
 
@@ -512,6 +603,7 @@ impl Keyboard {
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
+            last_xcb_state: RefCell::new(Default::default()),
         })
     }
 
@@ -578,6 +670,7 @@ impl Keyboard {
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
+            last_xcb_state: RefCell::new(Default::default()),
         };
 
         Ok((kbd, first_ev))
@@ -585,7 +678,9 @@ impl Keyboard {
 
     /// Returns true if a given wayland keycode allows for automatic key repeats
     pub fn wayland_key_repeats(&self, code: u32) -> bool {
-        self.keymap.borrow().key_repeats(code + 8)
+        self.keymap
+            .borrow()
+            .key_repeats(xkb::Keycode::new(code + 8))
     }
 
     pub fn get_device_id(&self) -> i32 {
@@ -620,13 +715,49 @@ impl Keyboard {
     }
 
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
+        let state = StateFromXcbStateNotify {
+            depressed_mods: xkb::ModMask::from(ev.base_mods().bits()),
+            latched_mods: xkb::ModMask::from(ev.latched_mods().bits()),
+            locked_mods: xkb::ModMask::from(ev.locked_mods().bits()),
+            depressed_layout: ev.base_group() as xkb::LayoutIndex,
+            latched_layout: ev.latched_group() as xkb::LayoutIndex,
+            locked_layout: xkb::LayoutIndex::from(ev.locked_group() as u32),
+        };
+        log::trace!("update_state with {state:?}");
+
         self.state.borrow_mut().update_mask(
-            xkb::ModMask::from(ev.base_mods().bits()),
-            xkb::ModMask::from(ev.latched_mods().bits()),
-            xkb::ModMask::from(ev.locked_mods().bits()),
-            ev.base_group() as xkb::LayoutIndex,
-            ev.latched_group() as xkb::LayoutIndex,
-            xkb::LayoutIndex::from(ev.locked_group() as u32),
+            state.depressed_mods,
+            state.latched_mods,
+            state.locked_mods,
+            state.depressed_layout,
+            state.latched_layout,
+            state.locked_layout,
+        );
+
+        *self.last_xcb_state.borrow_mut() = state;
+    }
+
+    pub fn merge_current_xcb_modifiers(&self, mods: ModMask) {
+        let state = self.last_xcb_state.borrow().clone();
+        self.state.borrow_mut().update_mask(
+            mods,
+            0,
+            0,
+            state.depressed_layout,
+            state.latched_layout,
+            state.locked_layout,
+        );
+    }
+
+    pub fn reapply_last_xcb_state(&self) {
+        let state = self.last_xcb_state.borrow().clone();
+        self.state.borrow_mut().update_mask(
+            state.depressed_mods,
+            state.latched_mods,
+            state.locked_mods,
+            state.depressed_layout,
+            state.latched_layout,
+            state.locked_layout,
         );
     }
 

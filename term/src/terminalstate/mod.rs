@@ -378,7 +378,10 @@ pub struct TerminalState {
 
     accumulating_title: Option<String>,
 
+    /// seqno when we last lost focus
     lost_focus_seqno: SequenceNo,
+    /// seqno when we last emitted Alert::OutputSinceFocusLost
+    lost_focus_alerted_seqno: SequenceNo,
     focused: bool,
 
     /// True if lines should be marked as bidi-enabled, and thus
@@ -575,6 +578,7 @@ impl TerminalState {
             enable_conpty_quirks: false,
             accumulating_title: None,
             lost_focus_seqno: seqno,
+            lost_focus_alerted_seqno: seqno,
             focused: true,
             bidi_enabled: None,
             bidi_hint: None,
@@ -795,8 +799,15 @@ impl TerminalState {
 
     pub(crate) fn trigger_unseen_output_notif(&mut self) {
         if self.has_unseen_output() {
-            if let Some(handler) = self.alert_handler.as_mut() {
-                handler.alert(Alert::OutputSinceFocusLost);
+            // We want to avoid over-notifying about output events,
+            // so here we gate the notification to the case where
+            // we have lost the focus more recently than the last
+            // time we notified about it
+            if self.lost_focus_seqno > self.lost_focus_alerted_seqno {
+                self.lost_focus_alerted_seqno = self.seqno;
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::OutputSinceFocusLost);
+                }
             }
         }
     }
@@ -804,6 +815,8 @@ impl TerminalState {
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the writer as-is.
+    /// De-fang the text by removing any embedded bracketed paste
+    /// sequence that may be present.
     pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
         let mut buf = String::new();
         if self.bracketed_paste {
@@ -817,7 +830,8 @@ impl TerminalState {
         };
 
         let canon = canon.canonicalize(text);
-        buf.push_str(&canon);
+        let de_fanged = canon.replace("\x1b[200~", "").replace("\x1b[201~", "");
+        buf.push_str(&de_fanged);
 
         if self.bracketed_paste {
             buf.push_str("\x1b[201~");
@@ -833,6 +847,7 @@ impl TerminalState {
     /// We need to resize both the primary and alt screens, adjusting
     /// the cursor positions of both accordingly.
     pub fn resize(&mut self, size: TerminalSize) {
+        self.increment_seqno();
         let (cursor_main, cursor_alt) = if self.screen.alt_screen_is_active {
             (
                 self.screen

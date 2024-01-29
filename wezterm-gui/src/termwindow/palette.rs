@@ -567,7 +567,7 @@ impl CommandPalette {
         let mut row = self.selected_row.borrow_mut();
         *row = row.saturating_add(1).min(limit);
         let mut top_row = self.top_row.borrow_mut();
-        if *row + *top_row > max_rows_on_screen - 1 {
+        if *row > *top_row + max_rows_on_screen - 1 {
             *top_row = row.saturating_sub(max_rows_on_screen - 1);
         }
     }

@@ -46,7 +46,7 @@ it lists available stylistic sets here:
 and you can set them in wezterm:
 
 ```lua
--- Use this for a zero with a dot rather than a line through it
+-- Use this for a zero with a line through it rather than a dot
 -- when using the Fira Code font
 config.harfbuzz_features = { 'zero' }
 ```

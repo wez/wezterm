@@ -22,7 +22,10 @@ impl Clipboard {
             if !plist.is_null() {
                 let mut filenames = vec![];
                 for i in 0..plist.count() {
-                    filenames.push(shlex::quote(nsstring_to_str(plist.objectAtIndex(i))));
+                    filenames.push(
+                        shlex::try_quote(nsstring_to_str(plist.objectAtIndex(i)))
+                            .unwrap_or_else(|_| "".into()),
+                    );
                 }
                 return Ok(filenames.join(" "));
             }

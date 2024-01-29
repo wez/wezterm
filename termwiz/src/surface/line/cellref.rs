@@ -2,7 +2,7 @@ use crate::cell::{Cell, CellAttributes};
 use crate::emoji::Presentation;
 use std::hash::{Hash, Hasher};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum CellRef<'a> {
     CellRef {
         cell_index: usize,

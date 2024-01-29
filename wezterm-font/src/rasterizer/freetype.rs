@@ -102,6 +102,9 @@ impl FontRasterizer for FreeTypeRasterizer {
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
                 self.rasterize_lcd(pitch, ft_glyph, data, is_scaled)
             }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD_V => {
+                self.rasterize_lcd_v(pitch, ft_glyph, data, is_scaled)
+            }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
                 self.rasterize_bgra(pitch, ft_glyph, data, is_scaled)?
             }
@@ -222,6 +225,59 @@ impl FreeTypeRasterizer {
                 let red = data[src_offset + (x * 3)];
                 let green = data[src_offset + (x * 3) + 1];
                 let blue = data[src_offset + (x * 3) + 2];
+
+                let linear_alpha = red.max(green).max(blue);
+
+                // Texture is SRGBA, which in OpenGL means
+                // that the RGB values are gamma adjusted
+                // non-linear values, but the A value is
+                // linear!
+
+                let red = linear_u8_to_srgb8(red);
+                let green = linear_u8_to_srgb8(green);
+                let blue = linear_u8_to_srgb8(blue);
+
+                let (red, blue) = match self.display_pixel_geometry {
+                    DisplayPixelGeometry::RGB => (red, blue),
+                    DisplayPixelGeometry::BGR => (blue, red),
+                };
+
+                rgba[dest_offset + (x * 4)] = red;
+                rgba[dest_offset + (x * 4) + 1] = green;
+                rgba[dest_offset + (x * 4) + 2] = blue;
+                rgba[dest_offset + (x * 4) + 3] = linear_alpha;
+            }
+        }
+
+        RasterizedGlyph {
+            data: rgba,
+            height,
+            width,
+            bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
+            bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
+            has_color: self.has_color,
+            is_scaled,
+        }
+    }
+
+    fn rasterize_lcd_v(
+        &self,
+        pitch: usize,
+        ft_glyph: &FT_GlyphSlotRec_,
+        data: &[u8],
+        is_scaled: bool,
+    ) -> RasterizedGlyph {
+        let width = ft_glyph.bitmap.width as usize;
+        let height = ft_glyph.bitmap.rows as usize / 3;
+        let size = width * height * 4;
+        let mut rgba = vec![0u8; size];
+        for y in 0..height {
+            let src_offset = y * pitch * 3;
+            let dest_offset = y * width * 4;
+            for x in 0..width {
+                let red = data[src_offset + x];
+                let green = data[src_offset + x + pitch];
+                let blue = data[src_offset + x + 2 * pitch];
 
                 let linear_alpha = red.max(green).max(blue);
 

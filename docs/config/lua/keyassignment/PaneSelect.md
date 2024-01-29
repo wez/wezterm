@@ -22,7 +22,7 @@ The selection alphabet defaults to the same value as
 [quick_select_alphabet](../config/quick_select_alphabet.md), but can be
 explicitly via the `alphabet` field:
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 Additional modes are now supported:
 

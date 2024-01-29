@@ -5,7 +5,7 @@ tags:
 ---
 # `wezterm.to_string(arg)`
 
-{{since('nightly')}}
+{{since('20240127-113634-bbcac864')}}
 
 This function returns a string representation of any Lua value. In particular
 this can be used to get a string representation of a table or userdata.

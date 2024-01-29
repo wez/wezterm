@@ -32,40 +32,40 @@ A layer is a lua table with the following fields:
 
 * `source` - defines the source of the layer texture data. See below for source definitions
 * `attachment` - controls whether the layer is fixed to the viewport or moves as it scrolls. Can be:
-  * `"Fixed"` (the default) to not move as the window scrolls,
-  * `"Scroll"` to scroll 1:1 with the number of pixels scrolled in the viewport,
-  * `{Parallax=0.1}` to scroll 1:10 with the number of pixels scrolled in the viewport.
+    * `"Fixed"` (the default) to not move as the window scrolls,
+    * `"Scroll"` to scroll 1:1 with the number of pixels scrolled in the viewport,
+    * `{Parallax=0.1}` to scroll 1:10 with the number of pixels scrolled in the viewport.
 * `repeat_x` - controls whether the image is repeated in the x-direction. Can be one of:
-  * `"Repeat"` - Repeat as much as possible to cover the area. The last image will be clipped if it doesn't fit.  This is the default.
-  * `"Mirror"` - Like `"Repeat"` except that the image is alternately mirrored which can make images that don't tile seamlessly look a bit better when repeated
-  * `"NoRepeat"` - the image is not repeated.
+    * `"Repeat"` - Repeat as much as possible to cover the area. The last image will be clipped if it doesn't fit.  This is the default.
+    * `"Mirror"` - Like `"Repeat"` except that the image is alternately mirrored which can make images that don't tile seamlessly look a bit better when repeated
+    * `"NoRepeat"` - the image is not repeated.
 * `repeat_x_size` - Normally, when repeating, the image is tiled based on its width such that each copy of the image is immediately adjacent to the preceding instance.  You may set `repeat_x_size` to a different value to increase or decrease the space between the repeated instances.  Accepts:
-  * number values in pixels,
-  * string values like `"100%"` to specify a size relative to the viewport,
-  * `"10cell"` to specify a size based on the terminal cell metrics.
+    * number values in pixels,
+    * string values like `"100%"` to specify a size relative to the viewport,
+    * `"10cell"` to specify a size based on the terminal cell metrics.
 * `repeat_y` - like `repeat_x` but affects the y-direction.
 * `repeat_y_size` - like `repeat_x_size` but affects the y-direction.
 * `vertical_align` - controls the initial vertical position of the layer, relative to the viewport:
-  * `"Top"` (the default),
-  * `"Middle"`,
-  * `"Bottom"`
+    * `"Top"` (the default),
+    * `"Middle"`,
+    * `"Bottom"`
 * `vertical_offset` - specify an offset from the initial vertical position.  Accepts:
-  * number values in pixels,
-  * string values like `"100%"` to specify a size relative to the viewport,
-  * `"10cell"` to specify a size based on terminal cell metrics.
+    * number values in pixels,
+    * string values like `"100%"` to specify a size relative to the viewport,
+    * `"10cell"` to specify a size based on terminal cell metrics.
 * `horizontal_align` - controls the initial horizontal position of the layer, relative to the viewport:
-  * `"Left"` (the default),
-  * `"Center"`
-  * `"Right"`
+    * `"Left"` (the default),
+    * `"Center"`
+    * `"Right"`
 * `horizontal_offset` - like `vertical_offset` but applies to the x-direction.
 * `opacity` - a number in the range `0` through `1.0` inclusive that is multiplied with the alpha channel of the source to adjust the opacity of the layer. The default is `1.0` to use the source alpha channel as-is. Using a smaller value makes the layer less opaque/more transparent.
 * `hsb` - a hue, saturation, brightness tranformation that can be used to adjust those attributes of the layer. See [foreground_text_hsb](foreground_text_hsb.md) for more information about this kind of transform.
 * `height` - controls the height of the image. The following values are accepted:
-  * `"Cover"` (this is the default) - Scales the image, preserving aspect ratio, to the smallest possible size to fill the viewport, leaving no empty space.  If the aspect ratio of the viewport differs from the image, the image is cropped.
-  * `"Contain"` - Scales the image as large as possible without cropping or stretching. If the viewport is larger than the image, tiles the image unless `repeat_y` is set to `"NoRepeat"`.
-  * `123` - specifies a height of `123` pixels
-  * `"50%"` - specifies a size of `50%` of the viewport height
-  * `"2cell"` - specifies a size equivalent to `2` rows
+    * `"Cover"` (this is the default) - Scales the image, preserving aspect ratio, to the smallest possible size to fill the viewport, leaving no empty space.  If the aspect ratio of the viewport differs from the image, the image is cropped.
+    * `"Contain"` - Scales the image as large as possible without cropping or stretching. If the viewport is larger than the image, tiles the image unless `repeat_y` is set to `"NoRepeat"`.
+    * `123` - specifies a height of `123` pixels
+    * `"50%"` - specifies a size of `50%` of the viewport height
+    * `"2cell"` - specifies a size equivalent to `2` rows
 * `width` - controls the width of the image. Same details as `height` but applies to the x-direction.
 
 ## Source Definition

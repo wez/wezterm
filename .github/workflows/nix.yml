@@ -1,0 +1,35 @@
+name: Nix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/*.rs'
+      - '.github/workflows/nix.yml'
+      - 'nix/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.rs'
+      - '.github/workflows/nix.yml'
+      - 'nix/**'
+
+jobs:
+  lints:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Cache build artifacts
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Check flake inputs
+        uses: DeterminateSystems/flake-checker-action@main
+        with:
+          flake-lock-path: ./nix/flake.lock
+          ignore-missing-flake-lock: false
+      - name: Build default package
+        run: nix build ./nix

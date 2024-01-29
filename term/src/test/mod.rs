@@ -786,7 +786,7 @@ fn test_resize_2162_by_2_then_up_1() {
         &["some long long tex", "t", "", ""],
     );
     eprintln!("check cursor pos 2");
-    term.assert_cursor_pos(1, 1, None, Some(5));
+    term.assert_cursor_pos(1, 1, None, Some(6));
     term.resize(TerminalSize {
         rows: num_lines - 1,
         cols: num_cols,
@@ -796,7 +796,7 @@ fn test_resize_2162_by_2_then_up_1() {
     });
     assert_visible_contents(&term, file!(), line!(), &["some long long text", "", ""]);
     eprintln!("check cursor pos 3");
-    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.assert_cursor_pos(19, 0, None, Some(7));
     term.resize(TerminalSize {
         rows: num_lines,
         cols: num_cols,
@@ -811,7 +811,7 @@ fn test_resize_2162_by_2_then_up_1() {
         &["some long long text", "", "", ""],
     );
     eprintln!("check cursor pos 3");
-    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.assert_cursor_pos(19, 0, None, Some(8));
 }
 
 /// This test skips over an edge case with cursor positioning,
@@ -844,7 +844,7 @@ fn test_resize_2162_by_2() {
         &["some long long tex", "t", "", ""],
     );
     eprintln!("check cursor pos 2");
-    term.assert_cursor_pos(1, 1, None, Some(5));
+    term.assert_cursor_pos(1, 1, None, Some(6));
     term.resize(TerminalSize {
         rows: num_lines,
         cols: num_cols,
@@ -859,7 +859,7 @@ fn test_resize_2162_by_2() {
         &["some long long text", "", "", ""],
     );
     eprintln!("check cursor pos 3");
-    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.assert_cursor_pos(19, 0, None, Some(7));
 }
 
 /// This case tickles an edge case where the cursor ends
@@ -893,7 +893,7 @@ fn test_resize_2162() {
         &["some long long text", "", "", ""],
     );
     eprintln!("check cursor pos 2");
-    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.assert_cursor_pos(19, 0, None, Some(6));
     term.resize(TerminalSize {
         rows: num_lines,
         cols: num_cols,
@@ -908,7 +908,7 @@ fn test_resize_2162() {
         &["some long long text", "", "", ""],
     );
     eprintln!("check cursor pos 3");
-    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.assert_cursor_pos(19, 0, None, Some(7));
 }
 
 /// Test the behavior of wrapped lines when we resize the terminal

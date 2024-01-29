@@ -2,7 +2,7 @@ use crate::customglyph::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::box_model::*;
 use crate::termwindow::render::corners::*;
-use crate::termwindow::render::rgbcolor_to_window_color;
+
 use crate::termwindow::render::window_buttons::window_button_element;
 use crate::termwindow::{UIItem, UIItemType};
 use crate::utilsprites::RenderMetrics;
@@ -71,17 +71,19 @@ impl crate::TermWindow {
         let mut right_eles = vec![];
         let bar_colors = ElementColors {
             border: BorderColor::default(),
-            bg: rgbcolor_to_window_color(if self.focused.is_some() {
+            bg: if self.focused.is_some() {
                 self.config.window_frame.active_titlebar_bg
             } else {
                 self.config.window_frame.inactive_titlebar_bg
-            })
+            }
+            .to_linear()
             .into(),
-            text: rgbcolor_to_window_color(if self.focused.is_some() {
+            text: if self.focused.is_some() {
                 self.config.window_frame.active_titlebar_fg
             } else {
                 self.config.window_frame.inactive_titlebar_fg
-            })
+            }
+            .to_linear()
             .into(),
         };
 
@@ -309,6 +311,7 @@ impl crate::TermWindow {
             .window_decorations
             .contains(::window::WindowDecorations::INTEGRATED_BUTTONS)
             && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            && !self.window_state.contains(window::WindowState::FULL_SCREEN)
         {
             left_status.push(
                 Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {

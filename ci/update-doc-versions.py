@@ -4,7 +4,7 @@ import os
 import re
 import sys
 
-NIGHTLY = '20230712-072601-f4abf8fd'
+NIGHTLY = '20240128-202157-1e552d76'
 
 SINCE = re.compile("\{\{since\('nightly'", re.MULTILINE)
 

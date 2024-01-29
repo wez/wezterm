@@ -10,8 +10,8 @@ use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
     Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Size, ULength, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps, WindowState,
+    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Size, ULength,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -26,6 +26,7 @@ use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
     NSUInteger,
 };
+use config::window::WindowLevel;
 use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
@@ -664,6 +665,26 @@ unsafe impl HasRawWindowHandle for Window {
     }
 }
 
+/// @see https://developer.apple.com/documentation/appkit/nswindow/level
+pub type NSWindowLevel = i64;
+
+pub fn nswindow_level_to_window_level(nswindow_level: NSWindowLevel) -> WindowLevel {
+    match nswindow_level {
+        -1 => WindowLevel::AlwaysOnBottom,
+        0 => WindowLevel::Normal,
+        3 => WindowLevel::AlwaysOnTop,
+        _ => panic!("Invalid window level: {}", nswindow_level),
+    }
+}
+
+pub fn window_level_to_nswindow_level(level: WindowLevel) -> NSWindowLevel {
+    match level {
+        WindowLevel::AlwaysOnBottom => -1,
+        WindowLevel::Normal => 0,
+        WindowLevel::AlwaysOnTop => 3,
+    }
+}
+
 #[async_trait(?Send)]
 impl WindowOps for Window {
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
@@ -745,6 +766,13 @@ impl WindowOps for Window {
         });
     }
 
+    fn set_window_level(&self, level: WindowLevel) {
+        Connection::with_window_inner(self.id, move |inner| {
+            inner.set_window_level(level);
+            Ok(())
+        });
+    }
+
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_inner_size(width, height);
@@ -799,9 +827,9 @@ impl WindowOps for Window {
         });
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         Connection::with_window_inner(self.id, move |inner| {
-            inner.set_resize_increments(x, y);
+            inner.set_resize_increments(incr);
             Ok(())
         });
     }
@@ -1149,6 +1177,14 @@ impl WindowInner {
         }
     }
 
+    fn set_window_level(&mut self, level: WindowLevel) {
+        unsafe {
+            NSWindow::setLevel_(*self.window, window_level_to_nswindow_level(level));
+            // Dispatch a resize event with the updated window state
+            WindowView::did_resize(&mut **self.view, sel!(windowDidResize:), nil);
+        }
+    }
+
     fn set_inner_size(&mut self, width: usize, height: usize) {
         unsafe {
             let frame = NSView::frame(*self.view as *mut _);
@@ -1220,10 +1256,16 @@ impl WindowInner {
         }
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
+        let min_width = incr.base_width + incr.x;
+        let min_height = incr.base_height + incr.y;
         unsafe {
             self.window
-                .setResizeIncrements_(NSSize::new(x.into(), y.into()));
+                .setResizeIncrements_(NSSize::new(incr.x.into(), incr.y.into()));
+            let () = msg_send![
+                *self.window,
+                setContentMinSize: NSSize::new(min_width.into(), min_height.into())
+            ];
         }
     }
 
@@ -2752,6 +2794,27 @@ impl WindowView {
                     unsafe { msg_send![*window, isZoomed] }
                 });
 
+            let window_level = inner
+                .window
+                .as_ref()
+                .map(|window| {
+                    let level = unsafe { window.load().level() };
+                    nswindow_level_to_window_level(level)
+                })
+                .unwrap_or_default();
+
+            let level_state = match window_level {
+                WindowLevel::AlwaysOnBottom => WindowState::ALWAYS_ON_BOTTOM,
+                WindowLevel::AlwaysOnTop => WindowState::ALWAYS_ON_TOP,
+                WindowLevel::Normal => WindowState::default(),
+            };
+
+            let screen_state = match (is_full_screen, is_zoomed) {
+                (true, _) => WindowState::FULL_SCREEN,
+                (_, true) => WindowState::MAXIMIZED,
+                _ => WindowState::default(),
+            };
+
             let dpi = inner
                 .window
                 .as_ref()
@@ -2768,13 +2831,7 @@ impl WindowView {
                     pixel_height: height as usize,
                     dpi,
                 },
-                window_state: if is_full_screen {
-                    WindowState::FULL_SCREEN
-                } else if is_zoomed {
-                    WindowState::MAXIMIZED
-                } else {
-                    WindowState::default()
-                },
+                window_state: screen_state | level_state,
                 live_resizing,
             });
         }

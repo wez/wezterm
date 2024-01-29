@@ -25,7 +25,7 @@ pub fn modifiers_from_state(state: u32) -> Modifiers {
 /// for missing keys, look into `/usr/include/X11/keysymdef.h`
 /// and/or define them in KeyCode.
 pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
-    let utf32 = xkbcommon::xkb::keysym_to_utf32(keysym);
+    let utf32 = xkbcommon::xkb::keysym_to_utf32(keysym.into());
     if utf32 >= 0x20 {
         // Unsafety: this is ok because we trust that keysym_to_utf32
         // is only going to return valid utf32 codepoints.

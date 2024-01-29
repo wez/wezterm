@@ -4,9 +4,9 @@ use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResolvedGeometry,
-    ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ResolvedGeometry, ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -679,6 +679,12 @@ impl XWindowInner {
         .normalize_shift()
         .resurface_positional_modifier_key();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));
+        // Since we just composed, synthesize a cleared status, as we
+        // are not guaranteed to receive an event notification to
+        // trigger dispatch_ime_compose_status() above.
+        // <https://github.com/wez/wezterm/issues/4841>
+        self.events
+            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
     }
 
     /// If we own the selection, make sure that the X server reflects
@@ -843,43 +849,75 @@ impl XWindowInner {
         );
 
         if let Some(clipboard) = self.selection_atom_to_clipboard(selection.selection()) {
-            if selection.property() != xcb::x::ATOM_NONE
-                // Restrict to strictly UTF-8 to avoid crashing; see
-                // <https://github.com/meh/rust-xcb-util/issues/21>
-                && selection.target() == conn.atom_utf8_string
-            {
+            if selection.property() == xcb::x::ATOM_NONE {
+                if selection.target() == conn.atom_utf8_string {
+                    log::trace!(
+                        "SEL: window_id={window_id:?} -> UTF-8 selection data \
+                         available, requesting STRING instead"
+                    );
+                    conn.send_request_no_reply_log(&xcb::x::ConvertSelection {
+                        requestor: window_id,
+                        selection: selection.selection(),
+                        target: xcb::x::ATOM_STRING,
+                        property: conn.atom_xsel_data,
+                        time: self.copy_and_paste.time,
+                    });
+                    return Ok(());
+                }
+
+                if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                    log::trace!(
+                        "SEL: window_id={window_id:?} -> no compatible selection data \
+                         available, fulfil promise with empty string"
+                    );
+                    promise.ok("".to_owned());
+                    return Ok(());
+                }
                 log::trace!(
-                    "SEL: window_id={window_id:?} requesting selection from window {:?}",
-                    selection.requestor()
+                    "SEL: window_id={window_id:?} -> no compatible selection data \
+                     available, and no promise. weird!"
                 );
 
-                match conn.send_and_wait_request(&xcb::x::GetProperty {
-                    delete: false,
-                    window: selection.requestor(),
-                    property: selection.property(),
-                    r#type: conn.atom_utf8_string,
-                    long_offset: 0,
-                    long_length: u32::max_value(),
-                }) {
-                    Ok(prop) => {
-                        if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
-                        {
-                            promise.ok(String::from_utf8_lossy(prop.value()).to_string());
+                return Ok(());
+            }
+
+            match conn.send_and_wait_request(&xcb::x::GetProperty {
+                delete: false,
+                window: selection.requestor(),
+                property: selection.property(),
+                r#type: selection.target(),
+                long_offset: 0,
+                long_length: u32::max_value(),
+            }) {
+                Ok(prop) => {
+                    if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                        fn latin1_to_string(s: &[u8]) -> String {
+                            s.iter().map(|&c| c as char).collect()
                         }
-                        conn.send_request_no_reply(&xcb::x::DeleteProperty {
-                            window: self.window_id,
-                            property: conn.atom_xsel_data,
-                        })?;
+
+                        let data = if selection.target() == xcb::x::ATOM_STRING {
+                            latin1_to_string(prop.value())
+                        } else {
+                            // selection.target() is probably == conn.atom_utf8_string,
+                            // because we only ever ask for either STRING or UTF8_STRING.
+                            // If it isn't, we'll just try to convert it anyway.
+                            String::from_utf8_lossy(prop.value()).to_string()
+                        };
+
+                        promise.ok(data);
                     }
-                    Err(err) => {
-                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
+
+                    conn.send_request_no_reply(&xcb::x::DeleteProperty {
+                        window: self.window_id,
+                        property: conn.atom_xsel_data,
+                    })?;
+                }
+                Err(err) => {
+                    log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                    if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                        promise.ok("".to_owned());
                     }
                 }
-            } else if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
-                log::trace!(
-                    "SEL: window_id={window_id:?} weird state, fulfil promise with empty string"
-                );
-                promise.ok("".to_owned());
             }
         } else {
             log::trace!("SEL: window_id={window_id:?} unknown selection {selection_name}");
@@ -1523,26 +1561,28 @@ impl XWindowInner {
             });
     }
 
-    fn set_resize_increments(&mut self, x: u16, y: u16) -> anyhow::Result<()> {
+    fn set_resize_increments(&mut self, incr: ResizeIncrement) -> anyhow::Result<()> {
         use xcb_util::*;
         let hints = xcb_size_hints_t {
-            flags: XCB_ICCCM_SIZE_HINT_P_RESIZE_INC,
+            flags: XCB_ICCCM_SIZE_HINT_P_MIN_SIZE
+                | XCB_ICCCM_SIZE_HINT_P_RESIZE_INC
+                | XCB_ICCCM_SIZE_HINT_BASE_SIZE,
             x: 0,
             y: 0,
             width: 0,
             height: 0,
-            min_width: 0,
-            min_height: 0,
+            min_width: (incr.base_width + incr.x).into(),
+            min_height: (incr.base_height + incr.y).into(),
             max_width: 0,
             max_height: 0,
-            width_inc: x.into(),
-            height_inc: y.into(),
+            width_inc: incr.x.into(),
+            height_inc: incr.y.into(),
             min_aspect_num: 0,
             min_aspect_den: 0,
             max_aspect_num: 0,
             max_aspect_den: 0,
-            base_width: 0,
-            base_height: 0,
+            base_width: incr.base_width.into(),
+            base_height: incr.base_height.into(),
             win_gravity: 0,
         };
 
@@ -1556,8 +1596,8 @@ impl XWindowInner {
         self.conn().send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
-            property: xcb::x::ATOM_WM_SIZE_HINTS,
-            r#type: xcb::x::ATOM_CARDINAL,
+            property: xcb::x::ATOM_WM_NORMAL_HINTS,
+            r#type: xcb::x::ATOM_WM_SIZE_HINTS,
             data,
         })?;
 
@@ -1747,9 +1787,9 @@ impl WindowOps for XWindow {
         });
     }
 
-    fn set_resize_increments(&self, x: u16, y: u16) {
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
         XConnection::with_window_inner(self.0, move |inner| {
-            if let Err(err) = inner.set_resize_increments(x, y) {
+            if let Err(err) = inner.set_resize_increments(incr) {
                 log::error!("set_resize_increments failed: {:#}", err);
             }
             Ok(())

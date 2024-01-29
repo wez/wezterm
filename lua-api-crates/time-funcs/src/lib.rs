@@ -240,7 +240,7 @@ impl UserData for Time {
                         // Sun hasn't yet risen
                         progression = (night_duration - (rise - this.utc)).num_minutes() as f64
                             / night_duration.num_minutes() as f64;
-                    } else if this.utc >= rise {
+                    } else if up {
                         // Sun is up
                         progression = (this.utc - rise).num_minutes() as f64
                             / day_duration.num_minutes() as f64;

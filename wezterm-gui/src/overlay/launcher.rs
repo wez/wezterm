@@ -451,7 +451,7 @@ impl LauncherState {
 
     fn move_down(&mut self) {
         self.active_idx = (self.active_idx + 1).min(self.filtered_entries.len() - 1);
-        if self.active_idx + self.top_row > self.max_items {
+        if self.active_idx > self.top_row + self.max_items {
             self.top_row = self.active_idx.saturating_sub(self.max_items);
         }
     }
@@ -509,7 +509,7 @@ impl LauncherState {
                     self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('G'),
+                    key: KeyCode::Char('G') | KeyCode::Char('['),
                     modifiers: Modifiers::CTRL,
                 })
                 | InputEvent::Key(KeyEvent {

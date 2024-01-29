@@ -51,7 +51,7 @@ fn render_mode_to_load_target(render_mode: FT_Render_Mode) -> u32 {
     // for these in the bindings so we do some bit magic for
     // ourselves.  This is how the FT_LOAD_TARGET_() macro
     // assembles these bits.
-    (render_mode as u32) & 15 << 16
+    ((render_mode as u32) & 15) << 16
 }
 
 pub fn compute_load_flags_from_config(

@@ -79,6 +79,22 @@ $ ~/bin/wezterm
 
 * Configuration instructions can be [found here](../config/files.md)
 
+## Installing on Ubuntu
+
+Nightly builds are now available in a hosted APT repo.  You can configure your system to
+use that APT repo by following these steps:
+
+```console
+$ curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
+$ echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' | sudo tee /etc/apt/sources.list.d/wezterm.list
+```
+
+Now you can install wezterm:
+
+```console
+$ sudo apt install wezterm-nightly
+```
+
 ## Installing on Ubuntu and Debian-based Systems
 
 The CI system builds `.deb` files for a variety of Ubuntu and Debian distributions.
@@ -87,20 +103,20 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.
 
-|Distro      | Stable           | Nightly|            |
-|------------|------------------|--------|------------|
-|Ubuntu20    |[amd64]({{ ubuntu20_deb_stable }})  |[amd64]({{ ubuntu20_deb_nightly }})| |
-|Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
-|Debian10    |[amd64]({{ debian10_deb_stable }}) |[amd64]({{ debian10_deb_nightly }})| |
-|Debian11    |[amd64]({{ debian11_deb_stable }}) |[amd64]({{ debian11_deb_nightly }})| |
-|Debian12    |Nightly builds only|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
+|Distro      | Stable   |        | Nightly|            |
+|------------|----------|--------|--------|------------|
+|Ubuntu20    |[amd64]({{ ubuntu20_deb_stable }}) ||[amd64]({{ ubuntu20_deb_nightly }})| |
+|Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[arm64]({{ ubuntu22_arm64_deb_stable}})|[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
+|Debian10    |[amd64]({{ debian10_deb_stable }}) ||[amd64]({{ debian10_deb_nightly }})| |
+|Debian11    |[amd64]({{ debian11_deb_stable }}) ||[amd64]({{ debian11_deb_nightly }})| |
+|Debian12    |[amd64]({{ debian12_deb_stable }}) |[arm64]({{ debian12_arm64_deb_stable }})|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
 
 To download and install from the CLI, you can use something like this, which
-shows how to install the Ubuntu 20 package:
+shows how to install the Ubuntu 22 package:
 
 ```console
-$ curl -LO {{ ubuntu20_deb_stable }}
-$ sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
+$ curl -LO {{ ubuntu22_deb_stable }}
+$ sudo apt install -y ./{{ ubuntu22_deb_stable_asset }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
@@ -142,21 +158,19 @@ on most Linux systems.
 
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
-|CentOS7     |[{{ centos7_rpm_stable_asset }}]({{ centos7_rpm_stable }}) |[{{ centos7_rpm_nightly_asset }}]({{ centos7_rpm_nightly }})|
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
 |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
-|Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|No longer supported|
 |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|[{{ fedora37_rpm_nightly_asset }}]({{ fedora37_rpm_nightly }})|
 |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|[{{ fedora38_rpm_nightly_asset }}]({{ fedora38_rpm_nightly }})|
-|Fedora39    |Nightly only|[{{ fedora39_rpm_nightly_asset }}]({{ fedora39_rpm_nightly }})|
-|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }})|Use COPR instead|
-|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }})|Use COPR instead|
+|Fedora39    |[{{ fedora39_rpm_stable_asset }}]({{ fedora39_rpm_stable }})|[{{ fedora39_rpm_nightly_asset }}]({{ fedora39_rpm_nightly }})|
+|openSUSE Leap    |Use COPR instead|Use COPR instead|
+|openSUSE Tumbleweed    |Use COPR instead|Use COPR instead|
 
 To download and install from the CLI you can use something like this, which
-shows how to install the Fedora 37 package:
+shows how to install the Fedora 39 package:
 
 ```console
-$ sudo dnf install -y {{ fedora37_rpm_stable }}
+$ sudo dnf install -y {{ fedora39_rpm_stable }}
 ```
 
 WezTerm is also available in the official Factory repo in openSUSE Tumbleweed. To install from Factory instead

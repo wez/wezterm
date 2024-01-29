@@ -114,3 +114,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz *.sha256"
+      - name: "Upload to gemfury"
+        env:
+          FURY_TOKEN: ${{ secrets.FURY_TOKEN }}
+        shell: bash
+        run: "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"

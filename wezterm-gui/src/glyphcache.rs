@@ -11,15 +11,14 @@ use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use image::io::Limits;
 use image::{
-    AnimationDecoder, ColorType, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat,
-    ImageResult,
+    AnimationDecoder, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat, ImageResult,
 };
 use lfucache::LfuCache;
 use once_cell::sync::Lazy;
 use ordered_float::NotNan;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{Read, Seek};
+use std::io::Seek;
 use std::rc::Rc;
 use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
@@ -257,8 +256,11 @@ impl FrameDecoder {
             ImageFormat::Gif => {
                 let mut reader = reader.into_inner();
                 reader.rewind().context("rewinding reader for gif")?;
-                let decoder = image::codecs::gif::GifDecoder::with_limits(reader, limits)
-                    .context("GifDecoder::with_limits")?;
+                let mut decoder =
+                    image::codecs::gif::GifDecoder::new(reader).context("GifDecoder::new")?;
+                decoder
+                    .set_limits(limits)
+                    .context("GifDecoder::set_limits")?;
                 decoder.into_frames()
             }
             ImageFormat::Png => {
@@ -269,56 +271,7 @@ impl FrameDecoder {
                 if decoder.is_apng() {
                     decoder.apng().into_frames()
                 } else {
-                    let size = decoder.total_bytes() as usize;
-                    let mut buf = vec![0u8; size];
-                    let (width, height) = decoder.dimensions();
-                    let color_type = decoder.color_type();
-                    let mut reader = decoder.into_reader().context("PngDecoder into_reader")?;
-                    reader.read(&mut buf)?;
-
-                    let buf: image::RgbaImage = match color_type {
-                        ColorType::Rgb8 => DynamicImage::ImageRgb8(
-                            image::RgbImage::from_raw(width, height, buf).ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
-                                    bytes per pixel",
-                                    size / (width * height) as usize
-                                )
-                            })?,
-                        )
-                        .into_rgba8(),
-                        ColorType::Rgba8 => image::RgbaImage::from_raw(width, height, buf)
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
-                                    bytes per pixel",
-                                    size / (width * height) as usize
-                                )
-                            })?,
-                        ColorType::L8 => DynamicImage::ImageLuma8(
-                            image::ImageBuffer::<image::Luma<_>, _>::from_raw(width, height, buf)
-                                .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
-                                    bytes per pixel",
-                                    size / (width * height) as usize
-                                )
-                            })?,
-                        )
-                        .into_rgba8(),
-                        ColorType::La8 => DynamicImage::ImageLumaA8(
-                            image::ImageBuffer::<image::LumaA<_>, _>::from_raw(width, height, buf)
-                                .ok_or_else(|| {
-                                    anyhow::anyhow!(
-                                        "PNG {color_type:?} {size} / {width}x{height} = {} \
-                                    bytes per pixel",
-                                        size / (width * height) as usize
-                                    )
-                                })?,
-                        )
-                        .into_rgba8(),
-                        _ => anyhow::bail!("unimplemented PNG conversion from {color_type:?}"),
-                    };
+                    let buf = DynamicImage::from_decoder(decoder)?.into_rgba8();
                     let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
                     let frame = Frame::from_parts(buf, 0, 0, delay);
                     Frames::new(Box::new(std::iter::once(ImageResult::Ok(frame))))

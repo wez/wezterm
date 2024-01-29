@@ -49,10 +49,11 @@ unexpected behavior if/when those names might be used in future.
 The [wezterm.emit](emit.md) function and the [EmitEvent](../keyassignment/EmitEvent.md) key assignment can be used to
 emit events.
 
----
+# Example: opening whole scrollback in vim
 
-In the following example, a key is assigned to capture the visible content of the active
-pane, write it to a file and then open that file in the `vim` editor:
+In the following example, a key is assigned to capture the entire scrollback
+and visible area of the active pane, write it to a file and then open that file
+in the `vim` editor:
 
 ```lua
 local wezterm = require 'wezterm'
@@ -60,17 +61,14 @@ local io = require 'io'
 local os = require 'os'
 local act = wezterm.action
 
-wezterm.on('trigger-vim-with-visible-text', function(window, pane)
-  -- Retrieve the current viewport's text.
-  --
-  -- Note: You could also pass an optional number of lines (eg: 2000) to
-  -- retrieve that number of lines starting from the bottom of the viewport.
-  local viewport_text = pane:get_lines_as_text()
+wezterm.on('trigger-vim-with-scrollback', function(window, pane)
+  -- Retrieve the text from the pane
+  local text = pane:get_lines_as_text(pane:get_dimensions().scrollback_rows)
 
   -- Create a temporary file to pass to vim
   local name = os.tmpname()
   local f = io.open(name, 'w+')
-  f:write(viewport_text)
+  f:write(text)
   f:flush()
   f:close()
 
@@ -97,7 +95,7 @@ return {
     {
       key = 'E',
       mods = 'CTRL',
-      action = act.EmitEvent 'trigger-vim-with-visible-text',
+      action = act.EmitEvent 'trigger-vim-with-scrollback',
     },
   },
 }

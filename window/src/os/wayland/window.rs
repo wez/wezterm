@@ -1,9 +1,10 @@
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
+use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
 use std::num::NonZeroU32;
-use std::os::fd::AsRawFd;
+use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -40,17 +41,18 @@ use wezterm_input_types::{
     ScreenPoint, WindowDecorations,
 };
 
-use crate::wayland::WaylandConnection;
-use crate::x11::KeyboardWithFallback;
-use crate::{
-    Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, Window, WindowEvent, WindowEventSender,
-    WindowKeyEvent, WindowOps, WindowState,
-};
-
 use super::copy_and_paste::CopyAndPaste;
 use super::pointer::{PendingMouse, PointerUserData};
 use super::state::WaylandState;
+
+use crate::connection::ConnectionOps;
+use crate::os::wayland::connection::WaylandConnection;
+use crate::os::x11::keyboard::KeyboardWithFallback;
+use crate::{
+    Clipboard, Connection, Dimensions, MouseCursor, Point, Rect, RequestedWindowGeometry,
+    ResizeIncrement, ResolvedGeometry, Window, WindowEvent, WindowEventSender, WindowKeyEvent,
+    WindowOps, WindowState,
+};
 
 #[derive(Debug)]
 pub(super) struct KeyRepeatState {
@@ -400,6 +402,12 @@ impl WindowOps for WaylandWindow {
         todo!()
     }
 
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            Ok(inner.set_resize_increments(incr))
+        });
+    }
+
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
@@ -493,7 +501,7 @@ pub struct WaylandWindowInner {
     window: Option<XdgWindow>,
     pub(super) window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
-    resize_increments: Option<(u16, u16)>,
+    resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
     pointer_surface: WlSurface,
     last_mouse_coords: Point,
@@ -780,9 +788,14 @@ impl WaylandWindowInner {
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
 
                 if self.window_state.can_resize() {
-                    if let Some((x, y)) = self.resize_increments {
-                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
-                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                    if let Some(incr) = self.resize_increments {
+                        let min_width = incr.base_width + incr.x;
+                        let min_height = incr.base_height + incr.y;
+                        let extra_width = (pixel_width - incr.base_width as i32) % incr.x as i32;
+                        let extra_height = (pixel_height - incr.base_height as i32) % incr.y as i32;
+                        let desired_pixel_width = max(pixel_width - extra_width, min_width as i32);
+                        let desired_pixel_height =
+                            max(pixel_height - extra_height, min_height as i32);
                         w = self.pixels_to_surface(desired_pixel_width) as u32;
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
@@ -952,6 +965,10 @@ impl WaylandWindowInner {
         }
         self.refresh_frame();
         self.title = Some(title);
+    }
+
+    fn set_resize_increments(&mut self, incr: ResizeIncrement) {
+        self.resize_increments = Some(incr);
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {

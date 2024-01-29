@@ -250,7 +250,7 @@ bitflags! {
     // Note that these are strongly coupled with deps/freetype/src/lib.rs,
     // but we can't directly reference that from here without making config
     // depend on freetype.
-    #[derive(Default,  FromDynamic, ToDynamic)]
+    #[derive(FromDynamic, ToDynamic)]
     #[dynamic(try_from="String", into="String")]
     pub struct FreeTypeLoadFlags: u32 {
         /// FT_LOAD_DEFAULT
@@ -268,6 +268,12 @@ bitflags! {
         const NO_AUTOHINT = 32768;
         const NO_SVG = 16777216;
         const SVG_ONLY = 8388608;
+    }
+}
+
+impl Default for FreeTypeLoadFlags {
+    fn default() -> Self {
+        Self::NO_HINTING
     }
 }
 

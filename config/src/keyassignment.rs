@@ -1,5 +1,6 @@
 use crate::default_true;
 use crate::keys::KeyNoAction;
+use crate::window::WindowLevel;
 use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
 use portable_pty::CommandBuilder;
@@ -228,7 +229,7 @@ impl SpawnCommand {
         if let Some(label) = &self.label {
             Some(label.to_string())
         } else if let Some(args) = &self.args {
-            Some(shlex::join(args.iter().map(|s| s.as_str())))
+            Some(shlex::try_join(args.iter().map(|s| s.as_str())).ok()?)
         } else {
             None
         }
@@ -505,6 +506,9 @@ pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
+    ToggleAlwaysOnTop,
+    ToggleAlwaysOnBottom,
+    SetWindowLevel(WindowLevel),
     CopyTo(ClipboardCopyDestination),
     CopyTextTo {
         text: String,

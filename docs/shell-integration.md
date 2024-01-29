@@ -16,10 +16,17 @@ shell program to emit the escape sequences at the appropriate place.
 
 You can find some [examples for various shells in the wezterm
 repo](https://github.com/wez/wezterm/tree/main/assets/shell-integration).
+
+To use this file to setup shell integration in wezterm with Bash or Zsh, you can
+copy the file to your computer and source it via `. /path/to/file.sh` in your `.bashrc`
+or `.zshrc`, or you can install it at `/etc/profile.d` on most unix systems.
+
 Xonsh is supported via a [term-integrations](https://github.com/jnoortheen/xontrib-term-integrations) plugin.
 
 Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
+Starting with version 20230320.124340.559cb7b0, the Arch Linux package
+also automatically activate it.
 
 If you're on another system, more information on how these escapes work
 can be found below.

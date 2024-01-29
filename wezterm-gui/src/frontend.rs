@@ -5,7 +5,6 @@ use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
 use config::keyassignment::{KeyAssignment, SpawnCommand};
-pub use config::FrontEndSelection;
 use config::{ConfigSubscription, NotificationHandling};
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
@@ -220,6 +219,16 @@ impl GuiFrontEnd {
         log::trace!("Got app event {event:?}");
         match event {
             ApplicationEvent::OpenCommandScript(file_name) => {
+                let quoted_file_name = match shlex::try_quote(&file_name) {
+                    Ok(name) => name.to_owned().to_string(),
+                    Err(_) => {
+                        log::error!(
+                            "OpenCommandScript: {file_name} has embedded NUL bytes and
+                             cannot be launched via the shell"
+                        );
+                        return;
+                    }
+                };
                 promise::spawn::spawn(async move {
                     use config::keyassignment::SpawnTabDomain;
                     use wezterm_term::TerminalSize;
@@ -253,7 +262,7 @@ impl GuiFrontEnd {
                         Ok((_tab, pane, _window_id)) => {
                             log::trace!("Spawned {file_name} as pane_id {}", pane.pane_id());
                             let mut writer = pane.writer();
-                            write!(writer, "{} ; exit\n", shlex::quote(&file_name)).ok();
+                            write!(writer, "{quoted_file_name} ; exit\n").ok();
                         }
                         Err(err) => {
                             log::error!("Failed to spawn {file_name}: {err:#?}");

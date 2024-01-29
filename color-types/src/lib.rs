@@ -236,6 +236,20 @@ impl SrgbaTuple {
         }
     }
 
+    pub fn to_tuple_rgba(self) -> (f32, f32, f32, f32) {
+        (self.0, self.1, self.2, self.3)
+    }
+
+    pub fn as_rgba_u8(self) -> (u8, u8, u8, u8) {
+        let (r, g, b, a) = (self.0, self.1, self.2, self.3);
+        (
+            (r * 255.0) as u8,
+            (g * 255.0) as u8,
+            (b * 255.0) as u8,
+            (a * 255.0) as u8,
+        )
+    }
+
     pub fn interpolate(self, other: Self, k: f64) -> Self {
         let k = k as f32;
 

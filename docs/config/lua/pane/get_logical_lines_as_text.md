@@ -24,4 +24,8 @@ Trailing blank lines are stripped, which may result in fewer lines being
 returned than you might expect if the pane only had a couple of lines
 of output.
 
+To obtain the entire scrollback, you can do something like this:
 
+```lua
+pane:get_logical_lines_as_text(pane:get_dimensions().scrollback_rows)
+```
