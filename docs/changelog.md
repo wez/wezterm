@@ -24,6 +24,9 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 * Not yet!
 #### New
+* [show_close_tab_button_in_tab](config/lua/config/show_close_tab_button_in_tab.md)
+  config option to customize the tab bar appearance.
+
 #### Fixed
 
 ### 20240128-202157-1e552d76
