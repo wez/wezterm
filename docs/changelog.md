@@ -22,6 +22,8 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+* The default for [front_end](config/lua/config/front_end.md) is again
+  `OpenGL`.
 * The default for
   [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
   `NO_HINTING`. #4874
