@@ -168,6 +168,15 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
+    mux_mod.set(
+        "save_state_to",
+        lua.create_function(|_, path: String| {
+            let mux = get_mux()?;
+            mux.save_state_to(&path);
+            Ok(())
+        })?,
+    )?;
+
     Ok(())
 }
 

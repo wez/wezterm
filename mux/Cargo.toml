@@ -35,9 +35,11 @@ procinfo = { path = "../procinfo" }
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
 serde = {version="1.0", features = ["rc", "derive"]}
+serde_json = "1.0"
 serial = "0.4"
 shell-words = "1.1"
 smol = "1.2"
+tar = "0.4"
 terminfo = "0.8"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
@@ -48,6 +50,7 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 flume = "0.10"
+zstd = "0.11"
 
 [target."cfg(windows)".dependencies]
 ntapi = "0.4"

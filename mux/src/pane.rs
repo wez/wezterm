@@ -1,3 +1,4 @@
+use crate::SavedPaneState;
 use crate::domain::DomainId;
 use crate::renderable::*;
 use crate::ExitBehavior;
@@ -525,6 +526,10 @@ pub trait Pane: Downcast + Send + Sync {
     }
 
     fn exit_behavior(&self) -> Option<ExitBehavior> {
+        None
+    }
+
+    fn save(&self) -> Option<SavedPaneState> {
         None
     }
 }
