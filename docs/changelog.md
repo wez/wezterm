@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Not yet!
 #### New
 #### Fixed
+* It was not possible to specify `freetype_load_flags = 'DEFAULT'`. #4902
 * macOS: fallback fonts could select thin or otherwise unspecified font
   attributes. #4808
 

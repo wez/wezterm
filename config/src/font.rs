@@ -323,7 +323,7 @@ impl ToString for FreeTypeLoadFlags {
 impl TryFrom<String> for FreeTypeLoadFlags {
     type Error = String;
     fn try_from(s: String) -> Result<Self, String> {
-        let mut flags = FreeTypeLoadFlags::default();
+        let mut flags = FreeTypeLoadFlags::empty();
 
         for ele in s.split('|') {
             let ele = ele.trim();
