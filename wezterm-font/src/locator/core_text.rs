@@ -162,6 +162,17 @@ impl FontLocator for CoreTextFontLocator {
                     continue;
                 }
 
+                let is_normal = font.weight() == FontWeight::REGULAR
+                    && font.stretch() == FontStretch::Normal
+                    && font.style() == FontStyle::Normal;
+                if !is_normal {
+                    // Only use normal attributed text for fallbacks,
+                    // otherwise we'll end up picking something with
+                    // undefined and undesirable attributes
+                    // <https://github.com/wez/wezterm/issues/4808>
+                    continue;
+                }
+
                 if let Ok(cov) = font.coverage_intersection(&wanted) {
                     // Explicitly check coverage because the list may not
                     // actually match the text we asked about(!)

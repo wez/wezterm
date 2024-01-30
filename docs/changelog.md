@@ -25,6 +25,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Not yet!
 #### New
 #### Fixed
+* macOS: fallback fonts could select thin or otherwise unspecified font
+  attributes. #4808
 
 ### 20240128-202157-1e552d76
 
