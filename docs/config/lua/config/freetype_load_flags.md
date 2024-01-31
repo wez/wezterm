@@ -45,3 +45,9 @@ explicitly:
 config.freetype_load_flags = 'NO_HINTING'
 ```
 
+{{since('nightly')}}
+
+The default value depends on the effective dpi of the display.
+If the dpi is 100 or larger, the default value is `NO_HINTING`.
+Otherwise, the default value is `DEFAULT`.
+
