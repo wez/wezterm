@@ -323,11 +323,11 @@ impl TabBarState {
         // are symbols representing minimize, maximize and close.
 
         let mut active_tab_no = 0;
-
+        let tab_info_len = tab_info.len().max(1);
         let config_tab_max_width = if config.tab_bar_fill {
             // We have no layout, so this is a rough estimate
             // The tab bar consists of the tab titles, the new tab button, and some padding
-            title_width.saturating_sub(new_tab.len() + 2 + tab_info.len()) / (tab_info.len())
+            title_width.saturating_sub(new_tab.len() + 2 + tab_info_len) / (tab_info_len)
         } else {
             config.tab_max_width
         };
