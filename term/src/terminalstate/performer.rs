@@ -228,7 +228,7 @@ impl<'a> Performer<'a> {
     /// <https://github.com/wez/wezterm/issues/2442>
     fn pop_tmux_title_state(&mut self) {
         if let Some(title) = self.accumulating_title.take() {
-            log::warn!("ST never received for pending tmux title escape sequence: {title:?}");
+            log::debug!("ST never received for pending tmux title escape sequence: {title:?}");
         }
     }
 
