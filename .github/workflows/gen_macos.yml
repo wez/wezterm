@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    runs-on: "macos-14"
+    runs-on: "macos-11"
     
     env:
       MACOSX_DEPLOYMENT_TARGET: "10.9"
