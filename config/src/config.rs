@@ -266,7 +266,7 @@ pub struct Config {
     #[dynamic(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
     #[dynamic(default)]
-    pub freetype_load_flags: FreeTypeLoadFlags,
+    pub freetype_load_flags: Option<FreeTypeLoadFlags>,
 
     /// Selects the freetype interpret version to use.
     /// Likely values are 35, 38 and 40 which have different

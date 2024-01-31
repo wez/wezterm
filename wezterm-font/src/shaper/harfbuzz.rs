@@ -142,7 +142,11 @@ impl HarfbuzzShaper {
         })
     }
 
-    fn load_fallback(&self, font_idx: FallbackIdx) -> anyhow::Result<Option<RefMut<FontPair>>> {
+    fn load_fallback(
+        &self,
+        font_idx: FallbackIdx,
+        dpi: u32,
+    ) -> anyhow::Result<Option<RefMut<FontPair>>> {
         if font_idx >= self.handles.len() {
             return Ok(None);
         }
@@ -162,6 +166,7 @@ impl HarfbuzzShaper {
                             handle.freetype_load_flags,
                             handle.freetype_load_target,
                             handle.freetype_render_target,
+                            Some(dpi),
                         );
                         let mut font = harfbuzz::Font::new(face.face);
                         font.set_load_flags(load_flags);
@@ -236,7 +241,7 @@ impl HarfbuzzShaper {
         let mut no_more_fallbacks = false;
 
         loop {
-            match self.load_fallback(font_idx).context("load_fallback")? {
+            match self.load_fallback(font_idx, dpi).context("load_fallback")? {
                 Some(mut pair) => {
                     if let Some(p) = presentation {
                         if pair.presentation != p {
@@ -604,7 +609,7 @@ impl FontShaper for HarfbuzzShaper {
 
     fn metrics_for_idx(&self, font_idx: usize, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
         let mut pair = self
-            .load_fallback(font_idx)?
+            .load_fallback(font_idx, dpi)?
             .ok_or_else(|| anyhow!("metrics_for_idx: there is no font with idx={font_idx}!?"))?;
 
         let key = MetricsKey {
@@ -683,7 +688,7 @@ impl FontShaper for HarfbuzzShaper {
             theoretical_height,
             self.handles
         );
-        while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
+        while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx, dpi) {
             let selected_size = pair
                 .face
                 .set_font_size(size * self.handles[metrics_idx].scale.unwrap_or(1.), dpi)?;

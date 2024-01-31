@@ -53,6 +53,7 @@ impl FontRasterizer for FreeTypeRasterizer {
             self.freetype_load_flags,
             self.freetype_load_target,
             self.freetype_render_target,
+            Some(dpi),
         );
 
         let mut face = self.face.borrow_mut();
