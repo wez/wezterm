@@ -25,6 +25,7 @@ pub struct Keyboard {
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
     mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
     last_xcb_state: RefCell<StateFromXcbStateNotify>,
+    label: &'static str,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -45,6 +46,7 @@ pub struct KeyboardWithFallback {
 struct Compose {
     state: xkb::compose::State,
     composition: String,
+    label: &'static str,
 }
 
 #[derive(Debug)]
@@ -76,7 +78,11 @@ impl Compose {
 
         let previously_composing = !self.composition.is_empty();
         let feed_result = self.state.feed(xsym);
-        log::trace!("feed {xsym:?} -> result {feed_result:?}");
+        log::trace!(
+            "Compose::feed({}) {xsym:?} -> result={feed_result:?} status={:?}",
+            self.label,
+            self.state.status()
+        );
 
         match self.state.status() {
             ComposeStatus::Composing => {
@@ -556,6 +562,7 @@ impl Keyboard {
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         let phys_code_map = build_physkeycode_map(&keymap);
+        let label = "fallback";
 
         Ok(Self {
             context,
@@ -565,10 +572,12 @@ impl Keyboard {
             compose_state: RefCell::new(Compose {
                 state: compose_state,
                 composition: String::new(),
+                label,
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
+            label,
         })
     }
 
@@ -591,6 +600,7 @@ impl Keyboard {
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         let phys_code_map = build_physkeycode_map(&keymap);
+        let label = "selected";
 
         Ok(Self {
             context,
@@ -600,10 +610,12 @@ impl Keyboard {
             compose_state: RefCell::new(Compose {
                 state: compose_state,
                 composition: String::new(),
+                label,
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
+            label,
         })
     }
 
@@ -658,6 +670,7 @@ impl Keyboard {
         }
 
         let phys_code_map = build_physkeycode_map(&keymap);
+        let label = "selected";
 
         let kbd = Keyboard {
             context,
@@ -667,10 +680,12 @@ impl Keyboard {
             compose_state: RefCell::new(Compose {
                 state: compose_state,
                 composition: String::new(),
+                label,
             }),
             phys_code_map: RefCell::new(phys_code_map),
             mods_leds: RefCell::new(Default::default()),
             last_xcb_state: RefCell::new(Default::default()),
+            label,
         };
 
         Ok((kbd, first_ev))
@@ -723,7 +738,7 @@ impl Keyboard {
             latched_layout: ev.latched_group() as xkb::LayoutIndex,
             locked_layout: xkb::LayoutIndex::from(ev.locked_group() as u32),
         };
-        log::trace!("update_state with {state:?}");
+        log::trace!("update_state({}) with {state:?}", self.label);
 
         self.state.borrow_mut().update_mask(
             state.depressed_mods,
@@ -739,6 +754,10 @@ impl Keyboard {
 
     pub fn merge_current_xcb_modifiers(&self, mods: ModMask) {
         let state = self.last_xcb_state.borrow().clone();
+        log::trace!(
+            "merge_current_xcb_modifiers({}); state before={state:?}, mods={mods:?}",
+            self.label
+        );
         self.state.borrow_mut().update_mask(
             mods,
             0,
@@ -762,7 +781,7 @@ impl Keyboard {
     }
 
     pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
-        log::debug!("update_keymap was called");
+        log::debug!("update_keymap({}) was called", self.label);
 
         let new_keymap = xkb::x11::keymap_new_from_device(
             &self.context,
