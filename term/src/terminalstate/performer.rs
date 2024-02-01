@@ -705,9 +705,7 @@ impl<'a> Performer<'a> {
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
-                if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::PaletteChanged);
-                }
+                self.palette_did_change();
             }
 
             _ => {
@@ -944,10 +942,7 @@ impl<'a> Performer<'a> {
                     }
                 }
                 self.implicit_palette_reset_if_same_as_configured();
-                if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::PaletteChanged);
-                }
-                self.make_all_lines_dirty();
+                self.palette_did_change();
             }
 
             OperatingSystemCommand::ResetColors(colors) => {
@@ -968,9 +963,7 @@ impl<'a> Performer<'a> {
                     }
                 }
                 self.implicit_palette_reset_if_same_as_configured();
-                if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::PaletteChanged);
-                }
+                self.palette_did_change();
             }
 
             OperatingSystemCommand::ChangeDynamicColors(first_color, colors) => {
@@ -1025,10 +1018,7 @@ impl<'a> Performer<'a> {
                     idx += 1;
                 }
                 self.implicit_palette_reset_if_same_as_configured();
-                if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::PaletteChanged);
-                }
-                self.make_all_lines_dirty();
+                self.palette_did_change();
             }
 
             OperatingSystemCommand::ResetDynamicColor(color) => {
@@ -1065,10 +1055,7 @@ impl<'a> Performer<'a> {
                     }
                 }
                 self.implicit_palette_reset_if_same_as_configured();
-                if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::PaletteChanged);
-                }
-                self.make_all_lines_dirty();
+                self.palette_did_change();
             }
         }
     }

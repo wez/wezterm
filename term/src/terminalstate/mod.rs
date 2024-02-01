@@ -919,6 +919,13 @@ impl TerminalState {
         }
     }
 
+    fn palette_did_change(&mut self) {
+        self.make_all_lines_dirty();
+        if let Some(handler) = self.alert_handler.as_mut() {
+            handler.alert(Alert::PaletteChanged);
+        }
+    }
+
     /// When dealing with selection, mark a range of lines as dirty
     pub fn make_all_lines_dirty(&mut self) {
         let seqno = self.seqno;

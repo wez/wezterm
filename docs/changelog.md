@@ -30,6 +30,8 @@ As features stabilize some brief notes about them will accumulate here.
 * It was not possible to specify `freetype_load_flags = 'DEFAULT'`. #4902
 * macOS: fallback fonts could select thin or otherwise unspecified font
   attributes. #4808
+* Changing the palette via escape sequences didn't invalidate caches
+  correctly, so those escapes sequences wouldn't take effect. #4932 #2635
 
 ### 20240128-202157-1e552d76
 

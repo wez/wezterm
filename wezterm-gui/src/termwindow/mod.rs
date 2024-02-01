@@ -1157,6 +1157,10 @@ impl TermWindow {
                     alert: Alert::PaletteChanged,
                     pane_id,
                 } => {
+                    // Shape cache includes color information, so
+                    // ensure that we invalidate that as part of
+                    // this overall invalidation for the palette
+                    self.dispatch_notif(TermWindowNotif::InvalidateShapeCache, window)?;
                     self.mux_pane_output_event(pane_id);
                 }
                 MuxNotification::Alert {
@@ -1418,7 +1422,7 @@ impl TermWindow {
                 }
             }
             MuxNotification::Alert {
-                alert: Alert::ToastNotification { .. } | Alert::PaletteChanged { .. },
+                alert: Alert::ToastNotification { .. },
                 ..
             }
             | MuxNotification::AssignClipboard { .. }
@@ -1433,6 +1437,12 @@ impl TermWindow {
             | MuxNotification::WorkspaceRenamed { .. }
             | MuxNotification::Empty
             | MuxNotification::WindowWorkspaceChanged(_) => return true,
+            MuxNotification::Alert {
+                alert: Alert::PaletteChanged { .. },
+                ..
+            } => {
+                // fall through
+            }
         }
 
         window.notify(TermWindowNotif::MuxNotification(n));
