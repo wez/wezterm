@@ -171,6 +171,9 @@ pub enum WindowEvent {
         live_resizing: bool,
     },
 
+    /// Called when a program-requested set_inner_size() has finished
+    SetInnerSizeCompleted,
+
     /// Called when the window has been invalidated and needs to
     /// be repainted
     NeedRepaint,

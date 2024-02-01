@@ -54,7 +54,7 @@ use mux_lua::MuxPane;
 use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, LinkedList};
 use std::ops::Add;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -145,6 +145,10 @@ pub enum TermWindowNotif {
     EmitStatusUpdate,
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
     SwitchToMuxWindow(MuxWindowId),
+    SetInnerSize {
+        width: usize,
+        height: usize,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -365,6 +369,8 @@ pub struct TermWindow {
     /// Window dimensions and dpi
     pub dimensions: Dimensions,
     pub window_state: WindowState,
+    pub resizes_pending: usize,
+    pending_scale_changes: LinkedList<resize::ScaleChange>,
     /// Terminal dimensions
     terminal_size: TerminalSize,
     pub mux_window_id: MuxWindowId,
@@ -689,6 +695,8 @@ impl TermWindow {
             render_metrics,
             dimensions,
             window_state: WindowState::default(),
+            resizes_pending: 0,
+            pending_scale_changes: LinkedList::new(),
             terminal_size,
             render_state,
             input_map: InputMap::new(&config),
@@ -942,6 +950,11 @@ impl TermWindow {
                 live_resizing,
             } => {
                 self.resize(dimensions, window_state, window, live_resizing);
+                Ok(true)
+            }
+            WindowEvent::SetInnerSizeCompleted => {
+                self.resizes_pending -= 1;
+                self.apply_pending_scale_changes();
                 Ok(true)
             }
             WindowEvent::AdviseModifiersLedStatus(modifiers, leds) => {
@@ -1287,9 +1300,19 @@ impl TermWindow {
                 self.update_title();
                 window.invalidate();
             }
+            TermWindowNotif::SetInnerSize { width, height } => {
+                self.set_inner_size(width, height);
+            }
         }
 
         Ok(())
+    }
+
+    fn set_inner_size(&mut self, width: usize, height: usize) {
+        if let Some(window) = &self.window {
+            self.resizes_pending += 1;
+            window.set_inner_size(width, height);
+        }
     }
 
     /// Take care to remove our panes from the mux, otherwise
@@ -2579,21 +2602,9 @@ impl TermWindow {
                 self.activate_tab_relative(*n, false)?;
             }
             ActivateLastTab => self.activate_last_tab()?,
-            DecreaseFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.decrease_font_size(w)
-                }
-            }
-            IncreaseFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.increase_font_size(w)
-                }
-            }
-            ResetFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.reset_font_size(w)
-                }
-            }
+            DecreaseFontSize => self.decrease_font_size(),
+            IncreaseFontSize => self.increase_font_size(),
+            ResetFontSize => self.reset_font_size(),
             ResetFontAndWindowSize => {
                 if let Some(w) = window.as_ref() {
                     self.reset_font_and_window_size(&w)?

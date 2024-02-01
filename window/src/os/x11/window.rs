@@ -80,6 +80,8 @@ pub(crate) struct XWindowInner {
     current_mouse_event: Option<MouseEvent>,
     window_drag_position: Option<ScreenPoint>,
     dragging: bool,
+    outstanding_configure_requests: usize,
+    pending_finished_resizes: usize,
 }
 
 /// <https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html#idm46409506331616>
@@ -265,6 +267,13 @@ impl XWindowInner {
         if let Some(resize) = resize.take() {
             self.sure_about_geometry = true;
             self.events.dispatch(resize);
+        }
+
+        // These SetInnerSizeCompleted events need to be dispatched after the
+        // above Resized events because a resize cannot finish before it occurs.
+        while self.pending_finished_resizes > 0 {
+            self.events.dispatch(WindowEvent::SetInnerSizeCompleted);
+            self.pending_finished_resizes -= 1;
         }
 
         if need_paint {
@@ -524,6 +533,10 @@ impl XWindowInner {
             }
             Event::X(xcb::x::Event::ConfigureNotify(cfg)) => {
                 self.configure_notify("X::ConfigureNotify", cfg.width(), cfg.height())?;
+                if self.outstanding_configure_requests > 0 {
+                    self.outstanding_configure_requests -= 1;
+                    self.pending_finished_resizes += 1;
+                }
             }
             Event::X(xcb::x::Event::KeyPress(key_press)) => {
                 self.copy_and_paste.time = key_press.time();
@@ -1204,6 +1217,8 @@ impl XWindow {
                 current_mouse_event: None,
                 window_drag_position: None,
                 dragging: false,
+                outstanding_configure_requests: 0,
+                pending_finished_resizes: 0,
             }))
         };
 
@@ -1748,6 +1763,7 @@ impl WindowOps for XWindow {
                         xcb::x::ConfigWindow::Height(height as u32),
                     ],
                 });
+            inner.outstanding_configure_requests += 1;
             Ok(())
         });
     }

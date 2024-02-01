@@ -13,6 +13,12 @@ pub struct RowsAndCols {
     pub cols: usize,
 }
 
+#[derive(Debug)]
+pub enum ScaleChange {
+    Absolute(f64),
+    Relative(f64),
+}
+
 impl super::TermWindow {
     pub fn resize(
         &mut self,
@@ -62,6 +68,24 @@ impl super::TermWindow {
             modal.reconfigure(self);
         }
         self.emit_window_event("window-resized", None);
+    }
+
+    pub fn apply_pending_scale_changes(&mut self) {
+        while self.resizes_pending == 0 {
+            match self.pending_scale_changes.pop_front() {
+                Some(ScaleChange::Relative(change)) => {
+                    if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
+                        self.adjust_font_scale(self.fonts.get_font_scale() * change, &window);
+                    }
+                }
+                Some(ScaleChange::Absolute(change)) => {
+                    if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
+                        self.adjust_font_scale(change, &window);
+                    }
+                }
+                None => break,
+            }
+        }
     }
 
     pub fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
@@ -313,7 +337,7 @@ impl super::TermWindow {
                 // pixel geometry which is considered to be a user-driven resize.
                 // Stashing the dimensions here avoids that misconception.
                 self.dimensions = dims;
-                window.set_inner_size(dims.pixel_width, dims.pixel_height);
+                self.set_inner_size(dims.pixel_width, dims.pixel_height);
             }
         }
     }
@@ -430,16 +454,22 @@ impl super::TermWindow {
         }
     }
 
-    pub fn decrease_font_size(&mut self, window: &Window) {
-        self.adjust_font_scale(self.fonts.get_font_scale() / 1.1, window);
+    pub fn decrease_font_size(&mut self) {
+        self.pending_scale_changes
+            .push_back(ScaleChange::Relative(1.0 / 1.1));
+        self.apply_pending_scale_changes();
     }
 
-    pub fn increase_font_size(&mut self, window: &Window) {
-        self.adjust_font_scale(self.fonts.get_font_scale() * 1.1, window);
+    pub fn increase_font_size(&mut self) {
+        self.pending_scale_changes
+            .push_back(ScaleChange::Relative(1.1));
+        self.apply_pending_scale_changes();
     }
 
-    pub fn reset_font_size(&mut self, window: &Window) {
-        self.adjust_font_scale(1.0, window);
+    pub fn reset_font_size(&mut self) {
+        self.pending_scale_changes
+            .push_back(ScaleChange::Absolute(1.0));
+        self.apply_pending_scale_changes();
     }
 
     pub fn set_window_size(&mut self, size: TerminalSize, window: &Window) -> anyhow::Result<()> {

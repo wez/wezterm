@@ -976,7 +976,7 @@ impl WaylandWindowInner {
         Ok(())
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
+    fn set_inner_size(&mut self, width: usize, height: usize) {
         let pixel_width = width as i32;
         let pixel_height = height as i32;
         let surface_width = self.pixels_to_surface(pixel_width) as u32;
@@ -993,7 +993,7 @@ impl WaylandWindowInner {
         // apply the synthetic configure event to the inner surfaces
         self.dispatch_pending_event();
 
-        self.dimensions.clone()
+        self.events.dispatch(WindowEvent::SetInnerSizeCompleted);
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
