@@ -556,10 +556,7 @@ impl CopyRenderable {
             })));
     }
 
-    fn close(&self, clear_viewport: bool) {
-        if clear_viewport {
-            self.set_viewport(None);
-        }
+    fn close(&self) {
         TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
@@ -1190,8 +1187,7 @@ impl Pane for CopyOverlay {
                     MoveByPage(n) => render.move_by_page(**n),
                     PageUp => render.move_by_page(-1.0),
                     PageDown => render.move_by_page(1.0),
-                    Close => render.close(true),
-                    CloseWithoutClear => render.close(false),
+                    Close => render.close(),
                     PriorMatch => render.prior_match(),
                     NextMatch => render.next_match(),
                     PriorMatchPage => render.prior_match_page(),
@@ -1210,6 +1206,7 @@ impl Pane for CopyOverlay {
                     JumpBackward { prev_char } => render.jump(false, *prev_char),
                     JumpAgain => render.jump_again(false),
                     JumpReverse => render.jump_again(true),
+                    ResetViewport => render.set_viewport(None),
                 }
                 PerformAssignmentResult::Handled
             }
@@ -1524,7 +1521,7 @@ pub fn search_key_table() -> KeyTable {
         (
             WKeyCode::Char('\x1b'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::CloseWithoutClear),
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
         ),
         (
             WKeyCode::UpArrow,
@@ -1583,22 +1580,34 @@ pub fn copy_key_table() -> KeyTable {
         (
             WKeyCode::Char('c'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            KeyAssignment::Multiple(vec![
+                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
+            ]),
         ),
         (
             WKeyCode::Char('g'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            KeyAssignment::Multiple(vec![
+                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
+            ]),
         ),
         (
             WKeyCode::Char('q'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            KeyAssignment::Multiple(vec![
+                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
+            ]),
         ),
         (
             WKeyCode::Char('\x1b'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            KeyAssignment::Multiple(vec![
+                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
+            ]),
         ),
         (
             WKeyCode::Char('h'),
@@ -1851,6 +1860,7 @@ pub fn copy_key_table() -> KeyTable {
             KeyAssignment::Multiple(vec![
                 KeyAssignment::CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection),
                 KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
             ]),
         ),
         (

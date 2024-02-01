@@ -673,7 +673,6 @@ pub enum CopyModeAssignment {
     PageUp,
     PageDown,
     Close,
-    CloseWithoutClear,
     PriorMatch,
     NextMatch,
     PriorMatchPage,
@@ -690,6 +689,7 @@ pub enum CopyModeAssignment {
     JumpBackward { prev_char: bool },
     JumpAgain,
     JumpReverse,
+    ResetViewport,
 }
 
 pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
