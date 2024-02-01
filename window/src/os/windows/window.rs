@@ -898,6 +898,10 @@ impl WindowOps for Window {
                             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
                         );
                         wm_paint(hwnd.0, 0, 0, 0);
+                        if let Some(inner) = rc_from_hwnd(hwnd.0) {
+                            let mut inner = inner.borrow_mut();
+                            inner.events.dispatch(WindowEvent::SetInnerSizeCompleted);
+                        }
                     }
                 } else {
                     log::trace!(

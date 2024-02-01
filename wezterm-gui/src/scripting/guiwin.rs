@@ -56,7 +56,8 @@ impl UserData for GuiWin {
         methods.add_method(
             "set_inner_size",
             |_, this, (width, height): (usize, usize)| {
-                this.window.set_inner_size(width, height);
+                this.window
+                    .notify(TermWindowNotif::SetInnerSize { width, height });
                 Ok(())
             },
         );
