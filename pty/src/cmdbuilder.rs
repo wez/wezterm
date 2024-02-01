@@ -422,37 +422,44 @@ impl CommandBuilder {
 
             let mut errors = vec![];
 
-            if access(&abs_path, AccessFlags::X_OK).is_ok() {
+            if abs_path.is_dir() {
+                errors.push(format!("{} exists but is a directory", abs_path.display()));
+            } else if access(&abs_path, AccessFlags::X_OK).is_ok() {
                 return Ok(abs_path.into_os_string());
-            }
-            if access(&abs_path, AccessFlags::F_OK).is_ok() {
+            } else if access(&abs_path, AccessFlags::F_OK).is_ok() {
                 errors.push(format!(
                     "{} exists but is not executable",
                     abs_path.display()
                 ));
-            } else {
-                if let Some(path) = self.resolve_path() {
-                    for path in std::env::split_paths(&path) {
-                        let candidate = path.join(&exe);
-                        if access(&candidate, AccessFlags::X_OK).is_ok() {
-                            return Ok(candidate.into_os_string());
-                        }
-                        if access(&candidate, AccessFlags::F_OK).is_ok() {
-                            errors.push(format!(
-                                "{} exists but is not executable",
-                                candidate.display()
-                            ));
-                        }
+            }
+            if let Some(path) = self.resolve_path() {
+                for path in std::env::split_paths(&path) {
+                    let candidate = path.join(&exe);
+
+                    if candidate.is_dir() {
+                        errors.push(format!("{} exists but is a directory", candidate.display()));
+                    } else if access(&candidate, AccessFlags::X_OK).is_ok() {
+                        return Ok(candidate.into_os_string());
+                    } else if access(&candidate, AccessFlags::F_OK).is_ok() {
+                        errors.push(format!(
+                            "{} exists but is not executable",
+                            candidate.display()
+                        ));
                     }
-                    errors.push(format!("No viable candidates found in PATH {path:?}"));
-                } else {
-                    errors.push("Unable to resolve the PATH".to_string());
                 }
+                errors.push(format!("No viable candidates found in PATH {path:?}"));
+            } else {
+                errors.push("Unable to resolve the PATH".to_string());
             }
             anyhow::bail!(
                 "Unable to spawn {} because:\n{}",
                 exe_path.display(),
                 errors.join(".\n")
+            );
+        } else if exe_path.is_dir() {
+            anyhow::bail!(
+                "Unable to spawn {} because it is a directory",
+                exe_path.display()
             );
         } else {
             if let Err(err) = access(exe_path, AccessFlags::X_OK) {

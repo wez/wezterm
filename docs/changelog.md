@@ -32,6 +32,9 @@ As features stabilize some brief notes about them will accumulate here.
   attributes. #4808
 * Changing the palette via escape sequences didn't invalidate caches
   correctly, so those escapes sequences wouldn't take effect. #4932 #2635
+* Unix: spawning a command using a relative path, with the cwd set to a
+  directory that contains a directory with the same name as the relative
+  path to the command would fail with an obscure error message. #4920
 
 ### 20240128-202157-1e552d76
 
