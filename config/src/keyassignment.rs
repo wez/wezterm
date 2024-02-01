@@ -673,6 +673,7 @@ pub enum CopyModeAssignment {
     PageUp,
     PageDown,
     Close,
+    CloseWithoutClear,
     PriorMatch,
     NextMatch,
     PriorMatchPage,

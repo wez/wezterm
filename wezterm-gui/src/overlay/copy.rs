@@ -556,8 +556,10 @@ impl CopyRenderable {
             })));
     }
 
-    fn close(&self) {
-        self.set_viewport(None);
+    fn close(&self, clear_viewport: bool) {
+        if clear_viewport {
+            self.set_viewport(None);
+        }
         TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
@@ -1188,7 +1190,8 @@ impl Pane for CopyOverlay {
                     MoveByPage(n) => render.move_by_page(**n),
                     PageUp => render.move_by_page(-1.0),
                     PageDown => render.move_by_page(1.0),
-                    Close => render.close(),
+                    Close => render.close(true),
+                    CloseWithoutClear => render.close(false),
                     PriorMatch => render.prior_match(),
                     NextMatch => render.next_match(),
                     PriorMatchPage => render.prior_match_page(),
@@ -1521,7 +1524,7 @@ pub fn search_key_table() -> KeyTable {
         (
             WKeyCode::Char('\x1b'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            KeyAssignment::CopyMode(CopyModeAssignment::CloseWithoutClear),
         ),
         (
             WKeyCode::UpArrow,
