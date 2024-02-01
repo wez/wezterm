@@ -365,6 +365,9 @@ impl KeyboardWithFallback {
                          {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?}"
                     );
 
+                    let key_code_from_sym =
+                        keysym_to_keycode(sym.into()).or_else(|| keysym_to_keycode(xsym.into()));
+
                     // If we have a modified key, and its expansion is non-ascii, such as cyrillic
                     // "Es" (which appears visually similar to "c" in latin texts), then consider
                     // this key expansion against the default latin layout.
@@ -374,9 +377,7 @@ impl KeyboardWithFallback {
                         && raw_modifiers
                             .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
                     {
-                        match keysym_to_keycode(sym.into())
-                            .or_else(|| keysym_to_keycode(xsym.into()))
-                        {
+                        match key_code_from_sym {
                             Some(crate::KeyCode::Char(c)) if !c.is_ascii() => {
                                 // Potentially a Cyrillic or other non-european layout.
                                 // Consider shortcuts like CTRL-C against the default
@@ -392,6 +393,20 @@ impl KeyboardWithFallback {
                                     }
                                     _ => sym,
                                 }
+                            }
+                            _ => sym,
+                        }
+                    } else if kc.is_none() && key_code_from_sym.is_none() {
+                        // Not sure if this is a good idea, see
+                        // <https://github.com/wez/wezterm/issues/4910> for context.
+                        match fallback_feed {
+                            FeedResult::Nothing(_fb_utf8, fb_sym) => {
+                                log::trace!(
+                                    "process_key_event: RawKeyEvent using fallback \
+                                     sym {fb_sym:?} because layout did not expand to \
+                                     anything"
+                                );
+                                fb_sym
                             }
                             _ => sym,
                         }
