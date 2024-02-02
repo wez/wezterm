@@ -35,6 +35,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Unix: spawning a command using a relative path, with the cwd set to a
   directory that contains a directory with the same name as the relative
   path to the command would fail with an obscure error message. #4920
+* x11: incorrect handling of the space key when `grp:win_space_toggle`
+  was enabled via `setxkbmap`. #4910
 
 ### 20240128-202157-1e552d76
 
