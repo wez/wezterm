@@ -1416,8 +1416,17 @@ impl TermWindow {
             }
             MuxNotification::TabAddedToWindow { window_id, .. }
             | MuxNotification::WindowRemoved(window_id)
+            | MuxNotification::WindowTitleChanged { window_id, .. }
             | MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
+                    return true;
+                }
+            }
+            MuxNotification::TabTitleChanged { tab_id, .. } => {
+                let mux = Mux::get();
+                if mux.window_containing_tab(tab_id) == Some(mux_window_id) {
+                    // fall through
+                } else {
                     return true;
                 }
             }
@@ -1429,8 +1438,6 @@ impl TermWindow {
             | MuxNotification::SaveToDownloads { .. }
             | MuxNotification::PaneFocused(_)
             | MuxNotification::TabResized(_)
-            | MuxNotification::TabTitleChanged { .. }
-            | MuxNotification::WindowTitleChanged { .. }
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)

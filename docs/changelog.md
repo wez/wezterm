@@ -39,6 +39,8 @@ As features stabilize some brief notes about them will accumulate here.
   was enabled via `setxkbmap`. #4910
 * `wezterm set-working-directory` and `wezterm imgcat` didn't correctly
   apply tmux passthrough escape encoding. #4940
+* Tab bar wouldn't immediately reflect the result of calling `tab:set_title`.
+  #4941
 
 ### 20240128-202157-1e552d76
 
