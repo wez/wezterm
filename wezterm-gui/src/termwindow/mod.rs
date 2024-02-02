@@ -1219,6 +1219,13 @@ impl TermWindow {
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }
+                MuxNotification::EraseScrollback(pane_id) => {
+                    let mux = Mux::get();
+                    let pane = mux
+                        .get_pane(pane_id)
+                        .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
+                    self.scroll_to_bottom(&pane)
+                }
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
                     self.update_title_post_status();
@@ -1421,6 +1428,7 @@ impl TermWindow {
                     return true;
                 }
             }
+            MuxNotification::EraseScrollback(_pane_id) => {}
             MuxNotification::Alert {
                 alert: Alert::ToastNotification { .. },
                 ..
