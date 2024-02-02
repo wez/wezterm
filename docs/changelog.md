@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
   apply tmux passthrough escape encoding. #4940
 * Tab bar wouldn't immediately reflect the result of calling `tab:set_title`.
   #4941
+* Command Palette: Missing space between keycaps on macOS. #4885
 
 ### 20240128-202157-1e552d76
 
