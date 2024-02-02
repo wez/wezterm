@@ -1048,6 +1048,15 @@ impl WindowOps for WaylandWindow {
             Ok(())
         });
     }
+
+    fn get_window_position(&self) -> Future<ScreenPoint> {
+        WaylandConnection::with_window_inner(self.0, move |_inner| {
+            // Wayland does not support getting window position. Potential workarounds:
+            //   1. Use window manager like GTK
+            //   2. Create window covering the all screens and use subsurfaces
+            Ok(ScreenPoint::new(0, 0))
+        })
+    }
 }
 
 pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
