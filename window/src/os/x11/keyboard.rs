@@ -368,6 +368,12 @@ impl KeyboardWithFallback {
                     let key_code_from_sym =
                         keysym_to_keycode(sym.into()).or_else(|| keysym_to_keycode(xsym.into()));
 
+                    fn is_cyrillic(c: char) -> bool {
+                        // <https://en.wikipedia.org/wiki/Cyrillic_script_in_Unicode>
+                        let c = c as u32;
+                        c >= 0x400 && c <= 0x52f
+                    }
+
                     // If we have a modified key, and its expansion is non-ascii, such as cyrillic
                     // "Es" (which appears visually similar to "c" in latin texts), then consider
                     // this key expansion against the default latin layout.
@@ -378,8 +384,8 @@ impl KeyboardWithFallback {
                             .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
                     {
                         match key_code_from_sym {
-                            Some(crate::KeyCode::Char(c)) if !c.is_ascii() => {
-                                // Potentially a Cyrillic or other non-european layout.
+                            Some(crate::KeyCode::Char(c)) if is_cyrillic(c) => {
+                                // A Cyrillic layout.
                                 // Consider shortcuts like CTRL-C against the default
                                 // latin layout
                                 match fallback_feed {
