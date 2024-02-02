@@ -37,6 +37,8 @@ As features stabilize some brief notes about them will accumulate here.
   path to the command would fail with an obscure error message. #4920
 * x11: incorrect handling of the space key when `grp:win_space_toggle`
   was enabled via `setxkbmap`. #4910
+* `wezterm set-working-directory` and `wezterm imgcat` didn't correctly
+  apply tmux passthrough escape encoding. #4940
 
 ### 20240128-202157-1e552d76
 
