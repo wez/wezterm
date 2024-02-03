@@ -22,6 +22,13 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+* Not yet
+#### New
+#### Fixed
+
+### 20240203-110809-5046fc22
+
+#### Changed
 * The default for
   [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
   `NO_HINTING` when the dpi is >= 100, otherwise `DEFAULT`. #4902

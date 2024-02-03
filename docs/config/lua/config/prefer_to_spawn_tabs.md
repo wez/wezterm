@@ -5,7 +5,7 @@ tags:
 
 # `prefer_to_spawn_tabs = false`
 
-{{since('nightly')}}
+{{since('20240203-110809-5046fc22')}}
 
 If set to `true`, launching a new instance of `wezterm` will prefer to
 spawn a new tab when it is able to connect to your already-running GUI
