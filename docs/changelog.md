@@ -44,6 +44,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Command Palette: Missing space between keycaps on macOS. #4885
 * macOS: stale/invalid cwd used when spawning new panes when shell integration
   is NOT in use. #4811
+* Command Palette: would show default key assignments next to actions even
+  if `disable_default_key_bindings` was configured. #4724
 
 ### 20240128-202157-1e552d76
 

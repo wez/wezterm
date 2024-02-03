@@ -171,7 +171,11 @@ impl CommandDef {
                 None
             }
             Some(def) => {
-                let keys = def.permute_keys(config);
+                let keys = if is_built_in && config.disable_default_key_bindings {
+                    vec![]
+                } else {
+                    def.permute_keys(config)
+                };
                 Some(ExpandedCommand {
                     brief: def.brief.into(),
                     doc: def.doc.into(),
