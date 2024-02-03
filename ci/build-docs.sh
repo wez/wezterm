@@ -41,7 +41,9 @@ python3 ci/generate-docs.py || exit 1
 # Adjust path to pick up pip-installed binaries
 PATH="$HOME/.local/bin;$PATH"
 
-black ci/generate-docs.py ci/subst-release-info.py
+if hash black 2>/dev/null ; then
+  black ci/generate-docs.py ci/subst-release-info.py
+fi
 
 cp "assets/icon/terminal.png" docs/favicon.png
 cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
