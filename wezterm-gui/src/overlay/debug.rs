@@ -149,6 +149,7 @@ pub fn show_debug_overlay(
 
     lua.load("wezterm = require 'wezterm'").exec()?;
     lua.globals().set("window", gui_win)?;
+    let lua_version: String = lua.globals().get("_VERSION")?;
 
     let mut host = Some(LuaReplHost::new(lua));
 
@@ -199,6 +200,7 @@ pub fn show_debug_overlay(
         "Debug Overlay\r\n\
          wezterm version: {version} {triple}\r\n\
          Window Environment: {connection_info}\r\n\
+         Lua Version: {lua_version}\r\n\
          {opengl_info}\r\n\
          Enter lua statements or expressions and hit Enter.\r\n\
          Press ESC or CTRL-D to exit\r\n",
