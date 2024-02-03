@@ -22,7 +22,9 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
-* Not yet
+* Wayland: currently being reimplemented, it maybe more unstable than usual.
+  Please file GH issues for any problems you see.
+  Many thanks to @tzx! #4777
 #### New
 #### Fixed
 
