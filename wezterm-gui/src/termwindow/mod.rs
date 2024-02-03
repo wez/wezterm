@@ -1239,7 +1239,8 @@ impl TermWindow {
                     self.update_title_post_status();
                 }
                 MuxNotification::TabResized(_) => {
-                    // Handled by wezterm-client
+                    // Also handled by wezterm-client
+                    self.update_title_post_status();
                 }
                 MuxNotification::TabTitleChanged { .. } => {
                     self.update_title_post_status();
@@ -1391,6 +1392,8 @@ impl TermWindow {
                     | Alert::SetUserVar { .. }
                     | Alert::Bell,
             }
+            | MuxNotification::PaneFocused(pane_id)
+            | MuxNotification::PaneRemoved(pane_id)
             | MuxNotification::PaneOutput(pane_id) => {
                 // Ideally we'd check to see if pane_id is part of this window,
                 // but overlays may not be 100% associated with the window
@@ -1424,7 +1427,8 @@ impl TermWindow {
                     return true;
                 }
             }
-            MuxNotification::TabTitleChanged { tab_id, .. } => {
+            MuxNotification::TabResized(tab_id)
+            | MuxNotification::TabTitleChanged { tab_id, .. } => {
                 let mux = Mux::get();
                 if mux.window_containing_tab(tab_id) == Some(mux_window_id) {
                     // fall through
@@ -1438,9 +1442,6 @@ impl TermWindow {
             }
             | MuxNotification::AssignClipboard { .. }
             | MuxNotification::SaveToDownloads { .. }
-            | MuxNotification::PaneFocused(_)
-            | MuxNotification::TabResized(_)
-            | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)
             | MuxNotification::WorkspaceRenamed { .. }
