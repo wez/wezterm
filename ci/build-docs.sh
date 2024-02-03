@@ -41,13 +41,6 @@ python3 ci/generate-docs.py || exit 1
 # Adjust path to pick up pip-installed binaries
 PATH="$HOME/.local/bin;$PATH"
 
-PIP=pip3
-if ! hash pip3 >/dev/null ; then
-  PIP=pip
-fi
-
-$PIP install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin mkdocs-macros-plugin pillow cairosvg
-
 black ci/generate-docs.py ci/subst-release-info.py
 
 cp "assets/icon/terminal.png" docs/favicon.png
@@ -55,8 +48,10 @@ cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
 mkdir -p docs/fonts
 cp assets/fonts/SymbolsNerdFontMono-Regular.ttf docs/fonts/
 
+docker build -t wezterm/mkdocs-material -f ci/Dockerfile.docs .
+
 if [ "$SERVE" == "yes" ] ; then
-  mkdocs "$@"
+  docker run --rm -it --network=host -v ${PWD}:/docs wezterm/mkdocs-material serve
 else
-  mkdocs build
+  docker run --rm -e CARDS=true -v ${PWD}:/docs wezterm/mkdocs-material build
 fi
