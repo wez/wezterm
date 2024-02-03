@@ -1,5 +1,5 @@
 use crate::client::{ClientId, ClientInfo};
-use crate::pane::{Pane, PaneId};
+use crate::pane::{CachePolicy, Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
@@ -1131,11 +1131,12 @@ impl Mux {
         command_dir: Option<String>,
         pane: Option<Arc<dyn Pane>>,
         target_domain: DomainId,
+        policy: CachePolicy,
     ) -> Option<String> {
         command_dir.or_else(|| {
             match pane {
                 Some(pane) if pane.domain_id() == target_domain => pane
-                    .get_current_working_dir()
+                    .get_current_working_dir(policy)
                     .and_then(|url| {
                         percent_decode_str(url.path())
                             .decode_utf8()
@@ -1193,6 +1194,7 @@ impl Mux {
                     command_dir,
                     Some(Arc::clone(&current_pane)),
                     domain.domain_id(),
+                    CachePolicy::FetchImmediate,
                 ),
             },
             other => other,
@@ -1338,6 +1340,7 @@ impl Mux {
                 None => None,
             },
             domain.domain_id(),
+            CachePolicy::FetchImmediate,
         );
 
         let tab = domain

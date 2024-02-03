@@ -8,8 +8,8 @@ use config::configuration;
 use config::keyassignment::ScrollbackEraseMode;
 use mux::domain::DomainId;
 use mux::pane::{
-    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
-    SearchResult, WithPaneLines,
+    alloc_pane_id, CachePolicy, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId,
+    Pattern, SearchResult, WithPaneLines,
 };
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
@@ -537,7 +537,7 @@ impl Pane for ClientPane {
         false
     }
 
-    fn get_current_working_dir(&self) -> Option<Url> {
+    fn get_current_working_dir(&self, _policy: CachePolicy) -> Option<Url> {
         self.renderable.lock().inner.borrow().working_dir.clone()
     }
 

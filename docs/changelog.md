@@ -42,6 +42,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Tab bar wouldn't immediately reflect the result of calling `tab:set_title`.
   #4941
 * Command Palette: Missing space between keycaps on macOS. #4885
+* macOS: stale/invalid cwd used when spawning new panes when shell integration
+  is NOT in use. #4811
 
 ### 20240128-202157-1e552d76
 

@@ -254,7 +254,7 @@ fn pane_tree(
         }
         Tree::Leaf(pane) => {
             let dims = pane.get_dimensions();
-            let working_dir = pane.get_current_working_dir();
+            let working_dir = pane.get_current_working_dir(CachePolicy::AllowStale);
             let cursor_pos = pane.get_cursor_position();
 
             PaneNode::Leaf(PaneEntry {
@@ -2299,7 +2299,7 @@ mod test {
         fn is_alt_screen_active(&self) -> bool {
             false
         }
-        fn get_current_working_dir(&self) -> Option<Url> {
+        fn get_current_working_dir(&self, _policy: CachePolicy) -> Option<Url> {
             None
         }
     }

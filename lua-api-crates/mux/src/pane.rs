@@ -1,6 +1,7 @@
 use super::*;
 use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
 use mlua::Value;
+use mux::pane::CachePolicy;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
@@ -147,7 +148,9 @@ impl UserData for MuxPane {
         methods.add_method("get_current_working_dir", |_, this, _: ()| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
-            Ok(pane.get_current_working_dir().map(|url| Url { url }))
+            Ok(pane
+                .get_current_working_dir(CachePolicy::FetchImmediate)
+                .map(|url| Url { url }))
         });
 
         methods.add_method("get_metadata", |lua, this, _: ()| {
@@ -160,13 +163,13 @@ impl UserData for MuxPane {
         methods.add_method("get_foreground_process_name", |_, this, _: ()| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
-            Ok(pane.get_foreground_process_name())
+            Ok(pane.get_foreground_process_name(CachePolicy::FetchImmediate))
         });
 
         methods.add_method("get_foreground_process_info", |_, this, _: ()| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
-            Ok(pane.get_foreground_process_info())
+            Ok(pane.get_foreground_process_info(CachePolicy::AllowStale))
         });
 
         methods.add_method("get_cursor_position", |_, this, _: ()| {

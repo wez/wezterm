@@ -40,7 +40,9 @@ use config::{
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
-use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult};
+use mux::pane::{
+    CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
+};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{
     PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
@@ -284,7 +286,7 @@ impl UserData for PaneInformation {
             let mut name = None;
             if let Some(mux) = Mux::try_get() {
                 if let Some(pane) = mux.get_pane(this.pane_id) {
-                    name = pane.get_foreground_process_name();
+                    name = pane.get_foreground_process_name(CachePolicy::AllowStale);
                 }
             }
             match name {
@@ -305,7 +307,7 @@ impl UserData for PaneInformation {
             if let Some(mux) = Mux::try_get() {
                 if let Some(pane) = mux.get_pane(this.pane_id) {
                     return Ok(pane
-                        .get_current_working_dir()
+                        .get_current_working_dir(CachePolicy::AllowStale)
                         .map(|url| url_funcs::Url { url }));
                 }
             }
