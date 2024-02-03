@@ -49,6 +49,23 @@ _arguments "${_arguments_options[@]}" \
 '*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell. \[aliases\: -e\]:_cmdambivalent' \
 && ret=0
 ;;
+(blocking-start)
+_arguments "${_arguments_options[@]}" \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
+'--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
+'--workspace=[Override the default workspace with the provided name. The default is "default"]:WORKSPACE: ' \
+'--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'--domain=[Name of the multiplexer domain section from the configuration to which you'\''d like to connect. If omitted, the default domain will be used]:DOMAIN: ' \
+'--no-auto-connect[If true, do not connect to domains marked as connect_automatically in your wezterm configuration file]' \
+'--always-new-process[If enabled, don'\''t try to ask an existing wezterm GUI instance to start the command.  Instead, always start the GUI in this invocation of wezterm so that you can wait for the command to complete by waiting for this wezterm process to finish]' \
+'(--always-new-process)--new-tab[When spawning into an existing GUI instance, spawn a new tab into the active window rather than spawn a new window]' \
+'-e[Dummy argument that consumes "-e" and does nothing. This is meant as a compatibility layer for supporting the widely adopted standard of passing the command to execute to the terminal via a "-e" option. This works because we then treat the remaining cmdline as trailing options, that will automatically be parsed via the existing "prog" option. This option exists only as a fallback. It is recommended to pass the command as a normal trailing command instead if possible]' \
+'--attach[When used with --domain, if the domain already has running panes, wezterm will simply attach and will NOT spawn the specified PROG. If you omit --attach when using --domain, wezterm will attach AND then spawn PROG]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell. \[aliases\: -e\]:_cmdambivalent' \
+&& ret=0
+;;
 (ssh)
 _arguments "${_arguments_options[@]}" \
 '*-o+[Override specific SSH configuration options. \`wezterm ssh\` is able to parse some (but not all!) options from your \`~/.ssh/config\` and \`/etc/ssh/ssh_config\` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
@@ -463,6 +480,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(blocking-start)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (ssh)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -612,6 +633,7 @@ esac
 _wezterm_commands() {
     local commands; commands=(
 'start:Start the GUI, optionally running an alternative program \[aliases\: -e\]' \
+'blocking-start:Start the GUI in blocking mode. You shouldn'\''t see this, but you may see it in shell completions because of this open clap issue\: <https\://github.com/clap-rs/clap/issues/1335>' \
 'ssh:Establish an ssh session' \
 'serial:Open a serial port' \
 'connect:Connect to wezterm multiplexer' \
@@ -686,6 +708,16 @@ _wezterm__cli__help__adjust-pane-size_commands() {
 _wezterm__help__cli__adjust-pane-size_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm help cli adjust-pane-size commands' commands "$@"
+}
+(( $+functions[_wezterm__blocking-start_commands] )) ||
+_wezterm__blocking-start_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm blocking-start commands' commands "$@"
+}
+(( $+functions[_wezterm__help__blocking-start_commands] )) ||
+_wezterm__help__blocking-start_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help blocking-start commands' commands "$@"
 }
 (( $+functions[_wezterm__cli_commands] )) ||
 _wezterm__cli_commands() {
@@ -819,6 +851,7 @@ _wezterm__cli__help__help_commands() {
 _wezterm__help_commands() {
     local commands; commands=(
 'start:Start the GUI, optionally running an alternative program \[aliases\: -e\]' \
+'blocking-start:Start the GUI in blocking mode. You shouldn'\''t see this, but you may see it in shell completions because of this open clap issue\: <https\://github.com/clap-rs/clap/issues/1335>' \
 'ssh:Establish an ssh session' \
 'serial:Open a serial port' \
 'connect:Connect to wezterm multiplexer' \

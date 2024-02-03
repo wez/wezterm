@@ -95,6 +95,12 @@ enum SubCommand {
     )]
     Start(StartCommand),
 
+    /// Start the GUI in blocking mode. You shouldn't see this, but you
+    /// may see it in shell completions because of this open clap issue:
+    /// <https://github.com/clap-rs/clap/issues/1335>
+    #[command(short_flag_alias = 'e', hide = true)]
+    BlockingStart(StartCommand),
+
     #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
@@ -728,6 +734,7 @@ fn run() -> anyhow::Result<()> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(_)
+        | SubCommand::BlockingStart(_)
         | SubCommand::LsFonts(_)
         | SubCommand::ShowKeys(_)
         | SubCommand::Ssh(_)
