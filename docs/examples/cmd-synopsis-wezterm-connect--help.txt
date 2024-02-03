@@ -12,6 +12,10 @@ Arguments:
           -- bash -l` will spawn bash as if it were a login shell
 
 Options:
+      --new-tab
+          When spawning into an existing GUI instance, spawn a new tab into the
+          active window rather than spawn a new window
+
       --class <CLASS>
           Override the default windowing system class. The default is
           "org.wezfurlong.wezterm". Under X11 and Windows this changes the

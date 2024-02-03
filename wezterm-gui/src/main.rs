@@ -513,6 +513,7 @@ impl Publish {
         config: &ConfigHandle,
         workspace: Option<&str>,
         domain: SpawnTabDomain,
+        new_tab: bool,
     ) -> anyhow::Result<bool> {
         if let Publish::TryPathOrPublish(gui_sock) = &self {
             let dom = config::UnixDomain {
@@ -542,10 +543,41 @@ impl Publish {
                                 "Running GUI has different config from us, will start a new one"
                             );
                         }
+
+                        let window_id = if new_tab || config.prefer_to_spawn_tabs {
+                            if let Ok(pane_id) = client.resolve_pane_id(None).await {
+                                let panes = client.list_panes().await?;
+
+                                let mut window_id = None;
+                                'outer: for tabroot in panes.tabs {
+                                    let mut cursor = tabroot.into_tree().cursor();
+
+                                    loop {
+                                        if let Some(entry) = cursor.leaf_mut() {
+                                            if entry.pane_id == pane_id {
+                                                window_id.replace(entry.window_id);
+                                                break 'outer;
+                                            }
+                                        }
+                                        match cursor.preorder_next() {
+                                            Ok(c) => cursor = c,
+                                            Err(_) => break,
+                                        }
+                                    }
+                                }
+                                window_id
+
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
                         client
                             .spawn_v2(codec::SpawnV2 {
                                 domain,
-                                window_id: None,
+                                window_id,
                                 command,
                                 command_dir: None,
                                 size: config.initial_size(0),
@@ -713,6 +745,7 @@ fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> 
             Some(name) => SpawnTabDomain::DomainName(name.to_string()),
             None => SpawnTabDomain::DefaultDomain,
         },
+        opts.new_tab,
     )? {
         return Ok(());
     }
@@ -1194,6 +1227,7 @@ fn run() -> anyhow::Result<()> {
                 workspace: connect.workspace,
                 position: connect.position,
                 prog: connect.prog,
+                new_tab: connect.new_tab,
                 always_new_process: true,
                 attach: true,
                 _cmd: false,

@@ -1,5 +1,4 @@
 use crate::cli::activate_pane_direction::PaneDirectionParser;
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use config::keyassignment::PaneDirection;
 use mux::pane::PaneId;
@@ -20,7 +19,7 @@ pub struct GetPaneDirection {
 
 impl GetPaneDirection {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         let response = client
             .get_pane_direction(codec::GetPaneDirection {
                 pane_id,

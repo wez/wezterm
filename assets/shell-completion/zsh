@@ -41,6 +41,7 @@ _arguments "${_arguments_options[@]}" \
 '--domain=[Name of the multiplexer domain section from the configuration to which you'\''d like to connect. If omitted, the default domain will be used]:DOMAIN: ' \
 '--no-auto-connect[If true, do not connect to domains marked as connect_automatically in your wezterm configuration file]' \
 '--always-new-process[If enabled, don'\''t try to ask an existing wezterm GUI instance to start the command.  Instead, always start the GUI in this invocation of wezterm so that you can wait for the command to complete by waiting for this wezterm process to finish]' \
+'(--always-new-process)--new-tab[When spawning into an existing GUI instance, spawn a new tab into the active window rather than spawn a new window]' \
 '-e[Dummy argument that consumes "-e" and does nothing. This is meant as a compatibility layer for supporting the widely adopted standard of passing the command to execute to the terminal via a "-e" option. This works because we then treat the remaining cmdline as trailing options, that will automatically be parsed via the existing "prog" option. This option exists only as a fallback. It is recommended to pass the command as a normal trailing command instead if possible]' \
 '--attach[When used with --domain, if the domain already has running panes, wezterm will simply attach and will NOT spawn the specified PROG. If you omit --attach when using --domain, wezterm will attach AND then spawn PROG]' \
 '-h[Print help (see more with '\''--help'\'')]' \
@@ -76,6 +77,7 @@ _arguments "${_arguments_options[@]}" \
 '--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
 '--workspace=[Override the default workspace with the provided name. The default is "default"]:WORKSPACE: ' \
 '--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'--new-tab[When spawning into an existing GUI instance, spawn a new tab into the active window rather than spawn a new window]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':domain_name -- Name of the multiplexer domain section from the configuration to which you'\''d like to connect:' \

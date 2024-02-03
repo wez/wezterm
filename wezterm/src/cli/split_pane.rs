@@ -1,4 +1,4 @@
-use crate::cli::{resolve_pane_id, resolve_relative_cwd};
+use crate::cli::resolve_relative_cwd;
 use clap::{Parser, ValueHint};
 use mux::pane::PaneId;
 use mux::tab::{SplitDirection, SplitRequest, SplitSize};
@@ -69,7 +69,7 @@ pub struct SplitPane {
 
 impl SplitPane {
     pub async fn run(self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
 
         let direction = if self.left || self.right || self.horizontal {
             SplitDirection::Horizontal

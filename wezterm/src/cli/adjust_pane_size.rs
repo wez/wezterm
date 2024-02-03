@@ -1,5 +1,4 @@
 use crate::cli::activate_pane_direction::PaneDirectionParser;
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use codec::AdjustPaneSize;
 use config::keyassignment::PaneDirection;
@@ -23,7 +22,7 @@ pub struct CliAdjustPaneSize {
 
 impl CliAdjustPaneSize {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         match client
             .adjust_pane_size(AdjustPaneSize {
                 pane_id,

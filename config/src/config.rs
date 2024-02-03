@@ -133,6 +133,12 @@ pub struct Config {
     #[dynamic(default)]
     pub switch_to_last_active_tab_when_closing_tab: bool,
 
+    /// When true, launching a new wezterm instance will prefer
+    /// to spawn a new tab into an existing instance.
+    /// Otherwise, it will spawn a new window.
+    #[dynamic(default)]
+    pub prefer_to_spawn_tabs: bool,
+
     #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 

@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use codec::SetPaneZoomed;
@@ -54,7 +53,7 @@ impl ZoomPane {
             }
         }
 
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         let containing_tab_id = pane_id_to_tab_id
             .get(&pane_id)
             .copied()

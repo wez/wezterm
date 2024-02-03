@@ -18,6 +18,10 @@ Options:
           wezterm so that you can wait for the command to complete by waiting
           for this wezterm process to finish
 
+      --new-tab
+          When spawning into an existing GUI instance, spawn a new tab into the
+          active window rather than spawn a new window
+
       --cwd <CWD>
           Specify the current working directory for the initially spawned
           program

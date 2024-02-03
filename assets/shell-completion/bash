@@ -1027,7 +1027,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__connect)
-            opts="-h --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
+            opts="-h --new-tab --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1725,7 +1725,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__start)
-            opts="-e -h --no-auto-connect --always-new-process --cwd --class --workspace --position --domain --attach --help [PROG]..."
+            opts="-e -h --no-auto-connect --always-new-process --new-tab --cwd --class --workspace --position --domain --attach --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

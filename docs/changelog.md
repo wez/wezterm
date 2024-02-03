@@ -27,6 +27,10 @@ As features stabilize some brief notes about them will accumulate here.
   `NO_HINTING` when the dpi is >= 100, otherwise `DEFAULT`. #4902
 #### New
 * We now show the Lua version in the debug overlay. Thanks to @bbkane! #4943
+* `wezterm start --new-tab` and `wezterm connect --new-tab` to request a new
+  tab rather than a new window when spawning via an existing GUI instance.
+  The new [prefer_to_spawn_tabs](config/lua/config/prefer_to_spawn_tabs.md)
+  option allows you to make this happen by default. ?4854 ?4946
 #### Fixed
 * It was not possible to specify `freetype_load_flags = 'DEFAULT'`. #4902
 * macOS: fallback fonts could select thin or otherwise unspecified font

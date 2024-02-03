@@ -16,7 +16,7 @@ pub struct ListClientsCommand {
 impl ListClientsCommand {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
         let out = std::io::stdout();
-        let clients = client.list_clients(codec::GetClientList).await?;
+        let clients = client.list_clients().await?;
         match self.format {
             CliOutputFormatKind::Json => {
                 let clients = clients

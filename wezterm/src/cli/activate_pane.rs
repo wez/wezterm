@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use mux::pane::PaneId;
 use wezterm_client::client::Client;
@@ -14,7 +13,7 @@ pub struct ActivatePane {
 
 impl ActivatePane {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         client
             .set_focused_pane_id(codec::SetFocusedPane { pane_id })
             .await?;

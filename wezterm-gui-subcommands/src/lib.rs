@@ -40,6 +40,11 @@ pub struct StartCommand {
     #[arg(long = "always-new-process")]
     pub always_new_process: bool,
 
+    /// When spawning into an existing GUI instance, spawn a new
+    /// tab into the active window rather than spawn a new window.
+    #[arg(long, conflicts_with = "always_new_process")]
+    pub new_tab: bool,
+
     /// Specify the current working directory for the initially
     /// spawned program
     #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
@@ -202,6 +207,11 @@ pub struct ConnectCommand {
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
     pub domain_name: String,
+
+    /// When spawning into an existing GUI instance, spawn a new
+    /// tab into the active window rather than spawn a new window.
+    #[arg(long)]
+    pub new_tab: bool,
 
     /// Override the default windowing system class.
     /// The default is "org.wezfurlong.wezterm".
