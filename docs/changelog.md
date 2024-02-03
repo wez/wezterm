@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
   [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
   `NO_HINTING` when the dpi is >= 100, otherwise `DEFAULT`. #4902
 #### New
+* We now show the Lua version in the debug overlay. Thanks to @bbkane! #4943
 #### Fixed
 * It was not possible to specify `freetype_load_flags = 'DEFAULT'`. #4902
 * macOS: fallback fonts could select thin or otherwise unspecified font
