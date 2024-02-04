@@ -235,13 +235,9 @@ impl WaylandWindow {
             FallbackFrame::new(&window, shm, subcompositor, qh.clone())
                 .expect("failed to create csd frame")
         };
-        let hidden = if let Some(decor) = decor_mode {
-            match decor {
-                DecorationMode::Client => false,
-                _ => true,
-            }
-        } else {
-            true
+        let hidden = match decor_mode {
+            Some(DecorationMode::Client) => false,
+            _ => true,
         };
         window_frame.set_hidden(hidden);
         if !hidden {
@@ -802,7 +798,9 @@ impl WaylandWindowInner {
                 // Clamp the size to at least one pixel.
                 let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
                 let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
-                self.window_frame.resize(width, height);
+                if !self.window_frame.is_hidden() {
+                    self.window_frame.resize(width, height);
+                }
                 let (x, y) = self.window_frame.location();
                 let outer_size = self.window_frame.add_borders(width.get(), height.get());
                 self.window
@@ -810,7 +808,6 @@ impl WaylandWindowInner {
                     .unwrap()
                     .xdg_surface()
                     .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
-                // }
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
