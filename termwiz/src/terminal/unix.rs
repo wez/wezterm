@@ -17,9 +17,12 @@ use termios::{
     cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
     TCSAFLUSH, TCSANOW,
 };
+use wezterm_input_types::KittyKeyboardFlags;
 
 use crate::caps::Capabilities;
-use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, XtermKeyModifierResource, CSI};
+use crate::escape::csi::{
+    DecPrivateMode, DecPrivateModeCode, Keyboard, Mode, XtermKeyModifierResource, CSI,
+};
 use crate::input::{InputEvent, InputParser};
 use crate::render::terminfo::TerminfoRenderer;
 use crate::surface::Change;
@@ -336,10 +339,27 @@ impl Terminal for UnixTerminal {
             decset!(AnyEventMouse);
             decset!(SGRMouse);
         }
-        self.write.modify_other_keys(2)?;
-        self.write.flush()?;
 
-        Ok(())
+        if self.caps.keyboard_enhancement()
+            && self
+                .probe_capabilities()
+                .map(|mut probe| probe.enhanced_keyboard_state())
+                .transpose()?
+                .flatten()
+                .is_some()
+        {
+            write!(
+                self.write,
+                "{}",
+                CSI::Keyboard(Keyboard::PushKittyState {
+                    flags: KittyKeyboardFlags::all(),
+                    mode: crate::escape::csi::KittyKeyboardMode::SetSpecified
+                })
+            )?;
+        } else {
+            self.write.modify_other_keys(2)?;
+        }
+        self.flush()
     }
 
     fn set_cooked_mode(&mut self) -> Result<()> {
@@ -533,6 +553,9 @@ impl Drop for UnixTerminal {
         if self.caps.mouse_reporting() {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
+        }
+        if self.caps.keyboard_enhancement() {
+            write!(self.write, "{}", CSI::Keyboard(Keyboard::PopKittyState(1))).unwrap();
         }
         self.write.modify_other_keys(0).unwrap();
         self.exit_alternate_screen().unwrap();
