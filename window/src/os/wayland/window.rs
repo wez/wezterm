@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
+use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
 use std::num::NonZeroU32;
@@ -36,16 +37,15 @@ use wayland_client::{Connection as WConnection, Proxy};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{
-    KeyboardLedStatus, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress,
-    ScreenPoint, WindowDecorations,
+    KeyboardLedStatus, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress, ScreenPoint,
 };
 
 use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
 use crate::{
     Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, Window, WindowEvent, WindowEventSender,
-    WindowKeyEvent, WindowOps, WindowState,
+    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, Window, WindowEvent,
+    WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
 
 use super::copy_and_paste::CopyAndPaste;
@@ -210,23 +210,17 @@ impl WaylandWindow {
             dpi: config.dpi.unwrap_or(crate::DEFAULT_DPI) as usize,
         };
 
+        // hard-coding client-side decorations via FallbackFrame for now
+        // TODO: request server-side decorations if config.window_decorations contains TITLE
+        // TODO: WaylandState::handle_window_event() should still work with client-side-only response
         let window = {
             let xdg_shell = &conn.wayland_state.borrow().xdg;
-            xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh)
+            xdg_shell.create_window(surface.clone(), Decorations::RequestClient, &qh)
         };
+        window.request_decoration_mode(Some(DecorationMode::Client));
 
         window.set_app_id(class_name.to_string());
         window.set_title(name.to_string());
-        let decorations = config.window_decorations;
-
-        let decor_mode = if decorations == WindowDecorations::NONE {
-            None
-        } else if decorations == WindowDecorations::default() {
-            Some(DecorationMode::Server)
-        } else {
-            Some(DecorationMode::Client)
-        };
-        window.request_decoration_mode(decor_mode);
 
         let mut window_frame = {
             let wayland_state = &conn.wayland_state.borrow();
@@ -235,33 +229,10 @@ impl WaylandWindow {
             FallbackFrame::new(&window, shm, subcompositor, qh.clone())
                 .expect("failed to create csd frame")
         };
-        let hidden = if let Some(decor) = decor_mode {
-            match decor {
-                DecorationMode::Client => false,
-                _ => true,
-            }
-        } else {
-            true
-        };
-        window_frame.set_hidden(hidden);
-        if !hidden {
-            window_frame.resize(
-                NonZeroU32::new(dimensions.pixel_width as u32)
-                    .ok_or_else(|| anyhow!("dimensions {dimensions:?} are invalid"))?,
-                NonZeroU32::new(dimensions.pixel_height as u32)
-                    .ok_or_else(|| anyhow!("dimensions {dimensions:?} are invalid"))?,
-            );
-        }
+        window_frame.set_hidden(false);
+        window_frame.set_title(name.to_string());
 
         window.set_min_size(Some((32, 32)));
-        let (w, h) = window_frame.add_borders(
-            dimensions.pixel_width as u32,
-            dimensions.pixel_height as u32,
-        );
-        let (x, y) = window_frame.location();
-        window
-            .xdg_surface()
-            .set_window_geometry(x, y, w as i32, h as i32);
         window.commit();
 
         let copy_and_paste = CopyAndPaste::create();
@@ -400,8 +371,11 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {
-        todo!()
+    fn set_inner_size(&self, width: usize, height: usize) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_inner_size(width, height);
+            Ok(())
+        });
     }
 
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
@@ -497,7 +471,7 @@ pub struct WaylandWindowInner {
     window: Option<XdgWindow>,
     pub(super) window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
-    resize_increments: Option<(u16, u16)>,
+    resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
     pointer_surface: WlSurface,
     last_mouse_coords: Point,
@@ -770,8 +744,11 @@ impl WaylandWindowInner {
         if let Some((mut w, mut h)) = pending.configure.take() {
             log::trace!("Pending configure: w:{w}, h{h} -- {:?}", self.window);
             if self.window.is_some() {
-                let surface_udata = SurfaceUserData::from_wl(self.surface());
-                let factor = surface_udata.surface_data.scale_factor() as f64;
+                // let surface_udata = SurfaceUserData::from_wl(self.surface());
+                // let factor = surface_udata.surface_data.scale_factor() as f64;
+                // frame is far too big when scaling>1.0
+                // TODO: fix handling of non-trivial scaling
+                let factor = 1.0;
                 let old_dimensions = self.dimensions;
 
                 // FIXME: teach this how to resolve dpi_by_screen
@@ -784,14 +761,22 @@ impl WaylandWindowInner {
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
 
                 if self.window_state.can_resize() {
-                    if let Some((x, y)) = self.resize_increments {
-                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
-                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                    self.window_frame.set_resizable(true);
+                    if let Some(incr) = self.resize_increments {
+                        let min_width = incr.base_width + incr.x;
+                        let min_height = incr.base_height + incr.y;
+                        let extra_width = (pixel_width - incr.base_width as i32) % incr.x as i32;
+                        let extra_height = (pixel_height - incr.base_height as i32) % incr.y as i32;
+                        let desired_pixel_width = max(pixel_width - extra_width, min_width as i32);
+                        let desired_pixel_height =
+                            max(pixel_height - extra_height, min_height as i32);
                         w = self.pixels_to_surface(desired_pixel_width) as u32;
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                         pixel_height = self.surface_to_pixels(h.try_into().unwrap());
                     }
+                } else {
+                    self.window_frame.set_resizable(false);
                 }
 
                 log::trace!("Resizing frame");
@@ -802,15 +787,22 @@ impl WaylandWindowInner {
                 // Clamp the size to at least one pixel.
                 let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
                 let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
-                self.window_frame.resize(width, height);
+
+                let (outer_width, outer_height) =
+                    self.window_frame.add_borders(width.get(), height.get());
+
                 let (x, y) = self.window_frame.location();
-                let outer_size = self.window_frame.add_borders(width.get(), height.get());
+
                 self.window
                     .as_mut()
                     .unwrap()
                     .xdg_surface()
-                    .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
-                // }
+                    .set_window_geometry(x, y, outer_width as i32, outer_height as i32);
+                self.window_frame.resize(
+                    NonZeroU32::new(outer_width).expect("surface should have positive width"),
+                    NonZeroU32::new(outer_height).expect("surface should have positive height"),
+                );
+
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
@@ -956,6 +948,26 @@ impl WaylandWindowInner {
         }
         self.refresh_frame();
         self.title = Some(title);
+    }
+
+    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
+        let pixel_width = width as i32;
+        let pixel_height = height as i32;
+        let surface_width = self.pixels_to_surface(pixel_width) as u32;
+        let surface_height = self.pixels_to_surface(pixel_height) as u32;
+        // window.resize() doesn't generate a configure event,
+        // so we're going to fake one up, otherwise the window
+        // contents don't reflect the real size until eg:
+        // the focus is changed.
+        self.pending_event
+            .lock()
+            .unwrap()
+            .configure
+            .replace((surface_width, surface_height));
+        // apply the synthetic configure event to the inner surfaces
+        self.dispatch_pending_event();
+
+        self.dimensions.clone()
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
