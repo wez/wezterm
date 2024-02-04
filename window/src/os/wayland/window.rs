@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
+use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
 use std::num::NonZeroU32;
@@ -44,8 +45,8 @@ use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
 use crate::{
     Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, Window, WindowEvent, WindowEventSender,
-    WindowKeyEvent, WindowOps, WindowState,
+    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, Window, WindowEvent,
+    WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
 
 use super::copy_and_paste::CopyAndPaste;
@@ -396,8 +397,17 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {
-        todo!()
+    fn set_inner_size(&self, width: usize, height: usize) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_inner_size(width, height);
+            Ok(())
+        });
+    }
+
+    fn set_resize_increments(&self, incr: ResizeIncrement) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_resize_increments(incr)
+        });
     }
 
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
@@ -493,7 +503,7 @@ pub struct WaylandWindowInner {
     window: Option<XdgWindow>,
     pub(super) window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
-    resize_increments: Option<(u16, u16)>,
+    resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
     pointer_surface: WlSurface,
     last_mouse_coords: Point,
@@ -780,9 +790,15 @@ impl WaylandWindowInner {
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
 
                 if self.window_state.can_resize() {
-                    if let Some((x, y)) = self.resize_increments {
-                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
-                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                    self.window_frame.set_resizable(true);
+                    if let Some(incr) = self.resize_increments {
+                        let min_width = incr.base_width + incr.x;
+                        let min_height = incr.base_height + incr.y;
+                        let extra_width = (pixel_width - incr.base_width as i32) % incr.x as i32;
+                        let extra_height = (pixel_height - incr.base_height as i32) % incr.y as i32;
+                        let desired_pixel_width = max(pixel_width - extra_width, min_width as i32);
+                        let desired_pixel_height =
+                            max(pixel_height - extra_height, min_height as i32);
                         w = self.pixels_to_surface(desired_pixel_width) as u32;
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
@@ -953,6 +969,31 @@ impl WaylandWindowInner {
         }
         self.refresh_frame();
         self.title = Some(title);
+    }
+
+    fn set_resize_increments(&mut self, incr: ResizeIncrement) -> anyhow::Result<()> {
+        self.resize_increments.replace(incr);
+        Ok(())
+    }
+
+    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
+        let pixel_width = width as i32;
+        let pixel_height = height as i32;
+        let surface_width = self.pixels_to_surface(pixel_width) as u32;
+        let surface_height = self.pixels_to_surface(pixel_height) as u32;
+        // window.resize() doesn't generate a configure event,
+        // so we're going to fake one up, otherwise the window
+        // contents don't reflect the real size until eg:
+        // the focus is changed.
+        self.pending_event
+            .lock()
+            .unwrap()
+            .configure
+            .replace((surface_width, surface_height));
+        // apply the synthetic configure event to the inner surfaces
+        self.dispatch_pending_event();
+
+        self.dimensions.clone()
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
