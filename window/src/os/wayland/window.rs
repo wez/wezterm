@@ -245,8 +245,10 @@ impl WaylandWindow {
         };
         window_frame.set_hidden(hidden);
         window_frame.resize(
-            NonZeroU32::new(dimensions.pixel_width as u32).unwrap(),
-            NonZeroU32::new(dimensions.pixel_height as u32).unwrap(),
+            NonZeroU32::new(dimensions.pixel_width as u32)
+                .ok_or_else(|| anyhow!("dimensions {dimensions:?} are invalid"))?,
+            NonZeroU32::new(dimensions.pixel_height as u32)
+                .ok_or_else(|| anyhow!("dimensions {dimensions:?} are invalid"))?,
         );
 
         window.set_min_size(Some((32, 32)));
