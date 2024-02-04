@@ -27,6 +27,8 @@ As features stabilize some brief notes about them will accumulate here.
   Many thanks to @tzx! #4777
 #### New
 #### Fixed
+* Race condition when very quickly adjusting font scale. Thanks to @jknockel!
+  #4876
 
 ### 20240203-110809-5046fc22
 
