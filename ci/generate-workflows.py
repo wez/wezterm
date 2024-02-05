@@ -644,6 +644,15 @@ cargo build --all --release""",
         patterns.append("*.sha256")
         glob = " ".join(patterns)
 
+        if self.container == "ubuntu:22.04":
+            steps += [
+                RunStep(
+                    "Upload to gemfury",
+                    f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
+                    env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
+                ),
+            ]
+
         return steps + [
             ActionStep(
                 "Download artifact",

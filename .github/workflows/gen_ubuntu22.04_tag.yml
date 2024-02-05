@@ -94,6 +94,11 @@ jobs:
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
         uses: actions/checkout@v4
+      - name: "Upload to gemfury"
+        env:
+          FURY_TOKEN: ${{ secrets.FURY_TOKEN }}
+        shell: bash
+        run: "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
