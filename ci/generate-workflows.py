@@ -158,7 +158,7 @@ class InstallCrateStep(ActionStep):
             params["version"] = version
         super().__init__(
             f"Install {crate} from Cargo",
-            action="baptiste0928/cargo-install@v2",
+            action="baptiste0928/cargo-install@v3",
             params=params,
         )
 
