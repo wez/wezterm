@@ -130,7 +130,7 @@ class ActionStep(Step):
 class CacheStep(ActionStep):
     def __init__(self, name, path, key, id=None):
         super().__init__(
-            name, action="actions/cache@v3", params={"path": path, "key": key}, id=id
+            name, action="actions/cache@v4", params={"path": path, "key": key}, id=id
         )
 
 
