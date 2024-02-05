@@ -687,7 +687,10 @@ pub struct Config {
 
     #[dynamic(default = "default_check_for_updates")]
     pub check_for_updates: bool,
-    #[dynamic(default)]
+    #[dynamic(
+        default,
+        deprecated = "this option no longer does anything and will be removed in a future release"
+    )]
     pub show_update_window: bool,
 
     #[dynamic(default = "default_update_interval")]

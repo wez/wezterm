@@ -39,7 +39,6 @@ mod download;
 mod frontend;
 mod glyphcache;
 mod inputmap;
-mod markdown;
 mod overlay;
 mod quad;
 mod renderstate;
