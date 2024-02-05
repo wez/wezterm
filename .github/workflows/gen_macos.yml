@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: "rustup target add aarch64-apple-darwin"
       - name: "Compile with sccache"
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.4
       - name: "Cache Rust Dependencies"
         uses: actions/cache@v3
         id: cache-cargo-vendor
