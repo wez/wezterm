@@ -1206,7 +1206,6 @@ impl Pane for CopyOverlay {
                     JumpBackward { prev_char } => render.jump(false, *prev_char),
                     JumpAgain => render.jump_again(false),
                     JumpReverse => render.jump_again(true),
-                    ResetViewport => render.set_viewport(None),
                 }
                 PerformAssignmentResult::Handled
             }
@@ -1574,40 +1573,35 @@ pub fn search_key_table() -> KeyTable {
     table
 }
 
+fn scroll_to_bottom_and_close() -> KeyAssignment {
+    KeyAssignment::Multiple(vec![
+        KeyAssignment::ScrollToBottom,
+        KeyAssignment::CopyMode(CopyModeAssignment::Close),
+    ])
+}
+
 pub fn copy_key_table() -> KeyTable {
     let mut table = KeyTable::default();
     for (key, mods, action) in [
         (
             WKeyCode::Char('c'),
             Modifiers::CTRL,
-            KeyAssignment::Multiple(vec![
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
-                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
-            ]),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('g'),
             Modifiers::CTRL,
-            KeyAssignment::Multiple(vec![
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
-                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
-            ]),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('q'),
             Modifiers::NONE,
-            KeyAssignment::Multiple(vec![
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
-                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
-            ]),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('\x1b'),
             Modifiers::NONE,
-            KeyAssignment::Multiple(vec![
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
-                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
-            ]),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('h'),
@@ -1859,8 +1853,7 @@ pub fn copy_key_table() -> KeyTable {
             Modifiers::NONE,
             KeyAssignment::Multiple(vec![
                 KeyAssignment::CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection),
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
-                KeyAssignment::CopyMode(CopyModeAssignment::ResetViewport),
+                scroll_to_bottom_and_close(),
             ]),
         ),
         (

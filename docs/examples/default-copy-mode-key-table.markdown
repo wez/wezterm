@@ -17,8 +17,8 @@ return {
         action = act.CopyMode 'MoveToStartOfNextLine',
       },
       { key = 'Escape', mods = 'NONE', action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
-          { CopyMode = 'ResetViewport' },
       } },
       {
         key = 'Space',
@@ -128,8 +128,8 @@ return {
       { key = 'b', mods = 'ALT', action = act.CopyMode 'MoveBackwardWord' },
       { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
       { key = 'c', mods = 'CTRL', action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
-          { CopyMode = 'ResetViewport' },
       } },
       {
         key = 'd',
@@ -154,8 +154,8 @@ return {
         action = act.CopyMode 'MoveToScrollbackTop',
       },
       { key = 'g', mods = 'CTRL', action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
-          { CopyMode = 'ResetViewport' },
       } },
       { key = 'h', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
       { key = 'j', mods = 'NONE', action = act.CopyMode 'MoveDown' },
@@ -172,8 +172,8 @@ return {
         action = act.CopyMode 'MoveToSelectionOtherEnd',
       },
       { key = 'q', mods = 'NONE', action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
-          { CopyMode = 'ResetViewport' },
       } },
       {
         key = 't',
@@ -201,8 +201,8 @@ return {
         mods = 'NONE',
         action = act.Multiple {
           { CopyTo = 'ClipboardAndPrimarySelection' },
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
-          { CopyMode = 'ResetViewport' },
         },
       },
       { key = 'PageUp', mods = 'NONE', action = act.CopyMode 'PageUp' },
