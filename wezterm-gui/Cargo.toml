@@ -70,7 +70,7 @@ ordered-float = "4.1"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
-pulldown-cmark = "0.9"
+pulldown-cmark = "0.10"
 rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 rayon = "1.7"
