@@ -748,7 +748,7 @@ cargo build --all --release""",
                 ),
                 ActionStep(
                     "Commit homebrew tap changes",
-                    action="stefanzweifel/git-auto-commit-action@v4",
+                    action="stefanzweifel/git-auto-commit-action@v5",
                     params={
                         "commit_message": "Automated update to match latest tag",
                         "repository": "homebrew-wezterm",
@@ -772,7 +772,7 @@ cargo build --all --release""",
                 ),
                 ActionStep(
                     "Commit linuxbrew tap changes",
-                    action="stefanzweifel/git-auto-commit-action@v4",
+                    action="stefanzweifel/git-auto-commit-action@v5",
                     params={
                         "commit_message": "Automated update to match latest tag",
                         "repository": "linuxbrew-wezterm",
