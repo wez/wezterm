@@ -231,6 +231,8 @@ hide:
     WezTerm is available in the [Extra
     repository](https://archlinux.org/packages/extra/x86_64/wezterm/).
 
+    Be sure to also install the `ttf-nerd-fonts-symbols-mono` package!
+
     The version available in the extra repository may lag behind the latest
     wezterm release, so you may wish to use one of these AUR options:
 
