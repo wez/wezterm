@@ -1,15 +1,65 @@
-use config::lua::get_or_create_module;
+use config::lua::{get_or_create_module, get_or_create_sub_module};
 use config::lua::mlua::{self, IntoLua, Lua, Value as LuaValue};
 use luahelper::lua_value_to_dynamic;
 use serde_json::{Map, Value as JValue};
 use std::collections::HashSet;
 use wezterm_dynamic::{FromDynamic, Value as DynValue};
+use serde_yaml;
+use toml;
+
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
+    let serde_mod = get_or_create_sub_module(lua, "serde")?;
+
+    serde_mod.set("json_encode", lua.create_function(json_encode)?)?;
+    serde_mod.set("json_decode", lua.create_function(json_decode)?)?;
+    serde_mod.set("yaml_encode", lua.create_function(yaml_encode)?)?;
+    serde_mod.set("yaml_decode", lua.create_function(yaml_decode)?)?;
+    serde_mod.set("toml_encode", lua.create_function(toml_encode)?)?;
+    serde_mod.set("toml_decode", lua.create_function(toml_decode)?)?;
+
+    // For backward compatibility.
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
-    wezterm_mod.set("json_parse", lua.create_function(json_parse)?)?;
+    wezterm_mod.set("json_parse", lua.create_function(json_decode)?)?;
     wezterm_mod.set("json_encode", lua.create_function(json_encode)?)?;
+
     Ok(())
+}
+
+fn json_encode(_: &Lua, value: LuaValue) -> mlua::Result<String> {
+    let mut visited = HashSet::new();
+    let json = lua_value_to_json_value(value, &mut visited)?;
+    serde_json::to_string(&json).map_err(|err| mlua::Error::external(format!("{err:#}")))
+}
+
+fn yaml_encode(_: &Lua, value: LuaValue) -> mlua::Result<String> {
+    let mut visited = HashSet::new();
+    let json = lua_value_to_json_value(value, &mut visited)?;
+    serde_yaml::to_string(&json).map_err(|err| mlua::Error::external(format!("{err:#}")))
+}
+
+fn toml_encode(_: &Lua, value: LuaValue) -> mlua::Result<String> {
+    let mut visited = HashSet::new();
+    let json = lua_value_to_json_value(value, &mut visited)?;
+    toml::to_string(&json).map_err(|err| mlua::Error::external(format!("{err:#}")))
+}
+
+fn json_decode(lua: &Lua, text: String) -> mlua::Result<LuaValue> {
+    let value = serde_json::from_str(&text)
+        .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+    json_value_to_lua_value(lua, value)
+}
+
+fn yaml_decode(lua: &Lua, text: String) -> mlua::Result<LuaValue> {
+    let value: JValue = serde_yaml::from_str(&text)
+        .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+    json_value_to_lua_value(lua, value)
+}
+
+fn toml_decode(lua: &Lua, text: String) -> mlua::Result<LuaValue> {
+    let value: JValue = toml::from_str(&text)
+        .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+    json_value_to_lua_value(lua, value)
 }
 
 fn json_value_to_lua_value<'lua>(lua: &'lua Lua, value: JValue) -> mlua::Result<LuaValue> {
@@ -45,12 +95,6 @@ fn json_value_to_lua_value<'lua>(lua: &'lua Lua, value: JValue) -> mlua::Result<
             LuaValue::Table(tbl)
         }
     })
-}
-
-fn json_parse<'lua>(lua: &'lua Lua, text: String) -> mlua::Result<LuaValue> {
-    let value =
-        serde_json::from_str(&text).map_err(|err| mlua::Error::external(format!("{err:#}")))?;
-    json_value_to_lua_value(lua, value)
 }
 
 fn dyn_to_json(value: DynValue) -> anyhow::Result<JValue> {
@@ -225,10 +269,4 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
             }
         }
     })
-}
-
-fn json_encode<'lua>(_: &'lua Lua, value: LuaValue) -> mlua::Result<String> {
-    let mut visited = HashSet::new();
-    let json = lua_value_to_json_value(value, &mut visited)?;
-    serde_json::to_string(&json).map_err(|err| mlua::Error::external(format!("{err:#}")))
 }
