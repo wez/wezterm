@@ -1,5 +1,5 @@
 [package]
-name = "json"
+name = "serde-funcs"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,3 +11,5 @@ config = { path = "../../config" }
 luahelper = { path = "../../luahelper" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 serde_json = "1.0.82"
+serde_yaml = "0.9.31"
+toml = "0.8.9"

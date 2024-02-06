@@ -23,7 +23,7 @@ logging = { path = "../lua-api-crates/logging" }
 mux-lua = { path = "../lua-api-crates/mux" }
 procinfo-funcs = { path = "../lua-api-crates/procinfo-funcs" }
 filesystem = { path = "../lua-api-crates/filesystem" }
-json = { path = "../lua-api-crates/json" }
+serde-funcs = { path = "../lua-api-crates/serde-funcs" }
 plugin = { path = "../lua-api-crates/plugin" }
 share-data = { path = "../lua-api-crates/share-data" }
 ssh-funcs = { path = "../lua-api-crates/ssh-funcs" }

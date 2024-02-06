@@ -1555,7 +1555,6 @@ dependencies = [
  "dirs-next",
  "env_logger 0.10.2",
  "filesystem",
- "json",
  "lazy_static",
  "libc",
  "log",
@@ -1564,6 +1563,7 @@ dependencies = [
  "objc",
  "plugin",
  "procinfo-funcs",
+ "serde-funcs",
  "share-data",
  "spawn-funcs",
  "ssh-funcs",
@@ -2774,17 +2774,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a1d36f1235bc969acba30b7f5990b864423a6068a10f7c90ae8f0112e3a59d1"
 dependencies = [
  "wasm-bindgen",
-]
-
-[[package]]
-name = "json"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "config",
- "luahelper",
- "serde_json",
- "wezterm-dynamic",
 ]
 
 [[package]]
@@ -4764,6 +4753,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "870026e60fa08c69f064aa766c10f10b1d62db9ccd4d0abb206472bee0ce3b32"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "serde_json",
+ "serde_yaml",
+ "toml 0.8.9",
+ "wezterm-dynamic",
 ]
 
 [[package]]
