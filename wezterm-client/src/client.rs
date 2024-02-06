@@ -1277,6 +1277,33 @@ impl Client {
         rx.recv().await.context("send_pdu recv")?
     }
 
+    pub async fn resolve_pane_id(&self, pane_id: Option<PaneId>) -> anyhow::Result<PaneId> {
+        let pane_id: PaneId = match pane_id {
+            Some(p) => p,
+            None => {
+                if let Ok(pane) = std::env::var("WEZTERM_PANE") {
+                    pane.parse()?
+                } else {
+                    let mut clients = self.list_clients().await?.clients;
+                    clients.retain(|client| client.focused_pane_id.is_some());
+                    clients.sort_by(|a, b| b.last_input.cmp(&a.last_input));
+                    if clients.is_empty() {
+                        anyhow::bail!(
+                            "--pane-id was not specified and $WEZTERM_PANE
+                         is not set in the environment, and I couldn't
+                         determine which pane was currently focused"
+                        );
+                    }
+
+                    clients[0]
+                        .focused_pane_id
+                        .expect("to have filtered out above")
+                }
+            }
+        };
+        Ok(pane_id)
+    }
+
     rpc!(ping, Ping = (), Pong);
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn_v2, SpawnV2, SpawnResponse);
@@ -1313,7 +1340,7 @@ impl Client {
     );
     rpc!(kill_pane, KillPane, UnitResponse);
     rpc!(set_client_id, SetClientId, UnitResponse);
-    rpc!(list_clients, GetClientList, GetClientListResponse);
+    rpc!(list_clients, GetClientList = (), GetClientListResponse);
     rpc!(set_window_workspace, SetWindowWorkspace, UnitResponse);
     rpc!(set_focused_pane_id, SetFocusedPane, UnitResponse);
     rpc!(get_image_cell, GetImageCell, GetImageCellResponse);

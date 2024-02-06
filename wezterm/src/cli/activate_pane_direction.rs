@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::builder::PossibleValue;
 use clap::Parser;
 use config::keyassignment::PaneDirection;
@@ -20,7 +19,7 @@ pub struct ActivatePaneDirection {
 
 impl ActivatePaneDirection {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         client
             .activate_pane_direction(codec::ActivatePaneDirection {
                 pane_id,

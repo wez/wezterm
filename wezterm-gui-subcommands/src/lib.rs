@@ -26,7 +26,6 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
 
 #[derive(Debug, Parser, Default, Clone)]
 #[command(trailing_var_arg = true)]
-#[command(visible_short_flag_alias = 'e')]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
@@ -39,6 +38,11 @@ pub struct StartCommand {
     /// to complete by waiting for this wezterm process to finish.
     #[arg(long = "always-new-process")]
     pub always_new_process: bool,
+
+    /// When spawning into an existing GUI instance, spawn a new
+    /// tab into the active window rather than spawn a new window.
+    #[arg(long, conflicts_with = "always_new_process")]
+    pub new_tab: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
@@ -99,7 +103,7 @@ pub struct StartCommand {
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
-    /// as if it were a login shell.
+    /// as if it were a login shell. [aliases: -e]
     #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     pub prog: Vec<OsString>,
 }
@@ -202,6 +206,11 @@ pub struct ConnectCommand {
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
     pub domain_name: String,
+
+    /// When spawning into an existing GUI instance, spawn a new
+    /// tab into the active window rather than spawn a new window.
+    #[arg(long)]
+    pub new_tab: bool,
 
     /// Override the default windowing system class.
     /// The default is "org.wezfurlong.wezterm".

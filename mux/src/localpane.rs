@@ -1,7 +1,7 @@
 use crate::domain::DomainId;
 use crate::pane::{
-    CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult,
-    WithPaneLines,
+    CachePolicy, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
+    SearchResult, WithPaneLines,
 };
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
@@ -447,7 +447,7 @@ impl Pane for LocalPane {
         // If the title is the default pane title, then try to spice
         // things up a bit by returning the process basename instead
         if title == "wezterm" {
-            if let Some(proc_name) = self.get_foreground_process_name() {
+            if let Some(proc_name) = self.get_foreground_process_name(CachePolicy::AllowStale) {
                 let proc_name = std::path::Path::new(&proc_name);
                 if let Some(name) = proc_name.file_name() {
                     return name.to_string_lossy().to_string();
@@ -501,12 +501,12 @@ impl Pane for LocalPane {
         }
     }
 
-    fn get_current_working_dir(&self) -> Option<Url> {
+    fn get_current_working_dir(&self, policy: CachePolicy) -> Option<Url> {
         self.terminal
             .lock()
             .get_current_dir()
             .cloned()
-            .or_else(|| self.divine_current_working_dir())
+            .or_else(|| self.divine_current_working_dir(policy))
     }
 
     fn tty_name(&self) -> Option<String> {
@@ -522,19 +522,19 @@ impl Pane for LocalPane {
         }
     }
 
-    fn get_foreground_process_info(&self) -> Option<LocalProcessInfo> {
+    fn get_foreground_process_info(&self, policy: CachePolicy) -> Option<LocalProcessInfo> {
         #[cfg(unix)]
         if let Some(pid) = self.pty.lock().process_group_leader() {
             return LocalProcessInfo::with_root_pid(pid as u32);
         }
 
-        self.divine_foreground_process()
+        self.divine_foreground_process(policy)
     }
 
-    fn get_foreground_process_name(&self) -> Option<String> {
+    fn get_foreground_process_name(&self, policy: CachePolicy) -> Option<String> {
         #[cfg(unix)]
         {
-            let leader = self.get_leader();
+            let leader = self.get_leader(policy);
             if let Some(path) = &leader.path {
                 return Some(path.to_string_lossy().to_string());
             }
@@ -542,7 +542,7 @@ impl Pane for LocalPane {
         }
 
         #[cfg(windows)]
-        if let Some(fg) = self.divine_foreground_process() {
+        if let Some(fg) = self.divine_foreground_process(policy) {
             return Some(fg.executable.to_string_lossy().to_string());
         }
 
@@ -551,7 +551,7 @@ impl Pane for LocalPane {
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
-        if let Some(info) = self.divine_process_list(true) {
+        if let Some(info) = self.divine_process_list(CachePolicy::FetchImmediate) {
             log::trace!(
                 "can_close_without_prompting? procs in pane {:#?}",
                 info.root
@@ -1015,10 +1015,12 @@ impl LocalPane {
     }
 
     #[cfg(unix)]
-    fn get_leader(&self) -> CachedLeaderInfo {
+    fn get_leader(&self, policy: CachePolicy) -> CachedLeaderInfo {
         let mut leader = self.leader.lock();
 
-        if let Some(info) = leader.as_mut() {
+        if policy == CachePolicy::FetchImmediate {
+            leader.replace(CachedLeaderInfo::new(self.pty.lock().as_raw_fd()));
+        } else if let Some(info) = leader.as_mut() {
             // If stale, queue up some work in another thread to update.
             // Right now, we'll return the stale data.
             if info.expired() && info.can_update() {
@@ -1038,10 +1040,10 @@ impl LocalPane {
         (*leader).clone().unwrap()
     }
 
-    fn divine_current_working_dir(&self) -> Option<Url> {
+    fn divine_current_working_dir(&self, policy: CachePolicy) -> Option<Url> {
         #[cfg(unix)]
         {
-            let leader = self.get_leader();
+            let leader = self.get_leader(policy);
             if let Some(path) = &leader.current_working_dir {
                 return Url::parse(&format!("file://localhost{}", path.display())).ok();
             }
@@ -1049,7 +1051,7 @@ impl LocalPane {
         }
 
         #[cfg(windows)]
-        if let Some(fg) = self.divine_foreground_process() {
+        if let Some(fg) = self.divine_foreground_process(policy) {
             // Since windows paths typically start with something like C:\,
             // we cannot simply stick `localhost` on the front; we have to
             // omit the hostname otherwise the url parser is unhappy.
@@ -1060,11 +1062,11 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self, force_refresh: bool) -> Option<MappedMutexGuard<CachedProcInfo>> {
+    fn divine_process_list(&self, policy: CachePolicy) -> Option<MappedMutexGuard<CachedProcInfo>> {
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.lock() {
             let mut proc_list = self.proc_list.lock();
 
-            let expired = force_refresh
+            let expired = policy == CachePolicy::FetchImmediate
                 || proc_list
                     .as_ref()
                     .map(|info| info.updated.elapsed() > PROC_INFO_CACHE_TTL)
@@ -1115,8 +1117,8 @@ impl LocalPane {
     }
 
     #[allow(dead_code)]
-    fn divine_foreground_process(&self) -> Option<LocalProcessInfo> {
-        if let Some(info) = self.divine_process_list(false) {
+    fn divine_foreground_process(&self, policy: CachePolicy) -> Option<LocalProcessInfo> {
+        if let Some(info) = self.divine_process_list(policy) {
             Some(info.foreground.clone())
         } else {
             None

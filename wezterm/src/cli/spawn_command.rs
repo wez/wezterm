@@ -1,4 +1,4 @@
-use crate::cli::{resolve_pane_id, resolve_relative_cwd};
+use crate::cli::resolve_relative_cwd;
 use clap::{Parser, ValueHint};
 use config::keyassignment::SpawnTabDomain;
 use config::ConfigHandle;
@@ -58,7 +58,7 @@ impl SpawnCommand {
             match self.window_id {
                 Some(w) => Some(w),
                 None => {
-                    let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+                    let pane_id = client.resolve_pane_id(self.pane_id).await?;
 
                     let panes = client.list_panes().await?;
                     let mut window_id = None;

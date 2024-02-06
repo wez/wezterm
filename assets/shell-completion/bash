@@ -12,6 +12,9 @@ _wezterm() {
             ",$1")
                 cmd="wezterm"
                 ;;
+            wezterm,blocking-start)
+                cmd="wezterm__blocking__start"
+                ;;
             wezterm,cli)
                 cmd="wezterm__cli"
                 ;;
@@ -171,6 +174,9 @@ _wezterm() {
             wezterm__cli__help,zoom-pane)
                 cmd="wezterm__cli__help__zoom__pane"
                 ;;
+            wezterm__help,blocking-start)
+                cmd="wezterm__help__blocking__start"
+                ;;
             wezterm__help,cli)
                 cmd="wezterm__help__cli"
                 ;;
@@ -274,7 +280,7 @@ _wezterm() {
 
     case "${cmd}" in
         wezterm)
-            opts="-n -h -V --skip-config --config-file --config --help --version start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
+            opts="-n -h -V --skip-config --config-file --config --help --version start blocking-start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -282,9 +288,49 @@ _wezterm() {
             case "${prev}" in
                 --config-file)
                     COMPREPLY=($(compgen -f "${cur}"))
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o filenames
+                    fi
                     return 0
                     ;;
                 --config)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__blocking__start)
+            opts="-e -h --no-auto-connect --always-new-process --new-tab --cwd --class --workspace --position --domain --attach --help [PROG]..."
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --cwd)
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
+                    return 0
+                    ;;
+                --class)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --workspace)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --position)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --domain)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -937,7 +983,10 @@ _wezterm() {
                     return 0
                     ;;
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --workspace)
@@ -971,7 +1020,10 @@ _wezterm() {
                     return 0
                     ;;
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --move-pane-id)
@@ -1018,7 +1070,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__connect)
-            opts="-h --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
+            opts="-h --new-tab --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1044,8 +1096,22 @@ _wezterm() {
             return 0
             ;;
         wezterm__help)
-            opts="start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
+            opts="start blocking-start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__help__blocking__start)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -1716,14 +1782,17 @@ _wezterm() {
             return 0
             ;;
         wezterm__start)
-            opts="-e -h --no-auto-connect --always-new-process --cwd --class --workspace --position --domain --attach --help [PROG]..."
+            opts="-e -h --no-auto-connect --always-new-process --new-tab --cwd --class --workspace --position --domain --attach --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --cwd)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=()
+                    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+                        compopt -o plusdirs
+                    fi
                     return 0
                     ;;
                 --class)
@@ -1752,4 +1821,8 @@ _wezterm() {
     esac
 }
 
-complete -F _wezterm -o nosort -o bashdefault -o default wezterm
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _wezterm -o nosort -o bashdefault -o default wezterm
+else
+    complete -F _wezterm -o bashdefault -o default wezterm
+fi

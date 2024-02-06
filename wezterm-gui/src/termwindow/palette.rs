@@ -375,7 +375,7 @@ impl CommandPalette {
                 let separator = if term_window.config.ui_key_cap_rendering
                     == ::window::UIKeyCapRendering::AppleSymbols
                 {
-                    ""
+                    " "
                 } else {
                     "-"
                 };

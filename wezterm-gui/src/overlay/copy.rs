@@ -7,8 +7,8 @@ use config::keyassignment::{
 };
 use mux::domain::DomainId;
 use mux::pane::{
-    ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, PerformAssignmentResult,
-    SearchResult, WithPaneLines,
+    CachePolicy, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
+    PerformAssignmentResult, SearchResult, WithPaneLines,
 };
 use mux::renderable::*;
 use mux::tab::TabId;
@@ -1251,8 +1251,8 @@ impl Pane for CopyOverlay {
         self.delegate.set_clipboard(clipboard)
     }
 
-    fn get_current_working_dir(&self) -> Option<Url> {
-        self.delegate.get_current_working_dir()
+    fn get_current_working_dir(&self, policy: CachePolicy) -> Option<Url> {
+        self.delegate.get_current_working_dir(policy)
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {

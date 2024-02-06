@@ -1,11 +1,11 @@
-Start the GUI, optionally running an alternative program
+Start the GUI, optionally running an alternative program [aliases: -e]
 
 Usage: wezterm start [OPTIONS] [PROG]...
 
 Arguments:
   [PROG]...
           Instead of executing your shell, run PROG. For example: `wezterm start
-          -- bash -l` will spawn bash as if it were a login shell
+          -- bash -l` will spawn bash as if it were a login shell. [aliases: -e]
 
 Options:
       --no-auto-connect
@@ -17,6 +17,10 @@ Options:
           the command.  Instead, always start the GUI in this invocation of
           wezterm so that you can wait for the command to complete by waiting
           for this wezterm process to finish
+
+      --new-tab
+          When spawning into an existing GUI instance, spawn a new tab into the
+          active window rather than spawn a new window
 
       --cwd <CWD>
           Specify the current working directory for the initially spawned

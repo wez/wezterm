@@ -91,9 +91,15 @@ impl CompletionGenerator for Shell {
 enum SubCommand {
     #[command(
         name = "start",
-        about = "Start the GUI, optionally running an alternative program"
+        about = "Start the GUI, optionally running an alternative program [aliases: -e]"
     )]
     Start(StartCommand),
+
+    /// Start the GUI in blocking mode. You shouldn't see this, but you
+    /// may see it in shell completions because of this open clap issue:
+    /// <https://github.com/clap-rs/clap/issues/1335>
+    #[command(short_flag_alias = 'e', hide = true)]
+    BlockingStart(StartCommand),
 
     #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
@@ -534,8 +540,6 @@ impl ImgCatCommand {
             print!("{save_cursor}{csi}");
         }
 
-        let (begin, end) = self.tmux_passthru.unwrap_or_default().get();
-
         let image_dims = self.compute_image_cell_dimensions(image_info, term_size);
 
         if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
@@ -565,7 +569,11 @@ impl ImgCatCommand {
                 data,
             },
         )));
-        println!("{begin}{osc}{end}");
+        let encoded = self
+            .tmux_passthru
+            .unwrap_or_default()
+            .encode(osc.to_string());
+        println!("{encoded}");
 
         if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
             // tell the terminal that doesn't fully understand the image sequence
@@ -629,11 +637,11 @@ impl SetCwdCommand {
         let host = host.to_str().unwrap_or("localhost");
         url.set_host(Some(host))?;
 
-        let (begin, end) = self.tmux_passthru.unwrap_or_default().get();
-
         let osc = OperatingSystemCommand::CurrentWorkingDirectory(url.into());
-        print!("{begin}{osc}{end}");
-        if !begin.is_empty() {
+        let tmux = self.tmux_passthru.unwrap_or_default();
+        let encoded = tmux.encode(osc.to_string());
+        print!("{encoded}");
+        if tmux.enabled() {
             // Tmux understands OSC 7 but won't automatically pass it through.
             // <https://github.com/tmux/tmux/issues/3127#issuecomment-1076300455>
             // Let's do it again explicitly now.
@@ -656,16 +664,28 @@ impl TmuxPassthru {
         std::env::var_os("TMUX").is_some()
     }
 
-    fn get(&self) -> (&'static str, &'static str) {
-        let enabled = match self {
+    fn enabled(&self) -> bool {
+        match self {
             Self::Enable => true,
             Self::Detect => Self::is_tmux(),
             Self::Disable => false,
-        };
-        if enabled {
-            ("\u{1b}Ptmux;\u{1b}", "\u{1b}\\")
+        }
+    }
+
+    fn encode(&self, content: String) -> String {
+        if self.enabled() {
+            let mut result = "\u{1b}Ptmux;".to_string();
+            for c in content.chars() {
+                if c == '\u{1b}' {
+                    // Quote the escape by doubling it up
+                    result.push(c);
+                }
+                result.push(c);
+            }
+            result.push_str("\u{1b}\\");
+            result
         } else {
-            ("", "")
+            content
         }
     }
 }
@@ -714,6 +734,7 @@ fn run() -> anyhow::Result<()> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(_)
+        | SubCommand::BlockingStart(_)
         | SubCommand::LsFonts(_)
         | SubCommand::ShowKeys(_)
         | SubCommand::Ssh(_)

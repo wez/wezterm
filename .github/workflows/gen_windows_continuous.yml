@@ -23,6 +23,9 @@ jobs:
     
     env:
       BUILD_REASON: "Schedule"
+      CARGO_INCREMENTAL: "0"
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: "checkout repo"
@@ -33,10 +36,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           target: "x86_64-pc-windows-msvc"
-      - name: "Cache cargo"
-        uses: Swatinem/rust-cache@v2
+      - name: "Compile with sccache"
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - name: "Cache Rust Dependencies"
+        uses: actions/cache@v4
+        id: cache-cargo-vendor
         with:
-          key: "windows-x86_64-pc-windows-msvc-2-${{ runner.os }}-cargo"
+          path: |
+            vendor
+            .cargo/config
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+      - name: "Vendor dependecies"
+        if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
+        shell: bash
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
       - name: "Build (Release mode)"
         shell: cmd
         run: |
@@ -44,7 +57,7 @@ jobs:
           PATH C:\Strawberry\perl\bin;%PATH%
           cargo build --all --release
       - name: "Install cargo-nextest from Cargo"
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
           cache-key: "windows"

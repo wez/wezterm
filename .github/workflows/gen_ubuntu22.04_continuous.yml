@@ -30,6 +30,9 @@ jobs:
     container: "ubuntu:22.04"
     env:
       BUILD_REASON: "Schedule"
+      CARGO_INCREMENTAL: "0"
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: "set APT to non-interactive"
@@ -62,10 +65,20 @@ jobs:
           submodules: "recursive"
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
-      - name: "Cache cargo"
-        uses: Swatinem/rust-cache@v2
+      - name: "Compile with sccache"
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - name: "Cache Rust Dependencies"
+        uses: actions/cache@v4
+        id: cache-cargo-vendor
         with:
-          key: "ubuntu22.04-None-2-${{ runner.os }}-cargo"
+          path: |
+            vendor
+            .cargo/config
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+      - name: "Vendor dependecies"
+        if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
+        shell: bash
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -73,7 +86,7 @@ jobs:
         shell: bash
         run: "cargo build --all --release"
       - name: "Install cargo-nextest from Cargo"
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
           cache-key: "ubuntu22.04"

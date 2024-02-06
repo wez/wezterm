@@ -250,7 +250,7 @@ bitflags! {
     // Note that these are strongly coupled with deps/freetype/src/lib.rs,
     // but we can't directly reference that from here without making config
     // depend on freetype.
-    #[derive(Default,  FromDynamic, ToDynamic)]
+    #[derive(FromDynamic, ToDynamic)]
     #[dynamic(try_from="String", into="String")]
     pub struct FreeTypeLoadFlags: u32 {
         /// FT_LOAD_DEFAULT
@@ -268,6 +268,18 @@ bitflags! {
         const NO_AUTOHINT = 32768;
         const NO_SVG = 16777216;
         const SVG_ONLY = 8388608;
+    }
+}
+
+impl FreeTypeLoadFlags {
+    pub fn default_hidpi() -> Self {
+        Self::NO_HINTING
+    }
+}
+
+impl Default for FreeTypeLoadFlags {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 
@@ -317,7 +329,7 @@ impl ToString for FreeTypeLoadFlags {
 impl TryFrom<String> for FreeTypeLoadFlags {
     type Error = String;
     fn try_from(s: String) -> Result<Self, String> {
-        let mut flags = FreeTypeLoadFlags::default();
+        let mut flags = FreeTypeLoadFlags::empty();
 
         for ele in s.split('|') {
             let ele = ele.trim();

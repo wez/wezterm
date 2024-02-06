@@ -1,27 +1,23 @@
 //! Dealing with Wayland outputs
 
-use crate::os::wayland::wl_id;
 use crate::screen::{ScreenInfo, Screens};
 use crate::ScreenRect;
-use smithay_client_toolkit::environment::GlobalHandler;
+use smithay_client_toolkit::globals::GlobalData;
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_head_v1::{ZwlrOutputHeadV1, self, Event as ZwlrOutputHeadEvent};
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::{ZwlrOutputManagerV1, self, Event as ZwlrOutputEvent};
+use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::{ZwlrOutputModeV1, Event as ZwlrOutputModeEvent};
+use wayland_client::{Dispatch, event_created_child, Proxy};
+use wayland_client::globals::{GlobalList, BindError};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use wayland_client::backend::ObjectId;
 use wayland_client::protocol::wl_output::Transform;
-use wayland_client::protocol::wl_registry::WlRegistry;
-use wayland_client::{Attached, DispatchData, Main};
-use wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_head_v1::{
-    Event as ZwlrOutputHeadEvent, ZwlrOutputHeadV1,
-};
-use wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_manager_v1::{
-    Event as ZwlrOutputEvent, ZwlrOutputManagerV1,
-};
-use wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_mode_v1::{
-    Event as ZwlrOutputModeEvent, ZwlrOutputModeV1,
-};
+
+use super::state::WaylandState;
 
 #[derive(Debug, Default, Clone)]
 pub struct ModeInfo {
-    pub id: u32,
+    pub id: Option<ObjectId>,
     pub width: i32,
     pub height: i32,
     pub refresh: i32,
@@ -30,15 +26,15 @@ pub struct ModeInfo {
 
 #[derive(Debug, Default, Clone)]
 pub struct HeadInfo {
-    pub id: u32,
+    pub id: Option<ObjectId>,
     pub name: String,
     pub description: String,
     pub physical_width: i32,
     pub physical_height: i32,
     /// List of ids that correspond to ModeInfo's
-    pub mode_ids: Vec<u32>,
+    pub mode_ids: Vec<ObjectId>,
     pub enabled: bool,
-    pub current_mode_id: Option<u32>,
+    pub current_mode_id: Option<ObjectId>,
     pub x: i32,
     pub y: i32,
     pub transform: Option<Transform>,
@@ -50,155 +46,27 @@ pub struct HeadInfo {
 
 #[derive(Default, Debug)]
 struct Inner {
-    zwlr_heads: HashMap<u32, Attached<ZwlrOutputHeadV1>>,
-    zwlr_modes: HashMap<u32, Attached<ZwlrOutputModeV1>>,
-    zwlr_mode_info: HashMap<u32, ModeInfo>,
-    zwlr_head_info: HashMap<u32, HeadInfo>,
+    zwlr_heads: HashMap<ObjectId, ZwlrOutputHeadV1>,
+    zwlr_modes: HashMap<ObjectId, ZwlrOutputModeV1>,
+    zwlr_mode_info: HashMap<ObjectId, ModeInfo>,
+    zwlr_head_info: HashMap<ObjectId, HeadInfo>,
 }
 
-impl Inner {
-    fn handle_zwlr_mode_event(
-        &mut self,
-        mode: Main<ZwlrOutputModeV1>,
-        event: ZwlrOutputModeEvent,
-        _ddata: DispatchData,
-        _inner: &Arc<Mutex<Self>>,
-    ) {
-        log::debug!("handle_zwlr_mode_event {event:?}");
-        let id = wl_id(mode.detach());
-        let info = self.zwlr_mode_info.entry(id).or_insert_with(|| ModeInfo {
-            id,
-            ..ModeInfo::default()
-        });
-
-        match event {
-            ZwlrOutputModeEvent::Size { width, height } => {
-                info.width = width;
-                info.height = height;
-            }
-            ZwlrOutputModeEvent::Refresh { refresh } => {
-                info.refresh = refresh;
-            }
-            ZwlrOutputModeEvent::Preferred => {
-                info.preferred = true;
-            }
-            ZwlrOutputModeEvent::Finished => {
-                self.zwlr_mode_info.remove(&id);
-                self.zwlr_modes.remove(&id);
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_zwlr_head_event(
-        &mut self,
-        head: Main<ZwlrOutputHeadV1>,
-        event: ZwlrOutputHeadEvent,
-        _ddata: DispatchData,
-        inner: &Arc<Mutex<Self>>,
-    ) {
-        log::debug!("handle_zwlr_head_event {event:?}");
-        let id = wl_id(head.detach());
-        let info = self.zwlr_head_info.entry(id).or_insert_with(|| HeadInfo {
-            id,
-            ..HeadInfo::default()
-        });
-        match event {
-            ZwlrOutputHeadEvent::Name { name } => {
-                info.name = name;
-            }
-            ZwlrOutputHeadEvent::Description { description } => {
-                info.description = description;
-            }
-            ZwlrOutputHeadEvent::PhysicalSize { width, height } => {
-                info.physical_width = width;
-                info.physical_height = height;
-            }
-            ZwlrOutputHeadEvent::Mode { mode } => {
-                let inner = Arc::clone(inner);
-                mode.quick_assign(move |mode, event, ddata| {
-                    inner
-                        .lock()
-                        .unwrap()
-                        .handle_zwlr_mode_event(mode, event, ddata, &inner);
-                });
-                let mode_id = wl_id(mode.detach());
-                info.mode_ids.push(mode_id);
-                self.zwlr_modes.insert(mode_id, mode.into());
-            }
-            ZwlrOutputHeadEvent::Enabled { enabled } => {
-                info.enabled = enabled != 0;
-            }
-            ZwlrOutputHeadEvent::CurrentMode { mode } => {
-                let mode_id = wl_id(mode);
-                info.current_mode_id.replace(mode_id);
-            }
-            ZwlrOutputHeadEvent::Position { x, y } => {
-                info.x = x;
-                info.y = y;
-            }
-            ZwlrOutputHeadEvent::Transform { transform } => {
-                info.transform.replace(transform);
-            }
-            ZwlrOutputHeadEvent::Scale { scale } => {
-                info.scale = scale;
-            }
-            ZwlrOutputHeadEvent::Make { make } => {
-                info.make = make;
-            }
-            ZwlrOutputHeadEvent::Model { model } => {
-                info.model = model;
-            }
-            ZwlrOutputHeadEvent::SerialNumber { serial_number } => {
-                info.serial_number = serial_number;
-            }
-            ZwlrOutputHeadEvent::Finished => {
-                log::debug!("remove head with id {id}");
-                self.zwlr_heads.remove(&id);
-                self.zwlr_head_info.remove(&id);
-            }
-
-            _ => {}
-        }
-    }
-
-    fn handle_zwlr_output_event(
-        &mut self,
-        _output: Main<ZwlrOutputManagerV1>,
-        event: ZwlrOutputEvent,
-        _ddata: DispatchData,
-        inner: &Arc<Mutex<Self>>,
-    ) {
-        log::debug!("handle_zwlr_output_event {event:?}");
-        match event {
-            ZwlrOutputEvent::Head { head } => {
-                let inner = Arc::clone(inner);
-                head.quick_assign(move |output, event, ddata| {
-                    inner
-                        .lock()
-                        .unwrap()
-                        .handle_zwlr_head_event(output, event, ddata, &inner);
-                });
-                self.zwlr_heads.insert(wl_id(head.detach()), head.into());
-            }
-            ZwlrOutputEvent::Done { serial: _ } => {}
-            ZwlrOutputEvent::Finished => {}
-            _ => {}
-        }
-    }
+pub struct OutputManagerState {
+    _zwlr: ZwlrOutputManagerV1,
+    inner: Mutex<Inner>,
 }
 
-pub struct OutputHandler {
-    zwlr: Option<Attached<ZwlrOutputManagerV1>>,
-    inner: Arc<Mutex<Inner>>,
-}
-
-impl OutputHandler {
-    pub fn new() -> Self {
-        Self {
-            zwlr: None,
-            inner: Arc::new(Mutex::new(Inner::default())),
-        }
+impl OutputManagerState {
+    pub(super) fn bind(
+        globals: &GlobalList,
+        queue_handle: &wayland_client::QueueHandle<WaylandState>,
+    ) -> Result<Self, BindError> {
+        let _zwlr = globals.bind(queue_handle, 1..=1, GlobalData)?;
+        Ok(Self {
+            _zwlr,
+            inner: Mutex::new(Inner::default()),
+        })
     }
 
     pub fn screens(&self) -> Option<Screens> {
@@ -212,7 +80,7 @@ impl OutputHandler {
 
         for head in inner.zwlr_head_info.values() {
             let name = head.name.clone();
-            let (width, height) = match head.current_mode_id {
+            let (width, height) = match head.current_mode_id.clone() {
                 Some(mode_id) => match inner.zwlr_mode_info.get(&mode_id) {
                     Some(mode) => (mode.width, mode.height),
                     None => continue,
@@ -275,32 +143,149 @@ impl OutputHandler {
     }
 }
 
-impl GlobalHandler<ZwlrOutputManagerV1> for OutputHandler {
-    fn created(
-        &mut self,
-        registry: Attached<WlRegistry>,
-        id: u32,
-        version: u32,
-        _ddata: DispatchData,
+#[derive(Default)]
+pub(super) struct OutputManagerData {}
+
+impl Dispatch<ZwlrOutputManagerV1, GlobalData, WaylandState> for OutputManagerState {
+    fn event(
+        state: &mut WaylandState,
+        _proxy: &ZwlrOutputManagerV1,
+        event: <ZwlrOutputManagerV1 as wayland_client::Proxy>::Event,
+        _data: &GlobalData,
+        _conn: &wayland_client::Connection,
+        _qhandle: &wayland_client::QueueHandle<WaylandState>,
     ) {
-        if !config::configuration().enable_zwlr_output_manager {
-            return;
+        log::debug!("handle_zwlr_output_event {event:?}");
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
+
+        match event {
+            ZwlrOutputEvent::Head { head } => {
+                inner.zwlr_heads.insert(head.id(), head);
+            }
+            _ => {}
         }
-        log::debug!("created ZwlrOutputManagerV1 {id} {version}");
-        let zwlr = registry.bind::<ZwlrOutputManagerV1>(2, id);
-
-        let inner = Arc::clone(&self.inner);
-        zwlr.quick_assign(move |output, event, ddata| {
-            inner
-                .lock()
-                .unwrap()
-                .handle_zwlr_output_event(output, event, ddata, &inner);
-        });
-
-        self.zwlr.replace(zwlr.into());
     }
 
-    fn get(&self) -> std::option::Option<Attached<ZwlrOutputManagerV1>> {
-        self.zwlr.clone()
+    event_created_child!(WaylandState, ZwlrOutputManagerV1, [
+        zwlr_output_manager_v1::EVT_HEAD_OPCODE => (ZwlrOutputHeadV1, OutputManagerData::default())
+    ]);
+}
+
+impl Dispatch<ZwlrOutputHeadV1, OutputManagerData, WaylandState> for OutputManagerState {
+    fn event(
+        state: &mut WaylandState,
+        head: &ZwlrOutputHeadV1,
+        event: <ZwlrOutputHeadV1 as wayland_client::Proxy>::Event,
+        _data: &OutputManagerData,
+        _conn: &wayland_client::Connection,
+        _qhandle: &wayland_client::QueueHandle<WaylandState>,
+    ) {
+        log::debug!("handle_zwlr_head_event {event:?}");
+
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
+        let id = head.id();
+        let info = inner
+            .zwlr_head_info
+            .entry(id.clone())
+            .or_insert_with(|| HeadInfo {
+                id: Some(id.clone()),
+                ..HeadInfo::default()
+            });
+
+        match event {
+            ZwlrOutputHeadEvent::Name { name } => {
+                info.name = name;
+            }
+            ZwlrOutputHeadEvent::Description { description } => {
+                info.description = description;
+            }
+            ZwlrOutputHeadEvent::PhysicalSize { width, height } => {
+                info.physical_width = width;
+                info.physical_height = height;
+            }
+            ZwlrOutputHeadEvent::Mode { mode } => {
+                let mode_id = mode.id();
+                info.mode_ids.push(mode_id.clone().into());
+                inner.zwlr_modes.insert(mode_id, mode.into());
+            }
+            ZwlrOutputHeadEvent::Enabled { enabled } => {
+                info.enabled = enabled != 0;
+            }
+            ZwlrOutputHeadEvent::CurrentMode { mode } => {
+                let mode_id = mode.id();
+                info.current_mode_id.replace(mode_id);
+            }
+            ZwlrOutputHeadEvent::Position { x, y } => {
+                info.x = x;
+                info.y = y;
+            }
+            ZwlrOutputHeadEvent::Transform { transform } => {
+                info.transform = transform.into_result().ok();
+            }
+            ZwlrOutputHeadEvent::Scale { scale } => {
+                info.scale = scale;
+            }
+            ZwlrOutputHeadEvent::Make { make } => {
+                info.make = make;
+            }
+            ZwlrOutputHeadEvent::Model { model } => {
+                info.model = model;
+            }
+            ZwlrOutputHeadEvent::SerialNumber { serial_number } => {
+                info.serial_number = serial_number;
+            }
+            ZwlrOutputHeadEvent::Finished => {
+                log::debug!("remove head with id {id}");
+                inner.zwlr_heads.remove(&id);
+                inner.zwlr_head_info.remove(&id);
+            }
+            _ => {}
+        }
+    }
+
+    event_created_child!(WaylandState, ZwlrOutputModeV1, [
+       zwlr_output_head_v1::EVT_CURRENT_MODE_OPCODE => (ZwlrOutputModeV1, OutputManagerData::default()),
+       zwlr_output_head_v1::EVT_MODE_OPCODE => (ZwlrOutputModeV1, OutputManagerData::default()),
+    ]);
+}
+
+impl Dispatch<ZwlrOutputModeV1, OutputManagerData, WaylandState> for OutputManagerState {
+    fn event(
+        state: &mut WaylandState,
+        mode: &ZwlrOutputModeV1,
+        event: <ZwlrOutputModeV1 as wayland_client::Proxy>::Event,
+        _data: &OutputManagerData,
+        _conn: &wayland_client::Connection,
+        _qhandle: &wayland_client::QueueHandle<WaylandState>,
+    ) {
+        log::debug!("handle_zwlr_mode_event {event:?}");
+        let mut inner = state.output_manager.as_mut().unwrap().inner.lock().unwrap();
+
+        let id = mode.id();
+        let info = inner
+            .zwlr_mode_info
+            .entry(id.clone())
+            .or_insert_with(|| ModeInfo {
+                id: Some(id.clone()),
+                ..ModeInfo::default()
+            });
+
+        match event {
+            ZwlrOutputModeEvent::Size { width, height } => {
+                info.width = width;
+                info.height = height;
+            }
+            ZwlrOutputModeEvent::Refresh { refresh } => {
+                info.refresh = refresh;
+            }
+            ZwlrOutputModeEvent::Preferred => {
+                info.preferred = true;
+            }
+            ZwlrOutputModeEvent::Finished => {
+                inner.zwlr_mode_info.remove(&id);
+                inner.zwlr_modes.remove(&id);
+            }
+            _ => {}
+        }
     }
 }

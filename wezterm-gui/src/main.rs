@@ -39,7 +39,6 @@ mod download;
 mod frontend;
 mod glyphcache;
 mod inputmap;
-mod markdown;
 mod overlay;
 mod quad;
 mod renderstate;
@@ -106,9 +105,15 @@ struct Opt {
 enum SubCommand {
     #[command(
         name = "start",
-        about = "Start the GUI, optionally running an alternative program"
+        about = "Start the GUI, optionally running an alternative program [aliases: -e]"
     )]
     Start(StartCommand),
+
+    /// Start the GUI in blocking mode. You shouldn't see this, but you
+    /// may see it in shell completions because of this open clap issue:
+    /// <https://github.com/clap-rs/clap/issues/1335>
+    #[command(short_flag_alias = 'e', hide = true)]
+    BlockingStart(StartCommand),
 
     #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
@@ -513,6 +518,7 @@ impl Publish {
         config: &ConfigHandle,
         workspace: Option<&str>,
         domain: SpawnTabDomain,
+        new_tab: bool,
     ) -> anyhow::Result<bool> {
         if let Publish::TryPathOrPublish(gui_sock) = &self {
             let dom = config::UnixDomain {
@@ -542,10 +548,41 @@ impl Publish {
                                 "Running GUI has different config from us, will start a new one"
                             );
                         }
+
+                        let window_id = if new_tab || config.prefer_to_spawn_tabs {
+                            if let Ok(pane_id) = client.resolve_pane_id(None).await {
+                                let panes = client.list_panes().await?;
+
+                                let mut window_id = None;
+                                'outer: for tabroot in panes.tabs {
+                                    let mut cursor = tabroot.into_tree().cursor();
+
+                                    loop {
+                                        if let Some(entry) = cursor.leaf_mut() {
+                                            if entry.pane_id == pane_id {
+                                                window_id.replace(entry.window_id);
+                                                break 'outer;
+                                            }
+                                        }
+                                        match cursor.preorder_next() {
+                                            Ok(c) => cursor = c,
+                                            Err(_) => break,
+                                        }
+                                    }
+                                }
+                                window_id
+
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
                         client
                             .spawn_v2(codec::SpawnV2 {
                                 domain,
-                                window_id: None,
+                                window_id,
                                 command,
                                 command_dir: None,
                                 size: config.initial_size(0),
@@ -713,6 +750,7 @@ fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> 
             Some(name) => SpawnTabDomain::DomainName(name.to_string()),
             None => SpawnTabDomain::DefaultDomain,
         },
+        opts.new_tab,
     )? {
         return Ok(());
     }
@@ -1162,6 +1200,16 @@ fn run() -> anyhow::Result<()> {
     let config = config::configuration();
 
     let sub = match opts.cmd.as_ref().cloned() {
+        Some(SubCommand::BlockingStart(start)) => {
+            // Act as if the normal start subcommand was used,
+            // except that we always start a new instance.
+            // This is needed for compatibility, because many tools assume
+            // that "$TERMINAL -e $COMMAND" blocks until the command finished.
+            SubCommand::Start(StartCommand {
+                always_new_process: true,
+                ..start
+            })
+        }
         Some(sub) => sub,
         None => {
             // Need to fake an argv0
@@ -1185,6 +1233,7 @@ fn run() -> anyhow::Result<()> {
             wezterm_blob_leases::clear_storage();
             res
         }
+        SubCommand::BlockingStart(_) => unreachable!(),
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, serial),
         SubCommand::Connect(connect) => run_terminal_gui(
@@ -1194,6 +1243,7 @@ fn run() -> anyhow::Result<()> {
                 workspace: connect.workspace,
                 position: connect.position,
                 prog: connect.prog,
+                new_tab: connect.new_tab,
                 always_new_process: true,
                 attach: true,
                 _cmd: false,

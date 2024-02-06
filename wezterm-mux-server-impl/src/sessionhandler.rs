@@ -4,7 +4,7 @@ use codec::*;
 use config::TermConfig;
 use mux::client::ClientId;
 use mux::domain::SplitSource;
-use mux::pane::{Pane, PaneId};
+use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
@@ -75,7 +75,7 @@ impl PerPane {
             changed = true;
         }
 
-        let working_dir = pane.get_current_working_dir();
+        let working_dir = pane.get_current_working_dir(CachePolicy::AllowStale);
         if working_dir != self.working_dir {
             changed = true;
         }

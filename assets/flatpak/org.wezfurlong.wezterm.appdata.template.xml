@@ -4,8 +4,8 @@
   <id>org.wezfurlong.wezterm</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
-  <name>Wez's Terminal Emulator</name>
-  <summary>A GPU-accelerated cross-platform terminal emulator and multiplexer</summary>
+  <name>WezTerm</name>
+  <summary>Powerful terminal and multiplexer</summary>
   <description>
     <p>
       WezTerm is a terminal emulator with support for modern features such as

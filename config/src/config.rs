@@ -133,6 +133,12 @@ pub struct Config {
     #[dynamic(default)]
     pub switch_to_last_active_tab_when_closing_tab: bool,
 
+    /// When true, launching a new wezterm instance will prefer
+    /// to spawn a new tab into an existing instance.
+    /// Otherwise, it will spawn a new window.
+    #[dynamic(default)]
+    pub prefer_to_spawn_tabs: bool,
+
     #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
@@ -266,7 +272,7 @@ pub struct Config {
     #[dynamic(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
     #[dynamic(default)]
-    pub freetype_load_flags: FreeTypeLoadFlags,
+    pub freetype_load_flags: Option<FreeTypeLoadFlags>,
 
     /// Selects the freetype interpret version to use.
     /// Likely values are 35, 38 and 40 which have different
@@ -681,7 +687,10 @@ pub struct Config {
 
     #[dynamic(default = "default_check_for_updates")]
     pub check_for_updates: bool,
-    #[dynamic(default)]
+    #[dynamic(
+        default,
+        deprecated = "this option no longer does anything and will be removed in a future release"
+    )]
     pub show_update_window: bool,
 
     #[dynamic(default = "default_update_interval")]

@@ -298,11 +298,14 @@ pub trait Pane: Downcast + Send + Sync {
         None
     }
 
-    fn get_current_working_dir(&self) -> Option<Url>;
-    fn get_foreground_process_name(&self) -> Option<String> {
+    fn get_current_working_dir(&self, policy: CachePolicy) -> Option<Url>;
+    fn get_foreground_process_name(&self, _policy: CachePolicy) -> Option<String> {
         None
     }
-    fn get_foreground_process_info(&self) -> Option<procinfo::LocalProcessInfo> {
+    fn get_foreground_process_info(
+        &self,
+        _policy: CachePolicy,
+    ) -> Option<procinfo::LocalProcessInfo> {
         None
     }
 
@@ -315,6 +318,12 @@ pub trait Pane: Downcast + Send + Sync {
     }
 }
 impl_downcast!(Pane);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CachePolicy {
+    FetchImmediate,
+    AllowStale,
+}
 
 /// This trait is used to implement/provide a callback that is used together
 /// with the Pane::with_lines_mut method.
@@ -624,7 +633,7 @@ mod test {
         fn is_alt_screen_active(&self) -> bool {
             false
         }
-        fn get_current_working_dir(&self) -> Option<Url> {
+        fn get_current_working_dir(&self, _policy: CachePolicy) -> Option<Url> {
             None
         }
         fn key_down(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {

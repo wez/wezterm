@@ -22,7 +22,69 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
-* Not yet!
+* Wayland: currently being reimplemented, it maybe more unstable than usual.
+  Please file GH issues for any problems you see.
+  Many thanks to @tzx! #4777
+* [show_update_window](config/lua/config/show_update_window.md) has been
+  deprecated; it no longer has any effect and will be removed in a future
+  release.
+#### New
+#### Fixed
+* Race condition when very quickly adjusting font scale. Thanks to @jknockel!
+  #4876
+
+### 20240203-110809-5046fc22
+
+#### Changed
+* The default for
+  [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
+  `NO_HINTING` when the dpi is >= 100, otherwise `DEFAULT`. #4902
+* `wezterm -e` will now wait for the spawned program to terminate before
+  it will itself terminate. Thanks to @vimpostor! #4535 #4523
+* Reverted the text cursor cell dimension change due to overwhelming and
+  sometimes toxic feedback. #2882
+#### New
+* We now show the Lua version in the debug overlay. Thanks to @bbkane! #4943
+* `wezterm start --new-tab` and `wezterm connect --new-tab` to request a new
+  tab rather than a new window when spawning via an existing GUI instance.
+  The new [prefer_to_spawn_tabs](config/lua/config/prefer_to_spawn_tabs.md)
+  option allows you to make this happen by default. ?4854 ?4946
+#### Fixed
+* It was not possible to specify `freetype_load_flags = 'DEFAULT'`. #4902
+* macOS: fallback fonts could select thin or otherwise unspecified font
+  attributes. #4808
+* Changing the palette via escape sequences didn't invalidate caches
+  correctly, so those escapes sequences wouldn't take effect. #4932 #2635
+* Unix: spawning a command using a relative path, with the cwd set to a
+  directory that contains a directory with the same name as the relative
+  path to the command would fail with an obscure error message. #4920
+* x11: incorrect handling of the space key when `grp:win_space_toggle`
+  was enabled via `setxkbmap`. #4910
+* `wezterm set-working-directory` and `wezterm imgcat` didn't correctly
+  apply tmux passthrough escape encoding. #4940
+* Tab bar wouldn't immediately reflect the result of calling `tab:set_title`.
+  #4941
+* Command Palette: Missing space between keycaps on macOS. #4885
+* macOS: stale/invalid cwd used when spawning new panes when shell integration
+  is NOT in use. #4811
+* Command Palette: would show default key assignments next to actions even
+  if `disable_default_key_bindings` was configured. #4724
+
+### 20240128-202157-1e552d76
+
+#### Changed
+* The default for [front_end](config/lua/config/front_end.md) is again
+  `OpenGL`.
+* The default for
+  [freetype_load_flags](config/lua/config/freetype_load_flags.md) is now
+  `NO_HINTING`. #4874
+
+#### Fixed
+* macOS: System LastResort font would be taken in preference to other fonts
+  in some cases when trying to find the fallback for bold fonts. #4877
+* The fancy tab bar could take a few moments to update after closing a tab. #4880
+* Kitty Image Protocol: fixed numerous issues. Thanks to @jonboh! #1156 #1663
+  #2084 #2422 #2761 #3918 #4233 #4847
 
 ### 20240127-113634-bbcac864
 

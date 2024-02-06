@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use mux::pane::PaneId;
 use mux::window::WindowId;
@@ -32,7 +31,7 @@ pub struct MovePaneToNewTab {
 
 impl MovePaneToNewTab {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
         let window_id = if self.new_window {
             None
         } else {

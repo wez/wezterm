@@ -14,9 +14,12 @@ be combined.
 Available flags are:
 
 * `DEFAULT` - This is the default!
-* `NO_HINTING` - Disable hinting. This generally generates ‘blurrier’
-  bitmap glyph when the glyph is rendered in any of the
-  anti-aliased modes.
+* `NO_HINTING` - Disable hinting. The freetype documentation says that this
+  generally generates ‘blurrier’ bitmap glyph when the glyph is rendered in any of the
+  anti-aliased modes, but that was written for rasterizing direct to bitmaps.
+  In the context of wezterm where we are rasterizing to a texture that is then
+  sampled and applied to a framebuffer through vertices on the GPU, the hinting
+  process can be counter-productive and result in unexpect visual artifacts.
 * `NO_BITMAP` - don't load any pre-rendered bitmap strikes
 * `FORCE_AUTOHINT` - Use the freetype auto-hinter rather than the font's
   native hinter.
@@ -29,4 +32,22 @@ Available flags are:
 -- that the flags can be combined
 config.freetype_load_flags = 'NO_HINTING|MONOCHROME'
 ```
+
+{{since('20240128-202157-1e552d76')}}
+
+The default value has changed to `NO_HINTING` as that generally works
+more predictably and with fewer surprising artifacts.
+
+In earlier versions, it is recommended that you configure this
+explicitly:
+
+```lua
+config.freetype_load_flags = 'NO_HINTING'
+```
+
+{{since('20240203-110809-5046fc22')}}
+
+The default value depends on the effective dpi of the display.
+If the dpi is 100 or larger, the default value is `NO_HINTING`.
+Otherwise, the default value is `DEFAULT`.
 

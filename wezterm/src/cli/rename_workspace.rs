@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use mux::pane::PaneId;
 use std::collections::HashMap;
@@ -47,7 +46,7 @@ impl RenameWorkspace {
             workspace
         } else {
             // Find the current tab from the pane id
-            let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+            let pane_id = client.resolve_pane_id(self.pane_id).await?;
             pane_id_to_workspace
                 .get(&pane_id)
                 .ok_or_else(|| anyhow::anyhow!("unable to resolve current workspace"))?

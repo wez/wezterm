@@ -4,7 +4,8 @@ use config::keyassignment::{ClipboardCopyDestination, QuickSelectArguments, Scro
 use config::ConfigHandle;
 use mux::domain::DomainId;
 use mux::pane::{
-    ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines,
+    CachePolicy, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult,
+    WithPaneLines,
 };
 use mux::renderable::*;
 use parking_lot::{MappedMutexGuard, Mutex};
@@ -472,8 +473,8 @@ impl Pane for QuickSelectOverlay {
         self.delegate.set_clipboard(clipboard)
     }
 
-    fn get_current_working_dir(&self) -> Option<Url> {
-        self.delegate.get_current_working_dir()
+    fn get_current_working_dir(&self, policy: CachePolicy) -> Option<Url> {
+        self.delegate.get_current_working_dir(policy)
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {

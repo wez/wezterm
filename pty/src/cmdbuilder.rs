@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
+use std::path::{Component, Path};
 
 /// Used to deal with Windows having case-insensitive environment variables.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -40,7 +41,6 @@ impl EnvEntry {
 fn get_shell() -> String {
     use nix::unistd::{access, AccessFlags};
     use std::ffi::CStr;
-    use std::path::Path;
     use std::str;
 
     let ent = unsafe { libc::getpwuid(libc::getuid()) };
@@ -413,46 +413,65 @@ impl CommandBuilder {
 
     fn search_path(&self, exe: &OsStr, cwd: &OsStr) -> anyhow::Result<OsString> {
         use nix::unistd::{access, AccessFlags};
-        use std::path::Path;
 
         let exe_path: &Path = exe.as_ref();
         if exe_path.is_relative() {
             let cwd: &Path = cwd.as_ref();
-            let abs_path = cwd.join(exe_path);
-
             let mut errors = vec![];
 
-            if access(&abs_path, AccessFlags::X_OK).is_ok() {
-                return Ok(abs_path.into_os_string());
-            }
-            if access(&abs_path, AccessFlags::F_OK).is_ok() {
-                errors.push(format!(
-                    "{} exists but is not executable",
-                    abs_path.display()
-                ));
-            } else {
-                if let Some(path) = self.resolve_path() {
-                    for path in std::env::split_paths(&path) {
-                        let candidate = path.join(&exe);
-                        if access(&candidate, AccessFlags::X_OK).is_ok() {
-                            return Ok(candidate.into_os_string());
-                        }
-                        if access(&candidate, AccessFlags::F_OK).is_ok() {
-                            errors.push(format!(
-                                "{} exists but is not executable",
-                                candidate.display()
-                            ));
-                        }
-                    }
-                    errors.push(format!("No viable candidates found in PATH {path:?}"));
-                } else {
-                    errors.push("Unable to resolve the PATH".to_string());
+            // If the requested executable is explicitly relative to cwd,
+            // then check only there.
+            if is_cwd_relative_path(exe_path) {
+                let abs_path = cwd.join(exe_path);
+
+                if abs_path.is_dir() {
+                    anyhow::bail!(
+                        "Unable to spawn {} because it is a directory",
+                        abs_path.display()
+                    );
+                } else if access(&abs_path, AccessFlags::X_OK).is_ok() {
+                    return Ok(abs_path.into_os_string());
+                } else if access(&abs_path, AccessFlags::F_OK).is_ok() {
+                    anyhow::bail!(
+                        "Unable to spawn {} because it is not executable",
+                        abs_path.display()
+                    );
                 }
+
+                anyhow::bail!(
+                    "Unable to spawn {} because it does not exist",
+                    abs_path.display()
+                );
+            }
+
+            if let Some(path) = self.resolve_path() {
+                for path in std::env::split_paths(&path) {
+                    let candidate = cwd.join(&path).join(&exe);
+
+                    if candidate.is_dir() {
+                        errors.push(format!("{} exists but is a directory", candidate.display()));
+                    } else if access(&candidate, AccessFlags::X_OK).is_ok() {
+                        return Ok(candidate.into_os_string());
+                    } else if access(&candidate, AccessFlags::F_OK).is_ok() {
+                        errors.push(format!(
+                            "{} exists but is not executable",
+                            candidate.display()
+                        ));
+                    }
+                }
+                errors.push(format!("No viable candidates found in PATH {path:?}"));
+            } else {
+                errors.push("Unable to resolve the PATH".to_string());
             }
             anyhow::bail!(
                 "Unable to spawn {} because:\n{}",
                 exe_path.display(),
                 errors.join(".\n")
+            );
+        } else if exe_path.is_dir() {
+            anyhow::bail!(
+                "Unable to spawn {} because it is a directory",
+                exe_path.display()
             );
         } else {
             if let Err(err) = access(exe_path, AccessFlags::X_OK) {
@@ -726,9 +745,26 @@ impl CommandBuilder {
     }
 }
 
+/// Returns true if the path begins with `./` or `../`
+fn is_cwd_relative_path<P: AsRef<Path>>(p: P) -> bool {
+    matches!(
+        p.as_ref().components().next(),
+        Some(Component::CurDir | Component::ParentDir)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_cwd_relative() {
+        assert!(is_cwd_relative_path("."));
+        assert!(is_cwd_relative_path("./foo"));
+        assert!(is_cwd_relative_path("../foo"));
+        assert!(!is_cwd_relative_path("foo"));
+        assert!(!is_cwd_relative_path("/foo"));
+    }
 
     #[test]
     fn test_env() {

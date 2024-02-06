@@ -19,7 +19,7 @@ mux = { path = "../mux" }
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
-rcgen = "0.9"
+rcgen = "0.12"
 smol = "1.2"
 url = "2"
 wezterm-client = { path = "../wezterm-client" }

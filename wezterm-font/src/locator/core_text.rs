@@ -2,16 +2,22 @@
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
-use config::FontAttributes;
+use cocoa::base::id;
+use config::{FontAttributes, FontStretch, FontStyle, FontWeight};
 use core_foundation::array::CFArray;
 use core_foundation::base::{CFRange, TCFType};
 use core_foundation::dictionary::CFDictionary;
 use core_foundation::string::{CFString, CFStringRef};
 use core_text::font::*;
 use core_text::font_descriptor::*;
+use objc::*;
 use rangeset::RangeSet;
 use std::cmp::Ordering;
 use std::collections::HashSet;
+
+lazy_static::lazy_static! {
+    static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
+}
 
 #[link(name = "CoreText", kind = "framework")]
 extern "C" {
@@ -120,12 +126,12 @@ impl FontLocator for CoreTextFontLocator {
         codepoints: &[char],
     ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut matches = vec![];
-        let mut wanted = RangeSet::new();
 
         let menlo =
             new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
 
         for &c in codepoints {
+            let mut wanted = RangeSet::new();
             wanted.add(c as u32);
             let text = CFString::new(&c.to_string());
 
@@ -145,10 +151,45 @@ impl FontLocator for CoreTextFontLocator {
 
             let candidates = handles_from_descriptor(&font.copy_descriptor());
 
+            let mut matched_any = false;
+
             for font in candidates {
+                if font.names().family == ".LastResort"
+                    || font.names().postscript_name.as_deref() == Some("LastResort")
+                {
+                    // Always exclude a last resort font, as it has
+                    // placeholder glyphs for everything
+                    continue;
+                }
+
+                let is_normal = font.weight() == FontWeight::REGULAR
+                    && font.stretch() == FontStretch::Normal
+                    && font.style() == FontStyle::Normal;
+                if !is_normal {
+                    // Only use normal attributed text for fallbacks,
+                    // otherwise we'll end up picking something with
+                    // undefined and undesirable attributes
+                    // <https://github.com/wez/wezterm/issues/4808>
+                    continue;
+                }
+
                 if let Ok(cov) = font.coverage_intersection(&wanted) {
+                    // Explicitly check coverage because the list may not
+                    // actually match the text we asked about(!)
                     if !cov.is_empty() {
                         matches.push((cov.len(), font));
+                        matched_any = true;
+                    }
+                }
+            }
+
+            if !matched_any {
+                // Consult our global, more general list of fallbacks
+                for font in FALLBACK.iter() {
+                    if let Ok(cov) = font.coverage_intersection(&wanted) {
+                        if !cov.is_empty() {
+                            matches.push((cov.len(), font.clone()));
+                        }
                     }
                 }
             }
@@ -158,6 +199,16 @@ impl FontLocator for CoreTextFontLocator {
         // that if a font has a large coverage then it is probably a better
         // candidate and more likely to result in other glyphs matching
         // in future shaping calls.
+        let mut wanted = RangeSet::new();
+        for &c in codepoints {
+            wanted.add(c as u32);
+        }
+        for (cov_len, font) in &mut matches {
+            if let Ok(cov) = font.coverage_intersection(&wanted) {
+                *cov_len = cov.len();
+            }
+        }
+
         matches.sort_by(|(a_len, a), (b_len, b)| {
             let primary = a_len.cmp(&b_len).reverse();
             if primary == Ordering::Equal {
@@ -187,4 +238,88 @@ impl FontLocator for CoreTextFontLocator {
         fonts.dedup();
         Ok(fonts)
     }
+}
+
+fn build_fallback_list() -> Vec<ParsedFont> {
+    build_fallback_list_impl().unwrap_or_else(|err| {
+        log::error!("Error getting system fallback fonts: {:#}", err);
+        Vec::new()
+    })
+}
+
+fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
+    let menlo =
+        new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+
+    let user_defaults: id = unsafe { msg_send![class!(NSUserDefaults), standardUserDefaults] };
+
+    let apple_lang = "AppleLanguages"
+        .parse::<CFString>()
+        .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
+
+    let langs: CFArray<CFString> =
+        unsafe { msg_send![user_defaults, stringArrayForKey:apple_lang] };
+
+    let cascade = cascade_list_for_languages(&menlo, &langs);
+    let mut fonts = vec![];
+    // Explicitly include Menlo itself, as it appears to be the only
+    // font on macOS that contains U+2718.
+    // <https://github.com/wez/wezterm/issues/849>
+    fonts.append(&mut handles_from_descriptor(&menlo.copy_descriptor()));
+    for descriptor in &cascade {
+        fonts.append(&mut handles_from_descriptor(&descriptor));
+    }
+    // Some of the fallback fonts are special fonts that don't exist on
+    // disk, and that we can't open.
+    // In particular, `.AppleSymbolsFB` is one such font.  Let's try
+    // a nearby approximation.
+    let symbols = FontAttributes {
+        family: "Apple Symbols".to_string(),
+        weight: FontWeight::REGULAR,
+        stretch: FontStretch::Normal,
+        style: FontStyle::Normal,
+        is_fallback: true,
+        is_synthetic: true,
+        harfbuzz_features: None,
+        freetype_load_target: None,
+        freetype_render_target: None,
+        freetype_load_flags: None,
+        scale: None,
+        assume_emoji_presentation: None,
+    };
+    if let Ok(descriptors) = descriptor_from_attr(&symbols) {
+        for descriptor in descriptors.iter() {
+            fonts.append(&mut handles_from_descriptor(&descriptor));
+        }
+    }
+
+    // Constrain to default weight/stretch/style
+    fonts.retain(|f| {
+        f.weight() == FontWeight::REGULAR
+            && f.stretch() == FontStretch::Normal
+            && f.style() == FontStyle::Normal
+    });
+
+    let mut seen = HashSet::new();
+    let fonts: Vec<ParsedFont> = fonts
+        .into_iter()
+        .filter_map(|f| {
+            if seen.contains(&f.handle) {
+                None
+            } else {
+                seen.insert(f.handle.clone());
+                Some(f)
+            }
+        })
+        .collect();
+
+    // Pre-compute coverage
+    let empty = RangeSet::new();
+    for font in &fonts {
+        if let Err(err) = font.coverage_intersection(&empty) {
+            log::error!("Error computing coverage for {:?}: {:#}", font, err);
+        }
+    }
+
+    Ok(fonts)
 }

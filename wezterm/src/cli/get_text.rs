@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use mux::pane::PaneId;
 use termwiz_funcs::lines_to_escapes;
@@ -37,7 +36,7 @@ pub struct GetText {
 
 impl GetText {
     pub async fn run(self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
 
         let info = client
             .get_dimensions(codec::GetPaneRenderableDimensions { pane_id })

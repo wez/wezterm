@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use clap::Parser;
 use mux::pane::PaneId;
 use mux::tab::TabId;
@@ -82,7 +81,7 @@ impl ActivateTab {
             tab_id
         } else {
             // Find the current tab from the pane id
-            let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+            let pane_id = client.resolve_pane_id(self.pane_id).await?;
             let current_tab_id = pane_id_to_tab_id
                 .get(&pane_id)
                 .copied()

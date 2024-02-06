@@ -38,6 +38,7 @@ use winapi::shared::winerror::S_OK;
 use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::shellapi::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
+use winapi::um::shellscalingapi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use winapi::um::sysinfoapi::{GetTickCount, GetVersionExW};
 use winapi::um::uxtheme::{
     CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
@@ -142,14 +143,19 @@ fn rect_height(r: &RECT) -> i32 {
     r.bottom - r.top
 }
 
-fn adjust_client_to_window_dimensions(style: u32, width: usize, height: usize) -> (i32, i32) {
+fn adjust_client_to_window_dimensions(
+    style: u32,
+    width: usize,
+    height: usize,
+    dpi: u32,
+) -> (i32, i32) {
     let mut rect = RECT {
         left: 0,
         top: 0,
         right: width as _,
         bottom: height as _,
     };
-    unsafe { AdjustWindowRect(&mut rect, style, 0) };
+    unsafe { AdjustWindowRectExForDpi(&mut rect, style, 0, 0, dpi) };
 
     (rect_width(&rect), rect_height(&rect))
 }
@@ -390,6 +396,15 @@ fn decorations_to_style(decorations: WindowDecorations) -> u32 {
     }
 }
 
+fn get_primary_monitor_dpi() -> u32 {
+    let primary = unsafe { MonitorFromWindow(null_mut(), MONITOR_DEFAULTTOPRIMARY) };
+    assert!(!primary.is_null(), "MonitorFromWindow() returned NULL");
+    let mut dpi_x = USER_DEFAULT_SCREEN_DPI as u32;
+    let mut dpi_y = USER_DEFAULT_SCREEN_DPI as u32;
+    unsafe { GetDpiForMonitor(primary, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y) };
+    dpi_x
+}
+
 impl Window {
     fn create_window(
         config: ConfigHandle,
@@ -427,8 +442,9 @@ impl Window {
 
         let decorations = config.window_decorations;
         let style = decorations_to_style(decorations);
+        let frame_dpi = get_primary_monitor_dpi();
         let (width, height) =
-            adjust_client_to_window_dimensions(style, geometry.width, geometry.height);
+            adjust_client_to_window_dimensions(style, geometry.width, geometry.height, frame_dpi);
 
         let (x, y) = match (geometry.x, geometry.y) {
             (Some(x), Some(y)) => (x, y),
@@ -879,10 +895,12 @@ impl WindowOps for Window {
             let decorations = inner.config.window_decorations;
             promise::spawn::spawn(async move {
                 log::trace!("set_inner_size called with {width}x{height}");
+                let frame_dpi = unsafe { GetDpiForWindow(hwnd.0) };
                 let (width, height) = adjust_client_to_window_dimensions(
                     decorations_to_style(decorations),
                     width,
                     height,
+                    frame_dpi,
                 );
                 let window_state = get_window_state(hwnd.0);
                 if window_state.can_resize() {
@@ -898,6 +916,10 @@ impl WindowOps for Window {
                             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
                         );
                         wm_paint(hwnd.0, 0, 0, 0);
+                        if let Some(inner) = rc_from_hwnd(hwnd.0) {
+                            let mut inner = inner.borrow_mut();
+                            inner.events.dispatch(WindowEvent::SetInnerSizeCompleted);
+                        }
                     }
                 } else {
                     log::trace!(

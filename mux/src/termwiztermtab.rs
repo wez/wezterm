@@ -5,7 +5,8 @@
 
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{
-    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, WithPaneLines,
+    alloc_pane_id, CachePolicy, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId,
+    WithPaneLines,
 };
 use crate::renderable::*;
 use crate::tab::Tab;
@@ -289,7 +290,7 @@ impl Pane for TermWizTerminalPane {
         self.terminal.lock().is_alt_screen_active()
     }
 
-    fn get_current_working_dir(&self) -> Option<Url> {
+    fn get_current_working_dir(&self, _policy: CachePolicy) -> Option<Url> {
         self.terminal.lock().get_current_dir().cloned()
     }
 

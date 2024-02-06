@@ -40,7 +40,9 @@ use config::{
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
-use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult};
+use mux::pane::{
+    CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
+};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{
     PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
@@ -52,7 +54,7 @@ use mux_lua::MuxPane;
 use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, LinkedList};
 use std::ops::Add;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -143,6 +145,10 @@ pub enum TermWindowNotif {
     EmitStatusUpdate,
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
     SwitchToMuxWindow(MuxWindowId),
+    SetInnerSize {
+        width: usize,
+        height: usize,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -284,7 +290,7 @@ impl UserData for PaneInformation {
             let mut name = None;
             if let Some(mux) = Mux::try_get() {
                 if let Some(pane) = mux.get_pane(this.pane_id) {
-                    name = pane.get_foreground_process_name();
+                    name = pane.get_foreground_process_name(CachePolicy::AllowStale);
                 }
             }
             match name {
@@ -305,7 +311,7 @@ impl UserData for PaneInformation {
             if let Some(mux) = Mux::try_get() {
                 if let Some(pane) = mux.get_pane(this.pane_id) {
                     return Ok(pane
-                        .get_current_working_dir()
+                        .get_current_working_dir(CachePolicy::AllowStale)
                         .map(|url| url_funcs::Url { url }));
                 }
             }
@@ -363,6 +369,8 @@ pub struct TermWindow {
     /// Window dimensions and dpi
     pub dimensions: Dimensions,
     pub window_state: WindowState,
+    pub resizes_pending: usize,
+    pending_scale_changes: LinkedList<resize::ScaleChange>,
     /// Terminal dimensions
     terminal_size: TerminalSize,
     pub mux_window_id: MuxWindowId,
@@ -687,6 +695,8 @@ impl TermWindow {
             render_metrics,
             dimensions,
             window_state: WindowState::default(),
+            resizes_pending: 0,
+            pending_scale_changes: LinkedList::new(),
             terminal_size,
             render_state,
             input_map: InputMap::new(&config),
@@ -942,6 +952,11 @@ impl TermWindow {
                 self.resize(dimensions, window_state, window, live_resizing);
                 Ok(true)
             }
+            WindowEvent::SetInnerSizeCompleted => {
+                self.resizes_pending -= 1;
+                self.apply_pending_scale_changes();
+                Ok(true)
+            }
             WindowEvent::AdviseModifiersLedStatus(modifiers, leds) => {
                 self.current_modifier_and_leds = (modifiers, leds);
                 self.update_title();
@@ -1157,6 +1172,10 @@ impl TermWindow {
                     alert: Alert::PaletteChanged,
                     pane_id,
                 } => {
+                    // Shape cache includes color information, so
+                    // ensure that we invalidate that as part of
+                    // this overall invalidation for the palette
+                    self.dispatch_notif(TermWindowNotif::InvalidateShapeCache, window)?;
                     self.mux_pane_output_event(pane_id);
                 }
                 MuxNotification::Alert {
@@ -1217,6 +1236,7 @@ impl TermWindow {
                 }
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
+                    self.update_title_post_status();
                 }
                 MuxNotification::WindowRemoved(_window_id) => {
                     // Handled by frontend
@@ -1232,7 +1252,8 @@ impl TermWindow {
                     self.update_title_post_status();
                 }
                 MuxNotification::TabResized(_) => {
-                    // Handled by wezterm-client
+                    // Also handled by wezterm-client
+                    self.update_title_post_status();
                 }
                 MuxNotification::TabTitleChanged { .. } => {
                     self.update_title_post_status();
@@ -1279,9 +1300,19 @@ impl TermWindow {
                 self.update_title();
                 window.invalidate();
             }
+            TermWindowNotif::SetInnerSize { width, height } => {
+                self.set_inner_size(width, height);
+            }
         }
 
         Ok(())
+    }
+
+    fn set_inner_size(&mut self, width: usize, height: usize) {
+        if let Some(window) = &self.window {
+            self.resizes_pending += 1;
+            window.set_inner_size(width, height);
+        }
     }
 
     /// Take care to remove our panes from the mux, otherwise
@@ -1384,6 +1415,8 @@ impl TermWindow {
                     | Alert::SetUserVar { .. }
                     | Alert::Bell,
             }
+            | MuxNotification::PaneFocused(pane_id)
+            | MuxNotification::PaneRemoved(pane_id)
             | MuxNotification::PaneOutput(pane_id) => {
                 // Ideally we'd check to see if pane_id is part of this window,
                 // but overlays may not be 100% associated with the window
@@ -1411,27 +1444,38 @@ impl TermWindow {
             }
             MuxNotification::TabAddedToWindow { window_id, .. }
             | MuxNotification::WindowRemoved(window_id)
+            | MuxNotification::WindowTitleChanged { window_id, .. }
             | MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
                     return true;
                 }
             }
+            MuxNotification::TabResized(tab_id)
+            | MuxNotification::TabTitleChanged { tab_id, .. } => {
+                let mux = Mux::get();
+                if mux.window_containing_tab(tab_id) == Some(mux_window_id) {
+                    // fall through
+                } else {
+                    return true;
+                }
+            }
             MuxNotification::Alert {
-                alert: Alert::ToastNotification { .. } | Alert::PaletteChanged { .. },
+                alert: Alert::ToastNotification { .. },
                 ..
             }
             | MuxNotification::AssignClipboard { .. }
             | MuxNotification::SaveToDownloads { .. }
-            | MuxNotification::PaneFocused(_)
-            | MuxNotification::TabResized(_)
-            | MuxNotification::TabTitleChanged { .. }
-            | MuxNotification::WindowTitleChanged { .. }
-            | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)
             | MuxNotification::WorkspaceRenamed { .. }
             | MuxNotification::Empty
             | MuxNotification::WindowWorkspaceChanged(_) => return true,
+            MuxNotification::Alert {
+                alert: Alert::PaletteChanged { .. },
+                ..
+            } => {
+                // fall through
+            }
         }
 
         window.notify(TermWindowNotif::MuxNotification(n));
@@ -2558,21 +2602,9 @@ impl TermWindow {
                 self.activate_tab_relative(*n, false)?;
             }
             ActivateLastTab => self.activate_last_tab()?,
-            DecreaseFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.decrease_font_size(w)
-                }
-            }
-            IncreaseFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.increase_font_size(w)
-                }
-            }
-            ResetFontSize => {
-                if let Some(w) = window.as_ref() {
-                    self.reset_font_size(w)
-                }
-            }
+            DecreaseFontSize => self.decrease_font_size(),
+            IncreaseFontSize => self.increase_font_size(),
+            ResetFontSize => self.reset_font_size(),
             ResetFontAndWindowSize => {
                 if let Some(w) = window.as_ref() {
                     self.reset_font_and_window_size(&w)?

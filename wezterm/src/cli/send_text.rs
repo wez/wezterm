@@ -1,4 +1,3 @@
-use crate::cli::resolve_pane_id;
 use anyhow::Context;
 use clap::Parser;
 use mux::pane::PaneId;
@@ -23,7 +22,7 @@ pub struct SendText {
 
 impl SendText {
     pub async fn run(self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
 
         let data = match self.text {
             Some(text) => text,
