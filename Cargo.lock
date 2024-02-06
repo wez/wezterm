@@ -7373,3 +7373,8 @@ dependencies = [
  "quote",
  "syn 2.0.68",
 ]
+
+[[patch.unused]]
+name = "xcb"
+version = "1.2.1"
+source = "git+https://github.com/rust-x-bindings/rust-xcb?rev=dbdaa01c178c6fbe68bd51b7ad44c08172181083#dbdaa01c178c6fbe68bd51b7ad44c08172181083"
