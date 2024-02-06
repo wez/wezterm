@@ -4,11 +4,13 @@ use crate::{bail, Context, Result};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
+use std::borrow::BorrowMut;
 use std::collections::VecDeque;
 use std::error::Error as _;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
@@ -23,7 +25,7 @@ use crate::caps::Capabilities;
 use crate::escape::csi::{
     DecPrivateMode, DecPrivateModeCode, Keyboard, Mode, XtermKeyModifierResource, CSI,
 };
-use crate::input::{InputEvent, InputParser};
+use crate::input::{InputEvent, InputParser, KeyboardEncoding};
 use crate::render::terminfo::TerminfoRenderer;
 use crate::surface::Change;
 use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
@@ -200,8 +202,7 @@ impl UnixTty for TtyWriteHandle {
 /// A unix style terminal
 pub struct UnixTerminal {
     read: TtyReadHandle,
-    write: TtyWriteHandle,
-    saved_termios: Termios,
+    write: TermiosGuard<TtyWriteHandle>,
     renderer: TerminfoRenderer,
     input_parser: InputParser,
     input_queue: VecDeque<InputEvent>,
@@ -211,6 +212,7 @@ pub struct UnixTerminal {
     wake_pipe_write: Arc<Mutex<UnixStream>>,
     caps: Capabilities,
     in_alternate_screen: bool,
+    saved_keyboard_encoding: Option<KeyboardEncoding>,
 }
 
 impl UnixTerminal {
@@ -228,9 +230,8 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal> {
-        let mut read = TtyReadHandle::new(FileDescriptor::dup(read)?);
-        let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)?);
-        let saved_termios = write.get_termios()?;
+        let read = TtyReadHandle::new(FileDescriptor::dup(read)?);
+        let write = TermiosGuard::new(TtyWriteHandle::new(FileDescriptor::dup(write)?))?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
         let input_queue = VecDeque::new();
@@ -243,13 +244,10 @@ impl UnixTerminal {
         wake_pipe.set_nonblocking(true)?;
         wake_pipe_write.set_nonblocking(true)?;
 
-        read.set_blocking(Blocking::Wait)?;
-
         Ok(UnixTerminal {
             caps,
             read,
             write,
-            saved_termios,
             renderer,
             input_parser,
             input_queue,
@@ -258,6 +256,7 @@ impl UnixTerminal {
             wake_pipe,
             wake_pipe_write: Arc::new(Mutex::new(wake_pipe_write)),
             in_alternate_screen: false,
+            saved_keyboard_encoding: None,
         })
     }
 
@@ -340,7 +339,7 @@ impl Terminal for UnixTerminal {
             decset!(SGRMouse);
         }
 
-        if self.caps.keyboard_enhancement()
+        if self.caps.probe_for_enhanced_keyboard()
             && self
                 .probe_capabilities()
                 .map(|mut probe| probe.enhanced_keyboard_state())
@@ -364,8 +363,7 @@ impl Terminal for UnixTerminal {
 
     fn set_cooked_mode(&mut self) -> Result<()> {
         self.write.modify_other_keys(1)?;
-        self.write
-            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
+        self.write.restore_termios()
     }
 
     fn enter_alternate_screen(&mut self) -> Result<()> {
@@ -407,7 +405,15 @@ impl Terminal for UnixTerminal {
     }
 
     fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
-        Some(ProbeCapabilities::new(&mut self.read, &mut self.write))
+        // enter raw mode
+        let raw_writer = self
+            .write
+            .modified_termios(|mut state| {
+                cfmakeraw(&mut state);
+                state
+            })
+            .ok()?;
+        Some(ProbeCapabilities::new(&mut self.read, raw_writer))
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
@@ -421,7 +427,7 @@ impl Terminal for UnixTerminal {
         self.write.set_size(size)
     }
     fn render(&mut self, changes: &[Change]) -> Result<()> {
-        self.renderer.render_to(changes, &mut self.write)
+        self.renderer.render_to(changes, &mut *self.write)
     }
     fn flush(&mut self) -> Result<()> {
         self.write.flush().context("flush failed")
@@ -527,6 +533,18 @@ impl Terminal for UnixTerminal {
             pipe: self.wake_pipe_write.clone(),
         }
     }
+
+    fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
+        match encoding {
+            KeyboardEncoding::Xterm => todo!(),
+            KeyboardEncoding::CsiU => todo!(),
+            KeyboardEncoding::Kitty(_) => todo!(),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported keyboard encoding for terminal"
+            ))?,
+        }
+        Ok(())
+    }
 }
 
 impl Drop for UnixTerminal {
@@ -554,7 +572,7 @@ impl Drop for UnixTerminal {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
         }
-        if self.caps.keyboard_enhancement() {
+        if self.caps.probe_for_enhanced_keyboard() {
             write!(self.write, "{}", CSI::Keyboard(Keyboard::PopKittyState(1))).unwrap();
         }
         self.write.modify_other_keys(0).unwrap();
@@ -562,8 +580,85 @@ impl Drop for UnixTerminal {
         self.write.flush().unwrap();
 
         signal_hook::low_level::unregister(self.sigwinch_id);
-        self.write
-            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
-            .expect("failed to restore original termios state");
+    }
+}
+
+pub(crate) struct TermiosGuard<W: BorrowMut<TtyWriteHandle>> {
+    writer: W,
+    saved_state: Termios,
+}
+
+/// Wrapper for `TtyWriteHandle` with a modified Termios state, which restores the original state when dropped.
+/// The generic BorrowMut parameter is needed because we want allow both owned and borrowed handles.
+impl<W: BorrowMut<TtyWriteHandle>> TermiosGuard<W> {
+    /// Restore the termios state to the original saved state now.
+    #[inline]
+    fn restore_termios(&mut self) -> Result<()> {
+        self.writer
+            .borrow_mut()
+            .set_termios(&self.saved_state, SetAttributeWhen::Now)
+            .context("failed to restore original termios state")
+    }
+
+    /// Modifies the termios state using the given closure and returns a new `TermiosGuard`,
+    /// which restores to the original termios state when dropped.
+    #[inline]
+    fn modified_termios(
+        &mut self,
+        modifier: impl FnOnce(Termios) -> Termios,
+    ) -> Result<TermiosGuard<impl BorrowMut<TtyWriteHandle> + '_>> {
+        let mut new = TermiosGuard::new(self.writer.borrow_mut())?;
+        let new_state = modifier(new.saved_state);
+        new.set_termios(
+            &new_state,
+            SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue,
+        )
+        .context("failed to modify termios state")?;
+        Ok(new)
+    }
+
+    /// Creates a new `TermiosGuard`, saving the current termios state.
+    /// The state is restored when the guard is dropped.
+    #[inline]
+    fn new(mut writer: W) -> Result<Self> {
+        let saved_state = writer.borrow_mut().get_termios()?;
+        Ok(Self {
+            writer,
+            saved_state,
+        })
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Write for TermiosGuard<W> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.writer.borrow_mut().write(buf)
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.borrow_mut().flush()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Deref for TermiosGuard<W> {
+    type Target = TtyWriteHandle;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.writer.borrow()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> DerefMut for TermiosGuard<W> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+        self.writer.borrow_mut()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Drop for TermiosGuard<W> {
+    fn drop(&mut self) {
+        self.restore_termios().unwrap()
     }
 }

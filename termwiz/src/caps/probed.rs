@@ -63,12 +63,12 @@ mod test {
 /// of the associated Terminal instance.
 /// It will write and read data to and from the associated Terminal.
 pub struct ProbeCapabilities<'a> {
-    read: Box<&'a mut dyn Read>,
-    write: Box<&'a mut dyn Write>,
+    read: Box<dyn Read + 'a>,
+    write: Box<dyn Write + 'a>,
 }
 
 impl<'a> ProbeCapabilities<'a> {
-    pub fn new<R: Read, W: Write>(read: &'a mut R, write: &'a mut W) -> Self {
+    pub fn new<R: Read + 'a, W: Write + 'a>(read: R, write: W) -> Self {
         Self {
             read: Box::new(read),
             write: Box::new(write),

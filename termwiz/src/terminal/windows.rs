@@ -861,7 +861,9 @@ impl Terminal for WindowsTerminal {
     fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
         match encoding {
             KeyboardEncoding::Win32 => Ok(()),
-            _ => Err(anyhow::anyhow!("Unsupported keyboard encoding for terminal"))?
+            _ => Err(anyhow::anyhow!(
+                "Unsupported keyboard encoding for terminal"
+            ))?,
         }
     }
 }
