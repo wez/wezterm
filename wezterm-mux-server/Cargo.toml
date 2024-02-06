@@ -10,7 +10,7 @@ resolver = "2"
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.4", features=["derive"]}
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 libc = "0.2"
@@ -29,6 +29,6 @@ wezterm-term = { path = "../term" }
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [ "winuser" ]}
 
-[target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
+[target."cfg(windows)".build-dependencies]
+embed-resource = "1.8"
 cc = "1.0"

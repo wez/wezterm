@@ -22,13 +22,13 @@ euclid = "0.22"
 finl_unicode = "1.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
-image = "0.24.6"
+image = "0.24.8"
 lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"
 memmap2 = "0.2"
 metrics = { version="0.17", features=["std"]}
-ordered-float = "4.1"
+ordered-float = "4.2"
 rangeset = { path = "../rangeset" }
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
@@ -49,9 +49,9 @@ winapi = "0.3"
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"
 core-foundation = "0.9"
-core-text = "20.0"
+core-text = "20.1"
 objc = "0.2"
 
 [dev-dependencies]
-k9 = "0.11.0"
+k9 = "0.11.6"
 env_logger = "0.11"

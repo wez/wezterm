@@ -60,6 +60,8 @@
 	<string>An application launched via WezTerm would like to access your Downloads folder.</string>
 	<key>NSSystemAdministrationUsageDescription</key>
 	<string>An application launched via WezTerm requires elevated permission.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>An application launched via WeZterm would like to access Bluetooth adapter.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
