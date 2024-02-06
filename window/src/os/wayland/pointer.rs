@@ -219,45 +219,35 @@ impl WaylandState {
                 let wid = SurfaceUserData::from_wl(parent_surface).window_id;
                 let mut inner = windows.get(&wid).unwrap().borrow_mut();
 
-                match evt.kind {
-                    PointerEventKind::Enter { .. } => {
-                        inner.window_frame.click_point_moved(
-                            Duration::ZERO,
-                            &evt.surface.id(),
-                            x,
-                            y,
-                        );
-                    }
-                    PointerEventKind::Leave { .. } => {
-                        inner.window_frame.click_point_left();
-                    }
-                    PointerEventKind::Motion { .. } => {
-                        inner.window_frame.click_point_moved(
-                            Duration::ZERO,
-                            &evt.surface.id(),
-                            x,
-                            y,
-                        );
-                    }
-                    PointerEventKind::Press { button, serial, .. }
-                    | PointerEventKind::Release { button, serial, .. } => {
-                        let pressed = if matches!(evt.kind, PointerEventKind::Press { .. }) {
-                            true
-                        } else {
-                            false
-                        };
-                        let click = match button {
-                            0x110 => FrameClick::Normal,
-                            0x111 => FrameClick::Alternate,
-                            _ => continue,
-                        };
-                        if let Some(action) =
-                            inner.window_frame.on_click(Duration::ZERO, click, pressed)
-                        {
-                            inner.frame_action(pointer, serial, action);
+                if let Some(frame) = inner.decorations.as_mut() {
+                    match evt.kind {
+                        PointerEventKind::Enter { .. } => {
+                            frame.click_point_moved(Duration::ZERO, &evt.surface.id(), x, y);
                         }
+                        PointerEventKind::Leave { .. } => {
+                            frame.click_point_left();
+                        }
+                        PointerEventKind::Motion { .. } => {
+                            frame.click_point_moved(Duration::ZERO, &evt.surface.id(), x, y);
+                        }
+                        PointerEventKind::Press { button, serial, .. }
+                        | PointerEventKind::Release { button, serial, .. } => {
+                            let pressed = if matches!(evt.kind, PointerEventKind::Press { .. }) {
+                                true
+                            } else {
+                                false
+                            };
+                            let click = match button {
+                                0x110 => FrameClick::Normal,
+                                0x111 => FrameClick::Alternate,
+                                _ => continue,
+                            };
+                            if let Some(action) = frame.on_click(Duration::ZERO, click, pressed) {
+                                inner.frame_action(pointer, serial, action);
+                            }
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
         }
