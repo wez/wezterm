@@ -658,6 +658,10 @@ impl GlState {
 }
 
 unsafe impl glium::backend::Backend for GlState {
+    fn resize(&self, _: (u32, u32)) {
+        todo!()
+    }
+
     fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
         let res = unsafe {
             self.connection

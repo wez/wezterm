@@ -313,6 +313,10 @@ mod cglbits {
     }
 
     unsafe impl glium::backend::Backend for GlState {
+        fn resize(&self, _: (u32, u32)) {
+            todo!()
+        }
+
         fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
             unsafe {
                 let pool = NSAutoreleasePool::new(nil);
