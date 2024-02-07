@@ -533,7 +533,13 @@ impl super::TermWindow {
     }
 
     pub fn reset_font_and_window_size(&mut self, window: &Window) -> anyhow::Result<()> {
-        let size = self.config.initial_size(self.dimensions.dpi as u32);
+        let size = self.config.initial_size(
+            self.dimensions.dpi as u32,
+            Some(crate::cell_pixel_dims(
+                &self.config,
+                self.dimensions.dpi as f64,
+            )?),
+        );
         self.set_window_size(size, window)
     }
 

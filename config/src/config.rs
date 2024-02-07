@@ -1444,21 +1444,24 @@ impl Config {
         }
     }
 
-    pub fn initial_size(&self, dpi: u32) -> TerminalSize {
+    pub fn initial_size(&self, dpi: u32, cell_pixel_dims: Option<(usize, usize)>) -> TerminalSize {
+        // If we aren't passed the actual values, guess at a plausible
+        // default set of pixel dimensions.
+        // This is based on "typical" 10 point font at "normal"
+        // pixel density.
+        // This will get filled in by the gui layer, but there is
+        // an edge case where we emit an iTerm image escape in
+        // the software update banner through the mux layer before
+        // the GUI has had a chance to update the pixel dimensions
+        // when running under X11.
+        // This is a bit gross.
+        let (cell_pixel_width, cell_pixel_height) = cell_pixel_dims.unwrap_or((8, 16));
+
         TerminalSize {
             rows: self.initial_rows as usize,
             cols: self.initial_cols as usize,
-            // Guess at a plausible default set of pixel dimensions.
-            // This is based on "typical" 10 point font at "normal"
-            // pixel density.
-            // This will get filled in by the gui layer, but there is
-            // an edge case where we emit an iTerm image escape in
-            // the software update banner through the mux layer before
-            // the GUI has had a chance to update the pixel dimensions
-            // when running under X11.
-            // This is a bit gross.
-            pixel_width: 8 * self.initial_cols as usize,
-            pixel_height: 16 * self.initial_rows as usize,
+            pixel_width: cell_pixel_width * self.initial_cols as usize,
+            pixel_height: cell_pixel_height * self.initial_rows as usize,
             dpi,
         }
     }

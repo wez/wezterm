@@ -452,6 +452,13 @@ impl Window {
             x,
             y,
         } = conn.resolve_geometry(geometry);
+
+        let scale_factor = (conn.default_dpi() / crate::DEFAULT_DPI) as usize;
+        let width = width / scale_factor;
+        let height = height / scale_factor;
+        let x = x.map(|x| x / scale_factor as i32);
+        let y = y.map(|y| y / scale_factor as i32);
+
         let initial_pos = match (x, y) {
             (Some(x), Some(y)) => Some(ScreenPoint::new(x as isize, y as isize)),
             _ => None,

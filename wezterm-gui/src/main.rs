@@ -3,6 +3,7 @@
 
 use crate::customglyph::BlockKey;
 use crate::glyphcache::GlyphCache;
+use crate::utilsprites::RenderMetrics;
 use ::window::*;
 use anyhow::{anyhow, Context};
 use clap::builder::ValueParser;
@@ -28,6 +29,7 @@ use unicode_normalization::UnicodeNormalization;
 use wezterm_bidi::Direction;
 use wezterm_client::domain::ClientDomain;
 use wezterm_font::shaper::PresentationWidth;
+use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::*;
 use wezterm_mux_server_impl::update_mux_domains;
 use wezterm_toast_notification::*;
@@ -328,9 +330,14 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         true
     });
 
-    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
+    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi());
     let _tab = domain
-        .spawn(config.initial_size(dpi), cmd, None, window_id)
+        .spawn(
+            config.initial_size(dpi as u32, Some(cell_pixel_dims(&config, dpi)?)),
+            cmd,
+            None,
+            window_id,
+        )
         .await?;
     trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
     Ok(())
@@ -387,6 +394,15 @@ async fn trigger_and_log_gui_attached(domain: MuxDomain) {
         log::error!("{}", message);
         persistent_toast_notification("Error", &message);
     }
+}
+
+fn cell_pixel_dims(config: &ConfigHandle, dpi: f64) -> anyhow::Result<(usize, usize)> {
+    let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()), dpi as usize)?);
+    let render_metrics = RenderMetrics::new(&fontconfig)?;
+    Ok((
+        render_metrics.cell_size.width as usize,
+        render_metrics.cell_size.height as usize,
+    ))
 }
 
 async fn async_run_terminal_gui(
@@ -456,9 +472,14 @@ async fn async_run_terminal_gui(
 
             domain.attach(Some(window_id)).await?;
             let config = config::configuration();
-            let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
+            let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi());
             let tab = domain
-                .spawn(config.initial_size(dpi), cmd.clone(), None, window_id)
+                .spawn(
+                    config.initial_size(dpi as u32, Some(cell_pixel_dims(&config, dpi)?)),
+                    cmd.clone(),
+                    None,
+                    window_id,
+                )
                 .await?;
             let mut window = mux
                 .get_window_mut(window_id)
@@ -585,7 +606,7 @@ impl Publish {
                                 window_id,
                                 command,
                                 command_dir: None,
-                                size: config.initial_size(0),
+                                size: config.initial_size(0, None),
                                 workspace: workspace.unwrap_or(
                                     config
                                         .default_workspace

@@ -94,7 +94,7 @@ impl SpawnCommand {
             )
             .to_string();
 
-        let size = config.initial_size(0);
+        let size = config.initial_size(0, None);
 
         let spawned = client
             .spawn_v2(codec::SpawnV2 {

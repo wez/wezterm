@@ -2949,7 +2949,15 @@ impl TermWindow {
                     if !have_panes_in_domain {
                         let config = config::configuration();
                         let _tab = domain
-                            .spawn(config.initial_size(dpi), None, None, window)
+                            .spawn(
+                                config.initial_size(
+                                    dpi,
+                                    Some(crate::cell_pixel_dims(&config, dpi as f64)?),
+                                ),
+                                None,
+                                None,
+                                window,
+                            )
                             .await?;
                     }
 
