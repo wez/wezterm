@@ -4,7 +4,6 @@ use luahelper::lua_value_to_dynamic;
 use serde_json::{Map, Value as JValue};
 use std::collections::HashSet;
 use wezterm_dynamic::{FromDynamic, Value as DynValue};
-use {serde_yaml, toml};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let serde_mod = get_or_create_sub_module(lua, "serde")?;
