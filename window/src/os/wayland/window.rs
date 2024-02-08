@@ -997,6 +997,12 @@ impl WaylandWindowInner {
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
+        if self.window.is_none() {
+            // We're likely in the middle of closing/destroying
+            // the window; we've nothing to do here.
+            return Ok(());
+        }
+
         if self.frame_callback.is_some() {
             // Painting now won't be productive, so skip it but
             // remember that we need to be painted so that when
