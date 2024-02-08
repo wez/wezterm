@@ -19,8 +19,14 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     serde_mod.set("yaml_encode", lua.create_function(yaml_encode)?)?;
     serde_mod.set("toml_encode", lua.create_function(toml_encode)?)?;
     // Pretty ones:
-    serde_mod.set("json_encode_pretty", lua.create_function(json_encode_pretty)?)?;
-    serde_mod.set("toml_encode_pretty", lua.create_function(toml_encode_pretty)?)?;
+    serde_mod.set(
+        "json_encode_pretty",
+        lua.create_function(json_encode_pretty)?,
+    )?;
+    serde_mod.set(
+        "toml_encode_pretty",
+        lua.create_function(toml_encode_pretty)?,
+    )?;
     // Note there is no pretty encoder for yaml, because the default one is pretty already.
     // See https://github.com/dtolnay/serde-yaml/issues/226
 
@@ -282,4 +288,80 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
             }
         }
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_json_encode_decode() {
+        // We use the json Value from serde_json crate as input, and convert the LuaValue,
+        // propagate through the encode and decode processes, and convert it back to the json Value for result checking.
+        let j0 = json!({
+            "key2str": "value1", "key2int": 4, "key2float": 4.5,
+            "key2arr": vec![2, 3], "key2dict": {"a": "a_value", "b": 3}});
+
+        let lua = Lua::new();
+        let v0 = json_value_to_lua_value(&lua, j0.clone()).unwrap();
+        let s = json_encode(&lua, v0.clone()).unwrap();
+        let j1: JValue = serde_json::from_str(&s).unwrap();
+        assert_eq!(j0, j1);
+        let v1 = json_decode(&lua, s).unwrap();
+        let j1 = lua_value_to_json_value(v1, &mut HashSet::new()).unwrap();
+        assert_eq!(j0, j1);
+
+        // Do it again with the pretty variant.
+        let s = json_encode_pretty(&lua, v0.clone()).unwrap();
+        let j1: JValue = serde_json::from_str(&s).unwrap();
+        assert_eq!(j0, j1);
+        let v1 = json_decode(&lua, s).unwrap();
+        let j1 = lua_value_to_json_value(v1, &mut HashSet::new()).unwrap();
+        assert_eq!(j0, j1);
+    }
+
+    #[test]
+    fn test_yaml_encode_decode() {
+        // We use the json Value from serde_json crate as input, and convert the LuaValue,
+        // propagate through the encode and decode processes, and convert it back to the json Value for result checking.
+        let j0 = json!({
+            "key2str": "value1", "key2int": 4, "key2float": 4.5,
+            "key2arr": vec![2, 3], "key2dict": {"a": "a_value", "b": 3}});
+
+        let lua = Lua::new();
+        let v0 = json_value_to_lua_value(&lua, j0.clone()).unwrap();
+        let s = yaml_encode(&lua, v0.clone()).unwrap();
+        let j1: JValue = serde_yaml::from_str(&s).unwrap();
+        assert_eq!(j0, j1);
+        let v1 = yaml_decode(&lua, s).unwrap();
+        let j1 = lua_value_to_json_value(v1, &mut HashSet::new()).unwrap();
+        assert_eq!(j0, j1);
+    }
+
+    #[test]
+    fn test_toml_encode_decode() {
+        // We use the json Value from serde_json crate as input, and convert the LuaValue,
+        // propagate through the encode and decode processes, and convert it back to the json Value for result checking.
+        let j0 = json!({
+            "key2str": "value1", "key2int": 4, "key2float": 4.5,
+            "key2arr": vec![2, 3], "key2dict": {"a": "a_value", "b": 3}});
+
+        let lua = Lua::new();
+        let v0 = json_value_to_lua_value(&lua, j0.clone()).unwrap();
+        let s = toml_encode(&lua, v0.clone()).unwrap();
+        let j1: JValue = toml::from_str(&s).unwrap();
+        assert_eq!(j0, j1);
+        let v1 = toml_decode(&lua, s).unwrap();
+        let j1 = lua_value_to_json_value(v1, &mut HashSet::new()).unwrap();
+        assert_eq!(j0, j1);
+
+        // Do it again with the pretty variant.
+        let s = toml_encode_pretty(&lua, v0.clone()).unwrap();
+        let j1: JValue = toml::from_str(&s).unwrap();
+        assert_eq!(j0, j1);
+        let v1 = toml_decode(&lua, s).unwrap();
+        let j1 = lua_value_to_json_value(v1, &mut HashSet::new()).unwrap();
+        assert_eq!(j0, j1);
+    }
 }
