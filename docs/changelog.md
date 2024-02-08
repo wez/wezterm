@@ -33,7 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Race condition when very quickly adjusting font scale. Thanks to @jknockel!
   #4876
 * macOS: wacky initial window size with external monitors or certain font
-  sizes. #4966
+  sizes. #4966 #4250
 
 ### 20240203-110809-5046fc22
 
