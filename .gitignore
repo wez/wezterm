@@ -38,6 +38,7 @@ dhat-heap.json
 /docs/config/lua/wezterm.gui/index.md
 /docs/config/lua/wezterm.mux/index.md
 /docs/config/lua/wezterm.procinfo/index.md
+/docs/config/lua/wezterm.serde/index.md
 /docs/config/lua/wezterm.time/index.md
 /docs/config/lua/wezterm.time/Time/index.md
 /docs/config/lua/wezterm.url/index.md

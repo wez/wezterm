@@ -29,6 +29,8 @@ As features stabilize some brief notes about them will accumulate here.
   deprecated; it no longer has any effect and will be removed in a future
   release.
 #### New
+* [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
+  and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
 #### Fixed
 * Race condition when very quickly adjusting font scale. Thanks to @jknockel!
   #4876
