@@ -31,7 +31,8 @@ use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
     KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize,
+    RotationDirection, SpawnCommand, SplitSize, SwapActivePaneByIndexArguments,
+    SwapActivePaneDirectionArguments,
 };
 use config::window::WindowLevel;
 use config::{
@@ -2844,6 +2845,22 @@ impl TermWindow {
                     }
                 }
             }
+            SwapActivePaneByIndex(SwapActivePaneByIndexArguments {
+                pane_index,
+                keep_focus,
+            }) => {
+                let mux = Mux::get();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(PerformAssignmentResult::Handled),
+                };
+
+                let tab_id = tab.tab_id();
+
+                if self.tab_state(tab_id).overlay.is_none() {
+                    tab.swap_active_with_index(*pane_index, *keep_focus);
+                }
+            }
             ActivatePaneDirection(direction) => {
                 let mux = Mux::get();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -2855,6 +2872,24 @@ impl TermWindow {
 
                 if self.tab_state(tab_id).overlay.is_none() {
                     tab.activate_pane_direction(*direction);
+                }
+            }
+            SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+                direction,
+                keep_focus,
+            }) => {
+                let mux = Mux::get();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(PerformAssignmentResult::Handled),
+                };
+
+                let tab_id = tab.tab_id();
+
+                if self.tab_state(tab_id).overlay.is_none() {
+                    if let Some(pane_index) = tab.get_pane_direction(*direction, true) {
+                        tab.swap_active_with_index(pane_index, *keep_focus);
+                    }
                 }
             }
             TogglePaneZoomState => {
