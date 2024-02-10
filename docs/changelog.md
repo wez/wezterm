@@ -36,6 +36,8 @@ As features stabilize some brief notes about them will accumulate here.
   #4876
 * macOS: wacky initial window size with external monitors or certain font
   sizes. #4966 #4250
+#### Updated
+* Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
 
 ### 20240203-110809-5046fc22
 
