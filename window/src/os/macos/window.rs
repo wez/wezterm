@@ -2957,8 +2957,16 @@ impl WindowView {
             let mut inner = this.inner.borrow_mut();
 
             let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            if pb.is_null() {
+                return NO;
+            }
+
             let filenames =
                 unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            if filenames.is_null() {
+                return NO;
+            }
+
             let paths = unsafe { filenames.iter() }
                 .map(|file| unsafe {
                     let path = nsstring_to_str(file);
@@ -2975,8 +2983,16 @@ impl WindowView {
             let mut inner = this.inner.borrow_mut();
 
             let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            if pb.is_null() {
+                return NO;
+            }
+
             let filenames =
                 unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            if filenames.is_null() {
+                return NO;
+            }
+
             let paths = unsafe { filenames.iter() }
                 .map(|file| unsafe {
                     let path = nsstring_to_str(file);
