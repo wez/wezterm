@@ -101,7 +101,11 @@ impl TerminalState {
             verbosity
         );
         if image_id != 0 {
-            self.kitty_remove_placement(image_id, placement.placement_id);
+            if let Some(place_id) = placement.placement_id {
+                if place_id != 0 {
+                    self.kitty_remove_placement(image_id, placement.placement_id);
+                }
+            }
         }
         let img = Arc::clone(self.kitty_img.id_to_data.get(&image_id).ok_or_else(|| {
             anyhow::anyhow!(
