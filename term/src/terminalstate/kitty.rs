@@ -301,9 +301,7 @@ impl TerminalState {
     ) {
         let seqno = self.seqno;
         let screen = self.screen_mut();
-        let range =
-            screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex));
-        for idx in range {
+        for idx in 0..screen.scrollback_rows() {
             let line = screen.line_mut(idx);
             for c in line.cells_mut() {
                 c.attrs_mut()
