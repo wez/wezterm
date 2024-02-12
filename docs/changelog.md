@@ -39,6 +39,9 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: dragging non-filename data over wezterm could cause it to crash. #4771
 * New tabs spawned by the gui could spawn into the wrong domain when using
   multiplexing together `default_domain`. Thanks to @bogdan2412! #4994
+* Linux: the `divine_process_list` fallback function used the *vmwisze*
+  rather than the intended *starttime* field to decide which process
+  was the youngest. Thanks to @crides! #5001
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
