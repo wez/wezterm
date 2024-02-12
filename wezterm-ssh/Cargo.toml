@@ -41,7 +41,7 @@ async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
 assert_fs = "1.0.4"
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 k9 = "0.12.0"
 once_cell = "1.8"
 predicates = "3.0"
