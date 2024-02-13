@@ -3,7 +3,7 @@ use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
 use codec::{ListPanesResponse, SpawnV2, SplitPane};
-use config::keyassignment::SpawnTabDomain;
+use config::keyassignment::{RotationDirection, SpawnTabDomain};
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
@@ -763,7 +763,7 @@ impl Domain for ClientDomain {
     /// Forward the request to the remote; we need to translate the local ids
     /// to those that match the remote for the request, resync the changed
     /// structure, and then translate the results back to local
-    async fn move_pane_to_new_tab(
+    async fn remote_move_pane_to_new_tab(
         &self,
         pane_id: PaneId,
         window_id: Option<WindowId>,
@@ -812,6 +812,64 @@ impl Domain for ClientDomain {
             .ok_or_else(|| anyhow!("local tab {local_tab_id} is invalid"))?;
 
         Ok(Some((tab, local_win_id)))
+    }
+
+    async fn remote_rotate_panes(
+        &self,
+        pane_id: PaneId,
+        direction: RotationDirection,
+    ) -> anyhow::Result<bool> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        inner
+            .client
+            .rotate_panes(codec::RotatePanes {
+                pane_id: pane.remote_pane_id,
+                direction,
+            })
+            .await?;
+
+        self.resync().await?;
+        Ok(true)
+    }
+
+    async fn remote_swap_active_pane_with_index(
+        &self,
+        active_pane_id: PaneId,
+        with_pane_index: usize,
+        keep_focus: bool,
+    ) -> anyhow::Result<bool> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(active_pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", active_pane_id))?;
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", active_pane_id))?;
+
+        inner
+            .client
+            .swap_active_pane_with_index(codec::SwapActivePaneWithIndex {
+                active_pane_id: pane.remote_pane_id,
+                with_pane_index,
+                keep_focus,
+            })
+            .await?;
+
+        self.resync().await?;
+        Ok(true)
     }
 
     async fn spawn(

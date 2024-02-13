@@ -3214,6 +3214,7 @@ dependencies = [
  "mux",
  "parking_lot 0.12.2",
  "portable-pty",
+ "promise",
  "smol",
  "termwiz",
  "termwiz-funcs",
