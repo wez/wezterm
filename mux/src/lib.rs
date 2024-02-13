@@ -1341,7 +1341,7 @@ impl Mux {
             None => anyhow::bail!("Invalid tab id {}", tab_id),
         };
 
-        tab.swap_active_with_index(with_pane_index, keep_focus);
+        tab.local_swap_active_with_index(with_pane_index, keep_focus);
         Ok(())
     }
     pub async fn spawn_tab_or_window(

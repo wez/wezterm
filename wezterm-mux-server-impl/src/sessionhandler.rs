@@ -620,7 +620,7 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.swap_active_with_index(with_pane_index, keep_focus);
+                            tab.local_swap_active_with_index(with_pane_index, keep_focus);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
