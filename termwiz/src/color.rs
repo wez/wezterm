@@ -5,10 +5,8 @@
 use num_derive::*;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Once,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Once;
 pub use wezterm_color_types::{LinearRgba, SrgbaTuple};
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
