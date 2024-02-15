@@ -37,6 +37,7 @@ $ git submodule update --init --recursive
 $ ./get-deps
 $ cargo build --release
 $ cargo run --release --bin wezterm -- start
+$ sudo cp target/release/{strip-ansi-escapes,wezterm,wezterm-gui,wezterm-mux-server} /usr/local/bin
 ```
 
 **If you get an error about zlib then you most likely didn't initialize the submodules;
