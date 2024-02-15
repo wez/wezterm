@@ -5,8 +5,16 @@
 use num_derive::*;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Once,
+};
 pub use wezterm_color_types::{LinearRgba, SrgbaTuple};
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
+
+const NO_COLOR_ENV: &str = "NO_COLOR";
+static ANSI_COLOR_DISABLED: AtomicBool = AtomicBool::new(false);
+static INITIALIZER: Once = Once::new();
 
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, FromDynamic, ToDynamic)]
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
@@ -46,6 +54,24 @@ pub enum AnsiColor {
     Aqua,
     /// Bright white
     White,
+}
+
+impl AnsiColor {
+    /// Checks whether ANSI color sequences are disabled
+    /// by setting of `NO_COLOR` in environment as per https://no-color.org/
+    pub fn color_disabled() -> bool {
+        !std::env::var(NO_COLOR_ENV)
+            .unwrap_or("".to_string())
+            .is_empty()
+    }
+
+    /// Returns true if the colors are disabled.
+    pub fn color_disabled_memoized() -> bool {
+        INITIALIZER.call_once(|| {
+            ANSI_COLOR_DISABLED.store(Self::color_disabled(), Ordering::SeqCst);
+        });
+        ANSI_COLOR_DISABLED.load(Ordering::SeqCst)
+    }
 }
 
 impl From<AnsiColor> for u8 {
@@ -241,6 +267,9 @@ impl Default for ColorSpec {
 
 impl From<AnsiColor> for ColorSpec {
     fn from(col: AnsiColor) -> Self {
+        if AnsiColor::color_disabled_memoized() {
+            return Self::default();
+        }
         ColorSpec::PaletteIndex(col as u8)
     }
 }
@@ -282,6 +311,9 @@ impl Default for ColorAttribute {
 
 impl From<AnsiColor> for ColorAttribute {
     fn from(col: AnsiColor) -> Self {
+        if AnsiColor::color_disabled_memoized() {
+            return Self::default();
+        }
         ColorAttribute::PaletteIndex(col as u8)
     }
 }
