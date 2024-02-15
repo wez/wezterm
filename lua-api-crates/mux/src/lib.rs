@@ -170,10 +170,13 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
 
     mux_mod.set(
         "save_state_to",
-        lua.create_function(|_, path: String| {
-            let mux = get_mux()?;
-            mux.save_state_to(&path);
-            Ok(())
+        lua.create_function(|_, path: String| Ok(get_mux()?.save_state_to(&path)))?,
+    )?;
+
+    mux_mod.set(
+        "restore_state_from",
+        lua.create_async_function(|_, path: String| async move {
+            Ok(get_mux()?.restore_state_from(&path).await)
         })?,
     )?;
 

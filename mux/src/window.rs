@@ -1,5 +1,5 @@
 use crate::pane::CloseReason;
-use crate::{Mux, MuxNotification, Tab, TabId, SavedWindow};
+use crate::{Mux, MuxNotification, SavedWindow, Tab, TabId};
 use config::GuiPosition;
 use std::sync::Arc;
 
@@ -266,7 +266,7 @@ impl Window {
 
     pub fn save(&self) -> Option<SavedWindow> {
         Some(SavedWindow {
-            tabs: self.tabs.iter().filter_map(|t| t.save_tab()).collect(),
+            tabs: self.tabs.iter().filter_map(|t| t.save()).collect(),
             size: self.tabs.first()?.get_size(),
         })
     }

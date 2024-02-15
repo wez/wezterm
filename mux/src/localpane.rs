@@ -3,8 +3,8 @@ use crate::pane::{
     CachePolicy, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
     SearchResult, WithPaneLines,
 };
-use crate::{renderable::*, SavedPaneState};
 use crate::tmux::{TmuxDomain, TmuxDomainState};
+use crate::{renderable::*, SavedPaneState};
 use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
@@ -817,11 +817,21 @@ impl Pane for LocalPane {
     }
 
     fn save(&self) -> Option<SavedPaneState> {
-        let mut proc_shell = self.divine_process_list(CachePolicy::FetchImmediate).as_ref().map(|p| p.root.clone());
-        let argv_prog = proc_shell.as_mut().and_then(|p| p.children.drain().max_by_key(|p| p.1.start_time).map(|p| p.1.argv));
+        let mut proc_shell = self
+            .divine_process_list(CachePolicy::FetchImmediate)
+            .as_ref()
+            .map(|p| p.root.clone());
+        let argv_prog = proc_shell.as_mut().and_then(|p| {
+            p.children
+                .drain()
+                .max_by_key(|p| p.1.start_time)
+                .map(|p| p.1.argv)
+        });
         Some(SavedPaneState {
             id: self.pane_id(),
-            cwd: self.get_current_working_dir(CachePolicy::FetchImmediate).map(|u| u.into()),
+            cwd: self
+                .get_current_working_dir(CachePolicy::FetchImmediate)
+                .map(|u| u.into()),
             prog_argv: argv_prog,
             root_argv: proc_shell.map(|p| p.argv).unwrap_or_else(|| vec![]),
         })

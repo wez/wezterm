@@ -1,6 +1,6 @@
 use crate::domain::DomainId;
-use crate::{pane::*, SavedTab, SavedTree, SavedSplitInfo};
 use crate::renderable::StableCursorPosition;
+use crate::{pane::*, SavedSplitInfo, SavedTab, SavedTree};
 use crate::{Mux, MuxNotification, WindowId};
 use bintree::PathBranch;
 use config::configuration;
@@ -752,7 +752,7 @@ impl Tab {
         self.inner.lock().get_zoomed_pane()
     }
 
-    pub fn save_tab(&self) -> Option<SavedTab> {
+    pub fn save(&self) -> Option<SavedTab> {
         fn convert_node(t: &Tree) -> Option<SavedTree> {
             match t {
                 Tree::Empty => None,
@@ -764,20 +764,21 @@ impl Tab {
                         right: Box::new(convert_node(right).unwrap()),
                         dir: data.direction,
                         pos: if data.direction == SplitDirection::Horizontal {
-                            data.first.rows
+                            data.second.cols
                         } else {
-                            data.first.cols
+                            data.second.rows
                         },
                     };
                     Some(SavedTree::Split(split_info))
                 }
             }
         }
-        self.inner.lock().pane.as_ref().and_then(|t| convert_node(&t)).map(|panes| {
-            SavedTab {
-                panes,
-            }
-        })
+        self.inner
+            .lock()
+            .pane
+            .as_ref()
+            .and_then(|t| convert_node(&t))
+            .map(|panes| SavedTab { panes })
     }
 }
 
