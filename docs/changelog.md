@@ -32,8 +32,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
   and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
 #### Fixed
-* Race condition when very quickly adjusting font scale. Thanks to @jknockel!
-  #4876
+* Race condition when very quickly adjusting font scale, and other improvements
+  around resizing. Thanks to @jknockel! #4876 #5032
 * macOS: wacky initial window size with external monitors or certain font
   sizes. #4966 #4250
 * macOS: dragging non-filename data over wezterm could cause it to crash. #4771
