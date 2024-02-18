@@ -83,6 +83,7 @@ impl Default for DragAndDrop {
 
 pub(crate) struct XWindowInner {
     pub window_id: xcb::x::Window,
+    pub child_id: xcb::x::Window,
     conn: Weak<XConnection>,
     pub events: WindowEventSender,
     width: u16,
@@ -123,6 +124,9 @@ impl Drop for XWindowInner {
                     .context("flush pending requests prior to issuing DestroyWindow")
                     .ok();
                 conn.send_request_no_reply_log(&xcb::x::DestroyWindow {
+                    window: self.child_id,
+                });
+                conn.send_request_no_reply_log(&xcb::x::DestroyWindow {
                     window: self.window_id,
                 });
             }
@@ -145,7 +149,7 @@ unsafe impl HasRawDisplayHandle for XWindowInner {
 unsafe impl HasRawWindowHandle for XWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = XcbWindowHandle::empty();
-        handle.window = self.window_id.resource_id();
+        handle.window = self.child_id.resource_id();
         handle.visual_id = self.conn.upgrade().unwrap().visual.visual_id();
         RawWindowHandle::Xcb(handle)
     }
@@ -158,11 +162,11 @@ impl XWindowInner {
         let gl_state = match conn.gl_connection.borrow().as_ref() {
             None => crate::egl::GlState::create(
                 Some(conn.conn.get_raw_dpy() as *const _),
-                self.window_id.resource_id() as *mut _,
+                self.child_id.resource_id() as *mut _,
             ),
             Some(glconn) => crate::egl::GlState::create_with_existing_connection(
                 glconn,
-                self.window_id.resource_id() as *mut _,
+                self.child_id.resource_id() as *mut _,
             ),
         };
 
@@ -261,6 +265,18 @@ impl XWindowInner {
         self.pending.push(event);
     }
 
+    fn resize_child(&self, width: u32, height: u32) {
+        self.conn()
+            .send_request_no_reply_log(&xcb::x::ConfigureWindow {
+                window: self.child_id,
+                value_list: &[
+                    xcb::x::ConfigWindow::Width(width as u32),
+                    xcb::x::ConfigWindow::Height(height as u32),
+                ],
+            });
+        // send_request_no_reply_log() is synchronous, so no further synchronization required
+    }
+
     pub fn dispatch_pending_events(&mut self) -> anyhow::Result<()> {
         if self.pending.is_empty() {
             return Ok(());
@@ -355,6 +371,8 @@ impl XWindowInner {
                         || self.height != geom.height()
                         || self.last_wm_state != window_state
                     {
+                        self.resize_child(geom.width() as u32, geom.height() as u32);
+
                         self.width = geom.width();
                         self.height = geom.height();
                         self.last_wm_state = window_state;
@@ -460,6 +478,7 @@ impl XWindowInner {
 
     fn configure_notify(&mut self, source: &str, width: u16, height: u16) -> anyhow::Result<()> {
         let conn = self.conn();
+
         self.update_ime_position();
 
         let mut dpi = conn.default_dpi();
@@ -509,6 +528,8 @@ impl XWindowInner {
             );
             return Ok(());
         }
+
+        self.resize_child(width as u32, height as u32);
 
         log::trace!(
             "{source}: width {} -> {}, height {} -> {}, dpi {} -> {}",
@@ -1355,6 +1376,7 @@ impl XWindow {
         let mut events = WindowEventSender::new(event_handler);
 
         let window_id;
+        let child_id;
         let window = {
             let setup = conn.conn().get_setup();
             let screen = setup
@@ -1363,6 +1385,7 @@ impl XWindow {
                 .ok_or_else(|| anyhow!("no screen?"))?;
 
             window_id = conn.conn().generate_id();
+            child_id = conn.conn().generate_id();
 
             let color_map_id = conn.conn().generate_id();
             conn.send_request_no_reply(&xcb::x::CreateColormap {
@@ -1388,7 +1411,8 @@ impl XWindow {
                     // We have to specify both a border pixel color and a colormap
                     // when specifying a depth that doesn't match the root window in
                     // order to avoid a BadMatch
-                    xcb::x::Cw::BorderPixel(0),
+                    xcb::x::Cw::BackPixel(0), // transparent background
+                    xcb::x::Cw::BorderPixel(screen.black_pixel()),
                     xcb::x::Cw::EventMask(
                         xcb::x::EventMask::EXPOSURE
                             | xcb::x::EventMask::FOCUS_CHANGE
@@ -1407,6 +1431,32 @@ impl XWindow {
             })
             .context("xcb::create_window_checked")?;
 
+            conn.send_request_no_reply(&xcb::x::CreateWindow {
+                depth: conn.depth,
+                wid: child_id,
+                parent: window_id,
+                x: x.unwrap_or(0).try_into()?,
+                y: y.unwrap_or(0).try_into()?,
+                width: width.try_into()?,
+                height: height.try_into()?,
+                border_width: 0,
+                class: xcb::x::WindowClass::InputOutput,
+                visual: conn.visual.visual_id(),
+                value_list: &[
+                    // We have to specify both a border pixel color and a colormap
+                    // when specifying a depth that doesn't match the root window in
+                    // order to avoid a BadMatch
+                    xcb::x::Cw::BackPixel(0), // transparent background
+                    xcb::x::Cw::BorderPixel(screen.black_pixel()),
+                    xcb::x::Cw::BitGravity(xcb::x::Gravity::NorthWest),
+                    xcb::x::Cw::Colormap(color_map_id),
+                ],
+            })
+            .context("xcb::create_window_checked")?;
+
+            conn.send_request_no_reply(&xcb::x::MapWindow { window: child_id })
+                .context("xcb::map_window")?;
+
             events.assign_window(Window::X11(XWindow::from_id(window_id)));
 
             let appearance = conn.get_appearance();
@@ -1415,6 +1465,7 @@ impl XWindow {
                 title: String::new(),
                 appearance,
                 window_id,
+                child_id,
                 conn: Rc::downgrade(&conn),
                 events,
                 width: width.try_into()?,
@@ -1537,6 +1588,10 @@ impl XWindowInner {
         // We'll destroy the window in a couple of seconds
         conn.send_request_no_reply_log(&xcb::x::UnmapWindow {
             window: self.window_id,
+        });
+
+        conn.send_request_no_reply_log(&xcb::x::DestroyWindow {
+            window: self.child_id,
         });
 
         // Arrange to destroy the window after a couple of seconds; that
@@ -1989,6 +2044,7 @@ impl WindowOps for XWindow {
                         xcb::x::ConfigWindow::Height(height as u32),
                     ],
                 });
+            inner.resize_child(width as u32, height as u32);
             inner.outstanding_configure_requests += 1;
             Ok(())
         });
