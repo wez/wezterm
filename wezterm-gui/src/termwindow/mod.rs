@@ -370,6 +370,7 @@ pub struct TermWindow {
     pub dimensions: Dimensions,
     pub window_state: WindowState,
     pub resizes_pending: usize,
+    is_repaint_pending: bool,
     pending_scale_changes: LinkedList<resize::ScaleChange>,
     /// Terminal dimensions
     terminal_size: TerminalSize,
@@ -696,6 +697,7 @@ impl TermWindow {
             dimensions,
             window_state: WindowState::default(),
             resizes_pending: 0,
+            is_repaint_pending: false,
             pending_scale_changes: LinkedList::new(),
             terminal_size,
             render_state,
@@ -954,6 +956,14 @@ impl TermWindow {
             }
             WindowEvent::SetInnerSizeCompleted => {
                 self.resizes_pending -= 1;
+                if self.is_repaint_pending {
+                    self.is_repaint_pending = false;
+                    if self.webgpu.is_some() {
+                        self.do_paint_webgpu()?;
+                    } else {
+                        self.do_paint(window);
+                    }
+                }
                 self.apply_pending_scale_changes();
                 Ok(true)
             }
@@ -984,8 +994,16 @@ impl TermWindow {
                 window.invalidate();
                 Ok(true)
             }
-            WindowEvent::NeedRepaint if self.webgpu.is_some() => self.do_paint_webgpu(),
-            WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
+            WindowEvent::NeedRepaint => {
+                if self.resizes_pending > 0 {
+                    self.is_repaint_pending = true;
+                    Ok(true)
+                } else if self.webgpu.is_some() {
+                    self.do_paint_webgpu()
+                } else {
+                    Ok(self.do_paint(window))
+                }
+            }
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {
                     self.dispatch_notif(*notif, window)
