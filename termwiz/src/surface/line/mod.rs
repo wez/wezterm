@@ -8,4 +8,3 @@ mod vecstorage;
 
 pub use cellref::CellRef;
 pub use line::{DoubleClickRange, Line};
-pub use storage::CellStorage;

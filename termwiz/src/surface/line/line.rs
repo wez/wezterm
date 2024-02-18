@@ -2,11 +2,10 @@ use crate::cell::{Cell, CellAttributes, SemanticType, UnicodeVersion};
 use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
 use crate::surface::line::cellref::CellRef;
-pub use crate::surface::line::clusterline::ClusteredLine;
+use crate::surface::line::clusterline::ClusteredLine;
 use crate::surface::line::linebits::LineBits;
 use crate::surface::line::storage::{CellStorage, VisibleCellIter};
-pub use crate::surface::line::vecstorage::VecStorage;
-use crate::surface::line::vecstorage::VecStorageIter;
+use crate::surface::line::vecstorage::{VecStorage, VecStorageIter};
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 use finl_unicode::grapheme_clusters::Graphemes;
 #[cfg(feature = "use_serde")]
@@ -35,7 +34,7 @@ pub enum DoubleClickRange {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct Line {
-    pub cells: CellStorage,
+    pub(crate) cells: CellStorage,
     zones: Vec<ZoneRange>,
     seqno: SequenceNo,
     bits: LineBits,

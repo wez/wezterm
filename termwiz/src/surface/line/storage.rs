@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub enum CellStorage {
+pub(crate) enum CellStorage {
     V(VecStorage),
     C(ClusteredLine),
 }

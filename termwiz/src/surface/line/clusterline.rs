@@ -9,9 +9,9 @@ use std::num::NonZeroU8;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct Cluster {
-    pub cell_width: u16,
-    pub attrs: CellAttributes,
+struct Cluster {
+    cell_width: u16,
+    attrs: CellAttributes,
 }
 
 /// Stores line data as a contiguous string and a series of
@@ -19,7 +19,7 @@ pub struct Cluster {
 /// within the line
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct ClusteredLine {
+pub(crate) struct ClusteredLine {
     pub text: String,
     #[cfg_attr(
         feature = "use_serde",
@@ -29,7 +29,7 @@ pub struct ClusteredLine {
         )
     )]
     is_double_wide: Option<Box<FixedBitSet>>,
-    pub clusters: Vec<Cluster>,
+    clusters: Vec<Cluster>,
     /// Length, measured in cells
     len: u16,
     last_cell_width: Option<NonZeroU8>,
@@ -155,7 +155,7 @@ impl ClusteredLine {
         self.len as usize
     }
 
-    pub fn is_double_wide(&self, cell_index: usize) -> bool {
+    fn is_double_wide(&self, cell_index: usize) -> bool {
         match &self.is_double_wide {
             Some(bitset) => bitset.contains(cell_index),
             None => false,
@@ -306,7 +306,7 @@ impl ClusteredLine {
     }
 }
 
-pub struct ClusterLineCellIter<'a> {
+pub(crate) struct ClusterLineCellIter<'a> {
     graphemes: Graphemes<'a>,
     clusters: std::slice::Iter<'a, Cluster>,
     cluster: Option<&'a Cluster>,

@@ -7,7 +7,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct VecStorage {
+pub(crate) struct VecStorage {
     cells: Vec<Cell>,
 }
 

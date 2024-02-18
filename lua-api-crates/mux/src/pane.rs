@@ -282,13 +282,6 @@ impl UserData for MuxPane {
             }
         });
 
-        methods.add_method("save_pane_to", |_, this, file: String| {
-            let mux = get_mux()?;
-            let pane = this.resolve(&mux)?;
-            std::fs::write(&file, &pane.get_logical_lines_raw(0..isize::MAX))?;
-            Ok(())
-        });
-
         methods.add_method("inject_output", |_, this, text: String| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;

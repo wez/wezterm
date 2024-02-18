@@ -18,6 +18,7 @@ use parking_lot::{
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use serde::{Deserialize, Serialize};
+use termwiz_funcs::lines_to_escapes;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -1390,7 +1391,7 @@ impl Mux {
         }
     }
 
-    pub fn save_state_to<P: AsRef<Path>>(&self, name: P) {
+    pub fn save_state_to<P: AsRef<Path>>(&self, name: P) -> anyhow::Result<()> {
         let state = serde_json::to_vec(&self.save()).unwrap();
         let path = name.as_ref().with_extension("tar.zstd");
         let mut out = std::fs::File::create(path).unwrap();
@@ -1409,13 +1410,14 @@ impl Mux {
                         /* w, tab.tab_id(),*/ pane.pane.pane_id()
                     );
                     let mut header = tar::Header::new_gnu();
-                    let content = pane.pane.get_logical_lines_raw(0..isize::MAX);
+                    let content = lines_to_escapes(pane.pane.get_logical_lines(0..isize::MAX).into_iter().map(|l| l.logical).collect())?;
                     header.set_size(content.len() as u64);
                     ar.append_data(&mut header, p, content.as_bytes()).unwrap();
                 }
             }
         }
         ar.into_inner().unwrap().finish().unwrap();
+        Ok(())
     }
 
     pub async fn restore_state_from<P: AsRef<Path>>(&self, name: P) {
@@ -1424,7 +1426,7 @@ impl Mux {
         let path = name.as_ref().with_extension("tar.zstd");
         if let Ok(mut file) = std::fs::File::open(path) {
             let mut ar = tar::Archive::new(zstd::Decoder::new(&mut file).unwrap());
-            let mut pane_id_map: HashMap<usize, usize> = HashMap::new();
+            let mut pane_id_map: HashMap<PaneId, PaneId> = HashMap::new();
             for entry in ar.entries().unwrap() {
                 let mut entry = entry.unwrap();
                 let path = entry.path().unwrap();
@@ -1461,7 +1463,7 @@ impl Mux {
                         }
                     }
                 } else if let Ok(Some(cap)) = pane_regex.captures(&path.to_string_lossy()) {
-                    let pane_id: usize = cap.get(1).unwrap().as_str().parse().unwrap();
+                    let pane_id: PaneId = cap.get(1).unwrap().as_str().parse().unwrap();
                     let mut content = Vec::with_capacity(entry.size() as usize);
                     entry.read_to_end(&mut content).unwrap();
                     if !pane_id_map.is_empty() {
@@ -1587,7 +1589,7 @@ fn split_panes<'m>(
     split: SavedTree,
     tab: TabId,
     pane: PaneId,
-    id_map: &'m mut HashMap<usize, usize>,
+    id_map: &'m mut HashMap<PaneId, PaneId>,
 ) -> Pin<Box<dyn Future<Output = ()> + 'm>> {
     Box::pin(async move {
         if let SavedTree::Split(s) = split {
@@ -1617,7 +1619,7 @@ fn split_panes<'m>(
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SavedPaneState {
-    id: usize,
+    id: PaneId,
     cwd: Option<SerdeUrl>,
     root_argv: Vec<String>,
     prog_argv: Option<Vec<String>>,
