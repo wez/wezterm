@@ -1301,18 +1301,16 @@ impl TermWindow {
                 window.invalidate();
             }
             TermWindowNotif::SetInnerSize { width, height } => {
-                self.set_inner_size(width, height);
+                self.set_inner_size(window, width, height);
             }
         }
 
         Ok(())
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) {
-        if let Some(window) = &self.window {
-            self.resizes_pending += 1;
-            window.set_inner_size(width, height);
-        }
+    fn set_inner_size(&mut self, window: &Window, width: usize, height: usize) {
+        self.resizes_pending += 1;
+        window.set_inner_size(width, height);
     }
 
     /// Take care to remove our panes from the mux, otherwise
