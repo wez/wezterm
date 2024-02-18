@@ -337,7 +337,7 @@ impl super::TermWindow {
                 // pixel geometry which is considered to be a user-driven resize.
                 // Stashing the dimensions here avoids that misconception.
                 self.dimensions = dims;
-                self.set_inner_size(dims.pixel_width, dims.pixel_height);
+                self.set_inner_size(window, dims.pixel_width, dims.pixel_height);
             }
         }
     }
