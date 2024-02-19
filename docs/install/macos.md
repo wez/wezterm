@@ -34,8 +34,20 @@ If you'd like to use a nightly build:
 
 ```console
 $ brew tap homebrew/cask-versions
-$ brew install --cask wezterm-nightly
+$ brew install --cask wez/wezterm/wezterm-nightly --no-quarantine
 ```
+
+> 1. `--cask` needs to be set, as the cask name exists in homebrew already and will result in the following error:
+> ```
+> Error: Cask wezterm-nightly exists in multiple taps:
+  homebrew/cask-versions/wezterm-nightly
+  wez/wezterm/wezterm-nightly
+  ```
+> 2. `--no-quarantine` is set, otherwise you will receive the warning that Wezterm cannot be opened because the developer cannot be verified. This message is from [Gatekeeper](https://support.apple.com/en-mide/102445).
+> 3. To remove the above, you can remove the quarantine flag by using (-r is recursive, -d is delete, .app is a directory on MacOS):
+> ```sh
+xattr -rd com.apple.FinderInfo /Applications/WezTerm.app
+````
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
