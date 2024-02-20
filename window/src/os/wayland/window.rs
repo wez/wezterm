@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
@@ -14,18 +14,18 @@ use anyhow::{anyhow, bail};
 use async_io::Timer;
 use async_trait::async_trait;
 use config::ConfigHandle;
-use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
     WaylandDisplayHandle, WaylandWindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
-use smithay_client_toolkit::shell::xdg::frame::fallback_frame::FallbackFrame;
-use smithay_client_toolkit::shell::xdg::frame::{DecorationsFrame, FrameAction};
+use smithay_client_toolkit::data_device_manager::ReadPipe;
+use smithay_client_toolkit::seat::pointer::CursorIcon;
+use smithay_client_toolkit::shell::xdg::fallback_frame::FallbackFrame;
 use smithay_client_toolkit::shell::xdg::window::{
     DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
-    WindowHandler, WindowState as SCTKWindowState,
+    WindowHandler,
 };
 use smithay_client_toolkit::shell::xdg::XdgSurface;
 use smithay_client_toolkit::shell::WaylandSurface;
@@ -34,7 +34,9 @@ use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_client::protocol::wl_pointer::{ButtonState, WlPointer};
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection as WConnection, Proxy};
+use wayland_csd_frame::{DecorationsFrame, FrameAction, WindowState as CsdWindowState};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
+use wayland_protocols::xdg::shell::client::xdg_toplevel;
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{
     KeyboardLedStatus, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress,
@@ -193,11 +195,6 @@ impl WaylandWindow {
             compositor.create_surface_with_data(&qh, surface_data)
         };
 
-        let pointer_surface = {
-            let compositor = &conn.wayland_state.borrow().compositor;
-            compositor.create_surface(&qh)
-        };
-
         let ResolvedGeometry {
             x: _,
             y: _,
@@ -269,7 +266,6 @@ impl WaylandWindow {
             key_repeat: None,
             pending_event,
             pending_mouse,
-            pointer_surface,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
@@ -443,10 +439,10 @@ pub(crate) struct PendingEvent {
     pub(crate) window_state: Option<WindowState>,
 }
 
-pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
+pub(crate) fn read_pipe_with_timeout(mut file: ReadPipe) -> anyhow::Result<String> {
     let mut result = Vec::new();
 
-    file.set_non_blocking(true)?;
+    unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFL, libc::O_NONBLOCK) };
     let mut pfd = libc::pollfd {
         fd: file.as_raw_fd(),
         events: libc::POLLIN,
@@ -483,7 +479,6 @@ pub struct WaylandWindowInner {
     dimensions: Dimensions,
     resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
-    pointer_surface: WlSurface,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     hscroll_remainder: f64,
@@ -928,27 +923,20 @@ impl WaylandWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        let name = cursor.map_or("none", |cursor| match cursor {
-            MouseCursor::Arrow => "arrow",
-            MouseCursor::Hand => "hand",
-            MouseCursor::SizeUpDown => "ns-resize",
-            MouseCursor::SizeLeftRight => "ew-resize",
-            MouseCursor::Text => "xterm",
+        let icon = cursor.map_or(CursorIcon::Default, |cursor| match cursor {
+            MouseCursor::Arrow => CursorIcon::Default,
+            MouseCursor::Hand => CursorIcon::Pointer,
+            MouseCursor::SizeUpDown => CursorIcon::NsResize,
+            MouseCursor::SizeLeftRight => CursorIcon::EwResize,
+            MouseCursor::Text => CursorIcon::Text,
         });
         let conn = Connection::get().unwrap().wayland();
-        let state = conn.wayland_state.borrow_mut();
-        let (shm, pointer) =
-            RefMut::map_split(state, |s| (&mut s.shm, s.pointer.as_mut().unwrap()));
+        let mut state = conn.wayland_state.borrow_mut();
+        let pointer = state.pointer.as_mut().unwrap();
 
         // Much different API in 0.18
-        if let Err(err) = pointer.set_cursor(
-            &conn.connection,
-            name,
-            shm.wl_shm(),
-            &self.pointer_surface,
-            1,
-        ) {
-            log::error!("set_cursor: {}", err);
+        if let Err(err) = pointer.set_cursor(&conn.connection, icon) {
+            log::error!("set_cursor: (icon={}) {}", icon, err);
         }
     }
 
@@ -1182,8 +1170,14 @@ impl WaylandWindowInner {
                     .unwrap()
                     .show_window_menu(seat, serial, (x, y))
             }
-            FrameAction::Resize(edge) => self.window.as_ref().unwrap().resize(seat, serial, edge),
+            FrameAction::Resize(edge) => {
+                self.window
+                    .as_ref()
+                    .unwrap()
+                    .resize(seat, serial, frame_edge_to_window_edge(edge))
+            }
             FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
+            _ => {} // just ignore unrecognized frame actions
         }
     }
 }
@@ -1230,14 +1224,14 @@ impl WaylandState {
                 }
 
                 let mut state = WindowState::default();
-                if configure.state.contains(SCTKWindowState::FULLSCREEN) {
+                if configure.state.contains(CsdWindowState::FULLSCREEN) {
                     state |= WindowState::FULL_SCREEN;
                 }
-                let fs_bits = SCTKWindowState::MAXIMIZED
-                    | SCTKWindowState::TILED_LEFT
-                    | SCTKWindowState::TILED_RIGHT
-                    | SCTKWindowState::TILED_TOP
-                    | SCTKWindowState::TILED_BOTTOM;
+                let fs_bits = CsdWindowState::MAXIMIZED
+                    | CsdWindowState::TILED_LEFT
+                    | CsdWindowState::TILED_RIGHT
+                    | CsdWindowState::TILED_TOP
+                    | CsdWindowState::TILED_BOTTOM;
                 if !((configure.state & fs_bits).is_empty()) {
                     state |= WindowState::MAXIMIZED;
                 }
@@ -1275,18 +1269,27 @@ impl CompositorHandler for WaylandState {
         &mut self,
         _conn: &WConnection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _surface: &wayland_client::protocol::wl_surface::WlSurface,
-        _new_factor: i32,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        new_factor: i32,
     ) {
-        // TODO: uncomment after upgrading SCTK to 0.18
-        // let window_id = SurfaceUserData::from_wl(surface).window_id;
-        // WaylandConnection::with_window_inner(window_id, |inner| {
-        //     if let Some(frame) = inner.window_frame.as_mut() {
-        //         frame.set_scaling_factor(new_factor as f64);
-        //     }
-        //     Ok(())
-        // });
+        let window_id = SurfaceUserData::from_wl(surface).window_id;
+        WaylandConnection::with_window_inner(window_id, move |inner| {
+            if let Some(frame) = inner.decorations.as_mut() {
+                frame.set_scaling_factor(new_factor as f64);
+            }
+            Ok(())
+        });
         // We do nothing, we get the scale_factor from surface_data
+    }
+
+    fn transform_changed(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _new_transform: wayland_client::protocol::wl_output::Transform,
+    ) {
+        // Nothing to do here
     }
 
     fn frame(
@@ -1354,7 +1357,7 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = WaylandWindowHandle::empty();
         let surface = self.surface();
-        handle.surface = surface.id().as_ptr() as *mut _;
+        handle.surface = surface.id().interface().c_ptr.unwrap() as *const _ as *mut _;
         RawWindowHandle::Wayland(handle)
     }
 }
@@ -1363,7 +1366,13 @@ unsafe impl HasRawDisplayHandle for WaylandWindow {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         let mut handle = WaylandDisplayHandle::empty();
         let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.backend().display_ptr() as *mut _;
+        handle.display = conn
+            .connection
+            .backend()
+            .display_id()
+            .interface()
+            .c_ptr
+            .unwrap() as *const _ as *mut _;
         RawDisplayHandle::Wayland(handle)
     }
 }
@@ -1378,5 +1387,24 @@ unsafe impl HasRawWindowHandle for WaylandWindow {
 
         let inner = handle.borrow();
         inner.raw_window_handle()
+    }
+}
+
+fn frame_edge_to_window_edge(
+    frame_edge: wayland_csd_frame::ResizeEdge,
+) -> xdg_toplevel::ResizeEdge {
+    use wayland_csd_frame::ResizeEdge;
+    use xdg_toplevel::ResizeEdge as XdgResizeEdge;
+    match frame_edge {
+        ResizeEdge::None => XdgResizeEdge::None,
+        ResizeEdge::Top => XdgResizeEdge::Top,
+        ResizeEdge::Bottom => XdgResizeEdge::Bottom,
+        ResizeEdge::Left => XdgResizeEdge::Left,
+        ResizeEdge::TopLeft => XdgResizeEdge::TopLeft,
+        ResizeEdge::BottomLeft => XdgResizeEdge::BottomLeft,
+        ResizeEdge::Right => XdgResizeEdge::Right,
+        ResizeEdge::TopRight => XdgResizeEdge::TopRight,
+        ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
+        _ => XdgResizeEdge::None,
     }
 }

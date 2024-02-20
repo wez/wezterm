@@ -1,10 +1,9 @@
 use crate::wayland::read_pipe_with_timeout;
 use crate::ConnectionOps;
-use filedescriptor::{FileDescriptor, Pipe};
 use smithay_client_toolkit as toolkit;
-use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
-use toolkit::reexports::client::protocol::wl_data_offer::WlDataOffer;
+use toolkit::data_device_manager::data_offer::DragOffer;
+use toolkit::data_device_manager::ReadPipe;
 use url::Url;
 
 use super::data_device::URI_MIME_TYPE;
@@ -17,12 +16,12 @@ pub struct DragAndDrop {
 
 pub(super) struct SurfaceAndOffer {
     pub(super) window_id: usize,
-    pub(super) offer: WlDataOffer,
+    pub(super) offer: DragOffer,
 }
 
 pub(super) struct SurfaceAndPipe {
     pub(super) window_id: usize,
-    pub(super) read: FileDescriptor,
+    pub(super) read: ReadPipe,
 }
 
 impl DragAndDrop {
@@ -30,16 +29,15 @@ impl DragAndDrop {
     /// returning that surface and pipe descriptor.
     pub(super) fn create_pipe_for_drop(&mut self) -> Option<SurfaceAndPipe> {
         let SurfaceAndOffer { window_id, offer } = self.offer.take()?;
-        let pipe = Pipe::new()
-            .map_err(|err| log::error!("Unable to create pipe: {:#}", err))
+        let read = offer
+            .receive(URI_MIME_TYPE.to_string())
+            .map_err(|err| log::error!("Unable to receive data: {:#}", err))
             .ok()?;
-        offer.receive(URI_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
-        let read = pipe.read;
         offer.finish();
         Some(SurfaceAndPipe { window_id, read })
     }
 
-    pub(super) fn read_paths_from_pipe(read: FileDescriptor) -> Option<Vec<PathBuf>> {
+    pub(super) fn read_paths_from_pipe(read: ReadPipe) -> Option<Vec<PathBuf>> {
         read_pipe_with_timeout(read)
             .map_err(|err| {
                 log::error!("Error while reading pipe from drop result: {:#}", err);
