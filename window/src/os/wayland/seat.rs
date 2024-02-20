@@ -1,9 +1,9 @@
+use smithay_client_toolkit::compositor::SurfaceData;
 use smithay_client_toolkit::seat::pointer::ThemeSpec;
 use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, QueueHandle};
 
-use crate::wayland::copy_and_paste::PrimarySelectionManagerData;
 use crate::wayland::keyboard::KeyboardData;
 use crate::wayland::pointer::PointerUserData;
 
@@ -14,9 +14,7 @@ impl SeatHandler for WaylandState {
         &mut self.seat
     }
 
-    fn new_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: WlSeat) {
-        todo!()
-    }
+    fn new_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: WlSeat) {}
 
     fn new_capability(
         &mut self,
@@ -26,7 +24,10 @@ impl SeatHandler for WaylandState {
         capability: smithay_client_toolkit::seat::Capability,
     ) {
         if capability == Capability::Keyboard && self.keyboard.is_none() {
-            log::trace!("Setting keyboard capability");
+            log::trace!(
+                "Setting keyboard
+            capability"
+            );
             let keyboard = seat.get_keyboard(qh, KeyboardData {});
             self.keyboard = Some(keyboard.clone());
 
@@ -36,12 +37,18 @@ impl SeatHandler for WaylandState {
         }
 
         if capability == Capability::Pointer && self.pointer.is_none() {
-            log::trace!("Setting pointer capability");
+            log::trace!(
+                "Setting
+            pointer capability"
+            );
+            let surface = self.compositor.create_surface(qh);
             let pointer = self
                 .seat
-                .get_pointer_with_theme_and_data(
+                .get_pointer_with_theme_and_data::<WaylandState, SurfaceData, PointerUserData>(
                     qh,
                     &seat,
+                    self.shm.wl_shm(),
+                    surface,
                     ThemeSpec::System,
                     PointerUserData::new(seat.clone()),
                 )
@@ -52,11 +59,11 @@ impl SeatHandler for WaylandState {
             let data_device = data_device_manager.get_data_device(qh, &seat);
             self.data_device.replace(data_device);
 
-            let primary_select_device = self.primary_selection_manager.as_ref().map(|m| {
-                m.manager
-                    .get_device(&seat, qh, PrimarySelectionManagerData::default())
-            });
-            self.primary_select_device = primary_select_device;
+            let primary_select_device = self
+                .primary_selection_manager
+                .as_ref()
+                .map(|m| m.get_selection_device(qh, &seat));
+            self.primary_selection_device = primary_select_device;
         }
     }
 
@@ -67,10 +74,9 @@ impl SeatHandler for WaylandState {
         _seat: WlSeat,
         _capability: smithay_client_toolkit::seat::Capability,
     ) {
+        // we need to clean up the keyboard and pointer resources we created earlier
         todo!()
     }
 
-    fn remove_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: WlSeat) {
-        todo!()
-    }
+    fn remove_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: WlSeat) {}
 }

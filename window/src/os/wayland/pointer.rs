@@ -1,15 +1,16 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use smithay_client_toolkit::compositor::SurfaceData;
 use smithay_client_toolkit::seat::pointer::{
     PointerData, PointerDataExt, PointerEvent, PointerEventKind, PointerHandler,
 };
-use smithay_client_toolkit::shell::xdg::frame::{DecorationsFrame, FrameClick};
 use wayland_client::backend::ObjectId;
 use wayland_client::protocol::wl_pointer::{ButtonState, WlPointer};
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, Proxy, QueueHandle};
+use wayland_csd_frame::{DecorationsFrame, FrameClick};
 use wezterm_input_types::MousePress;
 
 use crate::wayland::SurfaceUserData;
@@ -221,16 +222,31 @@ impl WaylandState {
                 if let Some(frame) = inner.decorations.as_mut() {
                     match evt.kind {
                         PointerEventKind::Enter { .. } => {
-                            frame.click_point_moved(&evt.surface, x, y);
+                            frame.click_point_moved(Duration::ZERO, &evt.surface.id(), x, y);
                         }
                         PointerEventKind::Leave { .. } => {
                             frame.click_point_left();
                         }
-                        PointerEventKind::Motion { .. } => {
-                            frame.click_point_moved(&evt.surface, x, y);
+                        PointerEventKind::Motion { time, .. } => {
+                            frame.click_point_moved(
+                                Duration::from_millis(time as u64),
+                                &evt.surface.id(),
+                                x,
+                                y,
+                            );
                         }
-                        PointerEventKind::Press { button, serial, .. }
-                        | PointerEventKind::Release { button, serial, .. } => {
+                        PointerEventKind::Press {
+                            button,
+                            serial,
+                            time,
+                            ..
+                        }
+                        | PointerEventKind::Release {
+                            button,
+                            serial,
+                            time,
+                            ..
+                        } => {
                             let pressed = if matches!(evt.kind, PointerEventKind::Press { .. }) {
                                 true
                             } else {
@@ -241,7 +257,9 @@ impl WaylandState {
                                 0x111 => FrameClick::Alternate,
                                 _ => continue,
                             };
-                            if let Some(action) = frame.on_click(click, pressed) {
+                            if let Some(action) =
+                                frame.on_click(Duration::from_millis(time as u64), click, pressed)
+                            {
                                 inner.frame_action(pointer, serial, action);
                             }
                         }
