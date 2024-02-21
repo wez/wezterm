@@ -248,7 +248,7 @@ EOF
         fi
 
         ;;
-      Ubuntu*|Debian*)
+      Ubuntu*|Debian*|Pop)
         rm -rf pkg
         mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN pkg/debian/usr/share/{applications,wezterm}
 
