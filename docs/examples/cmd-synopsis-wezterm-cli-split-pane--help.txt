@@ -16,13 +16,13 @@ Options:
           Equivalent to `--right`. If neither this nor any other direction is
           specified, the default is equivalent to `--bottom`
       --left
-          Split horizontally, with the new pane on the left
+          Split vertically, with the new pane on the left
       --right
-          Split horizontally, with the new pane on the right
+          Split vertically, with the new pane on the right
       --top
-          Split vertically, with the new pane on the top
+          Split horizontally, with the new pane on the top
       --bottom
-          Split vertically, with the new pane on the bottom
+          Split horizontally, with the new pane on the bottom
       --top-level
           Rather than splitting the active pane, split the entire window
       --cells <CELLS>

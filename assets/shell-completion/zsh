@@ -181,10 +181,10 @@ _arguments "${_arguments_options[@]}" \
 '--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
 '(--cwd)--move-pane-id=[Instead of spawning a new command, move the specified pane into the newly created split]:MOVE_PANE_ID: ' \
 '(--left --right --top --bottom)--horizontal[Equivalent to \`--right\`. If neither this nor any other direction is specified, the default is equivalent to \`--bottom\`]' \
-'(--right --top --bottom)--left[Split horizontally, with the new pane on the left]' \
-'(--left --top --bottom)--right[Split horizontally, with the new pane on the right]' \
-'(--left --right --bottom)--top[Split vertically, with the new pane on the top]' \
-'(--left --right --top)--bottom[Split vertically, with the new pane on the bottom]' \
+'(--right --top --bottom)--left[Split vertically, with the new pane on the left]' \
+'(--left --top --bottom)--right[Split vertically, with the new pane on the right]' \
+'(--left --right --bottom)--top[Split horizontally, with the new pane on the top]' \
+'(--left --right --top)--bottom[Split horizontally, with the new pane on the bottom]' \
 '--top-level[Rather than splitting the active pane, split the entire window]' \
 '-h[Print help]' \
 '--help[Print help]' \

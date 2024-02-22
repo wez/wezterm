@@ -19,19 +19,19 @@ pub struct SplitPane {
     #[arg(long, conflicts_with_all=&["left", "right", "top", "bottom"])]
     horizontal: bool,
 
-    /// Split horizontally, with the new pane on the left
+    /// Split vertically, with the new pane on the left
     #[arg(long, conflicts_with_all=&["right", "top", "bottom"])]
     left: bool,
 
-    /// Split horizontally, with the new pane on the right
+    /// Split vertically, with the new pane on the right
     #[arg(long, conflicts_with_all=&["left", "top", "bottom"])]
     right: bool,
 
-    /// Split vertically, with the new pane on the top
+    /// Split horizontally, with the new pane on the top
     #[arg(long, conflicts_with_all=&["left", "right", "bottom"])]
     top: bool,
 
-    /// Split vertically, with the new pane on the bottom
+    /// Split horizontally, with the new pane on the bottom
     #[arg(long, conflicts_with_all=&["left", "right", "top"])]
     bottom: bool,
 

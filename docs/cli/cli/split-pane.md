@@ -39,13 +39,13 @@ The following options affect the behavior:
 
 {{since('20220624-141144-bd1b7c5d')}}
 
-* `--bottom` - Split vertically, with the new pane on the bottom.
+* `--bottom` - Split horizontally, with the new pane on the bottom.
 * `--cells CELLS` - The number of cells that the new split should have. If omitted, 50% of the available space is used.
-* `--left` - Split horizontally, with the new pane on the left.
+* `--left` - Split vertically, with the new pane on the left.
 * `--move-pane-id MOVE_PANE_ID` - Instead of spawning a new command, move the specified pane into the newly created split.
 * `--percent PERCENT` - Specify the number of cells that the new split should have, expressed as a percentage of the available space.
-* `--right` - Split horizontally, with the new pane on the right.
-* `--top` - Split vertically, with the new pane on the top.
+* `--right` - Split vertically, with the new pane on the right.
+* `--top` - Split horizontally, with the new pane on the top.
 * `--top-level` - Rather than splitting the active pane, split the entire window.
 
 ## Synopsis

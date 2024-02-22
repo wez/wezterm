@@ -105,10 +105,10 @@ complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcomm
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l cwd -d 'Specify the current working directory for the initially spawned program' -r -f -a "(__fish_complete_directories)"
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l move-pane-id -d 'Instead of spawning a new command, move the specified pane into the newly created split' -r
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l horizontal -d 'Equivalent to `--right`. If neither this nor any other direction is specified, the default is equivalent to `--bottom`'
-complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l left -d 'Split horizontally, with the new pane on the left'
-complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l right -d 'Split horizontally, with the new pane on the right'
-complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l top -d 'Split vertically, with the new pane on the top'
-complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l bottom -d 'Split vertically, with the new pane on the bottom'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l left -d 'Split vertically, with the new pane on the left'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l right -d 'Split vertically, with the new pane on the right'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l top -d 'Split horizontally, with the new pane on the top'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l bottom -d 'Split horizontally, with the new pane on the bottom'
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -l top-level -d 'Rather than splitting the active pane, split the entire window'
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from split-pane" -s h -l help -d 'Print help'
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from spawn" -l pane-id -d 'Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE. The pane is used to determine the current domain and window' -r
