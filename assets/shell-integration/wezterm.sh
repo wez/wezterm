@@ -481,7 +481,14 @@ __wezterm_semantic_precmd() {
     printf "\033]133;D;%s;aid=%s\007" "$ret" "$$"
   fi
   # Fresh line and start the prompt
-  printf "\033]133;A;cl=m;aid=%s\007" "$$"
+  if [[ -n "${BLE_VERSION-}" ]]; then
+    # FreshLine breaks ble.sh's cursor position tracking.  Also, the cursor
+    # position adjustment is already performed ble.sh so unnecessary here.  We
+    # here only perform StartPrompt.
+    printf "\033]133;P\007"
+  else
+    printf "\033]133;A;cl=m;aid=%s\007" "$$"
+  fi
   __wezterm_semantic_precmd_executing=0
 }
 
