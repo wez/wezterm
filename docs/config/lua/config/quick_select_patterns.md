@@ -17,6 +17,9 @@ config.quick_select_patterns = {
 }
 ```
 
+**Note:** usage of capturing groups is not recommented in most scenarios as all the patterns get combined into a big regex, where each of the pattern is an alternative in a capturing group.
+Then capturing groups are used for matching logic. So you want to use non-capturing groups (`(?:)`) or lookaheads/lookbehinds instead.
+
 {{since('20230408-112425-69ae8472', outline=True)}}
     The regex syntax now supports backreferences and look around assertions.
     See [Fancy Regex Syntax](https://docs.rs/fancy-regex/latest/fancy_regex/#syntax)
