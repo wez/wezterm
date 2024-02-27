@@ -27,20 +27,20 @@ export PATH
 WezTerm is available for [brew](https://brew.sh/) users:
 
 ```console
-$ brew install --cask wezterm
+$ brew install wezterm
 ```
 
 If you'd like to use a nightly build:
 
 ```console
 $ brew tap homebrew/cask-versions
-$ brew install --cask wezterm-nightly
+$ brew install wezterm-nightly
 ```
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```console
-$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
+$ brew upgrade wezterm-nightly --no-quarantine --greedy-latest
 ```
 
 ## MacPorts

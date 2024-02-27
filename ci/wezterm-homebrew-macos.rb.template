@@ -46,7 +46,7 @@ cask "wezterm" do
       /usr/local/bin/    for x86 Mac,
       /opt/homebrew/bin/ for M1 Mac.
 
-    Removal of them is ensured by 'brew uninstall --cask #{token}'.
+    Removal of them is ensured by 'brew uninstall #{token}'.
   EOS
   end
 end
