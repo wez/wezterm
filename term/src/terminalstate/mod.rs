@@ -1001,11 +1001,7 @@ impl TerminalState {
                     if self.dec_origin_mode {
                         self.left_and_right_margins.end
                     } else {
-                        // We allow 1 extra for the cursor x position
-                        // to account for some resize/rewrap scenarios
-                        // where we don't want to forget that the
-                        // cursor belongs to a wrapped line
-                        self.screen().physical_cols + 1
+                        self.screen().physical_cols
                     } as i64
                         - 1,
                 )

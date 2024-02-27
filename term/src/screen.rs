@@ -97,7 +97,6 @@ impl Screen {
     fn rewrap_lines(
         &mut self,
         physical_cols: usize,
-        physical_rows: usize,
         cursor_x: usize,
         cursor_y: PhysRowIndex,
         seqno: SequenceNo,
@@ -106,6 +105,8 @@ impl Screen {
         let mut logical_line: Option<Line> = None;
         let mut logical_cursor_x: Option<usize> = None;
         let mut adjusted_cursor = (cursor_x, cursor_y);
+        let mut cursor_associated_with_line = false;
+        let mut cursor_associated_with_current_line = false;
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
             line.update_last_change_seqno(seqno);
@@ -131,34 +132,17 @@ impl Screen {
                 }
             };
 
+            if let Some(x) = logical_cursor_x.take() {
+                let num_lines = (x + 1).div_ceil(physical_cols);
+                let last_x = x - ((num_lines - 1) * physical_cols);
+                adjusted_cursor = (last_x, rewrapped.len() + num_lines - 1);
+                cursor_associated_with_line = true;
+                cursor_associated_with_current_line = true;
+            }
+
             if was_wrapped {
                 logical_line.replace(line);
                 continue;
-            }
-
-            if let Some(x) = logical_cursor_x.take() {
-                let num_lines = x / physical_cols;
-                let last_x = x - (num_lines * physical_cols);
-                adjusted_cursor = (last_x, rewrapped.len() + num_lines);
-
-                // Special case: if the cursor lands in column zero, we'll
-                // lose track of its logical association with the wrapped
-                // line and it won't resize with the line correctly.
-                // Put it back on the prior line. The cursor is now
-                // technically outside of the viewport width.
-                if adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
-                    if physical_cols < self.physical_cols {
-                        // getting smaller: preserve its original position
-                        // on the prior line
-                        adjusted_cursor.0 = cursor_x;
-                    } else {
-                        // getting larger; we were most likely in column 1
-                        // or somewhere close. Jump to the end of the
-                        // prior line.
-                        adjusted_cursor.0 = physical_cols;
-                    }
-                    adjusted_cursor.1 -= 1;
-                }
             }
 
             if line.len() <= physical_cols {
@@ -168,21 +152,37 @@ impl Screen {
                     rewrapped.push_back(line);
                 }
             }
+
+            if cursor_associated_with_current_line {
+                if adjusted_cursor.1 == rewrapped.len() {
+                    if let Some(last_line) = rewrapped.back_mut() {
+                        last_line.set_last_cell_was_wrapped(true, seqno);
+                    }
+
+                    rewrapped.push_back(Line::new(seqno));
+                }
+
+                cursor_associated_with_current_line = false;
+            }
         }
+
+        loop {
+            let prev_last_is_wrapped = rewrapped.iter().rev().skip(1).next().map(Line::last_cell_was_wrapped).unwrap_or(false);
+            let last_is_unused = rewrapped.back().map(|line| line.visible_cells().all(|cell| !cell.attrs().edited())).unwrap_or(false);
+            let last_is_cursor_line = cursor_associated_with_line && adjusted_cursor.1 + 1 == rewrapped.len();
+
+            if prev_last_is_wrapped && last_is_unused && !last_is_cursor_line {
+                rewrapped.pop_back();
+
+                if let Some(prev_line) = rewrapped.back_mut() {
+                    prev_line.set_last_cell_was_wrapped(false, seqno);
+                }
+            } else {
+                break;
+            }
+        }
+
         self.lines = rewrapped;
-
-        // If we resized narrower and generated additional lines,
-        // we may need to scroll the lines to make room.  However,
-        // if the bottom line(s) are whitespace, we'll prune those
-        // out first in the rewrap case so that we don't lose any
-        // real information off the top of the scrollback
-        let capacity = physical_rows + self.scrollback_size();
-        while self.lines.len() > capacity
-            && self.lines.back().map(Line::is_whitespace).unwrap_or(false)
-        {
-            self.lines.pop_back();
-        }
-
         adjusted_cursor
     }
 
@@ -214,8 +214,16 @@ impl Screen {
         // maximized states.
         let cursor_phys = self.phys_row(cursor.y);
         for _ in cursor_phys + 1..self.lines.len() {
-            if self.lines.back().map(Line::is_whitespace).unwrap_or(false) {
+            if self.lines.back().map(|line| line.len() == 0).unwrap_or(false) {
                 self.lines.pop_back();
+
+                if let Some(prev_line) = self.lines.back_mut() {
+                    if prev_line.last_cell_was_wrapped() {
+                        prev_line.set_last_cell_was_wrapped(false, seqno);
+                    }
+                }
+            } else {
+                break;
             }
         }
 
@@ -228,7 +236,7 @@ impl Screen {
             // screen (hence the check for allow_scrollback), to avoid
             // conflicting screen updates with full screen apps.
             if self.allow_scrollback {
-                self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys, seqno)
+                self.rewrap_lines(physical_cols, cursor.x, cursor_phys, seqno)
             } else {
                 for line in &mut self.lines {
                     if physical_cols < self.physical_cols {
