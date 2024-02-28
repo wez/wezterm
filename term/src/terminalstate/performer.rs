@@ -208,8 +208,11 @@ impl<'a> Performer<'a> {
             self.screen_mut()
                 .set_cell_grapheme(x, y, g, print_width, attr_edited, seqno);
 
-            if !wrappable {
+            if !wrappable || self.cursor.x + print_width == width {
                 self.cursor.x += print_width;
+            }
+
+            if !wrappable {
                 self.wrap_next = false;
             } else {
                 self.wrap_next = self.dec_auto_wrap;
