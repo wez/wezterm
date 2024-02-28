@@ -18,7 +18,6 @@ use parking_lot::{
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use serde::{Deserialize, Serialize};
-use termwiz_funcs::lines_to_escapes;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -30,6 +29,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, ControlCode, CSI};
+use termwiz_funcs::lines_to_escapes;
 use thiserror::*;
 use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
 #[cfg(windows)]
@@ -1392,47 +1392,58 @@ impl Mux {
     }
 
     pub fn save_state_to<P: AsRef<Path>>(&self, name: P) -> anyhow::Result<()> {
-        let state = serde_json::to_vec(&self.save()).unwrap();
+        let state = serde_json::to_vec(&self.save())?;
         let path = name.as_ref().with_extension("tar.zstd");
-        let mut out = std::fs::File::create(path).unwrap();
-        let mut ar = tar::Builder::new(
-            zstd::Encoder::new(&mut out, zstd::DEFAULT_COMPRESSION_LEVEL).unwrap(),
-        );
+        let mut out = std::fs::File::create(path).context("creating state archive")?;
+        let mut ar = tar::Builder::new(zstd::Encoder::new(
+            &mut out,
+            zstd::DEFAULT_COMPRESSION_LEVEL,
+        )?);
         let mut header = tar::Header::new_gnu();
         header.set_size(state.len() as u64);
         ar.append_data(&mut header, "state.json", state.as_slice())
-            .unwrap();
+            .context("adding state info")?;
         for win in self.windows.read().values() {
             for tab in win.iter() {
                 for pane in tab.iter_panes() {
-                    let p = format!(
-                        "contents/{}.txt",
-                        /* w, tab.tab_id(),*/ pane.pane.pane_id()
-                    );
+                    let p = format!("contents/{}.txt", pane.pane.pane_id());
                     let mut header = tar::Header::new_gnu();
-                    let content = lines_to_escapes(pane.pane.get_logical_lines(0..isize::MAX).into_iter().map(|l| l.logical).collect())?;
+                    let content = lines_to_escapes(
+                        pane.pane
+                            .get_logical_lines(0..isize::MAX)
+                            .into_iter()
+                            .map(|l| l.logical)
+                            .collect(),
+                    )
+                    .context("convert panee to text")?;
                     header.set_size(content.len() as u64);
-                    ar.append_data(&mut header, p, content.as_bytes()).unwrap();
+                    ar.append_data(&mut header, p, content.as_bytes())
+                        .context("adding pane content")?;
                 }
             }
         }
-        ar.into_inner().unwrap().finish().unwrap();
+        ar.into_inner()
+            .context("finish writing to the archive")?
+            .finish()
+            .context("finishing compression")?;
         Ok(())
     }
 
-    pub async fn restore_state_from<P: AsRef<Path>>(&self, name: P) {
+    pub async fn restore_state_from<P: AsRef<Path>>(&self, name: P) -> anyhow::Result<()> {
         let pane_regex = fancy_regex::Regex::new(r"^contents/(\d+)\.txt$").unwrap();
         let mut pane_contents = HashMap::new();
         let path = name.as_ref().with_extension("tar.zstd");
         if let Ok(mut file) = std::fs::File::open(path) {
-            let mut ar = tar::Archive::new(zstd::Decoder::new(&mut file).unwrap());
+            let mut ar =
+                tar::Archive::new(zstd::Decoder::new(&mut file).context("decoding archive")?);
             let mut pane_id_map: HashMap<PaneId, PaneId> = HashMap::new();
-            for entry in ar.entries().unwrap() {
-                let mut entry = entry.unwrap();
-                let path = entry.path().unwrap();
+            for entry in ar.entries().context("reading state archive")? {
+                let mut entry = entry.context("reading archive entry")?;
+                let path = entry.path().context("reading path for archive entry")?;
                 if path == Path::new("state.json") {
                     let domain = self.default_domain();
-                    let state: SavedState = serde_json::from_reader(entry).unwrap();
+                    let state: SavedState =
+                        serde_json::from_reader(entry).context("deserializing state info")?;
                     for window in state.windows {
                         let win_id = *self.new_empty_window(None, None);
                         for saved_tab in window.tabs {
@@ -1441,17 +1452,25 @@ impl Mux {
                             let root_pane = domain
                                 .spawn_pane(window.size, Some(cmd), cwd)
                                 .await
-                                .unwrap();
+                                .context("spawning new pane")?;
                             if let Some(prog) = prog {
-                                root_pane.writer().write_all(prog.as_bytes()).unwrap();
-                                root_pane.writer().write_all(b"\r").unwrap();
+                                root_pane
+                                    .writer()
+                                    .write_all(prog.as_bytes())
+                                    .context("sending last spawned command")?;
+                                root_pane
+                                    .writer()
+                                    .write_all(b"\r")
+                                    .context("sending last spawned command")?;
                             }
                             let root_pane_id = root_pane.pane_id();
                             assert_eq!(pane_id_map.insert(leftmost.id, root_pane_id), None);
                             let tab = Arc::new(Tab::new(&window.size));
                             tab.assign_pane(&root_pane);
-                            self.add_tab_and_active_pane(&tab).unwrap();
-                            self.add_tab_to_window(&tab, win_id).unwrap();
+                            self.add_tab_and_active_pane(&tab)
+                                .context("adding new tab")?;
+                            self.add_tab_to_window(&tab, win_id)
+                                .context("adding new tab to window")?;
                             split_panes(
                                 domain.as_ref(),
                                 saved_tab.panes,
@@ -1459,13 +1478,15 @@ impl Mux {
                                 root_pane_id,
                                 &mut pane_id_map,
                             )
-                            .await;
+                            .await?;
                         }
                     }
                 } else if let Ok(Some(cap)) = pane_regex.captures(&path.to_string_lossy()) {
                     let pane_id: PaneId = cap.get(1).unwrap().as_str().parse().unwrap();
                     let mut content = Vec::with_capacity(entry.size() as usize);
-                    entry.read_to_end(&mut content).unwrap();
+                    entry
+                        .read_to_end(&mut content)
+                        .context("reading pane content")?;
                     if !pane_id_map.is_empty() {
                         let mut parser = termwiz::escape::parser::Parser::new();
                         let mut actions = vec![];
@@ -1484,6 +1505,9 @@ impl Mux {
                     }
                 }
             }
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("no state to restore"))
         }
     }
 }
@@ -1590,7 +1614,7 @@ fn split_panes<'m>(
     tab: TabId,
     pane: PaneId,
     id_map: &'m mut HashMap<PaneId, PaneId>,
-) -> Pin<Box<dyn Future<Output = ()> + 'm>> {
+) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'm>> {
     Box::pin(async move {
         if let SavedTree::Split(s) = split {
             let leftmost = leftmost_pane(&s.right);
@@ -1605,15 +1629,23 @@ fn split_panes<'m>(
                 top_level: false,
                 size: SplitSize::Cells(s.pos),
             };
-            let new = domain.split_pane(source, tab, pane, req).await.unwrap();
+            let new = domain
+                .split_pane(source, tab, pane, req)
+                .await
+                .context("restoring layout")?;
             if let Some(prog) = prog {
-                new.writer().write_all(prog.as_bytes()).unwrap();
-                new.writer().write_all(b"\r").unwrap();
+                new.writer()
+                    .write_all(prog.as_bytes())
+                    .context("sending last spawned command")?;
+                new.writer()
+                    .write_all(b"\r")
+                    .context("sending last spawned command")?;
             }
             assert_eq!(id_map.insert(leftmost.id, new.pane_id()), None);
-            split_panes(domain, *s.left, tab, pane, id_map).await;
-            split_panes(domain, *s.right, tab, new.pane_id(), id_map).await;
+            split_panes(domain, *s.left, tab, pane, id_map).await?;
+            split_panes(domain, *s.right, tab, new.pane_id(), id_map).await?;
         }
+        Ok(())
     })
 }
 

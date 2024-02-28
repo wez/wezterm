@@ -9,22 +9,14 @@ use parking_lot::MappedMutexGuard;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::Write;
 use std::ops::Range;
 use std::sync::Arc;
-use termwiz::cell::CellAttributes;
-use termwiz::color::ColorSpec;
-use termwiz::escape::csi::Sgr;
 use termwiz::hyperlink::Rule;
 use termwiz::input::KeyboardEncoding;
-use termwiz::surface::{line::CellStorage, Line, SequenceNo};
+use termwiz::surface::{Line, SequenceNo};
 use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::Blink;
-use wezterm_term::Intensity;
-use wezterm_term::Underline;
-use wezterm_term::VerticalAlign;
 use wezterm_term::{
     Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
     TerminalConfiguration, TerminalSize,
