@@ -1,6 +1,6 @@
 // The range_plus_one lint can't see when the LHS is not compatible with
 // and inclusive range
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
+#![allow(clippy::range_plus_one)]
 use mux::pane::Pane;
 use std::cmp::Ordering;
 use std::ops::Range;

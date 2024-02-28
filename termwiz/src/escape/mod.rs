@@ -1,6 +1,6 @@
 // suppress inscrutable useless_attribute clippy that shows up when
 // using derive(FromPrimitive)
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
+#![allow(clippy::useless_attribute)]
 #![allow(clippy::upper_case_acronyms)]
 //! This module provides the ability to parse escape sequences and attach
 //! semantic meaning to them.  It can also encode the semantic values as
