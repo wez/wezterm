@@ -839,6 +839,9 @@ pub struct Config {
 
     #[dynamic(default = "default_ulimit_nproc")]
     pub ulimit_nproc: u64,
+
+    #[dynamic(default = "default_wayland_scroll_factor")]
+    pub wayland_scroll_factor: f64,
 }
 impl_lua_conversion_dynamic!(Config);
 
@@ -852,6 +855,10 @@ fn default_ulimit_nofile() -> u64 {
 
 fn default_ulimit_nproc() -> u64 {
     2048
+}
+
+fn default_wayland_scroll_factor() -> f64 {
+    1.0
 }
 
 impl Default for Config {
