@@ -48,7 +48,7 @@ config.window_frame = {
 You may specify the font and font size for the tabbar:
 ```lua
 config.window_frame = {
-  font = require('wezterm').font = 'Roboto',
+  font = require('wezterm').font 'Roboto',
   font_size = 12,
 }
 ```
