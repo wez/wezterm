@@ -532,7 +532,13 @@ impl Config {
         }
 
         let mut token_map = self.tokens.clone();
-        token_map.insert("%h".to_string(), host.to_string());
+        token_map.insert(
+            "%h".to_string(),
+            result
+                .get("hostname")
+                .unwrap_or(&host.to_string())
+                .to_string(),
+        );
         token_map.insert("%n".to_string(), host.to_string());
         token_map.insert("%r".to_string(), target_user.to_string());
         token_map.insert(
@@ -612,7 +618,6 @@ impl Config {
             | "localforward" | "remotecommand" | "remoteforward" | "userknownkostsfile" => {
                 Some(&["%C", "%d", "%h", "%i", "%L", "%l", "%n", "%p", "%r", "%u"])
             }
-            "hostname" => Some(&["%h"]),
             "localcommand" => Some(&[
                 "%C", "%d", "%h", "%i", "%k", "%L", "%l", "%n", "%p", "%r", "%T", "%u",
             ]),
