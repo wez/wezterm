@@ -41,6 +41,15 @@ bitflags::bitflags! {
     }
 }
 
+bitflags::bitflags! {
+    pub struct Triangle: u8{
+        const UPPER = 1<<1;
+        const LOWER = 1<<2;
+        const LEFT = 1<<3;
+        const RIGHT = 1<<4;
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockAlpha {
     /// 100%
@@ -156,6 +165,8 @@ pub enum BlockKey {
     Quadrants(Quadrant),
     /// A combination of sextants <https://unicode.org/charts/PDF/U1FB00.pdf>
     Sextants(Sextant),
+    /// A combination of triangles <https://unicode.org/charts/PDF/U1FB00.pdf>
+    Triangles(Triangle),
     /// A braille dot pattern
     Braille(u8),
 
@@ -3928,6 +3939,23 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
+            // [🭨] UPPER AND RIGHT AND LOWER TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb68 => Self::Triangles(Triangle::UPPER | Triangle::RIGHT | Triangle::LOWER),
+            // [🭩] LEFT AND LOWER AND RIGHT TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb69 => Self::Triangles(Triangle::LEFT | Triangle::LOWER | Triangle::RIGHT),
+            // [🭪] UPPER AND LEFT AND LOWER TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb6a => Self::Triangles(Triangle::UPPER | Triangle::LEFT | Triangle::LOWER),
+            // [🭫] LEFT AND UPPER AND RIGHT TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb6b => Self::Triangles(Triangle::LEFT | Triangle::UPPER | Triangle::RIGHT),
+            // [🭬] LEFT TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6c => Self::Triangles(Triangle::LEFT),
+            // [🭭] UPPER TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6d => Self::Triangles(Triangle::UPPER),
+            // [🭮] RIGHT TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6e => Self::Triangles(Triangle::RIGHT),
+            // [🭯] LOWER TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6f => Self::Triangles(Triangle::LOWER),
+
             // [🭼] Left and lower one eighth block
             0x1fb7c => Self::Edges(&[Edge::Left(1), Edge::Lower(1)]),
             // [🭽] Left and upper one eighth block
@@ -3956,6 +3984,12 @@ impl BlockKey {
             0x1fb8a => Self::Edges(&[Edge::Right(6)]),
             // [🮋] Right seven eighths block
             0x1fb8b => Self::Edges(&[Edge::Right(7)]),
+
+            // [🮚] UPPER AND LOWER TRIANGULAR HALF BLOCK
+            0x1fb9a => Self::Triangles(Triangle::UPPER | Triangle::LOWER),
+            // [🮛] LEFT AND RIGHT TRIANGULAR HALF BLOCK
+            0x1fb9b => Self::Triangles(Triangle::LEFT | Triangle::RIGHT),
+
             // Braille dot patterns
             // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
             // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
@@ -4389,6 +4423,120 @@ impl GlyphCache {
                 }
                 if quads.contains(Quadrant::LOWER_RIGHT) {
                     fill_rect(&mut buffer, scale(x_half)..width, scale(y_half)..height);
+                }
+            }
+            BlockKey::Triangles(triangles) => {
+                if triangles.contains(Triangle::UPPER) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::Frac(1 ,2), BlockCoord::Frac(1, 2)),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Fill,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if triangles.contains(Triangle::LOWER) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                                PolyCommand::LineTo(BlockCoord::Frac(1 ,2), BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Fill,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if triangles.contains(Triangle::LEFT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::Frac(1 ,2), BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Fill,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if triangles.contains(Triangle::RIGHT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                                PolyCommand::LineTo(BlockCoord::Frac(1 ,2), BlockCoord::Frac(1, 2)),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Fill,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                // check if multiple triangles are requested and fill anti-aliased X in the middle
+                if triangles.bits() & (triangles.bits() - 1) != 0 {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        },
+                        Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                                PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    )
                 }
             }
             BlockKey::Sextants(s) => {
