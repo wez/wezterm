@@ -4017,11 +4017,207 @@ impl BlockKey {
             0x1fb8a => Self::Blocks(&[Block::Right(6)]),
             // [🮋] Right seven eighths block
             0x1fb8b => Self::Blocks(&[Block::Right(7)]),
+            // [🮌] LEFT HALF MEDIUM SHADE
+            0x1fb8c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮍] RIGHT HALF MEDIUM SHADE
+            0x1fb8d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮎] UPPER HALF MEDIUM SHADE
+            0x1fb8e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮏] LOWER HALF MEDIUM SHADE
+            0x1fb8f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮐] INVERSE MEDIUM SHADE
+            0x1fb90 => Self::Full(BlockAlpha::Medium),
+            // [🮑] UPPER HALF BLOCK AND LOWER HALF INVERSE MEDIUM SHADE
+            0x1fb91 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Fill,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Medium,
+                    style: PolyStyle::Fill,
+                }
+            ]),
+            // [🮒] UPPER HALF INVERSE MEDIUM SHADE AND LOWER HALF BLOCK
+            0x1fb92 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Medium,
+                    style: PolyStyle::Fill,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Fill,
+                }
+            ]),
+            // INFO: not official!
+            // [ ] LEFT HALF BLOCK AND RIGHT HALF INVERSE MEDIUM SHADE
+            0x1fb93 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Fill,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Medium,
+                    style: PolyStyle::Fill,
+                }
+            ]),
+            // [🮔] LEFT HALF INVERSE MEDIUM SHADE AND RIGHT HALF BLOCK
+            0x1fb94 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Medium,
+                    style: PolyStyle::Fill,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Fill,
+                }
+            ]),
+
 
             // [🮚] UPPER AND LOWER TRIANGULAR HALF BLOCK
             0x1fb9a => Self::Triangles(Triangle::UPPER | Triangle::LOWER),
             // [🮛] LEFT AND RIGHT TRIANGULAR HALF BLOCK
             0x1fb9b => Self::Triangles(Triangle::LEFT | Triangle::RIGHT),
+            // [🮜] UPPER UPPER LEFT TRIANGULAR MEDIUM SHADE
+            0x1fb9c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮝] UPPER RIGHT TRIANGULAR MEDIUM SHADE
+            0x1fb9d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮞] LOWER RIGHT TRIANGULAR MEDIUM SHADE
+            0x1fb9e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
+            // [🮟] LOWER LEFT TRIANGULAR MEDIUM SHADE
+            0x1fb9f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Medium,
+                style: PolyStyle::Fill,
+            }]),
 
             // Braille dot patterns
             // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
