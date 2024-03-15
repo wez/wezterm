@@ -3332,24 +3332,6 @@ impl BlockKey {
             0x1fb1b => {
                 Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
             }
-            // Braille dot patterns
-            // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
-            // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
-            // ⠠ ⠡ ⠢ ⠣ ⠤ ⠥ ⠦ ⠧ ⠨ ⠩ ⠪ ⠫ ⠬ ⠭ ⠮ ⠯
-            // ⠰ ⠱ ⠲ ⠳ ⠴ ⠵ ⠶ ⠷ ⠸ ⠹ ⠺ ⠻ ⠼ ⠽ ⠾ ⠿
-            // ⡀ ⡁ ⡂ ⡃ ⡄ ⡅ ⡆ ⡇ ⡈ ⡉ ⡊ ⡋ ⡌ ⡍ ⡎ ⡏
-            // ⡐ ⡑ ⡒ ⡓ ⡔ ⡕ ⡖ ⡗ ⡘ ⡙ ⡚ ⡛ ⡜ ⡝ ⡞ ⡟
-            // ⡠ ⡡ ⡢ ⡣ ⡤ ⡥ ⡦ ⡧ ⡨ ⡩ ⡪ ⡫ ⡬ ⡭ ⡮ ⡯
-            // ⡰ ⡱ ⡲ ⡳ ⡴ ⡵ ⡶ ⡷ ⡸ ⡹ ⡺ ⡻ ⡼ ⡽ ⡾ ⡿
-            // ⢀ ⢁ ⢂ ⢃ ⢄ ⢅ ⢆ ⢇ ⢈ ⢉ ⢊ ⢋ ⢌ ⢍ ⢎ ⢏
-            // ⢐ ⢑ ⢒ ⢓ ⢔ ⢕ ⢖ ⢗ ⢘ ⢙ ⢚ ⢛ ⢜ ⢝ ⢞ ⢟
-            // ⢠ ⢡ ⢢ ⢣ ⢤ ⢥ ⢦ ⢧ ⢨ ⢩ ⢪ ⢫ ⢬ ⢭ ⢮ ⢯
-            // ⢰ ⢱ ⢲ ⢳ ⢴ ⢵ ⢶ ⢷ ⢸ ⢹ ⢺ ⢻ ⢼ ⢽ ⢾ ⢿
-            // ⣀ ⣁ ⣂ ⣃ ⣄ ⣅ ⣆ ⣇ ⣈ ⣉ ⣊ ⣋ ⣌ ⣍ ⣎ ⣏
-            // ⣐ ⣑ ⣒ ⣓ ⣔ ⣕ ⣖ ⣗ ⣘ ⣙ ⣚ ⣛ ⣜ ⣝ ⣞ ⣟
-            // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
-            // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
-            n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
             // [🬜] BLOCK SEXTANT-2345
             0x1fb1c => {
                 Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
@@ -3485,6 +3467,467 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
+            // [🭁] LOWER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb41 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭂] LOWER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb42 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭃] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb43 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭄] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb44 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭅] LOWER RIGHT BLOCK DIAGONAL UPPER LEFT TO UPPER CENTRE
+            0x1fb45 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭆] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER MIDDLE RIGHT
+            0x1fb46 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭇] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb47 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭈] LOWER RIGHT BLOCK DIAGONAL LOWER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb48 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭉] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb49 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭊] LOWER RIGHT BLOCK DIAGONAL LOWER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb4a => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭋] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO UPPER RIGHT
+            0x1fb4b => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭌] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb4c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭍] LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb4d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭎] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb4e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭏] LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb4f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭐] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO LOWER RIGHT
+            0x1fb50 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭑] LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER MIDDLE RIGHT
+            0x1fb51 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭒] UPPER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb52 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭓] UPPER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb53 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭔] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb54 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭕] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb55 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭖] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
+            0x1fb56 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭗] UPPER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb57 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭘] UPPER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb58 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭙] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb59 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭚] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb5a => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭛] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO UPPER CENTRE
+            0x1fb5b => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭜] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER MIDDLE RIGHT
+            0x1fb5c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭝] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb5d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭞] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb5e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭟] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb5f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1,2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭠] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb60 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭡] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO UPPER RIGHT
+            0x1fb61 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭢] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb62 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭣] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb63 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭤] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb64 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭥] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb65 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭦] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO LOWER RIGHT
+            0x1fb66 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭧] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER MIDDLE RIGHT
+            0x1fb67 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
             // [🭼] Left and lower one eighth block
             0x1fb7c => Self::Edges(&[Edge::Left(1), Edge::Lower(1)]),
             // [🭽] Left and upper one eighth block
@@ -3513,6 +3956,24 @@ impl BlockKey {
             0x1fb8a => Self::Edges(&[Edge::Right(6)]),
             // [🮋] Right seven eighths block
             0x1fb8b => Self::Edges(&[Edge::Right(7)]),
+            // Braille dot patterns
+            // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
+            // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
+            // ⠠ ⠡ ⠢ ⠣ ⠤ ⠥ ⠦ ⠧ ⠨ ⠩ ⠪ ⠫ ⠬ ⠭ ⠮ ⠯
+            // ⠰ ⠱ ⠲ ⠳ ⠴ ⠵ ⠶ ⠷ ⠸ ⠹ ⠺ ⠻ ⠼ ⠽ ⠾ ⠿
+            // ⡀ ⡁ ⡂ ⡃ ⡄ ⡅ ⡆ ⡇ ⡈ ⡉ ⡊ ⡋ ⡌ ⡍ ⡎ ⡏
+            // ⡐ ⡑ ⡒ ⡓ ⡔ ⡕ ⡖ ⡗ ⡘ ⡙ ⡚ ⡛ ⡜ ⡝ ⡞ ⡟
+            // ⡠ ⡡ ⡢ ⡣ ⡤ ⡥ ⡦ ⡧ ⡨ ⡩ ⡪ ⡫ ⡬ ⡭ ⡮ ⡯
+            // ⡰ ⡱ ⡲ ⡳ ⡴ ⡵ ⡶ ⡷ ⡸ ⡹ ⡺ ⡻ ⡼ ⡽ ⡾ ⡿
+            // ⢀ ⢁ ⢂ ⢃ ⢄ ⢅ ⢆ ⢇ ⢈ ⢉ ⢊ ⢋ ⢌ ⢍ ⢎ ⢏
+            // ⢐ ⢑ ⢒ ⢓ ⢔ ⢕ ⢖ ⢗ ⢘ ⢙ ⢚ ⢛ ⢜ ⢝ ⢞ ⢟
+            // ⢠ ⢡ ⢢ ⢣ ⢤ ⢥ ⢦ ⢧ ⢨ ⢩ ⢪ ⢫ ⢬ ⢭ ⢮ ⢯
+            // ⢰ ⢱ ⢲ ⢳ ⢴ ⢵ ⢶ ⢷ ⢸ ⢹ ⢺ ⢻ ⢼ ⢽ ⢾ ⢿
+            // ⣀ ⣁ ⣂ ⣃ ⣄ ⣅ ⣆ ⣇ ⣈ ⣉ ⣊ ⣋ ⣌ ⣍ ⣎ ⣏
+            // ⣐ ⣑ ⣒ ⣓ ⣔ ⣕ ⣖ ⣗ ⣘ ⣙ ⣚ ⣛ ⣜ ⣝ ⣞ ⣟
+            // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
+            // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
+            n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
             // [] Powerline filled right arrow
             0xe0b0 => Self::Poly(&[Poly {
                 path: &[
