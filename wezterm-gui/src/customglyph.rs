@@ -140,7 +140,7 @@ impl BlockCoord {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum Edge {
+pub enum Block {
     /// Number of 1/8ths in the upper half
     Upper(u8),
     /// Number of 1/8ths in the lower half
@@ -149,6 +149,12 @@ pub enum Edge {
     Left(u8),
     /// Number of 1/8ths in the right half
     Right(u8),
+    /// Number of 1/8ths: x0, x1
+    Vertical(u8, u8),
+    /// Number of 1/8ths: y0, y1
+    Horizontal(u8, u8),
+    /// Number of 1/8ths: x0, x1, y0, y1
+    Custom(u8, u8, u8, u8),
 }
 
 /// Represents a Block Element glyph, decoded from
@@ -156,8 +162,8 @@ pub enum Edge {
 /// <https://www.unicode.org/charts/PDF/U2580.pdf>
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockKey {
-    /// List of edge rectangles
-    Edges(&'static [Edge]),
+    /// List of block rectangles
+    Blocks(&'static [Block]),
 
     /// Full block with alpha level
     Full(BlockAlpha),
@@ -3214,39 +3220,39 @@ impl BlockKey {
             ]),
 
             // [▀] UPPER HALF BLOCK
-            0x2580 => Self::Edges(&[Edge::Upper(4)]),
+            0x2580 => Self::Blocks(&[Block::Upper(4)]),
             // [▁] LOWER 1 EIGHTH BLOCK
-            0x2581 => Self::Edges(&[Edge::Lower(1)]),
+            0x2581 => Self::Blocks(&[Block::Lower(1)]),
             // [▂] LOWER 2 EIGHTHS BLOCK
-            0x2582 => Self::Edges(&[Edge::Lower(2)]),
+            0x2582 => Self::Blocks(&[Block::Lower(2)]),
             // [▃] LOWER 3 EIGHTHS BLOCK
-            0x2583 => Self::Edges(&[Edge::Lower(3)]),
+            0x2583 => Self::Blocks(&[Block::Lower(3)]),
             // [▄] LOWER 4 EIGHTHS BLOCK
-            0x2584 => Self::Edges(&[Edge::Lower(4)]),
+            0x2584 => Self::Blocks(&[Block::Lower(4)]),
             // [▅] LOWER 5 EIGHTHS BLOCK
-            0x2585 => Self::Edges(&[Edge::Lower(5)]),
+            0x2585 => Self::Blocks(&[Block::Lower(5)]),
             // [▆] LOWER 6 EIGHTHS BLOCK
-            0x2586 => Self::Edges(&[Edge::Lower(6)]),
+            0x2586 => Self::Blocks(&[Block::Lower(6)]),
             // [▇] LOWER 7 EIGHTHS BLOCK
-            0x2587 => Self::Edges(&[Edge::Lower(7)]),
+            0x2587 => Self::Blocks(&[Block::Lower(7)]),
             // [█] FULL BLOCK
             0x2588 => Self::Full(BlockAlpha::Full),
             // [▉] LEFT 7 EIGHTHS BLOCK
-            0x2589 => Self::Edges(&[Edge::Left(7)]),
+            0x2589 => Self::Blocks(&[Block::Left(7)]),
             // [▊] LEFT 6 EIGHTHS BLOCK
-            0x258a => Self::Edges(&[Edge::Left(6)]),
+            0x258a => Self::Blocks(&[Block::Left(6)]),
             // [▋] LEFT 5 EIGHTHS BLOCK
-            0x258b => Self::Edges(&[Edge::Left(5)]),
+            0x258b => Self::Blocks(&[Block::Left(5)]),
             // [▌] LEFT 4 EIGHTHS BLOCK
-            0x258c => Self::Edges(&[Edge::Left(4)]),
+            0x258c => Self::Blocks(&[Block::Left(4)]),
             // [▍] LEFT 3 EIGHTHS BLOCK
-            0x258d => Self::Edges(&[Edge::Left(3)]),
+            0x258d => Self::Blocks(&[Block::Left(3)]),
             // [▎] LEFT 2 EIGHTHS BLOCK
-            0x258e => Self::Edges(&[Edge::Left(2)]),
+            0x258e => Self::Blocks(&[Block::Left(2)]),
             // [▏] LEFT 1 EIGHTHS BLOCK
-            0x258f => Self::Edges(&[Edge::Left(1)]),
+            0x258f => Self::Blocks(&[Block::Left(1)]),
             // [▐] RIGHT HALF BLOCK
-            0x2590 => Self::Edges(&[Edge::Right(4)]),
+            0x2590 => Self::Blocks(&[Block::Right(4)]),
             // [░] LIGHT SHADE
             0x2591 => Self::Full(BlockAlpha::Light),
             // [▒] MEDIUM SHADE
@@ -3254,9 +3260,9 @@ impl BlockKey {
             // [▓] DARK SHADE
             0x2593 => Self::Full(BlockAlpha::Dark),
             // [▔] UPPER ONE EIGHTH BLOCK
-            0x2594 => Self::Edges(&[Edge::Upper(1)]),
+            0x2594 => Self::Blocks(&[Block::Upper(1)]),
             // [▕] RIGHT ONE EIGHTH BLOCK
-            0x2595 => Self::Edges(&[Edge::Right(1)]),
+            0x2595 => Self::Blocks(&[Block::Right(1)]),
             // [▖] QUADRANT LOWER LEFT
             0x2596 => Self::Quadrants(Quadrant::LOWER_LEFT),
             // [▗] QUADRANT LOWER RIGHT
@@ -3955,35 +3961,62 @@ impl BlockKey {
             0x1fb6e => Self::Triangles(Triangle::RIGHT),
             // [🭯] LOWER TRIANGULAR ONE QUARTER BLOCK
             0x1fb6f => Self::Triangles(Triangle::LOWER),
-
+            // [🭰] VERTICAL ONE EIGHTH BLOCK-2
+            0x1fb70 => Self::Blocks(&[Block::Vertical(1, 2)]),
+            // [🭱] VERTICAL ONE EIGHTH BLOCK-3
+            0x1fb71 => Self::Blocks(&[Block::Vertical(2, 3)]),
+            // [🭲] VERTICAL ONE EIGHTH BLOCK-4
+            0x1fb72 => Self::Blocks(&[Block::Vertical(3, 4)]),
+            // [🭳] VERTICAL ONE EIGHTH BLOCK-5
+            0x1fb73 => Self::Blocks(&[Block::Vertical(4, 5)]),
+            // [🭴] VERTICAL ONE EIGHTH BLOCK-6
+            0x1fb74 => Self::Blocks(&[Block::Vertical(5, 6)]),
+            // [🭵] VERTICAL ONE EIGHTH BLOCK-7
+            0x1fb75 => Self::Blocks(&[Block::Vertical(6, 7)]),
+            // [🭶] HORIZONTAL ONE EIGHTH BLOCK-2
+            0x1fb76 => Self::Blocks(&[Block::Horizontal(1, 2)]),
+            // [🭷] HORIZONTAL ONE EIGHTH BLOCK-3
+            0x1fb77 => Self::Blocks(&[Block::Horizontal(2, 3)]),
+            // [🭸] HORIZONTAL ONE EIGHTH BLOCK-4
+            0x1fb78 => Self::Blocks(&[Block::Horizontal(3, 4)]),
+            // [🭹] HORIZONTAL ONE EIGHTH BLOCK-5
+            0x1fb79 => Self::Blocks(&[Block::Horizontal(4, 5)]),
+            // [🭺] HORIZONTAL ONE EIGHTH BLOCK-6
+            0x1fb7a => Self::Blocks(&[Block::Horizontal(5, 6)]),
+            // [🭻] HORIZONTAL ONE EIGHTH BLOCK-7
+            0x1fb7b => Self::Blocks(&[Block::Horizontal(6, 7)]),
             // [🭼] Left and lower one eighth block
-            0x1fb7c => Self::Edges(&[Edge::Left(1), Edge::Lower(1)]),
+            0x1fb7c => Self::Blocks(&[Block::Left(1), Block::Lower(1)]),
             // [🭽] Left and upper one eighth block
-            0x1fb7d => Self::Edges(&[Edge::Left(1), Edge::Upper(1)]),
+            0x1fb7d => Self::Blocks(&[Block::Left(1), Block::Upper(1)]),
             // [🭾] Right and upper one eighth block
-            0x1fb7e => Self::Edges(&[Edge::Right(1), Edge::Upper(1)]),
+            0x1fb7e => Self::Blocks(&[Block::Right(1), Block::Upper(1)]),
             // [🭿] Right and lower one eighth block
-            0x1fb7f => Self::Edges(&[Edge::Right(1), Edge::Lower(1)]),
+            0x1fb7f => Self::Blocks(&[Block::Right(1), Block::Lower(1)]),
+            // [🮀] UPPER AND LOWER ONE EIGHTH BLOCK
+            0x1fb80 => Self::Blocks(&[Block::Upper(1), Block::Lower(1)]),
+            // [🮁] HORIZONTAL ONE EIGHTH BLOCK-1358
+            0x1fb81 => Self::Blocks(&[Block::Upper(1), Block::Horizontal(2, 3), Block::Horizontal(4, 5), Block::Lower(1)]),
             // [🮂] Upper One Quarter Block
-            0x1fb82 => Self::Edges(&[Edge::Upper(2)]),
+            0x1fb82 => Self::Blocks(&[Block::Upper(2)]),
             // [🮃] Upper three eighths block
-            0x1fb83 => Self::Edges(&[Edge::Upper(3)]),
+            0x1fb83 => Self::Blocks(&[Block::Upper(3)]),
             // [🮄] Upper five eighths block
-            0x1fb84 => Self::Edges(&[Edge::Upper(5)]),
+            0x1fb84 => Self::Blocks(&[Block::Upper(5)]),
             // [🮅] Upper three quarters block
-            0x1fb85 => Self::Edges(&[Edge::Upper(6)]),
+            0x1fb85 => Self::Blocks(&[Block::Upper(6)]),
             // [🮆] Upper seven eighths block
-            0x1fb86 => Self::Edges(&[Edge::Upper(7)]),
+            0x1fb86 => Self::Blocks(&[Block::Upper(7)]),
             // [🮇] Right One Quarter Block
-            0x1fb87 => Self::Edges(&[Edge::Right(2)]),
+            0x1fb87 => Self::Blocks(&[Block::Right(2)]),
             // [🮈] Right three eighths block
-            0x1fb88 => Self::Edges(&[Edge::Right(3)]),
+            0x1fb88 => Self::Blocks(&[Block::Right(3)]),
             // [🮉] Right five eighths block
-            0x1fb89 => Self::Edges(&[Edge::Right(5)]),
+            0x1fb89 => Self::Blocks(&[Block::Right(5)]),
             // [🮊] Right three quarters block
-            0x1fb8a => Self::Edges(&[Edge::Right(6)]),
+            0x1fb8a => Self::Blocks(&[Block::Right(6)]),
             // [🮋] Right seven eighths block
-            0x1fb8b => Self::Edges(&[Edge::Right(7)]),
+            0x1fb8b => Self::Blocks(&[Block::Right(7)]),
 
             // [🮚] UPPER AND LOWER TRIANGULAR HALF BLOCK
             0x1fb9a => Self::Triangles(Triangle::UPPER | Triangle::LOWER),
@@ -4372,30 +4405,49 @@ impl GlyphCache {
         buffer.clear_rect(cell_rect, black);
 
         match key.block {
-            BlockKey::Edges(edges) => {
-                for edge in edges.iter() {
-                    match edge {
-                        Edge::Upper(num) => {
+            BlockKey::Blocks(blocks) => {
+                for block in blocks.iter() {
+                    match block {
+                        Block::Upper(num) => {
                             let lower = metrics.cell_size.height as f32 * (*num as f32) / 8.;
                             let width = metrics.cell_size.width as usize;
                             fill_rect(&mut buffer, 0..width, 0..scale(lower));
                         }
-                        Edge::Lower(num) => {
+                        Block::Lower(num) => {
                             let upper = metrics.cell_size.height as f32 * ((8 - num) as f32) / 8.;
                             let width = metrics.cell_size.width as usize;
                             let height = metrics.cell_size.height as usize;
                             fill_rect(&mut buffer, 0..width, scale(upper)..height);
                         }
-                        Edge::Left(num) => {
+                        Block::Left(num) => {
                             let width = metrics.cell_size.width as f32 * (*num as f32) / 8.;
                             let height = metrics.cell_size.height as usize;
                             fill_rect(&mut buffer, 0..scale(width), 0..height);
                         }
-                        Edge::Right(num) => {
+                        Block::Right(num) => {
                             let left = metrics.cell_size.width as f32 * ((8 - num) as f32) / 8.;
                             let width = metrics.cell_size.width as usize;
                             let height = metrics.cell_size.height as usize;
                             fill_rect(&mut buffer, scale(left)..width, 0..height);
+                        }
+                        Block::Vertical(x0, x1) => {
+                            let left = metrics.cell_size.width as f32 * (*x0 as f32) / 8.;
+                            let right = metrics.cell_size.width as f32 * (*x1 as f32) / 8.;
+                            let height = metrics.cell_size.height as usize;
+                            fill_rect(&mut buffer, scale(left)..scale(right), 0..height);
+                        }
+                        Block::Horizontal(y0, y1) => {
+                            let top = metrics.cell_size.height as f32 * (*y0 as f32) / 8.;
+                            let bottom = metrics.cell_size.height as f32 * (*y1 as f32) / 8.;
+                            let width = metrics.cell_size.width as usize;
+                            fill_rect(&mut buffer, 0..width, scale(top)..scale(bottom));
+                        }
+                        Block::Custom(x0, x1, y0, y1) => {
+                            let left = metrics.cell_size.width as f32 * (*x0 as f32) / 8.;
+                            let right = metrics.cell_size.width as f32 * (*x1 as f32) / 8.;
+                            let top = metrics.cell_size.height as f32 * (*y0 as f32) / 8.;
+                            let bottom = metrics.cell_size.height as f32 * (*y1 as f32) / 8.;
+                            fill_rect(&mut buffer, scale(left)..scale(right), scale(top)..scale(bottom));
                         }
                     }
                 }
