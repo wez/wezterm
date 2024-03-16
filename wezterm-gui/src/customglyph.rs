@@ -50,6 +50,15 @@ bitflags::bitflags! {
     }
 }
 
+bitflags::bitflags! {
+    pub struct CellDiag: u8{
+        const UPPER_LEFT = 1<<1;
+        const UPPER_RIGHT = 1<<2;
+        const LOWER_LEFT = 1<<3;
+        const LOWER_RIGHT = 1<<4;
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockAlpha {
     /// 100%
@@ -173,6 +182,8 @@ pub enum BlockKey {
     Sextants(Sextant),
     /// A combination of triangles <https://unicode.org/charts/PDF/U1FB00.pdf>
     Triangles(Triangle),
+    /// A combination of small diagonal lines <https://unicode.org/charts/PDF/U1FB00.pdf>
+    CellDiags(CellDiag),
     /// A braille dot pattern
     Braille(u8),
 
@@ -4393,6 +4404,59 @@ impl BlockKey {
                 intensity: BlockAlpha::Medium,
                 style: PolyStyle::Fill,
             }]),
+            // [🮠] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT
+            0x1fba0 => Self::CellDiags(CellDiag::UPPER_LEFT),
+            // [🮡] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT
+            0x1fba1 => Self::CellDiags(CellDiag::UPPER_RIGHT),
+            // [🮢] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE
+            0x1fba2 => Self::CellDiags(CellDiag::LOWER_LEFT),
+            // [🮣] BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba3 => Self::CellDiags(CellDiag::LOWER_RIGHT),
+            // [🮤] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+            0x1fba4 => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::LOWER_LEFT),
+            // [🮥] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba5 => Self::CellDiags(CellDiag::UPPER_RIGHT | CellDiag::LOWER_RIGHT),
+            // [🮦] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+            0x1fba6 => Self::CellDiags(CellDiag::LOWER_LEFT | CellDiag::LOWER_RIGHT),
+            // [🮧] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT
+            0x1fba7 => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::UPPER_RIGHT),
+            // [🮨] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT AND MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba8 => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::LOWER_RIGHT),
+            // [🮩] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT AND MIDDLE LEFT TO LOWER CENTRE
+            0x1fba9 => Self::CellDiags(CellDiag::UPPER_RIGHT | CellDiag::LOWER_LEFT),
+            // [🮪] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE TO MIDDLE LEFT
+            0x1fbaa => Self::CellDiags(CellDiag::UPPER_RIGHT | CellDiag::LOWER_LEFT | CellDiag::LOWER_RIGHT),
+            // [🮫] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+            0x1fbab => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::LOWER_LEFT | CellDiag::LOWER_RIGHT),
+            // [🮬] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+            0x1fbac => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::UPPER_RIGHT | CellDiag::LOWER_RIGHT),
+            // [🮭] BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+            0x1fbad => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::UPPER_RIGHT | CellDiag::LOWER_LEFT),
+            // [🮮] BOX DRAWINGS LIGHT DIAGONAL DIAMOND
+            0x1fbae => Self::CellDiags(CellDiag::UPPER_LEFT | CellDiag::UPPER_RIGHT | CellDiag::LOWER_LEFT | CellDiag::LOWER_RIGHT),
+            // [🮯] BOX DRAWINGS LIGHT HORIZONTAL WITH VERTICAL STROKE
+            0x1fbaf => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+
 
             // Braille dot patterns
             // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
@@ -4996,6 +5060,88 @@ impl GlyphCache {
                         &mut buffer,
                         scale(x_half)..width,
                         scale(y_third * 2.)..height,
+                    );
+                }
+            }
+            BlockKey::CellDiags(diags) => {
+                if diags.contains(CellDiag::UPPER_LEFT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if diags.contains(CellDiag::UPPER_RIGHT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if diags.contains(CellDiag::LOWER_LEFT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                }
+                if diags.contains(CellDiag::LOWER_RIGHT) {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: &[
+                                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                                PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                                PolyCommand::Close,
+                            ],
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
                     );
                 }
             }
