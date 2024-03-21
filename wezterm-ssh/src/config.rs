@@ -532,13 +532,7 @@ impl Config {
         }
 
         let mut token_map = self.tokens.clone();
-        token_map.insert(
-            "%h".to_string(),
-            result
-                .get("hostname")
-                .unwrap_or(&host.to_string())
-                .to_string(),
-        );
+        token_map.insert("%h".to_string(), host.to_string());
         token_map.insert("%n".to_string(), host.to_string());
         token_map.insert("%r".to_string(), target_user.to_string());
         token_map.insert(
@@ -551,7 +545,7 @@ impl Config {
 
         for (k, v) in &mut result {
             if let Some(tokens) = self.should_expand_tokens(k) {
-                self.expand_tokens(v, tokens, &token_map);
+                self.expand_tokens(k, v, tokens, &mut token_map);
             }
 
             if self.should_expand_environment(k) {
@@ -618,6 +612,7 @@ impl Config {
             | "localforward" | "remotecommand" | "remoteforward" | "userknownkostsfile" => {
                 Some(&["%C", "%d", "%h", "%i", "%L", "%l", "%n", "%p", "%r", "%u"])
             }
+            "hostname" => Some(&["%h"]),
             "localcommand" => Some(&[
                 "%C", "%d", "%h", "%i", "%k", "%L", "%l", "%n", "%p", "%r", "%T", "%u",
             ]),
@@ -644,7 +639,13 @@ impl Config {
     }
 
     /// Perform token substitution
-    fn expand_tokens(&self, value: &mut String, tokens: &[&str], token_map: &ConfigMap) {
+    fn expand_tokens(
+        &self,
+        key: &String,
+        value: &mut String,
+        tokens: &[&str],
+        token_map: &mut ConfigMap,
+    ) {
         let orig_value = value.to_string();
         for &t in tokens {
             if let Some(v) = token_map.get(t) {
@@ -673,6 +674,9 @@ impl Config {
             } else if value.contains(t) {
                 log::warn!("Unsupported token {t} when evaluating `{orig_value}`");
             }
+        }
+        if key == "hostname" {
+            token_map.insert("%h".to_string(), value.to_string());
         }
 
         *value = value.replace("%%", "%");
@@ -958,6 +962,39 @@ Config {
     "hostname": "server-foo2",
     "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "22",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn parse_proxy_command_hostname_expansion() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo
+            HostName server-%h
+            ProxyCommand nc -x localhost:1080 %h %p
+            "#,
+        );
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "server-foo",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "proxycommand": "nc -x localhost:1080 server-foo 22",
     "user": "me",
     "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
