@@ -879,17 +879,6 @@ checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
 
 [[package]]
 name = "colored"
-version = "1.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a5f741c91823341bebf717d4c71bda820630ce065443b58bd1b7451af008355"
-dependencies = [
- "is-terminal",
- "lazy_static",
- "winapi",
-]
-
-[[package]]
-name = "colored"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
@@ -2714,29 +2703,12 @@ dependencies = [
 
 [[package]]
 name = "k9"
-version = "0.11.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32ddb58b0079a063218472916af599f2753ccb40942cdaba9d1f3fefccef17a9"
-dependencies = [
- "anyhow",
- "colored 1.9.4",
- "diff",
- "lazy_static",
- "libc",
- "proc-macro2",
- "regex",
- "syn 1.0.109",
- "term_size",
-]
-
-[[package]]
-name = "k9"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "088bcebb5b68b1b14b64d7f05b0f802719250b97fdc0338ec42529ea777ed614"
 dependencies = [
  "anyhow",
- "colored 2.1.0",
+ "colored",
  "diff",
  "lazy_static",
  "libc",
@@ -2821,7 +2793,7 @@ dependencies = [
  "config",
  "fnv",
  "intrusive-collections",
- "k9 0.11.6",
+ "k9",
  "metrics",
 ]
 
@@ -3299,7 +3271,7 @@ dependencies = [
  "finl_unicode",
  "flume 0.10.14",
  "hostname",
- "k9 0.11.6",
+ "k9",
  "lazy_static",
  "libc",
  "log",
@@ -5262,16 +5234,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "term_size"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e4129646ca0ed8f45d09b929036bafad5377103edd06e50bf574b353d2b08d9"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5354,7 +5316,7 @@ dependencies = [
  "fnv",
  "hex",
  "image",
- "k9 0.11.6",
+ "k9",
  "lazy_static",
  "libc",
  "log",
@@ -5922,7 +5884,7 @@ dependencies = [
 name = "vtparse"
 version = "0.6.2"
 dependencies = [
- "k9 0.11.6",
+ "k9",
  "utf8parse",
 ]
 
@@ -6195,7 +6157,7 @@ name = "wezterm-bidi"
 version = "0.2.3"
 dependencies = [
  "env_logger 0.11.3",
- "k9 0.12.0",
+ "k9",
  "log",
  "wezterm-dynamic",
 ]
@@ -6311,7 +6273,7 @@ dependencies = [
  "freetype",
  "harfbuzz",
  "image",
- "k9 0.11.6",
+ "k9",
  "lazy_static",
  "lfucache",
  "log",
@@ -6362,7 +6324,7 @@ dependencies = [
  "hdrhistogram",
  "http_req",
  "image",
- "k9 0.12.0",
+ "k9",
  "lazy_static",
  "lfucache",
  "libc",
@@ -6515,7 +6477,7 @@ dependencies = [
  "filedescriptor",
  "filenamegen",
  "gethostname",
- "k9 0.12.0",
+ "k9",
  "libc",
  "libssh-rs",
  "log",
@@ -6547,7 +6509,7 @@ dependencies = [
  "hex",
  "humansize",
  "image",
- "k9 0.11.6",
+ "k9",
  "lazy_static",
  "log",
  "lru",
@@ -6776,7 +6738,7 @@ dependencies = [
  "gl_generator",
  "glium",
  "guillotiere",
- "k9 0.11.6",
+ "k9",
  "lazy_static",
  "libc",
  "libloading 0.6.7",
