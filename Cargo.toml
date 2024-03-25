@@ -13,6 +13,7 @@ members = [
   "wezterm-open-url",
   "wezterm-ssh"
 ]
+default-members = ["wezterm-gui"]
 resolver = "2"
 exclude = [
   "termwiz/codegen"
