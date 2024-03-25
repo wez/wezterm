@@ -14,4 +14,4 @@ readme = "README.md"
 utf8parse = "0.2"
 
 [dev-dependencies]
-k9 = "0.11"
+k9 = "0.12"

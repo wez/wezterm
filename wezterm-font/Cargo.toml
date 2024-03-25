@@ -53,5 +53,5 @@ core-text = "20.0"
 objc = "0.2"
 
 [dev-dependencies]
-k9 = "0.11.0"
+k9 = "0.12.0"
 env_logger = "0.11"

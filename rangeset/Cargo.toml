@@ -8,7 +8,7 @@ edition = "2018"
 num = "0.3"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"
 
 [[bench]]
 name = "rangeset"

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-starship-battery = "0.7"
+starship-battery = "0.8"
 config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 luahelper = { path = "../../luahelper" }
