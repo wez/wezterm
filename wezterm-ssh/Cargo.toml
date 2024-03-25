@@ -18,7 +18,7 @@ vendored-openssl-libssh-rs = ["libssh-rs/vendored-openssl"]
 
 [dependencies]
 anyhow = "1.0"
-base64 = "0.21"
+base64 = "0.22"
 bitflags = "1.3"
 camino = "1.0"
 dirs-next = "2.0"
@@ -41,7 +41,7 @@ async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
 assert_fs = "1.0.4"
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 k9 = "0.12.0"
 once_cell = "1.8"
 predicates = "3.0"
@@ -50,4 +50,4 @@ rstest = "0.18"
 shell-words = "1.1"
 smol-potat = "1.1.2"
 termwiz = { version = "0.22", path = "../termwiz" }
-whoami = "1.1"
+whoami = "1.5"
