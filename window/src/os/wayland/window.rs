@@ -731,6 +731,7 @@ impl WaylandWindowInner {
 
         if pending.configure.is_none() {
             if pending.dpi.is_some() {
+                // Synthesize a pending configure event for the dpi change
                 pending.configure.replace((
                     self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
                     self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
