@@ -1,12 +1,13 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior, GuiPosition};
-use domain::{Domain, DomainId, DomainState, SplitSource};
+use domain::{Domain, DomainId, DomainState, LocalDomain, SplitSource};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
+use futures::Future;
 #[cfg(unix)]
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
@@ -16,15 +17,19 @@ use parking_lot::{
 };
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Read, Write};
+use std::path::Path;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
-use termwiz::escape::{Action, CSI};
+use termwiz::escape::{Action, ControlCode, CSI};
+use termwiz_funcs::lines_to_escapes;
 use thiserror::*;
 use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
 #[cfg(windows)]
@@ -46,6 +51,8 @@ mod tmux_pty;
 pub mod window;
 
 use crate::activity::Activity;
+
+use self::tab::SerdeUrl;
 
 pub const DEFAULT_WORKSPACE: &str = "default";
 
@@ -1372,6 +1379,137 @@ impl Mux {
 
         Ok((tab, pane, window_id))
     }
+
+    pub fn save(&self) -> SavedState {
+        SavedState {
+            windows: self
+                .windows
+                .read()
+                .values()
+                .filter_map(|w| w.save())
+                .collect(),
+        }
+    }
+
+    pub fn save_state_to<P: AsRef<Path>>(&self, name: P) -> anyhow::Result<()> {
+        let state = serde_json::to_vec(&self.save())?;
+        let path = name.as_ref().with_extension("tar.zstd");
+        let mut out = std::fs::File::create(path).context("creating state archive")?;
+        let mut ar = tar::Builder::new(zstd::Encoder::new(
+            &mut out,
+            zstd::DEFAULT_COMPRESSION_LEVEL,
+        )?);
+        let mut header = tar::Header::new_gnu();
+        header.set_size(state.len() as u64);
+        ar.append_data(&mut header, "state.json", state.as_slice())
+            .context("adding state info")?;
+        for win in self.windows.read().values() {
+            for tab in win.iter() {
+                for pane in tab.iter_panes() {
+                    let p = format!("contents/{}.txt", pane.pane.pane_id());
+                    let mut header = tar::Header::new_gnu();
+                    let content = lines_to_escapes(
+                        pane.pane
+                            .get_logical_lines(0..isize::MAX)
+                            .into_iter()
+                            .map(|l| l.logical)
+                            .collect(),
+                    )
+                    .context("convert panee to text")?;
+                    header.set_size(content.len() as u64);
+                    ar.append_data(&mut header, p, content.as_bytes())
+                        .context("adding pane content")?;
+                }
+            }
+        }
+        ar.into_inner()
+            .context("finish writing to the archive")?
+            .finish()
+            .context("finishing compression")?;
+        Ok(())
+    }
+
+    pub async fn restore_state_from<P: AsRef<Path>>(&self, name: P) -> anyhow::Result<()> {
+        let pane_regex = fancy_regex::Regex::new(r"^contents/(\d+)\.txt$").unwrap();
+        let mut pane_contents = HashMap::new();
+        let path = name.as_ref().with_extension("tar.zstd");
+        if let Ok(mut file) = std::fs::File::open(path) {
+            let mut ar =
+                tar::Archive::new(zstd::Decoder::new(&mut file).context("decoding archive")?);
+            let mut pane_id_map: HashMap<PaneId, PaneId> = HashMap::new();
+            for entry in ar.entries().context("reading state archive")? {
+                let mut entry = entry.context("reading archive entry")?;
+                let path = entry.path().context("reading path for archive entry")?;
+                if path == Path::new("state.json") {
+                    let domain = self.default_domain();
+                    let state: SavedState =
+                        serde_json::from_reader(entry).context("deserializing state info")?;
+                    for window in state.windows {
+                        let win_id = *self.new_empty_window(None, None);
+                        for saved_tab in window.tabs {
+                            let leftmost = leftmost_pane(&saved_tab.panes);
+                            let (cmd, cwd, prog) = cmd_cwd_from_pane(domain.as_ref(), &leftmost);
+                            let root_pane = domain
+                                .spawn_pane(window.size, Some(cmd), cwd)
+                                .await
+                                .context("spawning new pane")?;
+                            if let Some(prog) = prog {
+                                root_pane
+                                    .writer()
+                                    .write_all(prog.as_bytes())
+                                    .context("sending last spawned command")?;
+                                root_pane
+                                    .writer()
+                                    .write_all(b"\r")
+                                    .context("sending last spawned command")?;
+                            }
+                            let root_pane_id = root_pane.pane_id();
+                            assert_eq!(pane_id_map.insert(leftmost.id, root_pane_id), None);
+                            let tab = Arc::new(Tab::new(&window.size));
+                            tab.assign_pane(&root_pane);
+                            self.add_tab_and_active_pane(&tab)
+                                .context("adding new tab")?;
+                            self.add_tab_to_window(&tab, win_id)
+                                .context("adding new tab to window")?;
+                            split_panes(
+                                domain.as_ref(),
+                                saved_tab.panes,
+                                tab.tab_id(),
+                                root_pane_id,
+                                &mut pane_id_map,
+                            )
+                            .await?;
+                        }
+                    }
+                } else if let Ok(Some(cap)) = pane_regex.captures(&path.to_string_lossy()) {
+                    let pane_id: PaneId = cap.get(1).unwrap().as_str().parse().unwrap();
+                    let mut content = Vec::with_capacity(entry.size() as usize);
+                    entry
+                        .read_to_end(&mut content)
+                        .context("reading pane content")?;
+                    if !pane_id_map.is_empty() {
+                        let mut parser = termwiz::escape::parser::Parser::new();
+                        let mut actions = vec![];
+                        parser.parse(&content, |action| match action {
+                            Action::Control(ControlCode::LineFeed) => {
+                                actions.push(Action::Control(ControlCode::CarriageReturn));
+                                actions.push(Action::Control(ControlCode::LineFeed));
+                            }
+                            _ => actions.push(action),
+                        });
+                        self.get_pane(pane_id_map[&pane_id])
+                            .unwrap()
+                            .perform_actions(actions);
+                    } else {
+                        pane_contents.insert(pane_id, content);
+                    }
+                }
+            }
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("no state to restore"))
+        }
+    }
 }
 
 pub struct IdentityHolder {
@@ -1438,4 +1576,115 @@ impl wezterm_term::DownloadHandler for MuxDownloader {
             });
         }
     }
+}
+
+fn cmd_cwd_from_pane(
+    domain: &dyn Domain,
+    p: &SavedPaneState,
+) -> (CommandBuilder, Option<String>, Option<String>) {
+    let cwd = if domain.is::<LocalDomain>() {
+        p.cwd.as_ref().and_then(|u| {
+            percent_decode_str(u.url.path())
+                .decode_utf8()
+                .ok()
+                .map(|path| path.into_owned())
+        })
+    } else {
+        None
+    };
+    let mut cmd = CommandBuilder::new(&p.root_argv[0]);
+    cmd.args(&p.root_argv[1..]);
+    let prog = p
+        .prog_argv
+        .as_ref()
+        .and_then(|p| shlex::try_join(p.iter().map(|s| s.as_str())).ok());
+    (cmd, cwd, prog)
+}
+
+fn leftmost_pane(t: &SavedTree) -> &SavedPaneState {
+    match t {
+        SavedTree::Pane(p) => p.as_ref().unwrap(),
+        SavedTree::Split(s) => leftmost_pane(&s.left),
+    }
+}
+
+fn split_panes<'m>(
+    domain: &'m dyn Domain,
+    split: SavedTree,
+    tab: TabId,
+    pane: PaneId,
+    id_map: &'m mut HashMap<PaneId, PaneId>,
+) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'm>> {
+    Box::pin(async move {
+        if let SavedTree::Split(s) = split {
+            let leftmost = leftmost_pane(&s.right);
+            let (cmd, cwd, prog) = cmd_cwd_from_pane(domain, &leftmost);
+            let source = SplitSource::Spawn {
+                command: Some(cmd),
+                command_dir: cwd,
+            };
+            let req = SplitRequest {
+                direction: s.dir,
+                target_is_second: true,
+                top_level: false,
+                size: SplitSize::Cells(s.pos),
+            };
+            let new = domain
+                .split_pane(source, tab, pane, req)
+                .await
+                .context("restoring layout")?;
+            if let Some(prog) = prog {
+                new.writer()
+                    .write_all(prog.as_bytes())
+                    .context("sending last spawned command")?;
+                new.writer()
+                    .write_all(b"\r")
+                    .context("sending last spawned command")?;
+            }
+            assert_eq!(id_map.insert(leftmost.id, new.pane_id()), None);
+            split_panes(domain, *s.left, tab, pane, id_map).await?;
+            split_panes(domain, *s.right, tab, new.pane_id(), id_map).await?;
+        }
+        Ok(())
+    })
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedPaneState {
+    id: PaneId,
+    cwd: Option<SerdeUrl>,
+    root_argv: Vec<String>,
+    prog_argv: Option<Vec<String>>,
+    // zoomed: bool,
+    // active: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedSplitInfo {
+    dir: SplitDirection,
+    pos: usize,
+    left: Box<SavedTree>,
+    right: Box<SavedTree>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum SavedTree {
+    Pane(Option<SavedPaneState>),
+    Split(SavedSplitInfo),
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedTab {
+    panes: SavedTree,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedWindow {
+    tabs: Vec<SavedTab>,
+    size: TerminalSize,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedState {
+    windows: Vec<SavedWindow>,
 }

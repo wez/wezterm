@@ -8,7 +8,7 @@ mod linux;
 mod macos;
 mod windows;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "lua", derive(FromDynamic, ToDynamic))]
 pub enum LocalProcessStatus {
     Idle,
@@ -25,7 +25,7 @@ pub enum LocalProcessStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "lua", derive(FromDynamic, ToDynamic))]
 pub struct LocalProcessInfo {
     /// The process identifier

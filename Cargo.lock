@@ -3399,6 +3399,7 @@ dependencies = [
  "filedescriptor",
  "finl_unicode",
  "flume 0.10.14",
+ "futures",
  "hostname",
  "k9 0.11.6",
  "lazy_static",
@@ -3417,9 +3418,12 @@ dependencies = [
  "promise",
  "rangeset",
  "serde",
+ "serde_json",
  "serial",
  "shell-words",
+ "shlex",
  "smol",
+ "tar",
  "terminfo",
  "termwiz",
  "termwiz-funcs",
@@ -3430,6 +3434,7 @@ dependencies = [
  "wezterm-ssh",
  "wezterm-term",
  "winapi",
+ "zstd",
 ]
 
 [[package]]
