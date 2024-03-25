@@ -58,11 +58,7 @@ impl WaylandConnection {
         let mut events = Events::with_capacity(8);
 
         let wl_fd = {
-            let read_guard = self
-                .event_queue
-                .borrow()
-                .prepare_read()
-                .ok_or_else(|| anyhow::anyhow!("Failed to preapre event queue"))?;
+            let read_guard = self.event_queue.borrow().prepare_read()?;
             read_guard.connection_fd().as_raw_fd()
         };
 
@@ -104,7 +100,7 @@ impl WaylandConnection {
                     continue;
                 }
 
-                if let Some(guard) = event_q.prepare_read() {
+                if let Ok(guard) = event_q.prepare_read() {
                     if let Err(err) = guard.read() {
                         log::trace!("Event Q error: {:?}", err);
                         if let WaylandError::Protocol(perr) = err {

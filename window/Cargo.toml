@@ -15,7 +15,7 @@ k9 = "0.11.0"
 gl_generator = "0.14"
 
 [features]
-wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols", "wayland-csd-frame"]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
 
 [dependencies]
 async-channel = "1.6"
@@ -81,11 +81,10 @@ xcb-imdkit = { version="0.3", git="https://github.com/wez/xcb-imdkit-rs.git", re
 zbus = "3.14"
 zvariant = "3.15"
 
-smithay-client-toolkit = {version = "0.18.1", default-features=false, optional=true}
-wayland-protocols = {version="0.31", optional=true}
-wayland-client = {version="0.31", optional=true}
-wayland-egl = {version="0.32", optional=true}
-wayland-csd-frame = { version = "0.3.0", optional = true}
+smithay-client-toolkit = {version = "0.17.0", default-features=false, optional=true}
+wayland-protocols = {version="0.30", optional=true}
+wayland-client = {version="0.30", optional=true}
+wayland-egl = {version="0.30", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.25"
