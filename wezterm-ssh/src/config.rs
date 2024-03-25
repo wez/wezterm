@@ -175,7 +175,13 @@ impl ParsedConfigFile {
         groups: &mut Vec<MatchGroup>,
         loaded_files: &mut Vec<PathBuf>,
     ) {
-        match filenamegen::Glob::new(&pattern) {
+        let home = dirs_next::home_dir().unwrap_or_default();
+        let (cwd, pattern) = match pattern {
+            p if p.starts_with("~/") => (Some(home.as_path()), &p[2..]),
+            p if p.starts_with('/') => (Some(Path::new("/")), &p[1..]),
+            _ => (cwd, pattern),
+        };
+        match filenamegen::Glob::new(pattern) {
             Ok(g) => {
                 match cwd
                     .as_ref()
