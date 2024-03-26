@@ -1015,7 +1015,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 menubar: &["Window", "Select Tab"],
                 icon: None,
             }
-        }
+        },
         ActivatePaneByIndex(n) => {
             let n = *n;
             let ordinal = english_ordinal(n as isize);
@@ -1023,11 +1023,26 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 brief: format!("Activate {ordinal} Pane").into(),
                 doc: format!("Activates the {ordinal} Pane").into(),
                 keys: vec![],
-                args: &[ArgType::ActiveWindow],
+                args: &[ArgType::ActiveTab],
                 menubar: &[],
                 icon: None,
             }
-        }
+        },
+        SwapActivePaneByIndex(SwapActivePaneByIndexArguments {
+            pane_index,
+            keep_focus
+        }) => {
+            let ordinal = english_ordinal(*pane_index as isize);
+            let with_focus = if *keep_focus { ", keeping focus" } else { "" };
+            CommandDef {
+                brief: format!("Swap active pane with {ordinal} pane{with_focus}").into(),
+                doc: format!("Swaps thhe active pane with the {ordinal} pane").into(),
+                keys: vec![],
+                args: &[ArgType::ActiveTab],
+                menubar: &[],
+                icon: None,
+            }
+        },
         SetPaneZoomState(true) => CommandDef {
             brief: format!("Zooms the current Pane").into(),
             doc: format!(
@@ -1587,6 +1602,65 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Window", "Select Pane"],
             icon: Some("fa_long_arrow_down"),
         },
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction : PaneDirection::Next | PaneDirection::Prev, keep_focus : _
+        }) => return None,
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction : PaneDirection::Left, keep_focus
+        }) => CommandDef {
+            brief: if *keep_focus {
+                "Swap active pane with left one".into()
+            } else {
+                "Swap active pane with left one, keeping focus".into()
+            },
+            doc: "Swaps the current pane with the pane to the left of it".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: None,
+        },
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction : PaneDirection::Right, keep_focus
+        }) => CommandDef {
+            brief: if *keep_focus {
+                "Swap active pane with right one".into()
+            } else {
+                "Swap active pane with right one, keeping focus".into()
+            },
+            doc: "Swaps the current pane with the pane to the right of it".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: None,
+        },
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction : PaneDirection::Up, keep_focus
+        }) => CommandDef {
+            brief: if *keep_focus {
+                "Swap active pane with upwards one".into()
+            } else {
+                "Swap active pane with upwards one, keeping focus".into()
+            },
+            doc: "Swaps the current pane with the pane to the top of it".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: None,
+        },
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction : PaneDirection::Down, keep_focus
+        }) => CommandDef {
+            brief: if *keep_focus {
+                "Swap active pane with downwards one".into()
+            } else {
+                "Swap active pane with downwards one, keeping focus".into()
+            },
+            doc: "Swaps the current pane with the pane to the bottom of it".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: None,
+        },
         TogglePaneZoomState => CommandDef {
             brief: "Toggle Pane Zoom".into(),
             doc: "Toggles the zoom state for the current pane".into(),
@@ -2129,6 +2203,38 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ActivatePaneDirection(PaneDirection::Right),
         ActivatePaneDirection(PaneDirection::Up),
         ActivatePaneDirection(PaneDirection::Down),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Left,
+            keep_focus: false,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Right,
+            keep_focus: false,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Up,
+            keep_focus: false,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Down,
+            keep_focus: false,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Left,
+            keep_focus: true,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Right,
+            keep_focus: true,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Up,
+            keep_focus: true,
+        }),
+        SwapActivePaneDirection(SwapActivePaneDirectionArguments {
+            direction: PaneDirection::Down,
+            keep_focus: true,
+        }),
         TogglePaneZoomState,
         ActivateLastTab,
         ShowLauncher,

@@ -1,4 +1,6 @@
-use config::keyassignment::PaneDirection;
+use config::keyassignment::{
+    PaneDirection, SwapActivePaneByIndexArguments, SwapActivePaneDirectionArguments,
+};
 
 use super::*;
 use luahelper::mlua::Value;
@@ -153,6 +155,32 @@ impl UserData for MuxTab {
                 })?;
                 window.save_and_then_set_active(tab_idx);
             }
+            Ok(())
+        });
+
+        methods.add_method("swap_active_pane_direction", |_, this, args: Value| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+
+            let SwapActivePaneDirectionArguments {
+                direction,
+                keep_focus,
+            } = from_lua(args)?;
+            if let Some(pane_index) = tab.get_pane_direction(direction, true) {
+                tab.swap_active_with_index(pane_index, keep_focus);
+            }
+            Ok(())
+        });
+
+        methods.add_method("swap_active_pane_by_index", |_, this, args: Value| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+
+            let SwapActivePaneByIndexArguments {
+                pane_index,
+                keep_focus,
+            } = from_lua(args)?;
+            tab.swap_active_with_index(pane_index, keep_focus);
             Ok(())
         });
     }
