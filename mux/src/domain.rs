@@ -12,7 +12,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use config::keyassignment::{RotationDirection, SpawnCommand, SpawnTabDomain};
 use config::{configuration, ExecDomain, SerialDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use parking_lot::Mutex;
@@ -142,13 +142,38 @@ pub trait Domain: Downcast + Send + Sync {
     /// is being moved to give the domain a chance to handle the movement.
     /// If this method returns Ok(None), then the mux will handle the
     /// movement itself by mutating its local Tabs and Windows.
-    async fn move_pane_to_new_tab(
+    async fn remote_move_pane_to_new_tab(
         &self,
         _pane_id: PaneId,
         _window_id: Option<WindowId>,
         _workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<Option<(Arc<Tab>, WindowId)>> {
         Ok(None)
+    }
+
+    /// The mux will call this method on the domain of the panes that are being
+    /// rotated to give the domain a chance to handle the movement. If this
+    /// method returns Ok(false), then the mux will handle the movement itself
+    /// by mutating its local Tabs and Windows.
+    async fn remote_rotate_panes(
+        &self,
+        _pane_id: PaneId,
+        _direction: RotationDirection,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
+    }
+
+    /// The mux will call this method on the domain of the pane that is being
+    /// swapped to give the domain a chance to handle the movement. If this
+    /// method returns Ok(false), then the mux will handle the movement itself
+    /// by mutating its local Tabs and Windows.
+    async fn remote_swap_active_pane_with_index(
+        &self,
+        _active_pane_id: PaneId,
+        _with_pane_index: usize,
+        _keep_focus: bool,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
     }
 
     /// Returns false if the `spawn` method will never succeed.
