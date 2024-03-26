@@ -20,7 +20,7 @@ vendored-openssl-libssh-rs = ["libssh-rs/vendored-openssl"]
 anyhow = "1.0"
 base64 = "0.21"
 bitflags = "1.3"
-camino = "1.0"
+camino = "1.1"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 filenamegen = "0.2"
@@ -29,9 +29,9 @@ libc = "0.2"
 log = "0.4"
 portable-pty = { version="0.8", path = "../pty" }
 regex = "1"
-smol = "1.2"
-ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}
-libssh-rs = {version="0.2.1", features=["vendored"], optional = true}
+smol = "1.3"
+ssh2 = {version="0.9.4", features=["openssl-on-win32"], optional = true}
+libssh-rs = {version="0.2.2", features=["vendored"], optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
 thiserror = "1.0"
 socket2 = "0.5"
@@ -40,14 +40,14 @@ socket2 = "0.5"
 async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
-assert_fs = "1.0.4"
-clap = {version="4.0", features=["derive"]}
+assert_fs = "1.1.1"
+clap = {version="4.4", features=["derive"]}
 k9 = "0.12.0"
-once_cell = "1.8"
-predicates = "3.0"
+once_cell = "1.19"
+predicates = "3.1"
 env_logger = "0.11"
 rstest = "0.18"
 shell-words = "1.1"
 smol-potat = "1.1.2"
 termwiz = { version = "0.22", path = "../termwiz" }
-whoami = "1.1"
+whoami = "1.4"
