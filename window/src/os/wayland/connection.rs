@@ -13,7 +13,7 @@ use wayland_client::{Connection as WConnection, EventQueue};
 
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::SPAWN_QUEUE;
-use crate::{Connection, ConnectionOps, ScreenRect};
+use crate::{Appearance, Connection, ConnectionOps, ScreenRect};
 
 use super::state::WaylandState;
 use super::WaylandWindowInner;
@@ -46,7 +46,11 @@ impl WaylandConnection {
         Ok(wayland_connection)
     }
 
-    pub(crate) fn advise_of_appearance_change(&self, _appearance: crate::Appearance) {}
+    pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {
+        for win in self.wayland_state.borrow().windows.borrow().values() {
+            win.borrow_mut().appearance_changed(appearance);
+        }
+    }
 
     fn run_message_loop_impl(&self) -> anyhow::Result<()> {
         const TOK_WL: usize = 0xffff_fffc;
@@ -170,6 +174,18 @@ impl ConnectionOps for WaylandConnection {
         // in unexpected places
         self.wayland_state.borrow().windows.borrow_mut().clear();
         res
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
+            Ok(Some(appearance)) => return appearance,
+            Ok(None) => {}
+            Err(err) => {
+                log::warn!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
+            }
+        }
+        // fallback
+        Appearance::Light
     }
 
     fn screens(&self) -> anyhow::Result<crate::screen::Screens> {

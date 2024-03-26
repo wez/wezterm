@@ -44,6 +44,7 @@ use wezterm_input_types::{
 use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
 use crate::{
+    Appearance,
     Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
     RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, Window, WindowEvent,
     WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
@@ -269,6 +270,8 @@ impl WaylandWindow {
             surface_to_pending.insert(surface.id(), Arc::clone(&pending_mouse));
         }
 
+        let appearance = conn.get_appearance();
+
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             events: WindowEventSender::new(event_handler),
             surface_factor: 1.0,
@@ -296,6 +299,7 @@ impl WaylandWindow {
             frame_callback: None,
 
             text_cursor: None,
+            appearance,
 
             config,
 
@@ -520,7 +524,7 @@ pub struct WaylandWindowInner {
     invalidated: bool,
     // font_config: Rc<FontConfiguration>,
     text_cursor: Option<Rect>,
-    // appearance: Appearance,
+    appearance: Appearance,
     config: ConfigHandle,
     // cache the title for comparison to avoid spamming
     // the compositor with updates that don't actually change it
@@ -1060,6 +1064,14 @@ impl WaylandWindowInner {
         self.key_repeat.take();
         self.events.dispatch(WindowEvent::FocusChanged(focused));
         self.text_cursor.take();
+    }
+
+    pub(crate) fn appearance_changed(&mut self, appearance: Appearance) {
+        if appearance != self.appearance {
+            self.appearance = appearance;
+            self.events
+                .dispatch(WindowEvent::AppearanceChanged(appearance));
+        }
     }
 
     pub(super) fn keyboard_event(
