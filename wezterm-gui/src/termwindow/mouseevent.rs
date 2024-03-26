@@ -755,7 +755,7 @@ impl super::TermWindow {
         }
 
         let allow_action = if self.is_click_to_focus_window || !is_focused {
-            matches!(&event.kind, WMEK::VertWheel(_) | WMEK::HorzWheel(_))
+            matches!(&event.kind, WMEK::VertWheel(_) | WMEK::HorzWheel(_) | WMEK::Press(_))
         } else {
             true
         };
