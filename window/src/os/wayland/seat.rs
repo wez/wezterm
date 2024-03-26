@@ -65,9 +65,11 @@ impl SeatHandler for WaylandState {
         _conn: &Connection,
         _qh: &QueueHandle<Self>,
         _seat: WlSeat,
-        _capability: smithay_client_toolkit::seat::Capability,
+        capability: smithay_client_toolkit::seat::Capability,
     ) {
-        todo!()
+        if capability == Capability::Keyboard && self.keyboard.is_some() {
+            self.keyboard = None;
+        }
     }
 
     fn remove_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: WlSeat) {
