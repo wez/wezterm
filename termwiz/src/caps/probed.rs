@@ -1,4 +1,6 @@
-use crate::escape::csi::{Device, Window};
+use wezterm_input_types::KittyKeyboardFlags;
+
+use crate::escape::csi::{Device, Keyboard, Window};
 use crate::escape::parser::Parser;
 use crate::escape::{Action, DeviceControlMode, Esc, EscCode, CSI};
 use crate::terminal::ScreenSize;
@@ -82,6 +84,36 @@ impl<'a> ProbeCapabilities<'a> {
     /// of its outer terminal.
     pub fn outer_xt_version(&mut self) -> Result<XtVersion> {
         self.xt_version_impl(true)
+    }
+
+    /// Query the state of Kitty enhanced keyboard protocol for the terminal.
+    /// Returns `None` if the terminal does not support keyboard enhancement.
+    pub fn enhanced_keyboard_state(&mut self) -> Result<Option<KittyKeyboardFlags>> {
+        let query_support = CSI::Keyboard(Keyboard::QueryKittySupport);
+        let dev_attributes = CSI::Device(Box::new(Device::RequestPrimaryDeviceAttributes));
+
+        write!(self.write, "{}{}", query_support, dev_attributes)?;
+        self.write.flush()?;
+
+        let mut result = None;
+        let mut parser = Parser::new();
+        let mut done = false;
+
+        while !done {
+            let mut byte = [0u8];
+            self.read.read(&mut byte)?;
+
+            parser.parse(&byte, |action| match action {
+                Action::CSI(CSI::Keyboard(Keyboard::ReportKittyState(state))) => {
+                    result = Some(state);
+                }
+                _ => {
+                    done = true;
+                }
+            });
+        }
+
+        Ok(result)
     }
 
     fn xt_version_impl(&mut self, tmux_escape: bool) -> Result<XtVersion> {
