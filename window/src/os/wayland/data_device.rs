@@ -22,15 +22,17 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _data_device: &WlDataDevice,
+        data_device: &WlDataDevice,
     ) {
-        let offer = self
-            .data_device
-            .as_ref()
-            .unwrap()
-            .data()
-            .drag_offer()
-            .unwrap();
+        let data = match self.data_device {
+            Some(ref dv) if dv.inner() == data_device => dv.data(),
+            _ => {
+                log::warn!("No existing device manager for {:?}", data_device);
+                return;
+            }
+        };
+
+        let offer = data.drag_offer().unwrap();
 
         offer.with_mime_types(|mime_types| {
             log::trace!(
@@ -91,22 +93,22 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _data_device: &WlDataDevice,
+        data_device: &WlDataDevice,
     ) {
-        let offer = self
-            .data_device
-            .as_ref()
-            .unwrap()
-            .data()
-            .selection_offer()
-            .unwrap();
+        let offer = match self.data_device {
+            Some(ref dv) if dv.inner() == data_device => dv.data().selection_offer(),
+            _ => {
+                return;
+            }
+        };
+        if let Some(offer) = offer {
+            if !offer.with_mime_types(|mime_types| mime_types.iter().any(|s| s == TEXT_MIME_TYPE)) {
+                return;
+            }
 
-        if !offer.with_mime_types(|mime_types| mime_types.iter().any(|s| s == TEXT_MIME_TYPE)) {
-            return;
-        }
-
-        if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
-            copy_and_paste.lock().unwrap().confirm_selection(offer);
+            if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
+                copy_and_paste.lock().unwrap().confirm_selection(offer);
+            }
         }
     }
 
