@@ -547,8 +547,8 @@ impl WaylandWindowInner {
         // If the do_paint function has been called previously, calling it again will not
         // send the NeedRepaint event. This results in the window not being displayed
         // correctly.
-        // Therefore, when frame_callback is set to some, it indicates that do_paint has
-        // been called before. We need to send the NeedRepaint event again.
+        // Therefore, when frame_callback is set to some, we need to send the NeedRepaint
+        // event again to ensure the window is displayed.
         // Fix: https://github.com/wez/wezterm/issues/5103
         if self.frame_callback.is_some() {
             self.events.dispatch(WindowEvent::NeedRepaint);
