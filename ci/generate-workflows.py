@@ -467,8 +467,8 @@ cargo build -p {bin} --release""",
                 ]
         return steps
 
-    def test_all_release(self):
-        run = "cargo nextest run --all --release --no-fail-fast"
+    def test_all(self):
+        run = "cargo nextest run --all --no-fail-fast"
         if "macos" in self.name:
             run += " --target=x86_64-apple-darwin"
         if self.name == "centos7":
@@ -478,7 +478,7 @@ cargo build -p {bin} --release""",
             InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
             RunStep(
-                name="Test (Release mode)",
+                name="Test",
                 run=run,
             ),
         ]
@@ -910,7 +910,7 @@ cargo build -p {bin} --release""",
     def pull_request(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package()
         steps += self.upload_artifact()
 
@@ -939,7 +939,7 @@ cargo build -p {bin} --release""",
     def continuous(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package(trusted=True)
         steps += self.upload_artifact_nightly()
 
@@ -963,7 +963,7 @@ cargo build -p {bin} --release""",
     def tag(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package(trusted=True)
         steps += self.upload_artifact()
         steps += self.update_homebrew_tap()
