@@ -50,4 +50,4 @@ rstest = "0.18"
 shell-words = "1.1"
 smol-potat = "1.1.2"
 termwiz = { version = "0.22", path = "../termwiz" }
-whoami = "1.1"
+whoami = "1.5"
