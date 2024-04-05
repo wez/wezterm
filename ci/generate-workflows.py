@@ -424,6 +424,11 @@ rustup default {toolchain}
             )
         ]
 
+    def fixup_windows_path(self, cmd):
+        if "win" in self.name:
+            return "PATH C:\\Strawberry\\perl\\bin;%PATH%\n" + cmd
+        return cmd
+
     def build_all_release(self):
         bin_crates = [
             "wezterm",
@@ -438,9 +443,7 @@ rustup default {toolchain}
                     RunStep(
                         name=f"Build {bin} (Release mode)",
                         shell="cmd",
-                        run=f"""
-PATH C:\\Strawberry\\perl\\bin;%PATH%
-cargo build -p {bin} --release""",
+                        run=self.fixup_windows_path(f"cargo build -p {bin} --release"),
                     )
                 ]
             elif "macos" in self.name:
@@ -479,7 +482,7 @@ cargo build -p {bin} --release""",
             # Run tests
             RunStep(
                 name="Test",
-                run=run,
+                run=self.fixup_windows_path(run),
             ),
         ]
 
