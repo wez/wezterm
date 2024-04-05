@@ -436,7 +436,7 @@ rustup default {toolchain}
             if "win" in self.name:
                 steps += [
                     RunStep(
-                        name="Build (Release mode)",
+                        name=f"Build {bin} (Release mode)",
                         shell="cmd",
                         run=f"""
 PATH C:\\Strawberry\\perl\\bin;%PATH%
