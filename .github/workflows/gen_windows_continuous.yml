@@ -55,7 +55,25 @@ jobs:
         run: |
 
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build --all --release
+          cargo build -p wezterm --release
+      - name: "Build (Release mode)"
+        shell: cmd
+        run: |
+
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p wezterm-gui --release
+      - name: "Build (Release mode)"
+        shell: cmd
+        run: |
+
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p wezterm-mux-server --release
+      - name: "Build (Release mode)"
+        shell: cmd
+        run: |
+
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p strip-ansi-escapes --release
       - name: "Install cargo-nextest from Cargo"
         uses: baptiste0928/cargo-install@v3
         with:
