@@ -480,10 +480,9 @@ rustup default {toolchain}
             # Install cargo-nextest
             InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
-            RunStep(
-                name="Test",
-                run=self.fixup_windows_path(run),
-            ),
+            RunStep(name="Test", run=self.fixup_windows_path(run), shell="cmd")
+            if "win" in self.name
+            else RunStep(name="Test", run=run),
         ]
 
     def package(self, trusted=False):
