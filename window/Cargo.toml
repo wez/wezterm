@@ -81,10 +81,10 @@ xcb-imdkit = { version="0.3", git="https://github.com/wez/xcb-imdkit-rs.git", re
 zbus = "3.14"
 zvariant = "3.15"
 
-smithay-client-toolkit = {version = "0.17.0", default-features=false, optional=true}
-wayland-protocols = {version="0.30", optional=true}
-wayland-client = {version="0.30", optional=true}
-wayland-egl = {version="0.30", optional=true}
+smithay-client-toolkit = {version = "0.18", default-features=false, optional=true}
+wayland-protocols = {version="0.31", optional=true}
+wayland-client = {version="0.31", optional=true}
+wayland-egl = {version="0.32", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.25"
