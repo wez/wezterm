@@ -9,6 +9,9 @@ use smithay_client_toolkit::data_device_manager::data_source::CopyPasteSource;
 use smithay_client_toolkit::data_device_manager::DataDeviceManagerState;
 use smithay_client_toolkit::globals::GlobalData;
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
+use smithay_client_toolkit::primary_selection::device::PrimarySelectionDevice;
+use smithay_client_toolkit::primary_selection::selection::PrimarySelectionSource;
+use smithay_client_toolkit::primary_selection::PrimarySelectionManagerState;
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
@@ -20,23 +23,18 @@ use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::subcompositor::SubcompositorState;
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_data_device, delegate_output, delegate_pointer, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
+    delegate_compositor, delegate_data_device, delegate_output, delegate_pointer, delegate_primary_selection, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_output::WlOutput;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
-use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_device_manager_v1::ZwpPrimarySelectionDeviceManagerV1;
-use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_device_v1::ZwpPrimarySelectionDeviceV1;
-use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_offer_v1::ZwpPrimarySelectionOfferV1;
-use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_source_v1::ZwpPrimarySelectionSourceV1;
 use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_manager_v3::ZwpTextInputManagerV3;
 use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_v3::ZwpTextInputV3;
 
 use crate::x11::KeyboardWithFallback;
 
-use super::copy_and_paste::{PrimarySelectionManagerData, PrimarySelectionManagerState};
 use super::inputhandler::{TextInputData, TextInputState};
 use super::pointer::{PendingMouse, PointerUserData};
 use super::{OutputManagerData, OutputManagerState, SurfaceUserData, WaylandWindowInner};
@@ -69,8 +67,8 @@ pub(super) struct WaylandState {
     pub(super) data_device: Option<DataDevice>,
     pub(super) copy_paste_source: Option<(CopyPasteSource, String)>,
     pub(super) primary_selection_manager: Option<PrimarySelectionManagerState>,
-    pub(super) primary_select_device: Option<ZwpPrimarySelectionDeviceV1>,
-    pub(super) primary_selection_source: Option<(ZwpPrimarySelectionSourceV1, String)>,
+    pub(super) primary_selection_device: Option<PrimarySelectionDevice>,
+    pub(super) primary_selection_source: Option<(PrimarySelectionSource, String)>,
     pub(super) shm: Shm,
     pub(super) mem_pool: RefCell<SlotPool>,
 }
@@ -111,7 +109,7 @@ impl WaylandState {
             data_device: None,
             copy_paste_source: None,
             primary_selection_manager: PrimarySelectionManagerState::bind(globals, qh).ok(),
-            primary_select_device: None,
+            primary_selection_device: None,
             primary_selection_source: None,
             shm,
             mem_pool: RefCell::new(mem_pool),
@@ -169,14 +167,11 @@ delegate_pointer!(WaylandState, pointer: [PointerUserData]);
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
 
+delegate_primary_selection!(WaylandState);
+
 delegate_dispatch!(WaylandState: [ZwpTextInputManagerV3: GlobalData] => TextInputState);
 delegate_dispatch!(WaylandState: [ZwpTextInputV3: TextInputData] => TextInputState);
 
 delegate_dispatch!(WaylandState: [ZwlrOutputManagerV1: GlobalData] => OutputManagerState);
 delegate_dispatch!(WaylandState: [ZwlrOutputHeadV1: OutputManagerData] => OutputManagerState);
 delegate_dispatch!(WaylandState: [ZwlrOutputModeV1: OutputManagerData] => OutputManagerState);
-
-delegate_dispatch!(WaylandState: [ZwpPrimarySelectionDeviceManagerV1: GlobalData] => PrimarySelectionManagerState);
-delegate_dispatch!(WaylandState: [ZwpPrimarySelectionDeviceV1: PrimarySelectionManagerData] => PrimarySelectionManagerState);
-delegate_dispatch!(WaylandState: [ZwpPrimarySelectionSourceV1: PrimarySelectionManagerData] => PrimarySelectionManagerState);
-delegate_dispatch!(WaylandState: [ZwpPrimarySelectionOfferV1: PrimarySelectionManagerData] => PrimarySelectionManagerState);

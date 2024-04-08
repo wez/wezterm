@@ -1,6 +1,3 @@
-use std::os::fd::{FromRawFd, IntoRawFd};
-
-use filedescriptor::FileDescriptor;
 use smithay_client_toolkit::data_device_manager::data_device::DataDeviceHandler;
 use smithay_client_toolkit::data_device_manager::data_offer::DataOfferHandler;
 use smithay_client_toolkit::data_device_manager::data_source::DataSourceHandler;
@@ -59,7 +56,6 @@ impl DataDeviceHandler for WaylandState {
             .unwrap();
 
         let window_id = SurfaceUserData::from_wl(&offer.surface).window_id;
-        let offer = offer.inner().clone();
 
         pstate.drag_and_drop.offer = Some(SurfaceAndOffer { window_id, offer });
     }
@@ -110,10 +106,7 @@ impl DataDeviceHandler for WaylandState {
         }
 
         if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
-            copy_and_paste
-                .lock()
-                .unwrap()
-                .confirm_selection(offer.inner().clone());
+            copy_and_paste.lock().unwrap().confirm_selection(offer);
         }
     }
 
@@ -191,7 +184,6 @@ impl DataSourceHandler for WaylandState {
             if cp_source.inner() != source {
                 return;
             }
-            let fd = unsafe { FileDescriptor::from_raw_fd(fd.into_raw_fd()) };
             write_selection_to_pipe(fd, data);
         }
     }
