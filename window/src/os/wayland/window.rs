@@ -894,8 +894,7 @@ impl WaylandWindowInner {
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
         let conn = Connection::get().unwrap().wayland();
         let state = conn.wayland_state.borrow_mut();
-        let (shm, pointer) =
-            RefMut::map_split(state, |s| (&mut s.shm, s.pointer.as_mut().unwrap()));
+        let pointer = RefMut::map(state, |s| s.pointer.as_mut().unwrap());
 
         if let Err(err) = match cursor {
             Some(cursor) => pointer.set_cursor(
@@ -1270,10 +1269,10 @@ impl CompositorHandler for WaylandState {
 
     fn transform_changed(
         &mut self,
-        conn: &WConnection,
-        qh: &wayland_client::QueueHandle<Self>,
-        surface: &wayland_client::protocol::wl_surface::WlSurface,
-        new_transform: wayland_client::protocol::wl_output::Transform,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _new_transform: wayland_client::protocol::wl_output::Transform,
     ) {
         // TODO: do we need to do anything here?
     }
