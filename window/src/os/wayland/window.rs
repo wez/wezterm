@@ -22,8 +22,9 @@ use raw_window_handle::{
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
 use smithay_client_toolkit::reexports::csd_frame::{
-    DecorationsFrame, FrameAction, WindowState as SCTKWindowState,
+    DecorationsFrame, FrameAction, ResizeEdge, WindowState as SCTKWindowState,
 };
+use smithay_client_toolkit::reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge;
 use smithay_client_toolkit::seat::pointer::CursorIcon;
 use smithay_client_toolkit::shell::xdg::fallback_frame::FallbackFrame;
 use smithay_client_toolkit::shell::xdg::window::{
@@ -1141,10 +1142,22 @@ impl WaylandWindowInner {
                     .show_window_menu(seat, serial, (x, y))
             }
             FrameAction::Resize(edge) => {
-                self.window.as_ref().unwrap().resize(seat, serial, todo!())
+                let edge = match edge {
+                    ResizeEdge::None => XdgResizeEdge::None,
+                    ResizeEdge::Top => XdgResizeEdge::Top,
+                    ResizeEdge::Bottom => XdgResizeEdge::Bottom,
+                    ResizeEdge::Left => XdgResizeEdge::Left,
+                    ResizeEdge::TopLeft => XdgResizeEdge::TopLeft,
+                    ResizeEdge::BottomLeft => XdgResizeEdge::BottomLeft,
+                    ResizeEdge::Right => XdgResizeEdge::Right,
+                    ResizeEdge::TopRight => XdgResizeEdge::TopRight,
+                    ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
+                    _ => return, // Realistically, there probably won't be any new edges added.
+                };
+                self.window.as_ref().unwrap().resize(seat, serial, edge)
             }
             FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
-            _ => todo!(),
+            _ => log::warn!("unhandled FrameAction: {:?}", action),
         }
     }
 }
@@ -1262,7 +1275,7 @@ impl CompositorHandler for WaylandState {
         surface: &wayland_client::protocol::wl_surface::WlSurface,
         new_transform: wayland_client::protocol::wl_output::Transform,
     ) {
-        todo!()
+        // TODO: do we need to do anything here?
     }
 }
 
