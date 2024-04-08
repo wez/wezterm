@@ -896,20 +896,26 @@ impl WaylandWindowInner {
         let state = conn.wayland_state.borrow_mut();
         let pointer = RefMut::map(state, |s| s.pointer.as_mut().unwrap());
 
-        if let Err(err) = match cursor {
-            Some(cursor) => pointer.set_cursor(
-                &conn.connection,
-                match cursor {
-                    MouseCursor::Arrow => CursorIcon::Default,
-                    MouseCursor::Hand => CursorIcon::Pointer,
-                    MouseCursor::SizeUpDown => CursorIcon::NsResize,
-                    MouseCursor::SizeLeftRight => CursorIcon::EwResize,
-                    MouseCursor::Text => CursorIcon::Text,
-                },
-            ),
-            None => pointer.hide_cursor(),
-        } {
-            log::error!("set_cursor: {}", err);
+        match cursor {
+            Some(cursor) => {
+                if let Err(err) = pointer.set_cursor(
+                    &conn.connection,
+                    match cursor {
+                        MouseCursor::Arrow => CursorIcon::Default,
+                        MouseCursor::Hand => CursorIcon::Pointer,
+                        MouseCursor::SizeUpDown => CursorIcon::NsResize,
+                        MouseCursor::SizeLeftRight => CursorIcon::EwResize,
+                        MouseCursor::Text => CursorIcon::Text,
+                    },
+                ) {
+                    log::error!("set_cursor: {}", err);
+                }
+            }
+            None => {
+                if let Err(err) = pointer.hide_cursor() {
+                    log::error!("hide_cursor: {}", err)
+                }
+            }
         }
     }
 
