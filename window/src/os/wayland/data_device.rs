@@ -1,12 +1,13 @@
 use std::os::fd::{FromRawFd, IntoRawFd};
 
 use filedescriptor::FileDescriptor;
-use smithay_client_toolkit::data_device_manager::data_device::{
-    DataDevice, DataDeviceDataExt, DataDeviceHandler,
+use smithay_client_toolkit::data_device_manager::data_device::DataDeviceHandler;
+use smithay_client_toolkit::data_device_manager::data_offer::{
+    DataOfferHandler, DragOffer, SelectionOffer,
 };
-use smithay_client_toolkit::data_device_manager::data_offer::DataOfferHandler;
 use smithay_client_toolkit::data_device_manager::data_source::DataSourceHandler;
 use smithay_client_toolkit::data_device_manager::WritePipe;
+use smithay_client_toolkit::reexports::client::protocol::wl_data_device::WlDataDevice;
 use wayland_client::protocol::wl_data_device_manager::DndAction;
 use wayland_client::Proxy;
 
@@ -26,22 +27,20 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        data_device: DataDevice,
+        data_device: &WlDataDevice,
     ) {
-        let mut drag_offer = data_device.drag_offer().unwrap();
-        log::trace!(
-            "Data offer entered: {:?}, mime_types: {:?}",
-            drag_offer,
-            data_device.drag_mime_types()
-        );
+        let mut drag_offer = data_device.data::<DragOffer>().unwrap();
+        drag_offer.with_mime_types(|mime_types| {
+            log::trace!(
+                "Data offer entered: {:?}, mime_types: {:?}",
+                drag_offer,
+                mime_types
+            );
 
-        if let Some(m) = data_device
-            .drag_mime_types()
-            .iter()
-            .find(|s| *s == URI_MIME_TYPE)
-        {
-            drag_offer.accept_mime_type(*self.last_serial.borrow(), Some(m.clone()));
-        }
+            if let Some(mime) = mime_types.iter().find(|s| *s == URI_MIME_TYPE) {
+                drag_offer.accept_mime_type(*self.last_serial.borrow(), Some(mime.clone()));
+            }
+        });
 
         drag_offer.set_actions(DndAction::None | DndAction::Copy, DndAction::None);
 
@@ -64,7 +63,7 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _data_device: DataDevice,
+        _data_device: &WlDataDevice,
     ) {
         let pointer = self.pointer.as_mut().unwrap();
         let mut pstate = pointer
@@ -83,7 +82,7 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _data_device: DataDevice,
+        _data_device: &WlDataDevice,
     ) {
     }
 
@@ -91,14 +90,13 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        data_device: DataDevice,
+        data_device: &WlDataDevice,
     ) {
-        let mime_types = data_device.selection_mime_types();
-        if !mime_types.iter().any(|s| s == TEXT_MIME_TYPE) {
-            return;
-        }
+        if let Some(offer) = data_device.data::<SelectionOffer>() {
+            if !offer.with_mime_types(|mime_types| mime_types.iter().any(|s| s == TEXT_MIME_TYPE)) {
+                return;
+            }
 
-        if let Some(offer) = data_device.selection_offer() {
             if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
                 copy_and_paste
                     .lock()
@@ -112,7 +110,7 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _data_device: DataDevice,
+        _data_device: &WlDataDevice,
     ) {
         let pointer = self.pointer.as_mut().unwrap();
         let mut pstate = pointer
@@ -135,21 +133,21 @@ impl DataDeviceHandler for WaylandState {
 }
 
 impl DataOfferHandler for WaylandState {
-    fn offer(
-        &mut self,
-        _conn: &wayland_client::Connection,
-        _qh: &wayland_client::QueueHandle<Self>,
-        offer: &mut smithay_client_toolkit::data_device_manager::data_offer::DataDeviceOffer,
-        mime_type: String,
-    ) {
-        log::trace!("Received offer with mime type: {mime_type}");
-        if mime_type == TEXT_MIME_TYPE {
-            offer.accept_mime_type(*self.last_serial.borrow(), Some(mime_type));
-        } else {
-            // Refuse other mime types
-            offer.accept_mime_type(*self.last_serial.borrow(), None);
-        }
-    }
+    // fn offer(
+    //     &mut self,
+    //     _conn: &wayland_client::Connection,
+    //     _qh: &wayland_client::QueueHandle<Self>,
+    //     offer: &mut smithay_client_toolkit::data_device_manager::data_offer::DataDeviceOffer,
+    //     mime_type: String,
+    // ) {
+    //     log::trace!("Received offer with mime type: {mime_type}");
+    //     if mime_type == TEXT_MIME_TYPE {
+    //         offer.accept_mime_type(*self.last_serial.borrow(), Some(mime_type));
+    //     } else {
+    //         // Refuse other mime types
+    //         offer.accept_mime_type(*self.last_serial.borrow(), None);
+    //     }
+    // }
 
     // Ignore drag and drop events
     fn source_actions(

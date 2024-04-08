@@ -6,6 +6,7 @@ use wayland_client::{Connection, QueueHandle};
 use crate::wayland::copy_and_paste::PrimarySelectionManagerData;
 use crate::wayland::keyboard::KeyboardData;
 use crate::wayland::pointer::PointerUserData;
+use crate::wayland::SurfaceUserData;
 
 use super::state::WaylandState;
 
@@ -39,9 +40,11 @@ impl SeatHandler for WaylandState {
             log::trace!("Setting pointer capability");
             let pointer = self
                 .seat
-                .get_pointer_with_theme_and_data(
+                .get_pointer_with_theme_and_data::<WaylandState, SurfaceUserData, PointerUserData>(
                     qh,
                     &seat,
+                    todo!(),
+                    todo!(),
                     ThemeSpec::System,
                     PointerUserData::new(seat.clone()),
                 )
