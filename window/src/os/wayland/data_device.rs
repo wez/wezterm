@@ -2,9 +2,7 @@ use std::os::fd::{FromRawFd, IntoRawFd};
 
 use filedescriptor::FileDescriptor;
 use smithay_client_toolkit::data_device_manager::data_device::DataDeviceHandler;
-use smithay_client_toolkit::data_device_manager::data_offer::{
-    DataOfferHandler, DragOffer, SelectionOffer,
-};
+use smithay_client_toolkit::data_device_manager::data_offer::DataOfferHandler;
 use smithay_client_toolkit::data_device_manager::data_source::DataSourceHandler;
 use smithay_client_toolkit::data_device_manager::WritePipe;
 use smithay_client_toolkit::reexports::client::protocol::wl_data_device::WlDataDevice;
@@ -29,20 +27,27 @@ impl DataDeviceHandler for WaylandState {
         _qh: &wayland_client::QueueHandle<Self>,
         data_device: &WlDataDevice,
     ) {
-        let mut drag_offer = data_device.data::<DragOffer>().unwrap();
-        drag_offer.with_mime_types(|mime_types| {
+        let offer = self
+            .data_device
+            .as_ref()
+            .unwrap()
+            .data()
+            .drag_offer()
+            .unwrap();
+
+        offer.with_mime_types(|mime_types| {
             log::trace!(
                 "Data offer entered: {:?}, mime_types: {:?}",
-                drag_offer,
+                offer,
                 mime_types
             );
 
             if let Some(mime) = mime_types.iter().find(|s| *s == URI_MIME_TYPE) {
-                drag_offer.accept_mime_type(*self.last_serial.borrow(), Some(mime.clone()));
+                offer.accept_mime_type(*self.last_serial.borrow(), Some(mime.clone()));
             }
         });
 
-        drag_offer.set_actions(DndAction::None | DndAction::Copy, DndAction::None);
+        offer.set_actions(DndAction::None | DndAction::Copy, DndAction::None);
 
         let pointer = self.pointer.as_mut().unwrap();
         let mut pstate = pointer
@@ -53,8 +58,8 @@ impl DataDeviceHandler for WaylandState {
             .lock()
             .unwrap();
 
-        let offer = drag_offer.inner().clone();
-        let window_id = SurfaceUserData::from_wl(&drag_offer.surface).window_id;
+        let window_id = SurfaceUserData::from_wl(&offer.surface).window_id;
+        let offer = offer.inner().clone();
 
         pstate.drag_and_drop.offer = Some(SurfaceAndOffer { window_id, offer });
     }
@@ -92,17 +97,23 @@ impl DataDeviceHandler for WaylandState {
         _qh: &wayland_client::QueueHandle<Self>,
         data_device: &WlDataDevice,
     ) {
-        if let Some(offer) = data_device.data::<SelectionOffer>() {
-            if !offer.with_mime_types(|mime_types| mime_types.iter().any(|s| s == TEXT_MIME_TYPE)) {
-                return;
-            }
+        let offer = self
+            .data_device
+            .as_ref()
+            .unwrap()
+            .data()
+            .selection_offer()
+            .unwrap();
 
-            if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
-                copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .confirm_selection(offer.inner().clone());
-            }
+        if !offer.with_mime_types(|mime_types| mime_types.iter().any(|s| s == TEXT_MIME_TYPE)) {
+            return;
+        }
+
+        if let Some(copy_and_paste) = self.resolve_copy_and_paste() {
+            copy_and_paste
+                .lock()
+                .unwrap()
+                .confirm_selection(offer.inner().clone());
         }
     }
 
@@ -133,22 +144,6 @@ impl DataDeviceHandler for WaylandState {
 }
 
 impl DataOfferHandler for WaylandState {
-    // fn offer(
-    //     &mut self,
-    //     _conn: &wayland_client::Connection,
-    //     _qh: &wayland_client::QueueHandle<Self>,
-    //     offer: &mut smithay_client_toolkit::data_device_manager::data_offer::DataDeviceOffer,
-    //     mime_type: String,
-    // ) {
-    //     log::trace!("Received offer with mime type: {mime_type}");
-    //     if mime_type == TEXT_MIME_TYPE {
-    //         offer.accept_mime_type(*self.last_serial.borrow(), Some(mime_type));
-    //     } else {
-    //         // Refuse other mime types
-    //         offer.accept_mime_type(*self.last_serial.borrow(), None);
-    //     }
-    // }
-
     // Ignore drag and drop events
     fn source_actions(
         &mut self,
