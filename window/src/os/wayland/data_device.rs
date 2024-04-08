@@ -25,7 +25,7 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        data_device: &WlDataDevice,
+        _data_device: &WlDataDevice,
     ) {
         let offer = self
             .data_device
@@ -95,7 +95,7 @@ impl DataDeviceHandler for WaylandState {
         &mut self,
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
-        data_device: &WlDataDevice,
+        _data_device: &WlDataDevice,
     ) {
         let offer = self
             .data_device
