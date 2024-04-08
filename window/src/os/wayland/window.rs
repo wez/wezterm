@@ -24,6 +24,7 @@ use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, Surface
 use smithay_client_toolkit::reexports::csd_frame::{
     DecorationsFrame, FrameAction, WindowState as SCTKWindowState,
 };
+use smithay_client_toolkit::seat::pointer::CursorIcon;
 use smithay_client_toolkit::shell::xdg::fallback_frame::FallbackFrame;
 use smithay_client_toolkit::shell::xdg::window::{
     DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
@@ -195,11 +196,6 @@ impl WaylandWindow {
             compositor.create_surface_with_data(&qh, surface_data)
         };
 
-        let pointer_surface = {
-            let compositor = &conn.wayland_state.borrow().compositor;
-            compositor.create_surface(&qh)
-        };
-
         let ResolvedGeometry {
             x: _,
             y: _,
@@ -292,7 +288,6 @@ impl WaylandWindow {
             key_repeat: None,
             pending_event,
             pending_mouse,
-            pointer_surface,
 
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
@@ -507,7 +502,6 @@ pub struct WaylandWindowInner {
     dimensions: Dimensions,
     resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
-    pointer_surface: WlSurface,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     hscroll_remainder: f64,
@@ -897,26 +891,24 @@ impl WaylandWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        let name = cursor.map_or("none", |cursor| match cursor {
-            MouseCursor::Arrow => "arrow",
-            MouseCursor::Hand => "hand",
-            MouseCursor::SizeUpDown => "ns-resize",
-            MouseCursor::SizeLeftRight => "ew-resize",
-            MouseCursor::Text => "xterm",
-        });
         let conn = Connection::get().unwrap().wayland();
         let state = conn.wayland_state.borrow_mut();
         let (shm, pointer) =
             RefMut::map_split(state, |s| (&mut s.shm, s.pointer.as_mut().unwrap()));
 
-        if let Err(err) = pointer.set_cursor(
-            &conn.connection,
-            todo!(),
-            // name,
-            // shm.wl_shm(),
-            // &self.pointer_surface,
-            // 1,
-        ) {
+        if let Err(err) = match cursor {
+            Some(cursor) => pointer.set_cursor(
+                &conn.connection,
+                match cursor {
+                    MouseCursor::Arrow => CursorIcon::Default,
+                    MouseCursor::Hand => CursorIcon::Pointer,
+                    MouseCursor::SizeUpDown => CursorIcon::NsResize,
+                    MouseCursor::SizeLeftRight => CursorIcon::EwResize,
+                    MouseCursor::Text => CursorIcon::Text,
+                },
+            ),
+            None => pointer.hide_cursor(),
+        } {
             log::error!("set_cursor: {}", err);
         }
     }
