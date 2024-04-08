@@ -56,7 +56,7 @@ impl CopyAndPaste {
                     .as_ref()
                     .ok_or_else(|| anyhow!("no primary selection offer"))?;
                 let pipe = Pipe::new().map_err(Error::msg)?;
-                offer.receive(TEXT_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
+                offer.receive(TEXT_MIME_TYPE.to_string(), todo!());
                 Ok(pipe.read)
             }
             None => {
@@ -65,7 +65,7 @@ impl CopyAndPaste {
                     .as_ref()
                     .ok_or_else(|| anyhow!("no data offer"))?;
                 let pipe = Pipe::new().map_err(Error::msg)?;
-                offer.receive(TEXT_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
+                offer.receive(TEXT_MIME_TYPE.to_string(), todo!());
                 Ok(pipe.read)
             }
         }

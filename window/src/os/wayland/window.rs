@@ -21,11 +21,13 @@ use raw_window_handle::{
     WaylandDisplayHandle, WaylandWindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
-use smithay_client_toolkit::shell::xdg::frame::fallback_frame::FallbackFrame;
-use smithay_client_toolkit::shell::xdg::frame::{DecorationsFrame, FrameAction};
+use smithay_client_toolkit::reexports::csd_frame::{
+    DecorationsFrame, FrameAction, WindowState as SCTKWindowState,
+};
+use smithay_client_toolkit::shell::xdg::fallback_frame::FallbackFrame;
 use smithay_client_toolkit::shell::xdg::window::{
     DecorationMode, Window as XdgWindow, WindowConfigure, WindowDecorations as Decorations,
-    WindowHandler, WindowState as SCTKWindowState,
+    WindowHandler,
 };
 use smithay_client_toolkit::shell::xdg::XdgSurface;
 use smithay_client_toolkit::shell::WaylandSurface;
@@ -907,13 +909,13 @@ impl WaylandWindowInner {
         let (shm, pointer) =
             RefMut::map_split(state, |s| (&mut s.shm, s.pointer.as_mut().unwrap()));
 
-        // Much different API in 0.18
         if let Err(err) = pointer.set_cursor(
             &conn.connection,
-            name,
-            shm.wl_shm(),
-            &self.pointer_surface,
-            1,
+            todo!(),
+            // name,
+            // shm.wl_shm(),
+            // &self.pointer_surface,
+            // 1,
         ) {
             log::error!("set_cursor: {}", err);
         }
@@ -1146,8 +1148,11 @@ impl WaylandWindowInner {
                     .unwrap()
                     .show_window_menu(seat, serial, (x, y))
             }
-            FrameAction::Resize(edge) => self.window.as_ref().unwrap().resize(seat, serial, edge),
+            FrameAction::Resize(edge) => {
+                self.window.as_ref().unwrap().resize(seat, serial, todo!())
+            }
             FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
+            _ => todo!(),
         }
     }
 }
@@ -1256,6 +1261,16 @@ impl CompositorHandler for WaylandState {
             inner.next_frame_is_ready();
             Ok(())
         });
+    }
+
+    fn transform_changed(
+        &mut self,
+        conn: &WConnection,
+        qh: &wayland_client::QueueHandle<Self>,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        new_transform: wayland_client::protocol::wl_output::Transform,
+    ) {
+        todo!()
     }
 }
 
