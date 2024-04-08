@@ -38,13 +38,14 @@ impl SeatHandler for WaylandState {
 
         if capability == Capability::Pointer && self.pointer.is_none() {
             log::trace!("Setting pointer capability");
+            let surface = self.compositor.create_surface(qh);
             let pointer = self
                 .seat
                 .get_pointer_with_theme_and_data::<WaylandState, SurfaceUserData, PointerUserData>(
                     qh,
                     &seat,
-                    todo!(),
-                    todo!(),
+                    &self.shm.wl_shm(),
+                    surface,
                     ThemeSpec::System,
                     PointerUserData::new(seat.clone()),
                 )
