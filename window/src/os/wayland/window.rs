@@ -14,13 +14,13 @@ use anyhow::{anyhow, bail};
 use async_io::Timer;
 use async_trait::async_trait;
 use config::ConfigHandle;
-use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
     WaylandDisplayHandle, WaylandWindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
+use smithay_client_toolkit::data_device_manager::ReadPipe;
 use smithay_client_toolkit::reexports::csd_frame::{
     DecorationsFrame, FrameAction, ResizeEdge, WindowState as SCTKWindowState,
 };
@@ -463,10 +463,18 @@ pub(crate) struct PendingEvent {
     pub(crate) window_state: Option<WindowState>,
 }
 
-pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
+pub(crate) fn read_pipe_with_timeout(mut file: ReadPipe) -> anyhow::Result<String> {
     let mut result = Vec::new();
 
-    file.set_non_blocking(true)?;
+    // set non-blocking I/O on the pipe
+    // (adapted from FileDescriptor::set_non_blocking_impl in /filedescriptor/src/unix.rs)
+    if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFL, libc::O_NONBLOCK) } != 0 {
+        bail!(
+            "failed to change non-blocking mode: {}",
+            std::io::Error::last_os_error()
+        )
+    }
+
     let mut pfd = libc::pollfd {
         fd: file.as_raw_fd(),
         events: libc::POLLIN,
