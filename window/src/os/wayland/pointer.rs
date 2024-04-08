@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use smithay_client_toolkit::compositor::SurfaceData;
 use smithay_client_toolkit::reexports::csd_frame::{DecorationsFrame, FrameClick};
@@ -220,17 +221,23 @@ impl WaylandState {
 
                 match evt.kind {
                     PointerEventKind::Enter { .. } => {
-                        inner
-                            .window_frame
-                            .click_point_moved(todo!(), &evt.surface.id(), x, y);
+                        inner.window_frame.click_point_moved(
+                            Duration::ZERO,
+                            &evt.surface.id(),
+                            x,
+                            y,
+                        );
                     }
                     PointerEventKind::Leave { .. } => {
                         inner.window_frame.click_point_left();
                     }
                     PointerEventKind::Motion { .. } => {
-                        inner
-                            .window_frame
-                            .click_point_moved(todo!(), &evt.surface.id(), x, y);
+                        inner.window_frame.click_point_moved(
+                            Duration::ZERO,
+                            &evt.surface.id(),
+                            x,
+                            y,
+                        );
                     }
                     PointerEventKind::Press { button, serial, .. }
                     | PointerEventKind::Release { button, serial, .. } => {
@@ -244,7 +251,9 @@ impl WaylandState {
                             0x111 => FrameClick::Alternate,
                             _ => continue,
                         };
-                        if let Some(action) = inner.window_frame.on_click(todo!(), click, pressed) {
+                        if let Some(action) =
+                            inner.window_frame.on_click(Duration::ZERO, click, pressed)
+                        {
                             inner.frame_action(pointer, serial, action);
                         }
                     }
