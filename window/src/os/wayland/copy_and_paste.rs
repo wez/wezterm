@@ -9,7 +9,7 @@ use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection
 use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_offer_v1::{ZwpPrimarySelectionOfferV1, Event as PrimarySelectionOfferEvent};
 use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_source_v1::{ZwpPrimarySelectionSourceV1, Event as PrimarySelectionSourceEvent};
 use std::io::Write;
-use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
+use std::os::fd::{AsRawFd, BorrowedFd, FromRawFd, IntoRawFd};
 use std::sync::{Arc, Mutex};
 use toolkit::reexports::client::protocol::wl_data_offer::WlDataOffer;
 
@@ -56,7 +56,9 @@ impl CopyAndPaste {
                     .as_ref()
                     .ok_or_else(|| anyhow!("no primary selection offer"))?;
                 let pipe = Pipe::new().map_err(Error::msg)?;
-                offer.receive(TEXT_MIME_TYPE.to_string(), todo!());
+                offer.receive(TEXT_MIME_TYPE.to_string(), unsafe {
+                    BorrowedFd::borrow_raw(pipe.write.as_raw_fd())
+                });
                 Ok(pipe.read)
             }
             None => {
@@ -65,7 +67,9 @@ impl CopyAndPaste {
                     .as_ref()
                     .ok_or_else(|| anyhow!("no data offer"))?;
                 let pipe = Pipe::new().map_err(Error::msg)?;
-                offer.receive(TEXT_MIME_TYPE.to_string(), todo!());
+                offer.receive(TEXT_MIME_TYPE.to_string(), unsafe {
+                    BorrowedFd::borrow_raw(pipe.write.as_raw_fd())
+                });
                 Ok(pipe.read)
             }
         }
