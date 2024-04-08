@@ -13,7 +13,6 @@ use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::cli
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
-use smithay_client_toolkit::seat::pointer::cursor_shape::CursorShapeManager;
 use smithay_client_toolkit::seat::pointer::ThemedPointer;
 use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
@@ -21,16 +20,13 @@ use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::subcompositor::SubcompositorState;
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_data_device, delegate_output, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
+    delegate_compositor, delegate_data_device, delegate_output, delegate_pointer, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_output::WlOutput;
-use wayland_client::protocol::wl_pointer::WlPointer;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
-use wayland_protocols::wp::cursor_shape::v1::client::wp_cursor_shape_device_v1::WpCursorShapeDeviceV1;
-use wayland_protocols::wp::cursor_shape::v1::client::wp_cursor_shape_manager_v1::WpCursorShapeManagerV1;
 use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_device_manager_v1::ZwpPrimarySelectionDeviceManagerV1;
 use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_device_v1::ZwpPrimarySelectionDeviceV1;
 use wayland_protocols::wp::primary_selection::zv1::client::zwp_primary_selection_offer_v1::ZwpPrimarySelectionOfferV1;
@@ -155,32 +151,23 @@ impl OutputHandler for WaylandState {
         log::trace!("output destroyed: OutputHandler");
     }
 }
-// Undocumented in sctk 0.17: This is required to use have user data with a surface
-// Will be just this in 0.18:
-delegate_compositor!(WaylandState, surface: [SurfaceData, SurfaceUserData]);
-// delegate_dispatch!(WaylandState: [ WlSurface: SurfaceUserData] => CompositorState);
 
 delegate_registry!(WaylandState);
 
 delegate_shm!(WaylandState);
 
 delegate_output!(WaylandState);
-// delegate_compositor!(WaylandState);
+delegate_compositor!(WaylandState, surface: [SurfaceData, SurfaceUserData]);
 delegate_subcompositor!(WaylandState);
 
 delegate_seat!(WaylandState);
 
 delegate_data_device!(WaylandState);
 
-// Updating to 0.18 should have this be able to work
-// delegate_pointer!(WaylandState, pointer: [PointerUserData]);
-delegate_dispatch!(WaylandState: [WlPointer: PointerUserData] => SeatState);
+delegate_pointer!(WaylandState, pointer: [PointerUserData]);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
-
-delegate_dispatch!(WaylandState: [WpCursorShapeManagerV1: GlobalData] => CursorShapeManager);
-delegate_dispatch!(WaylandState: [WpCursorShapeDeviceV1: GlobalData] => CursorShapeManager);
 
 delegate_dispatch!(WaylandState: [ZwpTextInputManagerV3: GlobalData] => TextInputState);
 delegate_dispatch!(WaylandState: [ZwpTextInputV3: TextInputData] => TextInputState);
