@@ -13,6 +13,7 @@ use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::cli
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use smithay_client_toolkit::reexports::protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
+use smithay_client_toolkit::seat::pointer::cursor_shape::CursorShapeManager;
 use smithay_client_toolkit::seat::pointer::ThemedPointer;
 use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
@@ -40,7 +41,6 @@ use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_v3::ZwpTextIn
 use crate::x11::KeyboardWithFallback;
 
 use super::copy_and_paste::{PrimarySelectionManagerData, PrimarySelectionManagerState};
-use super::cursor_shape::CursorShapeManagerState;
 use super::inputhandler::{TextInputData, TextInputState};
 use super::pointer::{PendingMouse, PointerUserData};
 use super::{OutputManagerData, OutputManagerState, SurfaceUserData, WaylandWindowInner};
@@ -179,8 +179,8 @@ delegate_dispatch!(WaylandState: [WlPointer: PointerUserData] => SeatState);
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
 
-delegate_dispatch!(WaylandState: [WpCursorShapeManagerV1: GlobalData] => CursorShapeManagerState);
-delegate_dispatch!(WaylandState: [WpCursorShapeDeviceV1: GlobalData] => CursorShapeManagerState);
+delegate_dispatch!(WaylandState: [WpCursorShapeManagerV1: GlobalData] => CursorShapeManager);
+delegate_dispatch!(WaylandState: [WpCursorShapeDeviceV1: GlobalData] => CursorShapeManager);
 
 delegate_dispatch!(WaylandState: [ZwpTextInputManagerV3: GlobalData] => TextInputState);
 delegate_dispatch!(WaylandState: [ZwpTextInputV3: TextInputData] => TextInputState);
