@@ -2,6 +2,7 @@ use crate::wayland::read_pipe_with_timeout;
 use crate::ConnectionOps;
 use filedescriptor::{FileDescriptor, Pipe};
 use smithay_client_toolkit as toolkit;
+use std::os::fd::{AsRawFd, BorrowedFd};
 use std::path::PathBuf;
 use toolkit::reexports::client::protocol::wl_data_offer::WlDataOffer;
 use url::Url;
@@ -32,7 +33,9 @@ impl DragAndDrop {
         let pipe = Pipe::new()
             .map_err(|err| log::error!("Unable to create pipe: {:#}", err))
             .ok()?;
-        offer.receive(URI_MIME_TYPE.to_string(), todo!());
+        offer.receive(URI_MIME_TYPE.to_string(), unsafe {
+            BorrowedFd::borrow_raw(pipe.write.as_raw_fd())
+        });
         let read = pipe.read;
         offer.finish();
         Some(SurfaceAndPipe { window_id, read })
