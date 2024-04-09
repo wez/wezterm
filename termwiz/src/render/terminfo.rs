@@ -900,6 +900,10 @@ mod test {
         fn waker(&self) -> TerminalWaker {
             unimplemented!();
         }
+
+        fn set_keyboard_encoding(&mut self, _encoding: crate::input::KeyboardEncoding) -> Result<()> {
+            bail!("not implemented");
+        }
     }
 
     #[test]

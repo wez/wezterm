@@ -117,10 +117,8 @@ builder! {
         /// This can improve rendered text compatibility with pagers.
         force_terminfo_render_to_use_ansi_sgr: Option<bool>,
 
-        /// Whether Kitty enhanced keyboard protocol should be used
-        /// Note: termcap does not report this capability so it is assumed
-        /// to be supported by `Capabilities` and enabled if possible by `Terminal`.
-        keyboard_enhancement: Option<bool>,
+        /// Whether support for Kitty enhanced keyboard protocol should be probed and enabled
+        probe_for_enhanced_keyboard: bool,
     }
 }
 
@@ -169,7 +167,7 @@ pub struct Capabilities {
     bracketed_paste: bool,
     mouse_reporting: bool,
     force_terminfo_render_to_use_ansi_sgr: bool,
-    keyboard_enhancement: bool,
+    probe_for_enhanced_keyboard: bool,
 }
 
 impl Capabilities {
@@ -299,8 +297,7 @@ impl Capabilities {
 
         let bracketed_paste = hints.bracketed_paste.unwrap_or(true);
         let mouse_reporting = hints.mouse_reporting.unwrap_or(true);
-        let keyboard_enhancement = hints.keyboard_enhancement.unwrap_or(true);
-
+        let probe_for_enhanced_keyboard = hints.probe_for_enhanced_keyboard;
         let force_terminfo_render_to_use_ansi_sgr =
             hints.force_terminfo_render_to_use_ansi_sgr.unwrap_or(false);
 
@@ -314,7 +311,7 @@ impl Capabilities {
             bracketed_paste,
             mouse_reporting,
             force_terminfo_render_to_use_ansi_sgr,
-            keyboard_enhancement,
+            probe_for_enhanced_keyboard,
         })
     }
 
@@ -369,8 +366,8 @@ impl Capabilities {
 
     /// Whether to request that the terminal enable Kitty enhanced
     /// keyboard protocol, if supported
-    pub fn keyboard_enhancement(&self) -> bool {
-        self.keyboard_enhancement
+    pub fn probe_for_enhanced_keyboard(&self) -> bool {
+        self.probe_for_enhanced_keyboard
     }
 }
 

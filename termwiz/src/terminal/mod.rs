@@ -2,7 +2,7 @@
 
 use crate::caps::probed::ProbeCapabilities;
 use crate::caps::Capabilities;
-use crate::input::InputEvent;
+use crate::input::{InputEvent, KeyboardEncoding};
 use crate::surface::Change;
 use crate::{format_err, Result};
 use num_traits::NumCast;
@@ -99,6 +99,8 @@ pub trait Terminal {
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>>;
 
     fn waker(&self) -> TerminalWaker;
+
+    fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()>;
 }
 
 /// `SystemTerminal` is a concrete implementation of `Terminal`.
