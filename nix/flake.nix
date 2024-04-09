@@ -162,8 +162,12 @@
         buildInputs =
           buildInputs
           ++ (with pkgs.rust-bin; [
-            stable.latest.minimal
-            stable.latest.clippy
+            (stable.latest.minimal.override {
+              extensions = [
+                "clippy"
+                "rust-src"
+              ];
+            })
 
             nightly.latest.rustfmt
             nightly.latest.rust-analyzer
