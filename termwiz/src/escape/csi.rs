@@ -690,6 +690,25 @@ impl XtermKeyModifierResource {
     }
 }
 
+/// See https://invisible-island.net/xterm/manpage/xterm.html#VT100-Widget-Resources:modifyOtherKeys
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum XtermModifyOtherKeys {
+    Disabled,
+    Partial,
+    Enabled,
+}
+
+impl XtermModifyOtherKeys {
+    pub fn parse(value: i64) -> Option<Self> {
+        Some(match value {
+            0 => XtermModifyOtherKeys::Disabled,
+            1 => XtermModifyOtherKeys::Partial,
+            2 => XtermModifyOtherKeys::Enabled,
+            _ => return None,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Mode {
     SetDecPrivateMode(DecPrivateMode),

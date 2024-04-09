@@ -23,7 +23,8 @@ use wezterm_input_types::KittyKeyboardFlags;
 
 use crate::caps::Capabilities;
 use crate::escape::csi::{
-    DecPrivateMode, DecPrivateModeCode, Keyboard, Mode, XtermKeyModifierResource, CSI,
+    DecPrivateMode, DecPrivateModeCode, Keyboard, Mode, XtermKeyModifierResource,
+    XtermModifyOtherKeys, CSI,
 };
 use crate::input::{InputEvent, InputParser, KeyboardEncoding};
 use crate::render::terminfo::TerminfoRenderer;
@@ -53,6 +54,16 @@ pub trait UnixTty {
     fn set_size(&mut self, size: winsize) -> Result<()>;
     fn get_termios(&mut self) -> Result<Termios>;
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<()>;
+    fn modify_termios(
+        &mut self,
+        modifier: impl FnOnce(&mut Termios),
+        when: SetAttributeWhen,
+    ) -> Result<()> {
+        self.get_termios().and_then(|mut termios| {
+            modifier(&mut termios);
+            self.set_termios(&termios, when)
+        })
+    }
     /// Waits until all written data has been transmitted.
     fn drain(&mut self) -> Result<()>;
     fn purge(&mut self, purge: Purge) -> Result<()>;
@@ -106,13 +117,13 @@ impl TtyWriteHandle {
         Ok(())
     }
 
-    fn modify_other_keys(&mut self, level: i64) -> std::io::Result<()> {
+    fn modify_other_keys(&mut self, level: XtermModifyOtherKeys) -> std::io::Result<()> {
         write!(
             self,
             "{}",
             CSI::Mode(Mode::XtermKeyMode {
                 resource: XtermKeyModifierResource::OtherKeys,
-                value: Some(level),
+                value: Some(level as i64),
             })
         )
     }
@@ -291,6 +302,14 @@ impl UnixTerminal {
             Err(e) => bail!("failed to read sigwinch pipe {}", e),
         }
     }
+
+    pub fn get_keyboard_encoding(&mut self) -> Option<KeyboardEncoding> {
+        self.probe_capabilities()?
+            .enhanced_keyboard_state()
+            .ok()?
+            .map(|kitty| KeyboardEncoding::Kitty(kitty))
+            .or(Some(KeyboardEncoding::Xterm))
+    }
 }
 
 #[derive(Clone)]
@@ -313,11 +332,10 @@ impl UnixTerminalWaker {
 
 impl Terminal for UnixTerminal {
     fn set_raw_mode(&mut self) -> Result<()> {
-        let mut raw = self.write.get_termios()?;
-        cfmakeraw(&mut raw);
-        self.write
-            .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
-            .context("failed to set raw mode")?;
+        self.write.modify_termios(
+            cfmakeraw,
+            SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue,
+        )?;
 
         macro_rules! decset {
             ($variant:ident) => {
@@ -339,6 +357,7 @@ impl Terminal for UnixTerminal {
             decset!(SGRMouse);
         }
 
+        self.saved_keyboard_encoding = self.get_keyboard_encoding();
         if self.caps.probe_for_enhanced_keyboard()
             && self
                 .probe_capabilities()
@@ -347,22 +366,19 @@ impl Terminal for UnixTerminal {
                 .flatten()
                 .is_some()
         {
-            write!(
-                self.write,
-                "{}",
-                CSI::Keyboard(Keyboard::PushKittyState {
-                    flags: KittyKeyboardFlags::all(),
-                    mode: crate::escape::csi::KittyKeyboardMode::SetSpecified
-                })
-            )?;
+            self.set_keyboard_encoding(KeyboardEncoding::Kitty(KittyKeyboardFlags::all()))?;
         } else {
-            self.write.modify_other_keys(2)?;
+            self.write
+                .modify_other_keys(XtermModifyOtherKeys::Enabled)?;
         }
         self.flush()
     }
 
     fn set_cooked_mode(&mut self) -> Result<()> {
-        self.write.modify_other_keys(1)?;
+        self.write
+            .modify_other_keys(XtermModifyOtherKeys::Partial)?;
+        // FIXME: this only works if the original mode was cooked.
+        // There's no `termios::cfmakesane()`, so we'd have to set the flags manually
         self.write.restore_termios()
     }
 
@@ -406,13 +422,7 @@ impl Terminal for UnixTerminal {
 
     fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
         // enter raw mode
-        let raw_writer = self
-            .write
-            .modified_termios(|mut state| {
-                cfmakeraw(&mut state);
-                state
-            })
-            .ok()?;
+        let raw_writer = self.write.with_modified_termios(cfmakeraw).ok()?;
         Some(ProbeCapabilities::new(&mut self.read, raw_writer))
     }
 
@@ -535,10 +545,38 @@ impl Terminal for UnixTerminal {
     }
 
     fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
+        let is_kitty_supported = self
+            .probe_capabilities()
+            .map(|mut probe| probe.enhanced_keyboard_state())
+            .transpose()?
+            .flatten()
+            .is_some();
         match encoding {
-            KeyboardEncoding::Xterm => todo!(),
-            KeyboardEncoding::CsiU => todo!(),
-            KeyboardEncoding::Kitty(_) => todo!(),
+            KeyboardEncoding::Xterm => {
+                if is_kitty_supported {
+                    write!(
+                        self.write,
+                        "{}",
+                        CSI::Keyboard(Keyboard::PushKittyState {
+                            flags: KittyKeyboardFlags::empty(),
+                            mode: crate::escape::csi::KittyKeyboardMode::AssignAll
+                        })
+                    )?;
+                }
+            }
+            KeyboardEncoding::Kitty(flags) => {
+                if is_kitty_supported {
+                    write!(
+                        self.write,
+                        "{}",
+                        // Ideally, we'd use SetKittyState, but it doesn't work on some terminals (iTerm2)
+                        CSI::Keyboard(Keyboard::PushKittyState {
+                            flags,
+                            mode: crate::escape::csi::KittyKeyboardMode::AssignAll
+                        })
+                    )?;
+                }
+            }
             _ => Err(anyhow::anyhow!(
                 "Unsupported keyboard encoding for terminal"
             ))?,
@@ -561,6 +599,10 @@ impl Drop for UnixTerminal {
                 .unwrap();
             };
         }
+
+        if let Some(keyboard_encoding) = self.saved_keyboard_encoding {
+            self.set_keyboard_encoding(keyboard_encoding).unwrap();
+        }
         self.render(&[Change::CursorVisibility(
             crate::surface::CursorVisibility::Visible,
         )])
@@ -575,7 +617,9 @@ impl Drop for UnixTerminal {
         if self.caps.probe_for_enhanced_keyboard() {
             write!(self.write, "{}", CSI::Keyboard(Keyboard::PopKittyState(1))).unwrap();
         }
-        self.write.modify_other_keys(0).unwrap();
+        self.write
+            .modify_other_keys(XtermModifyOtherKeys::Disabled)
+            .unwrap();
         self.exit_alternate_screen().unwrap();
         self.write.flush().unwrap();
 
@@ -603,14 +647,13 @@ impl<W: BorrowMut<TtyWriteHandle>> TermiosGuard<W> {
     /// Modifies the termios state using the given closure and returns a new `TermiosGuard`,
     /// which restores to the original termios state when dropped.
     #[inline]
-    fn modified_termios(
+    fn with_modified_termios(
         &mut self,
-        modifier: impl FnOnce(Termios) -> Termios,
+        modifier: impl FnOnce(&mut Termios),
     ) -> Result<TermiosGuard<impl BorrowMut<TtyWriteHandle> + '_>> {
         let mut new = TermiosGuard::new(self.writer.borrow_mut())?;
-        let new_state = modifier(new.saved_state);
-        new.set_termios(
-            &new_state,
+        new.modify_termios(
+            modifier,
             SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue,
         )
         .context("failed to modify termios state")?;
