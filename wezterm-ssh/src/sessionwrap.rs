@@ -92,4 +92,16 @@ impl SessionWrap {
             }
         }
     }
+
+    pub fn accept_agent_forward(&mut self) -> Option<ChannelWrap> {
+        match self {
+            // Unimplemented for now, an error message was printed earlier when the user tries to
+            // enable agent forwarding so just return nothing here.
+            #[cfg(feature = "ssh2")]
+            Self::Ssh2(_sess) => None,
+
+            #[cfg(feature = "libssh-rs")]
+            Self::LibSsh(sess) => sess.sess.accept_agent_forward().map(ChannelWrap::LibSsh),
+        }
+    }
 }

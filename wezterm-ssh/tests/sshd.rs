@@ -431,10 +431,9 @@ impl std::ops::DerefMut for SessionWithSshd {
 
 #[fixture]
 /// Stand up an sshd instance and then connect to it and perform authentication
-pub async fn session(sshd: Sshd) -> SessionWithSshd {
+pub async fn session(#[default(Config::new())] mut config: Config, sshd: Sshd) -> SessionWithSshd {
     let port = sshd.port;
 
-    let mut config = Config::new();
     config.add_default_config_files();
 
     // Load our config to point to ourselves, using current sshd instance's port,

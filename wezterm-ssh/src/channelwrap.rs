@@ -146,6 +146,21 @@ impl ChannelWrap {
         }
     }
 
+    pub fn request_auth_agent_forwarding(&mut self) -> anyhow::Result<()> {
+        match self {
+            /* libssh2 doesn't properly support agent forwarding
+             * at this time:
+             * <https://github.com/libssh2/libssh2/issues/535> */
+            #[cfg(feature = "ssh2")]
+            Self::Ssh2(_chan) => Err(anyhow::anyhow!(
+                "ssh2 does not support request_auth_agent_forwarding"
+            )),
+
+            #[cfg(feature = "libssh-rs")]
+            Self::LibSsh(chan) => Ok(chan.request_auth_agent()?),
+        }
+    }
+
     pub fn resize_pty(&mut self, resize: &ResizePty) -> anyhow::Result<()> {
         match self {
             #[cfg(feature = "ssh2")]

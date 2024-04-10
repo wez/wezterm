@@ -3022,11 +3022,12 @@ dependencies = [
 
 [[package]]
 name = "libssh-rs"
-version = "0.2.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3fe324fb06b71d28abb81382ac547f25b4895e853a9968482dc5002fb3db08"
+checksum = "c13fbf28a79bb77f11a44716baca6327655198455b7c6f6189784279f3e331db"
 dependencies = [
  "bitflags 1.3.2",
+ "libc",
  "libssh-rs-sys",
  "openssl-sys",
  "thiserror",
@@ -6795,6 +6796,7 @@ dependencies = [
  "ssh2",
  "termwiz",
  "thiserror",
+ "uds_windows",
  "whoami",
 ]
 
