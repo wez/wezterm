@@ -533,6 +533,15 @@ impl Config {
 
         let mut token_map = self.tokens.clone();
         token_map.insert("%h".to_string(), host.to_string());
+        result
+            .entry("hostname".to_string())
+            .and_modify(|curr| {
+                if let Some(tokens) = self.should_expand_tokens("hostname") {
+                    self.expand_tokens(curr, tokens, &token_map);
+                }
+            })
+            .or_insert_with(|| host.to_string());
+        token_map.insert("%h".to_string(), result["hostname"].to_string());
         token_map.insert("%n".to_string(), host.to_string());
         token_map.insert("%r".to_string(), target_user.to_string());
         token_map.insert(
@@ -545,17 +554,13 @@ impl Config {
 
         for (k, v) in &mut result {
             if let Some(tokens) = self.should_expand_tokens(k) {
-                self.expand_tokens(k, v, tokens, &mut token_map);
+                self.expand_tokens(v, tokens, &token_map);
             }
 
             if self.should_expand_environment(k) {
                 self.expand_environment(v);
             }
         }
-
-        result
-            .entry("hostname".to_string())
-            .or_insert_with(|| host.to_string());
 
         result
             .entry("port".to_string())
@@ -639,13 +644,7 @@ impl Config {
     }
 
     /// Perform token substitution
-    fn expand_tokens(
-        &self,
-        key: &String,
-        value: &mut String,
-        tokens: &[&str],
-        token_map: &mut ConfigMap,
-    ) {
+    fn expand_tokens(&self, value: &mut String, tokens: &[&str], token_map: &ConfigMap) {
         let orig_value = value.to_string();
         for &t in tokens {
             if let Some(v) = token_map.get(t) {
@@ -674,9 +673,6 @@ impl Config {
             } else if value.contains(t) {
                 log::warn!("Unsupported token {t} when evaluating `{orig_value}`");
             }
-        }
-        if key == "hostname" {
-            token_map.insert("%h".to_string(), value.to_string());
         }
 
         *value = value.replace("%%", "%");
