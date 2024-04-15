@@ -47,20 +47,36 @@ jobs:
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
-      - name: "Build (Release mode)"
+      - name: "Build wezterm (Release mode)"
         shell: cmd
         run: |
-
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build --all --release
+          cargo build -p wezterm --release
+      - name: "Build wezterm-gui (Release mode)"
+        shell: cmd
+        run: |
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p wezterm-gui --release
+      - name: "Build wezterm-mux-server (Release mode)"
+        shell: cmd
+        run: |
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p wezterm-mux-server --release
+      - name: "Build strip-ansi-escapes (Release mode)"
+        shell: cmd
+        run: |
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo build -p strip-ansi-escapes --release
       - name: "Install cargo-nextest from Cargo"
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
           cache-key: "windows"
-      - name: "Test (Release mode)"
-        shell: bash
-        run: "cargo nextest run --all --release --no-fail-fast"
+      - name: "Test"
+        shell: cmd
+        run: |
+          PATH C:\Strawberry\perl\bin;%PATH%
+          cargo nextest run --all --no-fail-fast
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"

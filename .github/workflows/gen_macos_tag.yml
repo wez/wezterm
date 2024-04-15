@@ -42,20 +42,38 @@ jobs:
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
-      - name: "Build (Release mode Intel)"
+      - name: "Build wezterm (Release mode Intel)"
         shell: bash
-        run: "cargo build --target x86_64-apple-darwin --all --release"
-      - name: "Build (Release mode ARM)"
+        run: "cargo build --target x86_64-apple-darwin -p wezterm --release"
+      - name: "Build wezterm (Release mode ARM)"
         shell: bash
-        run: "cargo build --target aarch64-apple-darwin --all --release"
+        run: "cargo build --target aarch64-apple-darwin -p wezterm --release"
+      - name: "Build wezterm-gui (Release mode Intel)"
+        shell: bash
+        run: "cargo build --target x86_64-apple-darwin -p wezterm-gui --release"
+      - name: "Build wezterm-gui (Release mode ARM)"
+        shell: bash
+        run: "cargo build --target aarch64-apple-darwin -p wezterm-gui --release"
+      - name: "Build wezterm-mux-server (Release mode Intel)"
+        shell: bash
+        run: "cargo build --target x86_64-apple-darwin -p wezterm-mux-server --release"
+      - name: "Build wezterm-mux-server (Release mode ARM)"
+        shell: bash
+        run: "cargo build --target aarch64-apple-darwin -p wezterm-mux-server --release"
+      - name: "Build strip-ansi-escapes (Release mode Intel)"
+        shell: bash
+        run: "cargo build --target x86_64-apple-darwin -p strip-ansi-escapes --release"
+      - name: "Build strip-ansi-escapes (Release mode ARM)"
+        shell: bash
+        run: "cargo build --target aarch64-apple-darwin -p strip-ansi-escapes --release"
       - name: "Install cargo-nextest from Cargo"
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
           cache-key: "macos"
-      - name: "Test (Release mode)"
+      - name: "Test"
         shell: bash
-        run: "cargo nextest run --all --release --no-fail-fast --target=x86_64-apple-darwin"
+        run: "cargo nextest run --all --no-fail-fast --target=x86_64-apple-darwin"
       - name: "Package"
         env:
           MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}
