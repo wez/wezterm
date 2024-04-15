@@ -333,6 +333,12 @@ impl UnixTerminal {
             }
         }
     }
+
+    /// Restores the keyboard encoding to its original state, if it had been changed
+    pub fn restore_keyboard_encoding(&mut self) -> Result<()> {
+        self.saved_keyboard_encoding
+            .map_or(Ok(()), |enc| self.set_keyboard_encoding(enc))
+    }
 }
 
 #[derive(Clone)]
@@ -381,7 +387,10 @@ impl Terminal for UnixTerminal {
         }
 
         if self.caps.probe_for_enhanced_keyboard() && self.keyboard_enhancement_supported()? {
-            self.saved_keyboard_encoding = Some(self.get_keyboard_encoding()?);
+            if self.saved_keyboard_encoding.is_none() {
+                // don't override the original state if this is called multiple times
+                self.saved_keyboard_encoding = Some(self.get_keyboard_encoding()?);
+            }
             self.set_keyboard_encoding(KeyboardEncoding::Kitty(KittyKeyboardFlags::all()))?;
         } else {
             self.write
@@ -393,6 +402,7 @@ impl Terminal for UnixTerminal {
     fn set_cooked_mode(&mut self) -> Result<()> {
         self.write
             .modify_other_keys(XtermModifyOtherKeys::Partial)?;
+        self.restore_keyboard_encoding()?;
         // FIXME: this only works if the original mode was cooked.
         // There's no `termios::cfmakesane()`, so we'd have to set the flags manually
         self.write.restore_termios()
@@ -607,9 +617,7 @@ impl Drop for UnixTerminal {
             };
         }
 
-        if let Some(keyboard_encoding) = self.saved_keyboard_encoding {
-            self.set_keyboard_encoding(keyboard_encoding).unwrap();
-        }
+        self.restore_keyboard_encoding().unwrap();
         self.render(&[Change::CursorVisibility(
             crate::surface::CursorVisibility::Visible,
         )])
@@ -620,9 +628,6 @@ impl Drop for UnixTerminal {
         if self.caps.mouse_reporting() {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
-        }
-        if self.caps.probe_for_enhanced_keyboard() {
-            write!(self.write, "{}", CSI::Keyboard(Keyboard::PopKittyState(1))).unwrap();
         }
         self.write
             .modify_other_keys(XtermModifyOtherKeys::Disabled)
