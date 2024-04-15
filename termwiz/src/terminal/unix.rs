@@ -5,10 +5,12 @@ use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
 use std::borrow::BorrowMut;
+use std::cell::OnceCell;
 use std::collections::VecDeque;
 use std::error::Error as _;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
+use std::iter::Once;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
@@ -223,6 +225,7 @@ pub struct UnixTerminal {
     wake_pipe_write: Arc<Mutex<UnixStream>>,
     caps: Capabilities,
     in_alternate_screen: bool,
+    keyboard_enhancement_supported: Option<bool>,
     saved_keyboard_encoding: Option<KeyboardEncoding>,
 }
 
@@ -267,6 +270,7 @@ impl UnixTerminal {
             wake_pipe,
             wake_pipe_write: Arc::new(Mutex::new(wake_pipe_write)),
             in_alternate_screen: false,
+            keyboard_enhancement_supported: None,
             saved_keyboard_encoding: None,
         })
     }
@@ -303,12 +307,31 @@ impl UnixTerminal {
         }
     }
 
-    pub fn get_keyboard_encoding(&mut self) -> Option<KeyboardEncoding> {
-        self.probe_capabilities()?
-            .enhanced_keyboard_state()
-            .ok()?
+    pub fn get_keyboard_encoding(&mut self) -> Result<KeyboardEncoding> {
+        Ok(self
+            .probe_capabilities()
+            .map(|mut probe| probe.enhanced_keyboard_state())
+            .transpose()?
+            .flatten()
             .map(|kitty| KeyboardEncoding::Kitty(kitty))
-            .or(Some(KeyboardEncoding::Xterm))
+            .unwrap_or(KeyboardEncoding::Xterm))
+    }
+
+    /// Check if the terminal supports Kitty keyboard enhancement protocol
+    pub fn keyboard_enhancement_supported(&mut self) -> Result<bool> {
+        match self.keyboard_enhancement_supported {
+            Some(x) => Ok(x),
+            None => {
+                let result = self
+                    .probe_capabilities()
+                    .map(|mut probe| probe.enhanced_keyboard_state())
+                    .transpose()?
+                    .flatten()
+                    .is_some();
+                self.keyboard_enhancement_supported = Some(result);
+                Ok(result)
+            }
+        }
     }
 }
 
@@ -357,15 +380,8 @@ impl Terminal for UnixTerminal {
             decset!(SGRMouse);
         }
 
-        self.saved_keyboard_encoding = self.get_keyboard_encoding();
-        if self.caps.probe_for_enhanced_keyboard()
-            && self
-                .probe_capabilities()
-                .map(|mut probe| probe.enhanced_keyboard_state())
-                .transpose()?
-                .flatten()
-                .is_some()
-        {
+        if self.caps.probe_for_enhanced_keyboard() && self.keyboard_enhancement_supported()? {
+            self.saved_keyboard_encoding = Some(self.get_keyboard_encoding()?);
             self.set_keyboard_encoding(KeyboardEncoding::Kitty(KittyKeyboardFlags::all()))?;
         } else {
             self.write
@@ -545,12 +561,7 @@ impl Terminal for UnixTerminal {
     }
 
     fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
-        let is_kitty_supported = self
-            .probe_capabilities()
-            .map(|mut probe| probe.enhanced_keyboard_state())
-            .transpose()?
-            .flatten()
-            .is_some();
+        let is_kitty_supported = self.keyboard_enhancement_supported()?;
         match encoding {
             KeyboardEncoding::Xterm => {
                 if is_kitty_supported {
@@ -564,22 +575,18 @@ impl Terminal for UnixTerminal {
                     )?;
                 }
             }
-            KeyboardEncoding::Kitty(flags) => {
-                if is_kitty_supported {
-                    write!(
-                        self.write,
-                        "{}",
-                        // Ideally, we'd use SetKittyState, but it doesn't work on some terminals (iTerm2)
-                        CSI::Keyboard(Keyboard::PushKittyState {
-                            flags,
-                            mode: crate::escape::csi::KittyKeyboardMode::AssignAll
-                        })
-                    )?;
-                }
+            KeyboardEncoding::Kitty(flags) if is_kitty_supported => {
+                write!(
+                    self.write,
+                    "{}",
+                    // Ideally, we'd use SetKittyState, but it doesn't work on some terminals (iTerm2)
+                    CSI::Keyboard(Keyboard::PushKittyState {
+                        flags,
+                        mode: crate::escape::csi::KittyKeyboardMode::AssignAll
+                    })
+                )?;
             }
-            _ => Err(anyhow::anyhow!(
-                "Unsupported keyboard encoding for terminal"
-            ))?,
+            _ => bail!("Unsupported keyboard encoding {encoding:?} for Unix terminal"),
         }
         Ok(())
     }

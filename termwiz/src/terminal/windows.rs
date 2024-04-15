@@ -862,7 +862,7 @@ impl Terminal for WindowsTerminal {
         match encoding {
             KeyboardEncoding::Win32 => Ok(()),
             _ => Err(anyhow::anyhow!(
-                "Unsupported keyboard encoding for terminal"
+                "Unsupported keyboard encoding {encoding:?} for Windows terminal"
             ))?,
         }
     }
