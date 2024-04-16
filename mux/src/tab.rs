@@ -1748,6 +1748,13 @@ impl TabInner {
     }
 
     fn set_active_pane(&mut self, pane: &Arc<dyn Pane>) {
+        if self.zoomed.is_some() {
+            if !configuration().unzoom_on_switch_pane {
+                return;
+            }
+            self.toggle_zoom();
+        }
+
         if let Some(item) = self
             .iter_panes_ignoring_zoom()
             .iter()
