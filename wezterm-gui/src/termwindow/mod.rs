@@ -1011,6 +1011,28 @@ impl TermWindow {
                 }
                 Ok(true)
             }
+            WindowEvent::DroppedString(text) => {
+                let pane = match self.get_active_pane_or_overlay() {
+                    Some(pane) => pane,
+                    None => return Ok(true),
+                };
+                pane.send_paste(text.as_str())?;
+                Ok(true)
+            }
+            WindowEvent::DroppedUrl(urls) => {
+                let pane = match self.get_active_pane_or_overlay() {
+                    Some(pane) => pane,
+                    None => return Ok(true),
+                };
+                let urls = urls
+                    .iter()
+                    .map(|url| self.config.quote_dropped_files.escape(&url.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+                    + " ";
+                pane.send_paste(urls.as_str())?;
+                Ok(true)
+            }
             WindowEvent::DroppedFile(paths) => {
                 let pane = match self.get_active_pane_or_overlay() {
                     Some(pane) => pane,
@@ -1024,7 +1046,8 @@ impl TermWindow {
                             .escape(&path.to_string_lossy())
                     })
                     .collect::<Vec<_>>()
-                    .join(" ");
+                    .join(" ")
+                    + " ";
                 pane.send_paste(&paths)?;
                 Ok(true)
             }

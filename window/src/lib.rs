@@ -7,6 +7,7 @@ use std::any::Any;
 use std::path::PathBuf;
 use std::rc::Rc;
 use thiserror::Error;
+use url::Url;
 pub mod bitmaps;
 pub use wezterm_color_types as color;
 mod configuration;
@@ -204,6 +205,12 @@ pub enum WindowEvent {
 
     // Called when the files are dropped into the window
     DroppedFile(Vec<PathBuf>),
+
+    // Called when urls are dropped into the window
+    DroppedUrl(Vec<Url>),
+
+    // Called when text is dropped into the window
+    DroppedString(String),
 
     /// Called by menubar dispatching stuff on some systems
     PerformKeyAssignment(config::keyassignment::KeyAssignment),
