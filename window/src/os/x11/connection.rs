@@ -35,6 +35,7 @@ pub struct XConnection {
     pub atom_targets: Atom,
     pub atom_clipboard: Atom,
     pub atom_texturilist: Atom,
+    pub atom_xmozurl: Atom,
     pub atom_xdndaware: Atom,
     pub atom_xdndtypelist: Atom,
     pub atom_xdndselection: Atom,
@@ -626,6 +627,7 @@ impl XConnection {
         let atom_targets = Self::intern_atom(&conn, "TARGETS")?;
         let atom_clipboard = Self::intern_atom(&conn, "CLIPBOARD")?;
         let atom_texturilist = Self::intern_atom(&conn, "text/uri-list")?;
+        let atom_xmozurl = Self::intern_atom(&conn, "text/x-moz-url")?;
         let atom_xdndaware = Self::intern_atom(&conn, "XdndAware")?;
         let atom_xdndtypelist = Self::intern_atom(&conn, "XdndTypeList")?;
         let atom_xdndselection = Self::intern_atom(&conn, "XdndSelection")?;
@@ -762,6 +764,7 @@ impl XConnection {
             atom_protocols,
             atom_clipboard,
             atom_texturilist,
+            atom_xmozurl,
             atom_xdndaware,
             atom_xdndtypelist,
             atom_xdndselection,

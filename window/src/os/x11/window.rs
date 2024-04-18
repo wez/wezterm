@@ -576,10 +576,17 @@ impl XWindowInner {
                     };
             }
             self.drag_and_drop.target_type = xcb::x::ATOM_NONE;
-            for t in &self.drag_and_drop.src_types {
-                if *t == conn.atom_texturilist {
-                    self.drag_and_drop.target_type = conn.atom_texturilist;
+            for t in [
+                conn.atom_texturilist,
+                conn.atom_xmozurl,
+                conn.atom_utf8_string,
+            ] {
+                if self.drag_and_drop.src_types.contains(&t) {
+                    self.drag_and_drop.target_type = t;
+                    break;
                 }
+            }
+            for t in &self.drag_and_drop.src_types {
                 log::trace!("types offered: {}", conn.atom_name(*t));
             }
             log::trace!(
@@ -1105,7 +1112,54 @@ impl XWindowInner {
                     long_length: u32::max_value(),
                 }) {
                     Ok(prop) => {
-                        if selection.target() == conn.atom_texturilist {
+                        if selection.target() == conn.atom_utf8_string {
+                            let text = String::from_utf8_lossy(prop.value()).to_string();
+                            self.events.dispatch(WindowEvent::DroppedString(text));
+                        } else if selection.target() == conn.atom_xmozurl {
+                            let raw = prop.value();
+                            let data;
+                            if raw.len() >= 2
+                                && ((raw[0], raw[1]) == (0xfe, 0xff)
+                                    || (raw[0] != 0x00 && raw[1] == 0x00))
+                            {
+                                data = String::from_utf16_lossy(
+                                    raw.chunks_exact(2)
+                                        .map(|x: &[u8]| u16::from(x[1]) << 8 | u16::from(x[0]))
+                                        .collect::<Vec<u16>>()
+                                        .as_slice(),
+                                );
+                            } else if raw.len() >= 2
+                                && ((raw[0], raw[1]) == (0xff, 0xfe)
+                                    || (raw[0] == 0x00 && raw[1] != 0x00))
+                            {
+                                data = String::from_utf16_lossy(
+                                    raw.chunks_exact(2)
+                                        .map(|x: &[u8]| u16::from(x[0]) << 8 | u16::from(x[1]))
+                                        .collect::<Vec<u16>>()
+                                        .as_slice(),
+                                );
+                            } else {
+                                data = String::from_utf8_lossy(prop.value()).to_string();
+                            }
+                            use url::Url;
+                            let urls = data
+                                .lines()
+                                .step_by(2)
+                                .filter_map(|line| {
+                                    // the lines alternate between the urls and their titles
+                                    Url::parse(line)
+                                        .map_err(|err| {
+                                            log::error!(
+                                                "Error parsing dropped file line {} as url: {:#}",
+                                                line,
+                                                err
+                                            );
+                                        })
+                                        .ok()
+                                })
+                                .collect::<Vec<_>>();
+                            self.events.dispatch(WindowEvent::DroppedUrl(urls));
+                        } else if selection.target() == conn.atom_texturilist {
                             let paths = String::from_utf8_lossy(prop.value())
                                 .lines()
                                 .filter_map(|line| {
