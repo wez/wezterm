@@ -313,6 +313,10 @@ mod cglbits {
     }
 
     unsafe impl glium::backend::Backend for GlState {
+        fn resize(&self, _: (u32, u32)) {
+            todo!()
+        }
+
         fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
             unsafe {
                 let pool = NSAutoreleasePool::new(nil);
@@ -448,6 +452,13 @@ impl Window {
             x,
             y,
         } = conn.resolve_geometry(geometry);
+
+        let scale_factor = (conn.default_dpi() / crate::DEFAULT_DPI) as usize;
+        let width = width / scale_factor;
+        let height = height / scale_factor;
+        let x = x.map(|x| x / scale_factor as i32);
+        let y = y.map(|y| y / scale_factor as i32);
+
         let initial_pos = match (x, y) {
             (Some(x), Some(y)) => Some(ScreenPoint::new(x as isize, y as isize)),
             _ => None,
@@ -2946,8 +2957,16 @@ impl WindowView {
             let mut inner = this.inner.borrow_mut();
 
             let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            if pb.is_null() {
+                return NO;
+            }
+
             let filenames =
                 unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            if filenames.is_null() {
+                return NO;
+            }
+
             let paths = unsafe { filenames.iter() }
                 .map(|file| unsafe {
                     let path = nsstring_to_str(file);
@@ -2964,8 +2983,16 @@ impl WindowView {
             let mut inner = this.inner.borrow_mut();
 
             let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            if pb.is_null() {
+                return NO;
+            }
+
             let filenames =
                 unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            if filenames.is_null() {
+                return NO;
+            }
+
             let paths = unsafe { filenames.iter() }
                 .map(|file| unsafe {
                     let path = nsstring_to_str(file);

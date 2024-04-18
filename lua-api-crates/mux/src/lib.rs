@@ -238,7 +238,7 @@ impl SpawnWindow {
                 cols,
                 ..Default::default()
             },
-            _ => config::configuration().initial_size(0),
+            _ => config::configuration().initial_size(0, None),
         };
 
         let (cmd_builder, cwd) = self.cmd_builder.to_command_builder();
@@ -284,7 +284,7 @@ impl SpawnTab {
             size = window
                 .get_by_idx(0)
                 .map(|tab| tab.get_size())
-                .unwrap_or_else(|| config::configuration().initial_size(0));
+                .unwrap_or_else(|| config::configuration().initial_size(0, None));
 
             pane = window
                 .get_active()

@@ -291,7 +291,7 @@ async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
 
         let _tab = mux
             .default_domain()
-            .spawn(config.initial_size(0), cmd, None, *window_id)
+            .spawn(config.initial_size(0, None), cmd, None, *window_id)
             .await?;
     }
     Ok(())

@@ -395,6 +395,10 @@ TOC = [
                 "config/lua/wezterm.procinfo",
             ),
             Gen(
+                "module: wezterm.serde",
+                "config/lua/wezterm.serde",
+            ),
+            Gen(
                 "module: wezterm.time",
                 "config/lua/wezterm.time",
             ),

@@ -73,7 +73,7 @@ impl LocalProcessInfo {
                 name: name.to_string(),
                 status: fields.first()?.to_string(),
                 ppid: fields.get(1)?.parse().ok()?,
-                starttime: fields.get(20)?.parse().ok()?,
+                starttime: fields.get(19)?.parse().ok()?,
             })
         }
 

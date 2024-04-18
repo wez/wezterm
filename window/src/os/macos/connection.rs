@@ -110,6 +110,14 @@ impl ConnectionOps for Connection {
         }
     }
 
+    fn default_dpi(&self) -> f64 {
+        if let Ok(screens) = self.screens() {
+            screens.active.effective_dpi.unwrap_or(crate::DEFAULT_DPI)
+        } else {
+            crate::DEFAULT_DPI
+        }
+    }
+
     fn terminate_message_loop(&self) {
         unsafe {
             // bounce via an event callback to encourage stop to apply

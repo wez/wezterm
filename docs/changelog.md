@@ -29,9 +29,22 @@ As features stabilize some brief notes about them will accumulate here.
   deprecated; it no longer has any effect and will be removed in a future
   release.
 #### New
+* [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
+  and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
 #### Fixed
-* Race condition when very quickly adjusting font scale. Thanks to @jknockel!
-  #4876
+* Race condition when very quickly adjusting font scale, and other improvements
+  around resizing. Thanks to @jknockel! #4876 #5032
+* macOS: wacky initial window size with external monitors or certain font
+  sizes. #4966 #4250
+* macOS: dragging non-filename data over wezterm could cause it to crash. #4771
+* New tabs spawned by the gui could spawn into the wrong domain when using
+  multiplexing together `default_domain`. Thanks to @bogdan2412! #4994
+* Linux: the `divine_process_list` fallback function used the *vmwisze*
+  rather than the intended *starttime* field to decide which process
+  was the youngest. Thanks to @crides! #5001
+
+#### Updated
+* Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
 
 ### 20240203-110809-5046fc22
 

@@ -199,7 +199,7 @@ fn register_lua_modules() {
         mux_lua::register,
         procinfo_funcs::register,
         filesystem::register,
-        json::register,
+        serde_funcs::register,
         plugin::register,
         ssh_funcs::register,
         spawn_funcs::register,
