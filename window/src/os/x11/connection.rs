@@ -34,6 +34,21 @@ pub struct XConnection {
     pub atom_xsel_data: Atom,
     pub atom_targets: Atom,
     pub atom_clipboard: Atom,
+    pub atom_texturilist: Atom,
+    pub atom_xdndaware: Atom,
+    pub atom_xdndtypelist: Atom,
+    pub atom_xdndselection: Atom,
+    pub atom_xdndenter: Atom,
+    pub atom_xdndposition: Atom,
+    pub atom_xdndstatus: Atom,
+    pub atom_xdndleave: Atom,
+    pub atom_xdnddrop: Atom,
+    pub atom_xdndfinished: Atom,
+    pub atom_xdndactioncopy: Atom,
+    pub atom_xdndactionmove: Atom,
+    pub atom_xdndactionlink: Atom,
+    pub atom_xdndactionask: Atom,
+    pub atom_xdndactionprivate: Atom,
     pub atom_gtk_edge_constraints: Atom,
     pub atom_xsettings_selection: Atom,
     pub atom_xsettings_settings: Atom,
@@ -610,6 +625,21 @@ impl XConnection {
         let atom_xsel_data = Self::intern_atom(&conn, "XSEL_DATA")?;
         let atom_targets = Self::intern_atom(&conn, "TARGETS")?;
         let atom_clipboard = Self::intern_atom(&conn, "CLIPBOARD")?;
+        let atom_texturilist = Self::intern_atom(&conn, "text/uri-list")?;
+        let atom_xdndaware = Self::intern_atom(&conn, "XdndAware")?;
+        let atom_xdndtypelist = Self::intern_atom(&conn, "XdndTypeList")?;
+        let atom_xdndselection = Self::intern_atom(&conn, "XdndSelection")?;
+        let atom_xdndenter = Self::intern_atom(&conn, "XdndEnter")?;
+        let atom_xdndposition = Self::intern_atom(&conn, "XdndPosition")?;
+        let atom_xdndstatus = Self::intern_atom(&conn, "XdndStatus")?;
+        let atom_xdndleave = Self::intern_atom(&conn, "XdndLeave")?;
+        let atom_xdnddrop = Self::intern_atom(&conn, "XdndDrop")?;
+        let atom_xdndfinished = Self::intern_atom(&conn, "XdndFinished")?;
+        let atom_xdndactioncopy = Self::intern_atom(&conn, "XdndActionCopy")?;
+        let atom_xdndactionmove = Self::intern_atom(&conn, "XdndActionMove")?;
+        let atom_xdndactionlink = Self::intern_atom(&conn, "XdndActionLink")?;
+        let atom_xdndactionask = Self::intern_atom(&conn, "XdndActionAsk")?;
+        let atom_xdndactionprivate = Self::intern_atom(&conn, "XdndActionPrivate")?;
         let atom_gtk_edge_constraints = Self::intern_atom(&conn, "_GTK_EDGE_CONSTRAINTS")?;
         let atom_xsettings_selection =
             Self::intern_atom(&conn, &format!("_XSETTINGS_S{}", screen_num))?;
@@ -731,6 +761,21 @@ impl XConnection {
             xrm: RefCell::new(xrm),
             atom_protocols,
             atom_clipboard,
+            atom_texturilist,
+            atom_xdndaware,
+            atom_xdndtypelist,
+            atom_xdndselection,
+            atom_xdndenter,
+            atom_xdndposition,
+            atom_xdndstatus,
+            atom_xdndleave,
+            atom_xdnddrop,
+            atom_xdndfinished,
+            atom_xdndactioncopy,
+            atom_xdndactionmove,
+            atom_xdndactionlink,
+            atom_xdndactionask,
+            atom_xdndactionprivate,
             atom_gtk_edge_constraints,
             atom_xsettings_selection,
             atom_xsettings_settings,

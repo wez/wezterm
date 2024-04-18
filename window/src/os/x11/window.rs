@@ -57,6 +57,28 @@ impl CopyAndPaste {
     }
 }
 
+struct DragAndDrop {
+    src_window: Option<xcb::x::Window>,
+    src_types: Vec<Atom>,
+    src_action: Atom,
+    time: u32,
+    target_type: Atom,
+    target_action: Atom,
+}
+
+impl Default for DragAndDrop {
+    fn default() -> DragAndDrop {
+        DragAndDrop {
+            src_window: None,
+            src_types: Vec::new(),
+            src_action: xcb::x::ATOM_NONE,
+            time: 0,
+            target_type: xcb::x::ATOM_NONE,
+            target_action: xcb::x::ATOM_NONE,
+        }
+    }
+}
+
 pub(crate) struct XWindowInner {
     pub window_id: xcb::x::Window,
     conn: Weak<XConnection>,
@@ -67,6 +89,7 @@ pub(crate) struct XWindowInner {
     dpi: f64,
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
+    drag_and_drop: DragAndDrop,
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
@@ -516,6 +539,121 @@ impl XWindowInner {
         Ok(())
     }
 
+    fn xdnd_event(&mut self, msgtype: Atom, data: &[u32]) -> anyhow::Result<()> {
+        use xcb::XidNew;
+        let conn = self.conn();
+        let msgtype_name = conn.atom_name(msgtype);
+        let srcwin = unsafe { xcb::x::Window::new(data[0]) };
+        if msgtype == conn.atom_xdndenter {
+            self.drag_and_drop.src_window = Some(srcwin);
+            let moretypes = data[1] & 0x01 != 0;
+            let xdndversion = data[1] >> 24 as u8;
+            log::trace!("ClientMessage {msgtype_name}, Version {xdndversion}, more than 3 types: {moretypes}");
+            if !moretypes {
+                self.drag_and_drop.src_types = data[2..]
+                    .into_iter()
+                    .filter(|&&x| x != 0)
+                    .map(|&x| unsafe { Atom::new(x) })
+                    .collect();
+            } else {
+                self.drag_and_drop.src_types =
+                    match conn.send_and_wait_request(&xcb::x::GetProperty {
+                        delete: false,
+                        window: srcwin,
+                        property: conn.atom_xdndtypelist,
+                        r#type: xcb::x::ATOM_ATOM,
+                        long_offset: 0,
+                        long_length: u32::max_value(),
+                    }) {
+                        Ok(prop) => prop.value::<Atom>().to_vec(),
+                        Err(err) => {
+                            log::error!(
+                                "xdnd: unable to get type list from source window: {:?}",
+                                err
+                            );
+                            Vec::<Atom>::new()
+                        }
+                    };
+            }
+            self.drag_and_drop.target_type = xcb::x::ATOM_NONE;
+            for t in &self.drag_and_drop.src_types {
+                if *t == conn.atom_texturilist {
+                    self.drag_and_drop.target_type = conn.atom_texturilist;
+                }
+                log::trace!("types offered: {}", conn.atom_name(*t));
+            }
+            log::trace!(
+                "selected: {}",
+                conn.atom_name(self.drag_and_drop.target_type)
+            );
+        } else if self.drag_and_drop.src_window != Some(srcwin) {
+            log::error!("ClientMessage {msgtype_name} received, but no Xdnd in progress or source window mismatch");
+        } else if msgtype == conn.atom_xdndposition {
+            self.drag_and_drop.time = data[3];
+            let (x, y) = (data[2] >> 16 as u16, data[2] as u16);
+            self.drag_and_drop.src_action = unsafe { Atom::new(data[4]) };
+            self.drag_and_drop.target_action = conn.atom_xdndactioncopy;
+            log::trace!(
+                "ClientMessage {msgtype_name}, ({x}, {y}), timestamp: {}, action: {}",
+                self.drag_and_drop.time,
+                conn.atom_name(self.drag_and_drop.src_action)
+            );
+            conn.send_request_no_reply_log(&xcb::x::SendEvent {
+                propagate: false,
+                destination: xcb::x::SendEventDest::Window(srcwin),
+                event_mask: xcb::x::EventMask::empty(),
+                event: &xcb::x::ClientMessageEvent::new(
+                    srcwin,
+                    conn.atom_xdndstatus,
+                    xcb::x::ClientMessageData::Data32([
+                        self.window_id.resource_id(),
+                        2 | (self.drag_and_drop.target_type != xcb::x::ATOM_NONE) as u32,
+                        0,
+                        0,
+                        self.drag_and_drop.target_action.resource_id(),
+                    ]),
+                ),
+            });
+        } else if msgtype == conn.atom_xdndleave {
+            self.drag_and_drop.src_window = None;
+            log::trace!("ClientMessage {msgtype_name}");
+        } else if msgtype == conn.atom_xdnddrop {
+            self.drag_and_drop.time = data[2];
+            log::trace!(
+                "ClientMessage {msgtype_name}, timestamp: {}",
+                self.drag_and_drop.time
+            );
+            if self.drag_and_drop.target_type != xcb::x::ATOM_NONE {
+                conn.send_request_no_reply_log(&xcb::x::ConvertSelection {
+                    requestor: self.window_id,
+                    selection: conn.atom_xdndselection,
+                    target: self.drag_and_drop.target_type,
+                    property: conn.atom_xsel_data,
+                    time: self.drag_and_drop.time,
+                });
+            } else {
+                log::warn!("XdndDrop received, but no target type selected. Ignoring.");
+                conn.send_request_no_reply_log(&xcb::x::SendEvent {
+                    propagate: false,
+                    destination: xcb::x::SendEventDest::Window(srcwin),
+                    event_mask: xcb::x::EventMask::empty(),
+                    event: &xcb::x::ClientMessageEvent::new(
+                        srcwin,
+                        conn.atom_xdndfinished,
+                        xcb::x::ClientMessageData::Data32([
+                            self.window_id.resource_id(),
+                            0,
+                            0,
+                            0,
+                            0,
+                        ]),
+                    ),
+                });
+            }
+        }
+        return Ok(());
+    }
+
     pub fn dispatch_event(&mut self, event: &Event) -> anyhow::Result<()> {
         let conn = self.conn();
         match event {
@@ -589,14 +727,36 @@ impl XWindowInner {
                 )?;
             }
             Event::X(xcb::x::Event::ClientMessage(msg)) => {
+                let type_atom_name = conn.atom_name(msg.r#type());
                 use xcb::x::ClientMessageData;
-                match msg.data() {
-                    ClientMessageData::Data32(data) => {
-                        if data[0] == conn.atom_delete().resource_id() {
+                use xcb::XidNew;
+                let xdnd_msgtype_atoms = [
+                    conn.atom_xdndenter,
+                    conn.atom_xdndposition,
+                    conn.atom_xdndstatus,
+                    conn.atom_xdndleave,
+                    conn.atom_xdnddrop,
+                    conn.atom_xdndfinished,
+                ];
+                if xdnd_msgtype_atoms.contains(&msg.r#type()) {
+                    if let ClientMessageData::Data32(data) = msg.data() {
+                        self.xdnd_event(msg.r#type(), &data)?;
+                    } else {
+                        log::warn!("Received ClientMessage {type_atom_name} with wrong format");
+                    }
+                } else if msg.r#type() == conn.atom_protocols {
+                    if let ClientMessageData::Data32(data) = msg.data() {
+                        let protocol_atom = unsafe { Atom::new(data[0]) };
+                        log::trace!(
+                            "ClientMessage {type_atom_name}/{}",
+                            conn.atom_name(protocol_atom)
+                        );
+                        if protocol_atom == conn.atom_delete {
                             self.events.dispatch(WindowEvent::CloseRequested);
                         }
+                    } else {
+                        log::warn!("Received ClientMessage {type_atom_name} with wrong format");
                     }
-                    ClientMessageData::Data8(_) | ClientMessageData::Data16(_) => {}
                 }
             }
             Event::X(xcb::x::Event::DestroyNotify(_)) => {
@@ -932,6 +1092,75 @@ impl XWindowInner {
                     }
                 }
             }
+        } else if selection.selection() == conn.atom_xdndselection
+            && selection.property() == conn.atom_xsel_data
+        {
+            if let Some(srcwin) = self.drag_and_drop.src_window {
+                match conn.send_and_wait_request(&xcb::x::GetProperty {
+                    delete: true,
+                    window: selection.requestor(),
+                    property: selection.property(),
+                    r#type: selection.target(),
+                    long_offset: 0,
+                    long_length: u32::max_value(),
+                }) {
+                    Ok(prop) => {
+                        if selection.target() == conn.atom_texturilist {
+                            let paths = String::from_utf8_lossy(prop.value())
+                                .lines()
+                                .filter_map(|line| {
+                                    if line.starts_with('#') || line.trim().is_empty() {
+                                        // text/uri-list: Any lines beginning with the '#' character
+                                        // are comment lines and are ignored during processing
+                                        return None;
+                                    }
+                                    use url::Url;
+                                    let url = Url::parse(line)
+                                        .map_err(|err| {
+                                            log::error!(
+                                                "Error parsing dropped file line {} as url: {:#}",
+                                                line,
+                                                err
+                                            );
+                                        })
+                                        .ok()?;
+                                    url.to_file_path()
+                                        .map_err(|_| {
+                                            log::error!(
+                                                "Error converting url {} from line {} to pathbuf",
+                                                url,
+                                                line
+                                            );
+                                        })
+                                        .ok()
+                                })
+                                .collect::<Vec<_>>();
+                            self.events.dispatch(WindowEvent::DroppedFile(paths));
+                        }
+                    }
+                    Err(err) => {
+                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                    }
+                }
+                conn.send_request_no_reply_log(&xcb::x::SendEvent {
+                    propagate: false,
+                    destination: xcb::x::SendEventDest::Window(srcwin),
+                    event_mask: xcb::x::EventMask::empty(),
+                    event: &xcb::x::ClientMessageEvent::new(
+                        srcwin,
+                        conn.atom_xdndfinished,
+                        xcb::x::ClientMessageData::Data32([
+                            window_id.resource_id(),
+                            1,
+                            self.drag_and_drop.target_action.resource_id(),
+                            0,
+                            0,
+                        ]),
+                    ),
+                });
+            } else {
+                log::warn!("No Xdnd in progress, but received Xdnd selection. Ignoring.");
+            }
         } else {
             log::trace!("SEL: window_id={window_id:?} unknown selection {selection_name}");
         }
@@ -1204,6 +1433,7 @@ impl XWindow {
                 height: height.try_into()?,
                 dpi: conn.default_dpi(),
                 copy_and_paste: CopyAndPaste::default(),
+                drag_and_drop: DragAndDrop::default(),
                 cursors: CursorInfo::new(&config, &conn),
                 config: config.clone(),
                 has_focus: None,
@@ -1251,6 +1481,14 @@ impl XWindow {
             property: conn.atom_protocols,
             r#type: xcb::x::ATOM_ATOM,
             data: &[conn.atom_delete],
+        })?;
+
+        conn.send_request_no_reply(&xcb::x::ChangeProperty {
+            mode: PropMode::Replace,
+            window: window_id,
+            property: conn.atom_xdndaware,
+            r#type: xcb::x::ATOM_ATOM,
+            data: &[5u32],
         })?;
 
         window
