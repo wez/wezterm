@@ -41,7 +41,7 @@ clap = {version="4.0", features=["derive"]}
 codec = { path = "../codec" }
 colorgrad = "0.6"
 config = { path = "../config" }
-downcast-rs = "1.0"
+downcast-rs = "1.2"
 dhat = {version="0.3", optional=true}
 dirs-next = "2.0"
 emojis = "0.6"
@@ -55,7 +55,7 @@ futures = "0.3"
 fuzzy-matcher = "0.3"
 hdrhistogram = "7.1"
 http_req = "0.10"
-image = "0.24.6"
+image = "0.25.1"
 lazy_static = "1.4"
 libc = "0.2"
 lfucache = { path = "../lfucache" }

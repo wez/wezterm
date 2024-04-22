@@ -10,14 +10,14 @@ edition = "2018"
 anyhow = "1.0"
 chrono = {version="0.4", default-features=false}
 clap = {version="4.0", features=["derive", "wrap_help"]}
-clap_complete = "4.4"
+clap_complete = "4.5"
 clap_complete_fig = "4.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
-hostname = "0.3"
-image = "0.24.6"
+hostname = "0.4"
+image = "0.25.1"
 libc = "0.2"
 log = "0.4"
 mux = { path = "../mux" }
