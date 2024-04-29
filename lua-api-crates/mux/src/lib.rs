@@ -168,6 +168,25 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
+    mux_mod.set(
+        "save_state_to",
+        lua.create_function(|_, path: String| {
+            get_mux()?
+                .save_state_to(&path)
+                .map_err(mlua::Error::external)
+        })?,
+    )?;
+
+    mux_mod.set(
+        "restore_state_from",
+        lua.create_async_function(|_, path: String| async move {
+            Ok(get_mux()?
+                .restore_state_from(&path)
+                .await
+                .map_err(mlua::Error::external)?)
+        })?,
+    )?;
+
     Ok(())
 }
 
