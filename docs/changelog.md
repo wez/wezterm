@@ -42,6 +42,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Linux: the `divine_process_list` fallback function used the *vmwisze*
   rather than the intended *starttime* field to decide which process
   was the youngest. Thanks to @crides! #5001
+* Wayland: fixed startup on Hyprland >= 0.37.0. Thanks to @fioncat! #5264 #5103
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
