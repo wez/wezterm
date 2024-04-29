@@ -626,6 +626,7 @@ impl PlayCommand {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum Summarized {
     Action(Action),

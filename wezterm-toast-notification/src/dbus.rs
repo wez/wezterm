@@ -71,6 +71,7 @@ enum Reason {
     Expired,
     Dismissed,
     Closed,
+    #[allow(dead_code)]
     Unknown(u32),
 }
 
