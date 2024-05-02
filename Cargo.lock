@@ -1577,6 +1577,7 @@ dependencies = [
  "share-data",
  "spawn-funcs",
  "ssh-funcs",
+ "table-funcs",
  "termwiz",
  "termwiz-funcs",
  "time-funcs",
@@ -5359,6 +5360,16 @@ checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
 dependencies = [
  "core-foundation-sys 0.8.6",
  "libc",
+]
+
+[[package]]
+name = "table-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "wezterm-dynamic",
 ]
 
 [[package]]

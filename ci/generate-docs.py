@@ -383,6 +383,10 @@ TOC = [
                 "config/lua/wezterm.color",
             ),
             Gen(
+                "module: wezterm.table",
+                "config/lua/wezterm.table",
+            ),
+            Gen(
                 "module: wezterm.gui",
                 "config/lua/wezterm.gui",
             ),
