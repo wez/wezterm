@@ -1424,7 +1424,7 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
         if let Some(inner) = rc_from_hwnd(hwnd) {
             let mut inner = inner.borrow_mut();
 
-            // Set Arylic or Mica system Backdrop
+            // Set Acrylic or Mica system Backdrop
             let pv_attribute = match inner.config.win32_system_backdrop {
                 SystemBackdrop::Auto => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_AUTO,
                 SystemBackdrop::Disable => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_NONE,
@@ -1433,9 +1433,9 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                 SystemBackdrop::Tabbed => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TABBEDWINDOW,
             };
 
-            let margins = match inner.config.win32_system_backdrop {
-                SystemBackdrop::Auto | SystemBackdrop::Disable => 0,
-                SystemBackdrop::Acrylic | SystemBackdrop::Mica | SystemBackdrop::Tabbed => -1,
+            let margins = match inner.config.window_decorations {
+                WindowDecorations::TITLE => -1,
+                _ => 0,
             };
 
             DwmExtendFrameIntoClientArea(
