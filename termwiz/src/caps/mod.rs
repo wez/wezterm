@@ -61,6 +61,10 @@ use terminfo::{self, capability as cap};
 
 pub mod probed;
 
+/// Environment variable name indicating that color output should be disabled.
+/// See <https://no-color.org>
+const NO_COLOR_ENV: &str = "NO_COLOR";
+
 builder! {
     /// Use the `ProbeHints` to configure an instance of
     /// the `ProbeHints` struct.  `ProbeHints` are passed to the `Capabilities`
@@ -121,12 +125,21 @@ builder! {
 
 impl ProbeHints {
     pub fn new_from_env() -> Self {
-        ProbeHints::default()
+        let mut probe_hints = ProbeHints::default()
             .term(var("TERM").ok())
             .colorterm(var("COLORTERM").ok())
             .colorterm_bce(var("COLORTERM_BCE").ok())
             .term_program(var("TERM_PROGRAM").ok())
-            .term_program_version(var("TERM_PROGRAM_VERSION").ok())
+            .term_program_version(var("TERM_PROGRAM_VERSION").ok());
+
+        if !std::env::var(NO_COLOR_ENV)
+            .unwrap_or("".to_string())
+            .is_empty()
+        {
+            probe_hints.color_level = Some(ColorLevel::MonoChrome);
+        }
+
+        probe_hints
     }
 }
 
@@ -146,6 +159,9 @@ pub enum ColorLevel {
     /// What we care about here is whether the terminal supports the escape
     /// sequence to specify RGB values rather than a palette index.
     TrueColor,
+    /// Describes monochrome (black and white) color support.
+    /// Enabled via NO_COLOR environment variable.
+    MonoChrome,
 }
 
 /// `Capabilities` holds information about the capabilities of a terminal.
