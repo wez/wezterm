@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::cmp::max;
 use std::convert::TryInto;
 use std::io::Read;
@@ -902,7 +902,10 @@ impl WaylandWindowInner {
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
         let conn = Connection::get().unwrap().wayland();
         let state = conn.wayland_state.borrow_mut();
-        let pointer = RefMut::map(state, |s| s.pointer.as_mut().unwrap());
+        let pointer = match &state.pointer {
+            Some(pointer) => pointer,
+            None => return,
+        };
 
         match cursor {
             Some(cursor) => {
