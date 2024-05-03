@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 config = { path = "../../config" }
-git2 = { version = "0.16", default-features = false, features = ["https"] }
+git2 = { version = "0.18", default-features = false, features = ["https"] }
 log = "0.4"
 luahelper = { path = "../../luahelper" }
 tempfile = "3.3"

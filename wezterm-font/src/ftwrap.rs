@@ -1294,6 +1294,7 @@ struct FreeTypeStream {
     name: String,
 }
 
+#[allow(dead_code)]
 enum StreamBacking {
     File(BufReader<File>),
     Map(Mmap),

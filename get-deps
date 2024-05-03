@@ -191,7 +191,6 @@ arch_deps() {
     'libxkbcommon-x11' \
     'pkgconf' \
     'python3' \
-    'rust' \
     'wayland' \
     'xcb-util' \
     'xcb-util-image' \

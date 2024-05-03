@@ -15,6 +15,9 @@ possible values:
 {{since('20240127-113634-bbcac864', outline=true)}}
     The default is `"WebGpu"`. In earlier versions it was `"OpenGL"`
 
+{{since('20240128-202157-1e552d76', outline=true)}}
+    The default has been reverted to `"OpenGL"`.
+
 You may wish (or need!) to select `Software` if there are issues with your
 GPU/OpenGL drivers.
 
