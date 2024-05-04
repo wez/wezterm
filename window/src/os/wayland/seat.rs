@@ -80,7 +80,7 @@ impl SeatHandler for WaylandState {
         match capability {
             Capability::Keyboard => {
                 log::trace!("Lost keyboard capability");
-                self.keyboard.take().unwrap().release();
+                self.keyboard.take().map(|k| k.release());
             }
             Capability::Pointer => {
                 log::trace!("Lost pointer capability");
