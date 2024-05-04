@@ -20,8 +20,8 @@ use cairo::{Content, Context, Extend, Format, ImageSurface, Matrix, Operator, Re
 use config::{DisplayPixelGeometry, FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
 use std::f64::consts::PI;
+use std::mem;
 use std::mem::MaybeUninit;
-use std::{mem, slice};
 use wezterm_color_types::{linear_u8_to_srgb8, SrgbaPixel};
 
 pub struct FreeTypeRasterizer {
@@ -93,7 +93,7 @@ impl FontRasterizer for FreeTypeRasterizer {
         // pitch is the number of bytes per source row
         let pitch = ft_glyph.bitmap.pitch.abs() as usize;
         let data = unsafe {
-            slice::from_raw_parts_mut(
+            crate::ftwrap::from_raw_parts(
                 ft_glyph.bitmap.buffer,
                 ft_glyph.bitmap.rows as usize * pitch,
             )
