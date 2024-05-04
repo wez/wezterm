@@ -1,7 +1,6 @@
 //! A Renderer for windows consoles
 
-use crate::caps::Capabilities;
-use crate::caps::ColorLevel;
+use crate::caps::{Capabilities, ColorLevel};
 use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
