@@ -55,7 +55,7 @@ use_image = ["image"]
 docs = ["widgets", "use_serde"]
 
 [dev-dependencies]
-criterion = "0.4"
+criterion = "0.5"
 varbincode = "0.1"
 k9 = "0.11"
 env_logger = "0.11"
