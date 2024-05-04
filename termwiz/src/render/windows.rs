@@ -1,6 +1,7 @@
 //! A Renderer for windows consoles
 
 use crate::caps::Capabilities;
+use crate::caps::ColorLevel;
 use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
@@ -17,12 +18,14 @@ use winapi::um::wincon::{
 
 pub struct WindowsConsoleRenderer {
     pending_attr: CellAttributes,
+    capabilities: Capabilities,
 }
 
 impl WindowsConsoleRenderer {
-    pub fn new(_caps: Capabilities) -> Self {
+    pub fn new(capabilities: Capabilities) -> Self {
         Self {
             pending_attr: CellAttributes::default(),
+            capabilities,
         }
     }
 }
@@ -69,6 +72,21 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         };
     }
 
+    let reverse = if attr.reverse() {
+        COMMON_LVB_REVERSE_VIDEO
+    } else {
+        0
+    };
+    let underline = if attr.underline() != Underline::None {
+        COMMON_LVB_UNDERSCORE
+    } else {
+        0
+    };
+
+    if attr.capabilities.color_level() == ColorLevel::MonoChrome {
+        return reverse | underline;
+    }
+
     let fg = match attr.foreground() {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
             FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
@@ -96,17 +114,6 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
             BACKGROUND_BLUE,
             BACKGROUND_INTENSITY
         ),
-    };
-
-    let reverse = if attr.reverse() {
-        COMMON_LVB_REVERSE_VIDEO
-    } else {
-        0
-    };
-    let underline = if attr.underline() != Underline::None {
-        COMMON_LVB_UNDERSCORE
-    } else {
-        0
     };
 
     bg | fg | reverse | underline
