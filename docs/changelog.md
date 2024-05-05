@@ -30,6 +30,10 @@ As features stabilize some brief notes about them will accumulate here.
   release.
 * X11: drag and drop is now supported for files, URLs and text. Thanks to
   @ssiegel! #5316 #640
+* Added Unicode Symbols for Legacy Computing to the set of pixel-perfect block
+  drawing glyphs. See
+  [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more
+  details. Thanks to @stribor14! #5051 #5169
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
