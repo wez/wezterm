@@ -64,10 +64,10 @@ impl BlobStorage for SimpleTempDir {
         let mut file = tempfile::Builder::new()
             .prefix("new-")
             .rand_bytes(5)
-            .tempfile_in(&self.root.path())?;
+            .tempfile_in(self.root.path())?;
 
         file.write_all(data)?;
-        file.persist(&path)
+        file.persist(path)
             .map_err(|persist_err| persist_err.error)?;
 
         *refs.entry(content_id).or_insert(0) += 1;
@@ -91,7 +91,7 @@ impl BlobStorage for SimpleTempDir {
         let _refs = self.refs.lock().unwrap();
 
         let path = self.path_for_content(content_id)?;
-        Ok(std::fs::read(&path)?)
+        Ok(std::fs::read(path)?)
     }
 
     fn get_reader(&self, content_id: ContentId, lease_id: LeaseId) -> Result<BoxedReader, Error> {
@@ -133,7 +133,7 @@ impl BlobStorage for SimpleTempDir {
         }
 
         let path = self.path_for_content(content_id)?;
-        let file = BufReader::new(std::fs::File::open(&path)?);
+        let file = BufReader::new(std::fs::File::open(path)?);
         self.add_ref(content_id);
 
         Ok(Box::new(Reader {
