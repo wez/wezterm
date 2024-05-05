@@ -18,10 +18,10 @@ reqwest = "0.11"
 rusqlite = {version="0.30", features=["bundled", "blob"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
+serde_yaml = "0.9"
 sqlite-cache = {git="https://github.com/losfair/sqlite-cache", rev="0961b50385ff189bb12742716331c05ed0bf7805" }
 tar = "0.4"
 tempfile = "3.3"
 tokio = { version = "1.19", features = ["rt-multi-thread", "sync", "macros"] }
 toml = "0.8"
 wezterm-dynamic = { path = "../wezterm-dynamic" }
-yaml-rust = "0.4.5"
