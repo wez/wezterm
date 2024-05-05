@@ -27,5 +27,5 @@ Drag and drop support for files is a platform dependent feature
 |----------|-------------------|
 |macOS     |20220624-141144-bd1b7c5d|
 |Windows   |20220624-141144-bd1b7c5d|
-|X11       |Not yet            |
+|X11       |{{since('nightly', inline=True)}}|
 |Wayland   |20220624-141144-bd1b7c5d|

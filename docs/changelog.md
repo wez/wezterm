@@ -28,6 +28,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [show_update_window](config/lua/config/show_update_window.md) has been
   deprecated; it no longer has any effect and will be removed in a future
   release.
+* X11: drag and drop is now supported for files, URLs and text. Thanks to
+  @ssiegel! #5316 #640
+
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
   and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
