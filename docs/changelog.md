@@ -56,6 +56,8 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @Kushagra2569! #5362 #5348
 * `wezterm cli activate-pane` now respects `unzoom_on_switch_pane`. Thanks to
   @quantonganh! #5306 #5305
+* wezterm-ssh now correctly handles two-phase processing of `%h` tokens. Thanks
+  to @emc2314 and @wheatdog! #5163 #4503
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
