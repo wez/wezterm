@@ -70,7 +70,8 @@ body:
       label: Configuration
       description: |
         Please include the relevant section(s) of your `wezterm.lua` configuration file.
-        You can enter "no config" if the issue happens without you having made a config file.    
+        You can enter "no config" if the issue happens without you having made a config file.
+      render: lua
     validations:
       required: true
   - type: textarea
