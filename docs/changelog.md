@@ -50,6 +50,8 @@ As features stabilize some brief notes about them will accumulate here.
   #4604 #5209
 * Windows: Window buttons stopped working when using `win32_system_backdrop`.
   Thanks to @Kushagra2569! #5362 #5348
+* `wezterm cli activate-pane` now respects `unzoom_on_switch_pane`. Thanks to
+  @quantonganh! #5306 #5305
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
