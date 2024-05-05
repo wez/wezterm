@@ -731,7 +731,10 @@ impl ColorSchemeFile {
         let scheme = Self::from_dynamic(&crate::toml_to_dynamic(value), Default::default())
             .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        anyhow::ensure!(scheme.colors.ansi.is_some(), "scheme is missing ANSI colors");
+        anyhow::ensure!(
+            scheme.colors.ansi.is_some(),
+            "scheme is missing ANSI colors"
+        );
 
         Ok(scheme)
     }
