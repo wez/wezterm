@@ -37,7 +37,7 @@ fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
                 State::Discharging => "Discharging",
                 State::Empty => "Empty",
                 State::Full => "Full",
-                State::Unknown | _ => "Unknown",
+                State::Unknown => "Unknown",
             }
             .to_string(),
             time_to_full: bat.time_to_full().map(|q| q.value),
