@@ -48,6 +48,35 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
+* Color schemes: [alacritty](colorschemes/a/index.md#alacritty),
+  [Blue Dolphin (Gogh)](colorschemes/b/index.md#blue-dolphin-gogh),
+  [Butrin (Gogh)](colorschemes/b/index.md#butrin-gogh),
+  [CutiePro](colorschemes/c/index.md#cutiepro),
+  [Ef-Dream](colorschemes/e/index.md#ef-dream),
+  [Ef-Reverie](colorschemes/e/index.md#ef-reverie),
+  [Eldritch](colorschemes/e/index.md#eldritch),
+  [Everforest Dark Hard (Gogh)](colorschemes/e/index.md#everforest-dark-hard-gogh),
+  [Everforest Dark Medium (Gogh)](colorschemes/e/index.md#everforest-dark-medium-gogh),
+  [Everforest Dark Soft (Gogh)](colorschemes/e/index.md#everforest-dark-soft-gogh),
+  [Everforest Light Hard (Gogh)](colorschemes/e/index.md#everforest-light-hard-gogh),
+  [Everforest Light Medium (Gogh)](colorschemes/e/index.md#everforest-light-medium-gogh),
+  [Everforest Light Soft (Gogh)](colorschemes/e/index.md#everforest-light-soft-gogh),
+  [Github Light (Gogh)](colorschemes/g/index.md#github-light-gogh),
+  [Kanagawa Dragon (Gogh)](colorschemes/k/index.md#kanagawa-dragon-gogh),
+  [Mellifluous](colorschemes/m/index.md#mellifluous),
+  [Miramare (Gogh)](colorschemes/m/index.md#miramare-gogh),
+  [Modus Operandi (Gogh)](colorschemes/m/index.md#modus-operandi-gogh),
+  [Modus Operandi Tinted (Gogh)](colorschemes/m/index.md#modus-operandi-tinted-gogh),
+  [Modus Vivendi (Gogh)](colorschemes/m/index.md#modus-vivendi-gogh),
+  [Modus Vivendi Tinted (Gogh)](colorschemes/m/index.md#modus-vivendi-tinted-gogh),
+  [NvimDark](colorschemes/n/index.md#nvimdark),
+  [NvimLight](colorschemes/n/index.md#nvimlight),
+  [Quiet (Gogh)](colorschemes/q/index.md#quiet-gogh),
+  [Selenized Black (Gogh)](colorschemes/s/index.md#selenized-black-gogh),
+  [Selenized White (Gogh)](colorschemes/s/index.md#selenized-white-gogh),
+  [Seoul256 (Gogh)](colorschemes/s/index.md#seoul256-gogh),
+  [Seoul256 Light (Gogh)](colorschemes/s/index.md#seoul256-light-gogh),
+  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh)
 
 ### 20240203-110809-5046fc22
 
