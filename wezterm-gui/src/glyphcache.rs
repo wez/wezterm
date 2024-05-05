@@ -268,8 +268,8 @@ impl FrameDecoder {
                 reader.rewind().context("rewinding reader for png")?;
                 let decoder = image::codecs::png::PngDecoder::with_limits(reader, limits.clone())
                     .context("PngDecoder::with_limits")?;
-                if decoder.is_apng() {
-                    decoder.apng().into_frames()
+                if decoder.is_apng().unwrap_or(false) {
+                    decoder.apng()?.into_frames()
                 } else {
                     let buf = DynamicImage::from_decoder(decoder)?.into_rgba8();
                     let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);

@@ -10,7 +10,7 @@ anyhow = "1.0"
 config = { path = "../../config" }
 csscolorparser = {version="0.6", features=["lab"]}
 deltae = "0.3"
-image = "0.24.6"
+image = "0.25"
 lazy_static = "1.4"
 log = "0.4"
 lru = "0.7"

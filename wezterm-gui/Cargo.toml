@@ -55,7 +55,7 @@ futures = "0.3"
 fuzzy-matcher = "0.3"
 hdrhistogram = "7.1"
 http_req = "0.10"
-image = "0.24.6"
+image = "0.25"
 lazy_static = "1.4"
 libc = "0.2"
 lfucache = { path = "../lfucache" }

@@ -387,8 +387,9 @@ impl ImageDataType {
                         return Self::EncodedFile(data);
                     }
                 };
+                let cursor = std::io::Cursor::new(&*data);
                 match format {
-                    ImageFormat::Gif => image::codecs::gif::GifDecoder::new(&*data)
+                    ImageFormat::Gif => image::codecs::gif::GifDecoder::new(cursor)
                         .and_then(|decoder| decoder.into_frames().collect_frames())
                         .and_then(|frames| {
                             if frames.is_empty() {
@@ -406,12 +407,15 @@ impl ImageDataType {
                             Self::decode_single(data)
                         }),
                     ImageFormat::Png => {
-                        let decoder = match image::codecs::png::PngDecoder::new(&*data) {
+                        let decoder = match image::codecs::png::PngDecoder::new(cursor) {
                             Ok(d) => d,
                             _ => return Self::EncodedFile(data),
                         };
-                        if decoder.is_apng() {
-                            match decoder.apng().into_frames().collect_frames() {
+                        if decoder.is_apng().unwrap_or(false) {
+                            match decoder
+                                .apng()
+                                .and_then(|d| d.into_frames().collect_frames())
+                            {
                                 Ok(frames) if frames.is_empty() => {
                                     log::error!("decoded image has 0 frames, using placeholder");
                                     Self::placeholder()
@@ -424,7 +428,7 @@ impl ImageDataType {
                         }
                     }
                     ImageFormat::WebP => {
-                        let decoder = match image::codecs::webp::WebPDecoder::new(&*data) {
+                        let decoder = match image::codecs::webp::WebPDecoder::new(cursor) {
                             Ok(d) => d,
                             _ => return Self::EncodedFile(data),
                         };
