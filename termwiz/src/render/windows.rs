@@ -29,7 +29,7 @@ impl WindowsConsoleRenderer {
     }
 }
 
-fn to_attr_word(attr: &CellAttributes) -> u16 {
+fn to_attr_word(capabilities: &Capabilities, attr: &CellAttributes) -> u16 {
     macro_rules! ansi_colors_impl {
         ($idx:expr, $default:ident,
                 $red:ident, $green:ident, $blue:ident,
@@ -82,7 +82,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         0
     };
 
-    if attr.capabilities.color_level() == ColorLevel::MonoChrome {
+    if capabilities.color_level() == ColorLevel::MonoChrome {
         return reverse | underline;
     }
 
@@ -314,7 +314,7 @@ impl WindowsConsoleRenderer {
             dirty: false,
             rows,
             cols,
-            pending_attr: to_attr_word(&CellAttributes::default()),
+            pending_attr: to_attr_word(&self.capabilities, &CellAttributes::default()),
         };
 
         for change in changes {
@@ -324,7 +324,13 @@ impl WindowsConsoleRenderer {
                         .set_background(color.clone())
                         .clone();
 
-                    buffer.fill(' ', to_attr_word(&attr), 0, 0, cols * rows);
+                    buffer.fill(
+                        ' ',
+                        to_attr_word(&self.capabilities, &attr),
+                        0,
+                        0,
+                        cols * rows,
+                    );
                     buffer.set_cursor(0, 0, out)?;
                 }
                 Change::ClearToEndOfLine(color) => {
@@ -334,7 +340,7 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_word(&self.capabilities, &attr),
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols.saturating_sub(buffer.cursor_x),
@@ -347,14 +353,18 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_word(&self.capabilities, &attr),
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols * rows,
                     );
                 }
                 Change::Text(text) => {
-                    buffer.write_text(&text, to_attr_word(&self.pending_attr), out)?;
+                    buffer.write_text(
+                        &text,
+                        to_attr_word(&self.capabilities, &self.pending_attr),
+                        out,
+                    )?;
                 }
                 Change::CursorPosition { x, y } => {
                     let x = match x {
