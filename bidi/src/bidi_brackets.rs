@@ -5,7 +5,7 @@ pub enum BracketType {
     Open,
     Close,
 }
-pub const BIDI_BRACKETS: &'static [(char, char, BracketType)] = &[
+pub const BIDI_BRACKETS: &[(char, char, BracketType)] = &[
     ('\u{28}', '\u{29}', BracketType::Open),   // LEFT PARENTHESIS
     ('\u{29}', '\u{28}', BracketType::Close),  // RIGHT PARENTHESIS
     ('\u{5b}', '\u{5d}', BracketType::Open),   // LEFT SQUARE BRACKET
