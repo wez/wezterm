@@ -51,7 +51,7 @@ impl FromDynamic for Value {
 impl FromDynamic for ordered_float::NotNan<f64> {
     fn from_dynamic(value: &Value, options: FromDynamicOptions) -> Result<Self, Error> {
         let f = f64::from_dynamic(value, options)?;
-        Ok(ordered_float::NotNan::new(f).map_err(|e| Error::Message(e.to_string()))?)
+        ordered_float::NotNan::new(f).map_err(|e| Error::Message(e.to_string()))
     }
 }
 

@@ -15,11 +15,11 @@ pub enum BorrowedKey<'a> {
 }
 
 pub trait ObjectKeyTrait {
-    fn key<'k>(&'k self) -> BorrowedKey<'k>;
+    fn key(&self) -> BorrowedKey<'_>;
 }
 
 impl ObjectKeyTrait for Value {
-    fn key<'k>(&'k self) -> BorrowedKey<'k> {
+    fn key(&self) -> BorrowedKey<'_> {
         match self {
             Value::String(s) => BorrowedKey::Str(s.as_str()),
             v => BorrowedKey::Value(v),
@@ -27,8 +27,8 @@ impl ObjectKeyTrait for Value {
     }
 }
 
-impl<'a> ObjectKeyTrait for BorrowedKey<'a> {
-    fn key<'k>(&'k self) -> BorrowedKey<'k> {
+impl ObjectKeyTrait for BorrowedKey<'_> {
+    fn key(&self) -> BorrowedKey<'_> {
         *self
     }
 }
@@ -49,7 +49,7 @@ impl<'a> Eq for (dyn ObjectKeyTrait + 'a) {}
 
 impl<'a> PartialOrd for (dyn ObjectKeyTrait + 'a) {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.key().partial_cmp(&other.key())
+        Some(self.cmp(other))
     }
 }
 
