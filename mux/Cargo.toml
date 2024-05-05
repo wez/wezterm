@@ -19,7 +19,7 @@ downcast-rs = "1.0"
 fancy-regex = "0.11"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"

@@ -12,7 +12,7 @@ async_ossl = { path = "../async_ossl" }
 codec = { path = "../codec" }
 config = { path = "../config" }
 futures = "0.3"
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = "1.4"
 log = "0.4"
 mux = { path = "../mux" }
