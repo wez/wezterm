@@ -242,6 +242,9 @@ impl SchemeSet {
             let existing: Vec<serde_json::Value> = serde_json::from_str(&data)?;
             for item in existing {
                 let data = ColorSchemeFile::from_json_value(&item)?;
+                if data.colors.ansi.is_none() {
+                    continue;
+                }
                 let name = data.metadata.name.as_ref().unwrap().to_string();
                 by_name.insert(
                     name.to_string(),

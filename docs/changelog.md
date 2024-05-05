@@ -48,7 +48,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
-* Color schemes: [alacritty](colorschemes/a/index.md#alacritty),
+* Color schemes:
   [Blue Dolphin (Gogh)](colorschemes/b/index.md#blue-dolphin-gogh),
   [Butrin (Gogh)](colorschemes/b/index.md#butrin-gogh),
   [CutiePro](colorschemes/c/index.md#cutiepro),
