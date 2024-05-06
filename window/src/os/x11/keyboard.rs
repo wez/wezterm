@@ -1,6 +1,6 @@
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    DeadKeyStatus, Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent,
+    Composing, DeadKeyStatus, Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent,
     WindowEventSender, WindowKeyEvent,
 };
 use anyhow::{anyhow, ensure};
@@ -318,13 +318,13 @@ impl KeyboardWithFallback {
             let selected_feed = self.selected.compose_feed(xcode, xsym);
 
             match selected_feed {
-                FeedResult::Composing(composition) => {
+                FeedResult::Composing(text) => {
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Composing: {:?}",
-                        composition
+                        text
                     );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
-                        composition,
+                        Composing { text, attr: None },
                     )));
                     return None;
                 }

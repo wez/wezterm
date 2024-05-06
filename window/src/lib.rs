@@ -151,7 +151,23 @@ pub enum DeadKeyStatus {
     None,
     /// Holding until composition is done; the string is the uncommitted
     /// composition text to show as a placeholder
-    Composing(String),
+    Composing(Composing),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct Composing {
+    /// Holding composing text
+    pub text: String,
+    /// Holding composing attribute of each unicode character in composing text
+    pub attr: Option<Vec<ComposingAttribute>>,
+}
+
+bitflags! {
+    #[derive(Default)]
+    pub struct ComposingAttribute: u8 {
+        const NONE = 0;
+        const SELECTED = 1;
+    }
 }
 
 #[derive(Debug)]

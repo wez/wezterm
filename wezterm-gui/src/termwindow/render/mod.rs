@@ -9,6 +9,7 @@ use crate::shapecache::*;
 use crate::termwindow::render::paint::AllowImage;
 use crate::termwindow::{BorrowedShapeCacheKey, RenderState, ShapedInfo, TermWindowNotif};
 use crate::utilsprites::RenderMetrics;
+use crate::Composing;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::{DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::{anyhow, Context};
@@ -56,7 +57,7 @@ pub struct LineQuadCacheKey {
     pub shape_generation: usize,
     pub quad_generation: usize,
     /// Only set if cursor.y == stable_row
-    pub composing: Option<String>,
+    pub composing: Option<Composing>,
     pub selection: Range<usize>,
     pub shape_hash: [u8; 16],
     pub top_pixel_y: NotNan<f32>,
