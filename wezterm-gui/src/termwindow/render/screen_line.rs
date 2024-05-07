@@ -90,7 +90,7 @@ impl crate::TermWindow {
                 composing_text_width = unicode_column_width(text, None);
 
                 if let Some(attr) = attr {
-                    // convert text and attr to selections
+                    // convert SELECTED attr to selections
                     let mut selection = 0usize..0;
                     // iterate over byte end of each character in text
                     for (i, end) in text
@@ -101,16 +101,23 @@ impl crate::TermWindow {
                         .take(attr.len())
                         .enumerate()
                     {
-                        // update end to unicode width
-                        let end = unicode_column_width(&text[..end], None);
-                        if attr[i].contains(ComposingAttribute::SELECTED) {
-                            selection.end = end;
-                        }
-                        // add non-empty selection and prepare next selection
-                        if i + 1 == attr.len() || !attr[i].contains(ComposingAttribute::SELECTED) {
-                            if !selection.is_empty() {
-                                composing_selections.push(selection);
+                        // check last character/attr or SELECTED switch
+                        let last = end == text.len() || i + 1 == attr.len();
+                        if last || (attr[i] ^ attr[i + 1]).contains(ComposingAttribute::SELECTED) {
+                            // update end to unicode width
+                            let end = unicode_column_width(&text[..end], None);
+                            // add selection to selections if attr[i] is end of SELECTED
+                            if attr[i].contains(ComposingAttribute::SELECTED) {
+                                selection.end = end;
+                                if !selection.is_empty() {
+                                    composing_selections.push(selection);
+                                }
                             }
+                            // break if last character/attr is processed
+                            if last {
+                                break;
+                            }
+                            // prepare selection for next SELECTED or start of SELECTED
                             selection = end..end;
                         }
                     }
