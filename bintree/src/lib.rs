@@ -159,11 +159,11 @@ impl<'a, L, N> std::iter::Iterator for ParentIterator<'a, L, N> {
         match self.path {
             Path::Top => None,
             Path::Left { data, up, .. } => {
-                self.path = &*up;
+                self.path = up;
                 Some((PathBranch::IsLeft, data))
             }
             Path::Right { data, up, .. } => {
-                self.path = &*up;
+                self.path = up;
                 Some((PathBranch::IsRight, data))
             }
         }
@@ -211,7 +211,7 @@ impl<L, N> Cursor<L, N> {
 
     /// References the subtree at the current cursor position
     pub fn subtree(&self) -> &Tree<L, N> {
-        &*self.it
+        &self.it
     }
 
     /// Returns true if the current position is a leaf node
