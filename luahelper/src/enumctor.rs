@@ -109,6 +109,12 @@ impl<T> Enum<T> {
     }
 }
 
+impl<T> Default for Enum<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> UserData for Enum<T>
 where
     T: FromDynamic,

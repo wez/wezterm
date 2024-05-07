@@ -1228,6 +1228,12 @@ impl Handled {
     }
 }
 
+impl Default for Handled {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PartialEq for Handled {
     fn eq(&self, _: &Self) -> bool {
         true

@@ -37,3 +37,9 @@ impl LeaseId {
         self.pid
     }
 }
+
+impl Default for LeaseId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
