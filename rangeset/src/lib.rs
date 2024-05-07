@@ -281,10 +281,8 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
             }
         }
         if let Some(r) = self.ranges.get(idx + 1) {
-            if intersects_range(r, range) || r.end == range.start {
-                if first.is_some() {
-                    return (first, Some(idx + 1));
-                }
+            if intersects_range(r, range) || r.end == range.start && first.is_some() {
+                return (first, Some(idx + 1));
             }
         }
         (first, None)
@@ -329,7 +327,7 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
 
     /// Returns an iterator over all of the contained values.
     /// Take care when the range is very large!
-    pub fn iter_values<'a>(&'a self) -> impl Iterator<Item = T> + 'a {
+    pub fn iter_values(&self) -> impl Iterator<Item = T> + '_ {
         self.ranges.iter().flat_map(|r| num::range(r.start, r.end))
     }
 }
