@@ -30,25 +30,25 @@
       },
       "original": {
         "owner": "wez",
+        "ref": "VER-2-13-0",
         "repo": "freetype2",
-        "rev": "de8b92dd7ec634e9e2b25ef534c54a3537555c11",
         "type": "github"
       }
     },
     "harfbuzz": {
       "flake": false,
       "locked": {
-        "lastModified": 1677798343,
-        "narHash": "sha256-Lsd0Vrkrv67CMyV0ZveShfjUvqh/jDhI8rAK9ps+SZQ=",
+        "lastModified": 1711722720,
+        "narHash": "sha256-GdxcAPx5QyniSHPAN1ih28AD9JLUPR0ItqW9JEsl3pU=",
         "owner": "harfbuzz",
         "repo": "harfbuzz",
-        "rev": "60841e26187576bff477c1a09ee2ffe544844abc",
+        "rev": "63973005bc07aba599b47fdd4cf788647b601ccd",
         "type": "github"
       },
       "original": {
         "owner": "harfbuzz",
+        "ref": "8.4.0",
         "repo": "harfbuzz",
-        "rev": "60841e26187576bff477c1a09ee2ffe544844abc",
         "type": "github"
       }
     },
@@ -146,8 +146,8 @@
       },
       "original": {
         "owner": "madler",
+        "ref": "v1.2.11",
         "repo": "zlib",
-        "rev": "cacf7f1d4e3d44d871b605da3b647f07d718623f",
         "type": "github"
       }
     }
