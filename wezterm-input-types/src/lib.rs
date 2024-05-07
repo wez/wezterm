@@ -3,7 +3,7 @@ use bitflags::*;
 use serde::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
@@ -112,24 +112,24 @@ pub enum KeyCode {
 impl KeyCode {
     /// Return true if the key represents a modifier key.
     pub fn is_modifier(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Hyper
-            | Self::CapsLock
-            | Self::Super
-            | Self::Meta
-            | Self::Shift
-            | Self::LeftShift
-            | Self::RightShift
-            | Self::Control
-            | Self::LeftControl
-            | Self::RightControl
-            | Self::Alt
-            | Self::LeftAlt
-            | Self::RightAlt
-            | Self::LeftWindows
-            | Self::RightWindows => true,
-            _ => false,
-        }
+                | Self::CapsLock
+                | Self::Super
+                | Self::Meta
+                | Self::Shift
+                | Self::LeftShift
+                | Self::RightShift
+                | Self::Control
+                | Self::LeftControl
+                | Self::RightControl
+                | Self::Alt
+                | Self::LeftAlt
+                | Self::RightAlt
+                | Self::LeftWindows
+                | Self::RightWindows
+        )
     }
 
     pub fn normalize_shift(&self, modifiers: Modifiers) -> (KeyCode, Modifiers) {
@@ -415,9 +415,9 @@ impl TryFrom<&str> for KeyCode {
             return Ok(KeyCode::Numpad(n));
         }
 
-        // Don't consider "F" to be an invalid F key!
+        // Don't consider 'F' to be an invalid F key!
         if s.len() > 1 {
-            if let Some(n) = s.strip_prefix("F") {
+            if let Some(n) = s.strip_prefix('F') {
                 let n: u8 = n
                     .parse()
                     .map_err(|err| format!("parsing F<NUMBER>: {:#}", err))?;
@@ -438,16 +438,16 @@ impl TryFrom<&str> for KeyCode {
     }
 }
 
-impl ToString for KeyCode {
-    fn to_string(&self) -> String {
+impl Display for KeyCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::RawCode(n) => format!("raw:{}", n),
-            Self::Char(c) => format!("mapped:{}", c),
-            Self::Physical(phys) => phys.to_string(),
-            Self::Composed(s) => s.to_string(),
-            Self::Numpad(n) => format!("Numpad{}", n),
-            Self::Function(n) => format!("F{}", n),
-            other => format!("{:?}", other),
+            Self::RawCode(n) => write!(f, "raw:{}", n),
+            Self::Char(c) => write!(f, "mapped:{}", c),
+            Self::Physical(phys) => write!(f, "{}", phys),
+            Self::Composed(s) => write!(f, "{}", s),
+            Self::Numpad(n) => write!(f, "Numpad{}", n),
+            Self::Function(n) => write!(f, "F{}", n),
+            other => write!(f, "{:?}", other),
         }
     }
 }
@@ -460,8 +460,8 @@ bitflags! {
     }
 }
 
-impl ToString for KeyboardLedStatus {
-    fn to_string(&self) -> String {
+impl Display for KeyboardLedStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
         if self.contains(Self::CAPS_LOCK) {
             s.push_str("CAPS_LOCK");
@@ -472,7 +472,7 @@ impl ToString for KeyboardLedStatus {
             }
             s.push_str("NUM_LOCK");
         }
-        s
+        write!(f, "{}", s)
     }
 }
 
@@ -518,7 +518,7 @@ impl TryFrom<String> for Modifiers {
                 mods |= Modifiers::SUPER;
             } else if ele == "LEADER" {
                 mods |= Modifiers::LEADER;
-            } else if ele == "NONE" || ele == "" {
+            } else if ele == "NONE" || ele.is_empty() {
                 mods |= Modifiers::NONE;
             } else {
                 return Err(format!("invalid modifier name {} in {}", ele, s));
@@ -704,13 +704,17 @@ impl Modifiers {
     }
 }
 
-impl ToString for Modifiers {
-    fn to_string(&self) -> String {
-        self.to_string_with_separator(ModifierToStringArgs {
-            separator: "|",
-            want_none: true,
-            ui_key_cap_rendering: None,
-        })
+impl Display for Modifiers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.to_string_with_separator(ModifierToStringArgs {
+                separator: "|",
+                want_none: true,
+                ui_key_cap_rendering: None,
+            })
+        )
     }
 }
 
@@ -859,17 +863,17 @@ pub enum PhysKeyCode {
 
 impl PhysKeyCode {
     pub fn is_modifier(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::LeftShift
-            | Self::LeftControl
-            | Self::LeftWindows
-            | Self::LeftAlt
-            | Self::RightShift
-            | Self::RightControl
-            | Self::RightWindows
-            | Self::RightAlt => true,
-            _ => false,
-        }
+                | Self::LeftControl
+                | Self::LeftWindows
+                | Self::LeftAlt
+                | Self::RightShift
+                | Self::RightControl
+                | Self::RightWindows
+                | Self::RightAlt
+        )
     }
 
     pub fn to_key_code(self) -> KeyCode {
@@ -1157,12 +1161,12 @@ impl TryFrom<&str> for PhysKeyCode {
     }
 }
 
-impl ToString for PhysKeyCode {
-    fn to_string(&self) -> String {
+impl Display for PhysKeyCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(s) = INV_PHYSKEYCODE_MAP.get(self) {
-            s.to_string()
+            write!(f, "{}", s)
         } else {
-            format!("{:?}", self)
+            write!(f, "{:?}", self)
         }
     }
 }
@@ -1276,7 +1280,7 @@ impl RawKeyEvent {
             // PrintScreen => 57361,
             // Pause => 57362,
             // Menu => 57363,
-            Function(n) if n >= 13 && n <= 35 => 57376 + n as u32 - 13,
+            Function(n) if (13..=35).contains(&n) => 57376 + n as u32 - 13,
             Numpad(n) => n as u32 + 57399,
             Decimal => 57409,
             Divide => 57410,
@@ -1979,21 +1983,21 @@ bitflags! {
     }
 }
 
-impl Into<String> for &WindowDecorations {
-    fn into(self) -> String {
+impl From<&WindowDecorations> for String {
+    fn from(val: &WindowDecorations) -> Self {
         let mut s = vec![];
-        if self.contains(WindowDecorations::TITLE) {
+        if val.contains(WindowDecorations::TITLE) {
             s.push("TITLE");
         }
-        if self.contains(WindowDecorations::RESIZE) {
+        if val.contains(WindowDecorations::RESIZE) {
             s.push("RESIZE");
         }
-        if self.contains(WindowDecorations::INTEGRATED_BUTTONS) {
+        if val.contains(WindowDecorations::INTEGRATED_BUTTONS) {
             s.push("INTEGRATED_BUTTONS");
         }
-        if self.contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW) {
+        if val.contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW) {
             s.push("MACOS_FORCE_ENABLE_SHADOW");
-        } else if self.contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW) {
+        } else if val.contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW) {
             s.push("MACOS_FORCE_DISABLE_SHADOW");
         }
         if s.is_empty() {
