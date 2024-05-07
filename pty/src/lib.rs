@@ -39,8 +39,6 @@
 //!
 use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
-#[cfg(unix)]
-use libc;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
@@ -270,10 +268,7 @@ impl_downcast!(PtySystem);
 
 impl Child for std::process::Child {
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>> {
-        std::process::Child::try_wait(self).map(|s| match s {
-            Some(s) => Some(s.into()),
-            None => None,
-        })
+        std::process::Child::try_wait(self).map(|ops| ops.map(|s| s.into()))
     }
 
     fn wait(&mut self) -> IoResult<ExitStatus> {
@@ -398,7 +393,7 @@ impl ChildKiller for std::process::Child {
 }
 
 pub fn native_pty_system() -> Box<dyn PtySystem + Send> {
-    Box::new(NativePtySystem::default())
+    Box::<NativePtySystem>::default()
 }
 
 #[cfg(unix)]
