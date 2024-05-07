@@ -16,9 +16,9 @@ pub(crate) enum SftpWrap {
 fn pathconv(path: std::path::PathBuf) -> SftpChannelResult<Utf8PathBuf> {
     use crate::sftp::SftpChannelError;
     use std::convert::TryFrom;
-    Ok(Utf8PathBuf::try_from(path).map_err(|x| {
+    Utf8PathBuf::try_from(path).map_err(|x| {
         SftpChannelError::from(std::io::Error::new(std::io::ErrorKind::InvalidData, x))
-    })?)
+    })
 }
 
 impl SftpWrap {

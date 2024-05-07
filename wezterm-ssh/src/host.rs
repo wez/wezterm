@@ -65,9 +65,8 @@ impl crate::sessioninner::SessionInner {
             libssh_rs::KnownHosts::Changed => {
                 let mut file = None;
                 if let Some(kh) = self.config.get("userknownhostsfile") {
-                    for candidate in kh.split_whitespace() {
+                    if let Some(candidate) = kh.split_whitespace().next() {
                         file.replace(candidate.into());
-                        break;
                     }
                 }
 
@@ -121,7 +120,7 @@ impl crate::sessioninner::SessionInner {
             }
 
             known_hosts
-                .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                .read_file(file, ssh2::KnownHostFileKind::OpenSSH)
                 .with_context(|| format!("reading known_hosts file {}", file.display()))?;
 
             let (key, key_type) = sess
@@ -152,7 +151,7 @@ impl crate::sessioninner::SessionInner {
                 })
                 .ok_or_else(|| anyhow!("failed to get host fingerprint"))?;
 
-            match known_hosts.check_port(&remote_host_name, port, key) {
+            match known_hosts.check_port(remote_host_name, port, key) {
                 ssh2::CheckResult::Match => {}
                 ssh2::CheckResult::NotFound => {
                     let (reply, confirm) = bounded(1);
@@ -182,11 +181,11 @@ impl crate::sessioninner::SessionInner {
                     };
 
                     known_hosts
-                        .add(&host_and_port, key, &remote_address, key_type.into())
+                        .add(&host_and_port, key, remote_address, key_type.into())
                         .context("adding known_hosts entry in memory")?;
 
                     known_hosts
-                        .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                        .write_file(file, ssh2::KnownHostFileKind::OpenSSH)
                         .with_context(|| format!("writing known_hosts file {}", file.display()))?;
                 }
                 ssh2::CheckResult::Mismatch => {

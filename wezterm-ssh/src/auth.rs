@@ -78,7 +78,7 @@ impl crate::sessioninner::SessionInner {
                 };
 
                 // We try with no passphrase first, in case the key is unencrypted
-                match sess.userauth_pubkey_file(user, pubkey, &file, None) {
+                match sess.userauth_pubkey_file(user, pubkey, file, None) {
                     Ok(_) => {
                         log::info!("pubkey_file immediately ok for {}", file.display());
                         return Ok(true);
@@ -113,7 +113,7 @@ impl crate::sessioninner::SessionInner {
 
                         let passphrase = &answers[0];
 
-                        match sess.userauth_pubkey_file(user, pubkey, &file, Some(passphrase)) {
+                        match sess.userauth_pubkey_file(user, pubkey, file, Some(passphrase)) {
                             Ok(_) => {
                                 return Ok(true);
                             }
@@ -157,9 +157,8 @@ impl crate::sessioninner::SessionInner {
         });
 
         use libssh_rs::{AuthMethods, AuthStatus};
-        match sess.userauth_none(None)? {
-            AuthStatus::Success => return Ok(()),
-            _ => {}
+        if sess.userauth_none(None)? == AuthStatus::Success {
+            return Ok(());
         }
 
         loop {
@@ -269,7 +268,7 @@ impl crate::sessioninner::SessionInner {
             // Re-query the auth methods on each loop as a successful method
             // may unlock a new method on a subsequent iteration (eg: password
             // auth may then unlock 2fac)
-            let methods: HashSet<&str> = sess.auth_methods(&user)?.split(',').collect();
+            let methods: HashSet<&str> = sess.auth_methods(user)?.split(',').collect();
             log::trace!("ssh auth methods: {:?}", methods);
 
             if !sess.authenticated() && methods.contains("publickey") {
@@ -314,11 +313,11 @@ impl crate::sessioninner::SessionInner {
                 }
 
                 impl<'a> ssh2::KeyboardInteractivePrompt for Helper<'a> {
-                    fn prompt<'b>(
+                    fn prompt(
                         &mut self,
                         username: &str,
                         instructions: &str,
-                        prompts: &[ssh2::Prompt<'b>],
+                        prompts: &[ssh2::Prompt<'_>],
                     ) -> Vec<String> {
                         let (reply, answers) = bounded(1);
                         if let Err(err) = self.tx_event.try_send(SessionEvent::Authenticate(
@@ -345,7 +344,7 @@ impl crate::sessioninner::SessionInner {
                                     "waiting for authentication answers from user: {:#}",
                                     err
                                 );
-                                return vec![];
+                                vec![]
                             }
                             Ok(answers) => answers,
                         }

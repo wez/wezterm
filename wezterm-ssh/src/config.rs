@@ -175,7 +175,7 @@ impl ParsedConfigFile {
         groups: &mut Vec<MatchGroup>,
         loaded_files: &mut Vec<PathBuf>,
     ) {
-        match filenamegen::Glob::new(&pattern) {
+        match filenamegen::Glob::new(pattern) {
             Ok(g) => {
                 match cwd
                     .as_ref()
@@ -253,8 +253,8 @@ impl ParsedConfigFile {
                     let mut patterns = vec![];
                     for p in v.split(',') {
                         let p = p.trim();
-                        if p.starts_with('!') {
-                            patterns.push(Pattern::new(&p[1..], true));
+                        if let Some(stripped) = p.strip_prefix('!') {
+                            patterns.push(Pattern::new(stripped, true));
                         } else {
                             patterns.push(Pattern::new(p, false));
                         }
@@ -265,8 +265,8 @@ impl ParsedConfigFile {
                     let mut patterns = vec![];
                     for p in v.split_ascii_whitespace() {
                         let p = p.trim();
-                        if p.starts_with('!') {
-                            patterns.push(Pattern::new(&p[1..], true));
+                        if let Some(stripped) = p.strip_prefix('!') {
+                            patterns.push(Pattern::new(stripped, true));
                         } else {
                             patterns.push(Pattern::new(p, false));
                         }
@@ -603,11 +603,16 @@ impl Config {
     /// Return true if a given option name is subject to environment variable
     /// expansion.
     fn should_expand_environment(&self, key: &str) -> bool {
-        match key {
-            "certificatefile" | "controlpath" | "identityagent" | "identityfile"
-            | "userknownhostsfile" | "localforward" | "remoteforward" => true,
-            _ => false,
-        }
+        matches!(
+            key,
+            "certificatefile"
+                | "controlpath"
+                | "identityagent"
+                | "identityfile"
+                | "userknownhostsfile"
+                | "localforward"
+                | "remoteforward"
+        )
     }
 
     /// Returns a set of tokens that should be expanded for a given option name
@@ -730,10 +735,11 @@ impl Config {
                 for c in &group.criteria {
                     if let Criteria::Host(patterns) = c {
                         for pattern in patterns {
-                            if pattern.is_literal && !pattern.negated {
-                                if !hosts.contains(&pattern.original) {
-                                    hosts.push(pattern.original.clone());
-                                }
+                            if pattern.is_literal
+                                && !pattern.negated
+                                && !hosts.contains(&pattern.original)
+                            {
+                                hosts.push(pattern.original.clone());
                             }
                         }
                     }
