@@ -19,8 +19,12 @@
     #
     # ... In the meantime we kinda duplicate the dependencies here then replace the submodules with
     # links to each repo in package sources.
+    #
+    # Try to use tags when possible to increase readability
+    # (note: `git submodule status` in wezterm repo will show the `git describe` result for each
+    # submodule, can help finding a tag if any)
     freetype2 = {
-      url = "github:wez/freetype2/VER-2-13-0";
+      url = "github:wez/freetype2/e4586d960f339cf75e2e0b34aee30a0ed8353c0d";
       flake = false;
     };
     harfbuzz = {
