@@ -9,15 +9,12 @@ use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
 pub mod enumctor;
 
-pub fn to_lua<'lua, T: ToDynamic>(
-    lua: &'lua mlua::Lua,
-    value: T,
-) -> Result<mlua::Value<'lua>, mlua::Error> {
+pub fn to_lua<T: ToDynamic>(lua: &mlua::Lua, value: T) -> Result<mlua::Value<'_>, mlua::Error> {
     let value = value.to_dynamic();
     dynamic_to_lua_value(lua, value)
 }
 
-pub fn from_lua<'lua, T: FromDynamic>(value: mlua::Value<'lua>) -> Result<T, mlua::Error> {
+pub fn from_lua<T: FromDynamic>(value: mlua::Value<'_>) -> Result<T, mlua::Error> {
     let lua_type = value.type_name();
     let value = lua_value_to_dynamic(value).map_err(|e| mlua::Error::FromLuaConversionError {
         from: lua_type,
@@ -60,10 +57,7 @@ macro_rules! impl_lua_conversion_dynamic {
     };
 }
 
-pub fn dynamic_to_lua_value<'lua>(
-    lua: &'lua mlua::Lua,
-    value: DynValue,
-) -> mlua::Result<mlua::Value> {
+pub fn dynamic_to_lua_value(lua: &mlua::Lua, value: DynValue) -> mlua::Result<mlua::Value> {
     Ok(match value {
         DynValue::Null => LuaValue::Nil,
         DynValue::Bool(b) => LuaValue::Boolean(b),
@@ -284,9 +278,7 @@ impl<'lua> Eq for ValuePrinterHelper<'lua> {}
 
 impl<'lua> PartialOrd for ValuePrinterHelper<'lua> {
     fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        let lhs = lua_value_to_dynamic(self.value.clone()).unwrap_or(DynValue::Null);
-        let rhs = lua_value_to_dynamic(rhs.value.clone()).unwrap_or(DynValue::Null);
-        lhs.partial_cmp(&rhs)
+        Some(self.cmp(rhs))
     }
 }
 
@@ -343,7 +335,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                 self.visited
                     .borrow_mut()
                     .insert(self.value.to_pointer() as usize);
-                if is_array_style_table(&t) {
+                if is_array_style_table(t) {
                     // Treat as list
                     let mut list = fmt.debug_list();
                     for value in t.clone().sequence_values() {

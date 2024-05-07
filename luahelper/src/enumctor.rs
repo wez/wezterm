@@ -133,14 +133,16 @@ where
         methods.add_meta_method(MetaMethod::Index, |lua, _myself, field: String| {
             // Step 1: see if this is a unit variant.
             // A unit variant will be convertible from string
-            if let Ok(_) = T::from_dynamic(
+            if T::from_dynamic(
                 &DynValue::String(field.to_string()),
                 FromDynamicOptions {
                     unknown_fields: UnknownFieldAction::Deny,
                     deprecated_fields: UnknownFieldAction::Ignore,
                 },
-            ) {
-                return Ok(field.into_lua(lua)?);
+            )
+            .is_ok()
+            {
+                return field.into_lua(lua);
             }
 
             // Step 2: see if this is a valid variant, and whether we can
