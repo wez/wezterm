@@ -52,6 +52,7 @@ pub struct Client {
     sender: Sender<ReaderMessage>,
     local_domain_id: Option<DomainId>,
     client_id: ClientId,
+    client_domain_config: ClientDomainConfig,
     pub is_reconnectable: bool,
     pub is_local: bool,
 }
@@ -1015,6 +1016,7 @@ impl Reconnectable {
 
 impl Client {
     fn new(local_domain_id: Option<DomainId>, mut reconnectable: Reconnectable) -> Self {
+        let client_domain_config = reconnectable.config.clone();
         let is_reconnectable = reconnectable.reconnectable();
         let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
@@ -1112,7 +1114,12 @@ impl Client {
             is_reconnectable,
             is_local,
             client_id,
+            client_domain_config,
         }
+    }
+
+    pub fn into_client_domain_config(self) -> ClientDomainConfig {
+        self.client_domain_config
     }
 
     pub async fn verify_version_compat(

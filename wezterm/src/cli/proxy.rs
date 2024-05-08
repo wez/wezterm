@@ -5,20 +5,26 @@ use mux::Mux;
 use std::io::{Read, Write};
 use std::sync::Arc;
 use wezterm_client::client::{unix_connect_with_retry, Client};
+use wezterm_client::domain::ClientDomainConfig;
 
 #[derive(Debug, Parser, Clone)]
 pub struct ProxyCommand {}
 
 impl ProxyCommand {
-    pub async fn run(&self, client: Client, config: &ConfigHandle) -> anyhow::Result<()> {
+    pub async fn run(&self, client: Client, _config: &ConfigHandle) -> anyhow::Result<()> {
         // The client object we created above will have spawned
         // the server if needed, so now all we need to do is turn
         // ourselves into basically netcat.
-        drop(client);
+
+        // Extract the selected configuration from the client,
+        // closing it in the process
+        let ClientDomainConfig::Unix(unix_dom) = client.into_client_domain_config() else {
+            anyhow::bail!("expected client to have connected to a unix domain");
+        };
 
         let mux = Arc::new(mux::Mux::new(None));
         Mux::set_mux(&mux);
-        let unix_dom = config.unix_domains.first().unwrap();
+
         let target = unix_dom.target();
         let stream = unix_connect_with_retry(&target, false, None)?;
 
