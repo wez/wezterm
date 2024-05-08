@@ -38,6 +38,8 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
   and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
+* `wezterm ssh` now supports agent forwarding. Thanks to @Riatre! #5345
+
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
   around resizing. Thanks to @jknockel! #4876 #5032 #5033
