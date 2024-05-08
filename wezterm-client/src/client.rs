@@ -664,7 +664,9 @@ impl Reconnectable {
         let sess = ssh_connect_with_ui(ssh_config, ui)?;
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
-        let cmd = if initial {
+        let cmd = if let Some(cmd) = ssh_dom.override_proxy_command.clone() {
+            cmd
+        } else if initial {
             format!("{} cli --prefer-mux proxy", proxy_bin)
         } else {
             format!("{} cli --prefer-mux --no-auto-start proxy", proxy_bin)
