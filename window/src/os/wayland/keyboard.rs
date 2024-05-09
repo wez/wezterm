@@ -90,7 +90,7 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
                             }
 
                             Err(err) => {
-                                log::error!("Error processing keymap change: {:#}", err);
+                                log::error!("{}", err);
                             }
                         }
                     }
