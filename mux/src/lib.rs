@@ -1,5 +1,6 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
+use crate::ssh_agent::AgentProxy;
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
@@ -38,6 +39,7 @@ pub mod localpane;
 pub mod pane;
 pub mod renderable;
 pub mod ssh;
+pub mod ssh_agent;
 pub mod tab;
 pub mod termwiztermtab;
 pub mod tmux;
@@ -108,6 +110,7 @@ pub struct Mux {
     identity: RwLock<Option<Arc<ClientId>>>,
     num_panes_by_workspace: RwLock<HashMap<String, usize>>,
     main_thread_id: std::thread::ThreadId,
+    agent: Option<AgentProxy>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -421,6 +424,12 @@ impl Mux {
             );
         }
 
+        let agent = if config::configuration().mux_enable_ssh_agent {
+            Some(AgentProxy::new())
+        } else {
+            None
+        };
+
         Self {
             tabs: RwLock::new(HashMap::new()),
             panes: RwLock::new(HashMap::new()),
@@ -434,6 +443,7 @@ impl Mux {
             identity: RwLock::new(None),
             num_panes_by_workspace: RwLock::new(HashMap::new()),
             main_thread_id: std::thread::current().id(),
+            agent,
         }
     }
 
@@ -470,6 +480,9 @@ impl Mux {
     pub fn client_had_input(&self, client_id: &ClientId) {
         if let Some(info) = self.clients.write().get_mut(client_id) {
             info.update_last_input();
+        }
+        if let Some(agent) = &self.agent {
+            agent.update_target();
         }
     }
 

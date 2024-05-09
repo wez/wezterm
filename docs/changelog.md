@@ -39,6 +39,11 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
   and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
 * `wezterm ssh` now supports agent forwarding. Thanks to @Riatre! #5345
+* SSH multiplexer domains now support agent forwarding, and will automatically
+  maintain `SSH_AUTH_SOCK` to an appropriate value on the destination host,
+  depending on the value of the new
+  [mux_enable_ssh_agent](config/lua/config/mux_enable_ssh_agent.md) option.
+  ?988 #1647
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements

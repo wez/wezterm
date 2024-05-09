@@ -377,6 +377,9 @@ pub struct Config {
     #[dynamic(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
+    #[dynamic(default = "default_true")]
+    pub mux_enable_ssh_agent: bool,
+
     /// How many ms to delay after reading a chunk of output
     /// in order to try to coalesce fragmented writes into
     /// a single bigger chunk of output and reduce the chances

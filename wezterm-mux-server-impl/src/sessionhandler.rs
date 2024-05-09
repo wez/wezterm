@@ -311,6 +311,8 @@ impl SessionHandler {
                     // on from the `wezterm cli list-clients` information
                     if let Some(proxy_id) = &self.proxy_client_id {
                         client_id.ssh_auth_sock = proxy_id.ssh_auth_sock.clone();
+                        // Note that this `via proxy pid` string is coupled
+                        // with the logic in mux/src/ssh_agent
                         client_id.hostname =
                             format!("{} (via proxy pid {})", client_id.hostname, proxy_id.pid);
                     }
