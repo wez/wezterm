@@ -380,6 +380,9 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub mux_enable_ssh_agent: bool,
 
+    #[dynamic(default)]
+    pub default_ssh_auth_sock: Option<String>,
+
     /// How many ms to delay after reading a chunk of output
     /// in order to try to coalesce fragmented writes into
     /// a single bigger chunk of output and reduce the chances

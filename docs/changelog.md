@@ -44,6 +44,8 @@ As features stabilize some brief notes about them will accumulate here.
   depending on the value of the new
   [mux_enable_ssh_agent](config/lua/config/mux_enable_ssh_agent.md) option.
   ?988 #1647
+* [default_ssh_auth_sock](config/lua/config/default_ssh_auth_sock.md) option
+  to manage `SSH_AUTH_SOCK`.
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
