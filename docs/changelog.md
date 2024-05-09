@@ -67,6 +67,8 @@ As features stabilize some brief notes about them will accumulate here.
   @quantonganh! #5306 #5305
 * wezterm-ssh now correctly handles two-phase processing of `%h` tokens. Thanks
   to @emc2314 and @wheatdog! #5163 #4503
+* We now respect line wrapping in alt-screen mode. Thanks to @eternity74! #5396
+  #3283
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
