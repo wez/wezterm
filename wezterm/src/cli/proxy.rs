@@ -1,6 +1,8 @@
 use clap::Parser;
+use codec::{Pdu, SetClientId};
 use config::ConfigHandle;
 use mux::activity::Activity;
+use mux::client::ClientId;
 use mux::Mux;
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -26,7 +28,15 @@ impl ProxyCommand {
         Mux::set_mux(&mux);
 
         let target = unix_dom.target();
-        let stream = unix_connect_with_retry(&target, false, None)?;
+        let mut stream = unix_connect_with_retry(&target, false, None)?;
+
+        let pdu = Pdu::SetClientId(SetClientId {
+            client_id: ClientId::new(),
+            is_proxy: true,
+        });
+        let serial = 1;
+        pdu.encode(&mut stream, serial)?;
+        Pdu::decode(&mut stream)?;
 
         // Spawn a thread to pull data from the socket and write
         // it to stdout

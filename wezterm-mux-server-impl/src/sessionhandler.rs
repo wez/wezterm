@@ -199,6 +199,7 @@ pub struct SessionHandler {
     to_write_tx: PduSender,
     per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
     client_id: Option<Arc<ClientId>>,
+    proxy_client_id: Option<ClientId>,
 }
 
 impl Drop for SessionHandler {
@@ -216,6 +217,7 @@ impl SessionHandler {
             to_write_tx,
             per_pane: HashMap::new(),
             client_id: None,
+            proxy_client_id: None,
         }
     }
 
@@ -292,14 +294,35 @@ impl SessionHandler {
                 })
                 .detach();
             }
-            Pdu::SetClientId(SetClientId { client_id }) => {
-                let client_id = Arc::new(client_id);
-                self.client_id.replace(client_id.clone());
-                spawn_into_main_thread(async move {
-                    let mux = Mux::get();
-                    mux.register_client(client_id);
-                })
-                .detach();
+            Pdu::SetClientId(SetClientId {
+                mut client_id,
+                is_proxy,
+            }) => {
+                if is_proxy {
+                    if self.proxy_client_id.is_none() {
+                        // Copy proxy identity, but don't assign it to the mux;
+                        // we'll use it to annotate the actual clients own
+                        // identity when they send it
+                        self.proxy_client_id.replace(client_id);
+                    }
+                } else {
+                    // If this session is a proxy, override the incoming id with
+                    // the proxy information so that it is clear what is going
+                    // on from the `wezterm cli list-clients` information
+                    if let Some(proxy_id) = &self.proxy_client_id {
+                        client_id.ssh_auth_sock = proxy_id.ssh_auth_sock.clone();
+                        client_id.hostname =
+                            format!("{} (via proxy pid {})", client_id.hostname, proxy_id.pid);
+                    }
+
+                    let client_id = Arc::new(client_id);
+                    self.client_id.replace(client_id.clone());
+                    spawn_into_main_thread(async move {
+                        let mux = Mux::get();
+                        mux.register_client(client_id);
+                    })
+                    .detach();
+                }
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
             }
             Pdu::SetFocusedPane(SetFocusedPane { pane_id }) => {

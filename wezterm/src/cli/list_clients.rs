@@ -57,6 +57,10 @@ impl ListClientsCommand {
                         name: "FOCUS".to_string(),
                         alignment: Alignment::Right,
                     },
+                    Column {
+                        name: "SSH_AUTH_SOCK".to_string(),
+                        alignment: Alignment::Left,
+                    },
                 ];
                 let mut data = vec![];
                 let now: DateTime<Utc> = Utc::now();
@@ -82,6 +86,11 @@ impl ListClientsCommand {
                         info.focused_pane_id
                             .map(|id| id.to_string())
                             .unwrap_or_else(String::new),
+                        info.client_id
+                            .ssh_auth_sock
+                            .as_deref()
+                            .unwrap_or("")
+                            .to_string(),
                     ]);
                 }
 

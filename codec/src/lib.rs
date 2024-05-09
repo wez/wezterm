@@ -431,7 +431,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 42;
+pub const CODEC_VERSION: usize = 43;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -823,6 +823,7 @@ pub struct WindowWorkspaceChanged {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetClientId {
     pub client_id: ClientId,
+    pub is_proxy: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

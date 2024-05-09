@@ -51,7 +51,7 @@ enum ReaderMessage {
 pub struct Client {
     sender: Sender<ReaderMessage>,
     local_domain_id: Option<DomainId>,
-    client_id: ClientId,
+    pub client_id: ClientId,
     client_domain_config: ClientDomainConfig,
     pub is_reconnectable: bool,
     pub is_local: bool,
@@ -1144,6 +1144,7 @@ impl Client {
                 );
                 self.set_client_id(SetClientId {
                     client_id: self.client_id.clone(),
+                    is_proxy: false,
                 })
                 .await?;
                 Ok(info)
