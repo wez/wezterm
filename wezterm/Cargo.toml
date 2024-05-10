@@ -17,6 +17,7 @@ config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 hostname = "0.4"
+humantime = "2.1"
 image = "0.25"
 libc = "0.2"
 log = "0.4"
