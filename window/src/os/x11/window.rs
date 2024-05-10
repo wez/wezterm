@@ -792,6 +792,7 @@ impl XWindowInner {
             Event::X(xcb::x::Event::DestroyNotify(_)) => {
                 self.events.dispatch(WindowEvent::Destroyed);
                 conn.windows.borrow_mut().remove(&self.window_id);
+                conn.child_to_parent_id.borrow_mut().remove(&self.child_id);
             }
             Event::X(xcb::x::Event::SelectionClear(e)) => {
                 self.selection_clear(e)?;
@@ -1414,8 +1415,7 @@ impl XWindow {
                     xcb::x::Cw::BackPixel(0), // transparent background
                     xcb::x::Cw::BorderPixel(screen.black_pixel()),
                     xcb::x::Cw::EventMask(
-                        xcb::x::EventMask::EXPOSURE
-                            | xcb::x::EventMask::FOCUS_CHANGE
+                        xcb::x::EventMask::FOCUS_CHANGE
                             | xcb::x::EventMask::KEY_PRESS
                             | xcb::x::EventMask::BUTTON_PRESS
                             | xcb::x::EventMask::BUTTON_RELEASE
@@ -1449,6 +1449,7 @@ impl XWindow {
                     xcb::x::Cw::BackPixel(0), // transparent background
                     xcb::x::Cw::BorderPixel(screen.black_pixel()),
                     xcb::x::Cw::BitGravity(xcb::x::Gravity::NorthWest),
+                    xcb::x::Cw::EventMask(xcb::x::EventMask::EXPOSURE),
                     xcb::x::Cw::Colormap(color_map_id),
                 ],
             })
@@ -1538,6 +1539,9 @@ impl XWindow {
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
         conn.windows.borrow_mut().insert(window_id, window);
+        conn.child_to_parent_id
+            .borrow_mut()
+            .insert(child_id, window_id);
 
         window_handle.set_title(name);
         // Before we map the window, flush to ensure that all of the other properties
@@ -1581,6 +1585,10 @@ impl XWindowInner {
         // Drop impl, and that cannot succeed after we've
         // destroyed the window at the X11 level.
         self.conn().windows.borrow_mut().remove(&self.window_id);
+        self.conn()
+            .child_to_parent_id
+            .borrow_mut()
+            .remove(&self.child_id);
 
         // Unmap the window first: calling DestroyWindow here may race
         // with some requests made either by EGL or the IME, but I haven't

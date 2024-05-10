@@ -70,6 +70,7 @@ pub struct XConnection {
     pub atom_net_active_window: Atom,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::x::Window, Arc<Mutex<XWindowInner>>>>,
+    pub(crate) child_to_parent_id: RefCell<HashMap<xcb::x::Window, xcb::x::Window>>,
     should_terminate: RefCell<bool>,
     pub(crate) visual: xcb::x::Visualtype,
     pub(crate) depth: u8,
@@ -578,6 +579,10 @@ impl XConnection {
         self.windows.borrow().get(&window_id).map(Arc::clone)
     }
 
+    fn parent_id_by_child_id(&self, child_id: xcb::x::Window) -> Option<xcb::x::Window> {
+        self.child_to_parent_id.borrow().get(&child_id).copied()
+    }
+
     fn dispatch_pending_events(&self) -> anyhow::Result<()> {
         for window in self.windows.borrow().values() {
             let mut inner = window.lock().unwrap();
@@ -595,6 +600,11 @@ impl XConnection {
         if let Some(window) = self.window_by_id(window_id) {
             let mut inner = window.lock().unwrap();
             inner.dispatch_event(event)?;
+        } else if let Some(parent_id) = self.parent_id_by_child_id(window_id) {
+            if let Some(window) = self.window_by_id(parent_id) {
+                let mut inner = window.lock().unwrap();
+                inner.dispatch_event(event)?;
+            }
         }
         Ok(())
     }
@@ -804,6 +814,7 @@ impl XConnection {
             atom_xsel_data,
             atom_targets,
             windows: RefCell::new(HashMap::new()),
+            child_to_parent_id: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             depth,
             visual,
