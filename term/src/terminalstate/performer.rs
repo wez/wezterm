@@ -150,7 +150,6 @@ impl<'a> Performer<'a> {
                 {
                     let y = self.cursor.y;
                     let is_conpty = self.state.enable_conpty_quirks;
-                    let is_alt = self.state.screen.alt_screen_is_active;
                     let screen = self.screen_mut();
                     let y = screen.phys_row(y);
 
