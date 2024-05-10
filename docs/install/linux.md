@@ -168,14 +168,20 @@ hide:
 
     * Centos Stream 8 and 9
     * Fedora 38, 39, 40, rawhide
-    * OpenSUSE Leap 15.5
-    * OpenSUSE Tumbleweed
+    * openSUSE Leap 15.5
+    * openSUSE Tumbleweed
     * RHEL 8, 9
+
+    For openSUSE, install `dnf` beforehand with
+
+    ```console
+    $ sudo zypper in dnf
+    ```
 
     To perform initial installation:
 
     ```console
-    $ sudo dnf copr enable wezfurlong/wezterm-nightly
+    $ sudo dnf copr enable wezfurlong/wezterm-nightly <repository>
     $ sudo dnf install wezterm
     ```
 
@@ -213,24 +219,30 @@ hide:
     $ sudo dnf install -y {{ fedora39_rpm_stable }}
     ```
 
-=== "SUSE"
-    ## SUSE Linux
+=== "openSUSE"
+    ## openSUSE
 
     !!! note
-        It is recommended that you install via Copr so that it is easiest
-        to stay up to date as future versions of wezterm are released.
+        If you want nightly versions of WezTerm, it is recommended to use Copr.
 
-    WezTerm is also available in the official Factory repo in openSUSE
-    Tumbleweed. To install from Factory instead of Copr:
+    ## openSUSE Tumbleweed
+
+    The stable version of WezTerm is available in the official repositories.
 
     ```console
-    $ zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
-    $ zypper refresh
+    $ zypper install wezterm
+    ```
+    ## openSUSE Slowroll
+
+    The stable version of WezTerm is available in the official repositories.
+
+    ```console
     $ zypper install wezterm
     ```
 
-    * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-    * Configuration instructions can be [found here](../config/files.md)
+    ## openSUSE Leap
+
+    Use Copr or built if from source.
 
 === "Arch"
     ## Arch Linux
