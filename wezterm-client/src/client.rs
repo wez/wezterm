@@ -1167,21 +1167,24 @@ impl Client {
                 } else if err.root_cause().is::<CorruptResponse>() {
                     "Received an implausible and likely corrupt response from \
                     the server. This can happen if the remote host outputs \
-                    to stdout prior to running commands."
+                    to stdout prior to running commands. \
+                    Check your shell startup!"
                         .to_string()
                 } else if err.root_cause().is::<ChannelSendError>() {
                     "Internal channel was closed prior to sending request. \
                     This may indicate that the remote host output invalid data \
-                    to stdout prior to running the requested command"
+                    to stdout prior to running the requested command. \
+                    Check your shell startup!"
                         .to_string()
                 } else {
                     format!(
                         "Please install the same version of wezterm on both \
                      the client and server! \
-                     The server reported error '{}' while being asked for its \
+                     The server reported error '{err}' while being asked for its \
                      version.  This likely means that the server is older \
-                     than the client.\n",
-                        err
+                     than the client, but it could also happen if the remote \
+                     host outputs to stdout prior to running commands. \
+                     Check your shell startup!",
                     )
                 };
                 ui.output_str(&msg);

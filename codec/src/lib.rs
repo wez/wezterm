@@ -37,8 +37,8 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
 
 #[derive(Error, Debug)]
-#[error("Corrupt Response")]
-pub struct CorruptResponse;
+#[error("Corrupt Response: {0}")]
+pub struct CorruptResponse(String);
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
@@ -173,30 +173,39 @@ async fn decode_raw_async<R: Unpin + AsyncRead + std::fmt::Debug>(
     r: &mut R,
     max_serial: Option<u64>,
 ) -> anyhow::Result<Decoded> {
-    let len = read_u64_async(r).await.context("reading PDU length")?;
+    let len = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU length")?;
     let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
         (len & !COMPRESSED_MASK, true)
     } else {
         (len, false)
     };
-    let serial = read_u64_async(r).await.context("reading PDU serial")?;
+    let serial = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU serial")?;
     if let Some(max_serial) = max_serial {
         if serial > max_serial && max_serial > 0 {
-            return Err(CorruptResponse).context("decode_raw");
+            return Err(CorruptResponse(format!(
+                "decode_raw_async: serial {serial} is implausibly large \
+                (bigger than {max_serial})"
+            ))
+            .into());
         }
     }
-    let ident = read_u64_async(r).await.context("reading PDU ident")?;
+    let ident = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU ident")?;
     let data_len =
         match (len as usize).overflowing_sub(encoded_length(ident) + encoded_length(serial)) {
             (_, true) => {
-                anyhow::bail!(
-                    "sizes don't make sense: len:{} serial:{} (enc={}) ident:{} (enc={})",
-                    len,
-                    serial,
+                return Err(CorruptResponse(format!(
+                    "decode_raw_async: sizes don't make sense: \
+                    len:{len} serial:{serial} (enc={}) ident:{ident} (enc={})",
                     encoded_length(serial),
-                    ident,
                     encoded_length(ident)
-                );
+                ))
+                .into());
             }
             (data_len, false) => data_len,
         };
@@ -210,7 +219,8 @@ async fn decode_raw_async<R: Unpin + AsyncRead + std::fmt::Debug>(
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data).await.with_context(|| {
         format!(
-            "reading {} bytes of data for PDU of length {} with serial={} ident={}",
+            "decode_raw_async failed to read {} bytes of data \
+            for PDU of length {} with serial={} ident={}",
             data_len, len, serial, ident
         )
     })?;
