@@ -69,6 +69,8 @@ As features stabilize some brief notes about them will accumulate here.
   to @emc2314 and @wheatdog! #5163 #4503
 * We now respect line wrapping in alt-screen mode. Thanks to @eternity74! #5396
   #3283
+* Wayland: hang when launched under ChromeOS Crostini. Thanks to @dberlin!
+  #5393 #5397
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
