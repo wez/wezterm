@@ -20,7 +20,7 @@ async-io = "2.3"
 futures-util = "0.3"
 
 [target.'cfg(target_os="macos")'.dependencies]
-cocoa = "0.20"
+cocoa = "0.25"
 core-foundation = "0.9"
 objc = "0.2"
 
