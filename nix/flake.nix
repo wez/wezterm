@@ -105,10 +105,7 @@
 
         cargoLock = {
           lockFile = ../Cargo.lock;
-          outputHashes = {
-            "xcb-imdkit-0.3.0" = "sha256-fTpJ6uNhjmCWv7dZqVgYuS2Uic36XNYTbqlaly5QBjI=";
-            "sqlite-cache-0.1.3" = "sha256-sBAC8MsQZgH+dcWpoxzq9iw5078vwzCijgyQnMOWIkk";
-          };
+          allowBuiltinFetchGit = true;
         };
 
         preConfigure = ''
