@@ -55,7 +55,6 @@
 //! the terminal capabilities, but also offers a `ProbeHints`
 //! that can be used by the embedding application to override those choices.
 use crate::{builder, Result};
-use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
 
@@ -295,14 +294,13 @@ impl Capabilities {
                     // here because the iTerm2 docs don't say when the
                     // image protocol was first implemented, but do mention
                     // the gif version.
-                    Version::parse(
+                    version_ge(
                         hints
                             .term_program_version
                             .as_ref()
                             .unwrap_or(&"0.0.0".to_owned()),
+                        "2.9.20150512",
                     )
-                    .unwrap_or(Version::new(0, 0, 0))
-                        >= Version::new(2, 9, 20150512)
                 }
                 Some("WezTerm") => true,
                 _ => false,
@@ -378,9 +376,61 @@ impl Capabilities {
     }
 }
 
+/// Returns true if the version string `a` is >= `b`
+fn version_ge(a: &str, b: &str) -> bool {
+    let mut a = a.split('.');
+    let mut b = b.split('.');
+
+    loop {
+        match (a.next(), b.next()) {
+            (Some(a), Some(b)) => match (a.parse::<u64>(), b.parse::<u64>()) {
+                (Ok(a), Ok(b)) => {
+                    if a > b {
+                        return true;
+                    }
+                    if a < b {
+                        return false;
+                    }
+                }
+                _ => {
+                    if a > b {
+                        return true;
+                    }
+                    if a < b {
+                        return false;
+                    }
+                }
+            },
+            (Some(_), None) => {
+                // A is greater
+                return true;
+            }
+            (None, Some(_)) => {
+                // A is smaller
+                return false;
+            }
+            (None, None) => {
+                // Equal
+                return true;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn version_cmp() {
+        assert!(version_ge("1", "0"));
+        assert!(version_ge("1.0", "0"));
+        assert!(!version_ge("0", "1"));
+        assert!(version_ge("3.2", "2.9"));
+        assert!(version_ge("3.2.0beta5", "2.9"));
+        assert!(version_ge("3.2.0beta5", "3.2.0"));
+        assert!(version_ge("3.2.0beta5", "3.2.0beta1"));
+    }
 
     fn load_terminfo() -> terminfo::Database {
         // Load our own compiled data so that the tests have an

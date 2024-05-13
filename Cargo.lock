@@ -5284,7 +5284,6 @@ dependencies = [
  "pest",
  "pest_derive",
  "phf",
- "semver",
  "serde",
  "sha2",
  "signal-hook",
