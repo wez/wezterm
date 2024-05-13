@@ -27,6 +27,7 @@ lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 memmem = "0.1"
+num-derive = "0.4"
 num-traits = "0.2"
 ordered-float = "4.1"
 pest = "2.1"
@@ -60,9 +61,6 @@ varbincode = "0.1"
 k9 = "0.12"
 env_logger = "0.11"
 
-[dependencies.num-derive]
-features = ["full-syntax"]
-version = "0.3"
 
 [target."cfg(unix)".dependencies]
 signal-hook = "0.3"
