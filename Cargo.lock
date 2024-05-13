@@ -413,7 +413,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "libc",
- "miniz_oxide 0.7.2",
+ "miniz_oxide",
  "object",
  "rustc-demangle",
 ]
@@ -1606,7 +1606,7 @@ dependencies = [
  "flume",
  "half",
  "lebe",
- "miniz_oxide 0.7.2",
+ "miniz_oxide",
  "rayon-core",
  "smallvec",
  "zune-inflate",
@@ -1724,7 +1724,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f54427cfd1c7829e2a139fcefea601bf088ebca651d2bf53ebc600eac295dae"
 dependencies = [
  "crc32fast",
- "miniz_oxide 0.7.2",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -3164,16 +3164,6 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a92518e98c078586bc6c934028adcca4c92a53d6a958196de835170a01d84e4b"
-dependencies = [
- "adler",
- "autocfg",
-]
-
-[[package]]
-name = "miniz_oxide"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d811f3e15f28568be3407c8e7fdb6514c1cda3cb30683f15b6a1a1dc4ea14a7"
@@ -3968,7 +3958,7 @@ dependencies = [
  "crc32fast",
  "fdeflate",
  "flate2",
- "miniz_oxide 0.7.2",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -6566,7 +6556,7 @@ dependencies = [
  "lazy_static",
  "log",
  "lru",
- "miniz_oxide 0.4.4",
+ "miniz_oxide",
  "num-traits",
  "ordered-float",
  "serde",
