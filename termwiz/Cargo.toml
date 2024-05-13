@@ -65,7 +65,7 @@ env_logger = "0.11"
 [target."cfg(unix)".dependencies]
 signal-hook = "0.3"
 termios = "0.3"
-nix = {version="0.28", features=["mman"]}
+nix = {version="0.28", features=["mman", "fs"]}
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
