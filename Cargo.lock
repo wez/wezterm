@@ -1649,7 +1649,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "887d93f60543e9a9362ef8a21beedd0a833c5d9610e18c67abe15a5963dcb1a4"
 dependencies = [
  "bit_field",
- "flume 0.11.0",
+ "flume",
  "half",
  "lebe",
  "miniz_oxide 0.7.2",
@@ -1789,19 +1789,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 dependencies = [
  "num-traits",
-]
-
-[[package]]
-name = "flume"
-version = "0.10.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1657b4441c3403d9f7b3409e47575237dac27b1b5726df654a6ecbf92f0f7577"
-dependencies = [
- "futures-core",
- "futures-sink",
- "nanorand",
- "pin-project",
- "spin",
 ]
 
 [[package]]
@@ -3353,7 +3340,6 @@ dependencies = [
  "fancy-regex",
  "filedescriptor",
  "finl_unicode",
- "flume 0.10.14",
  "hostname",
  "k9",
  "lazy_static",
@@ -4286,7 +4272,7 @@ dependencies = [
  "async-executor",
  "async-io 2.3.2",
  "async-task",
- "flume 0.10.14",
+ "flume",
  "lazy_static",
  "thiserror",
 ]
@@ -6809,7 +6795,7 @@ checksum = "30e7d227c9f961f2061c26f4cb0fbd4df0ef37e056edd0931783599d6c94ef24"
 dependencies = [
  "arrayvec",
  "cfg-if",
- "flume 0.11.0",
+ "flume",
  "js-sys",
  "log",
  "naga",
