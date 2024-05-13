@@ -36,6 +36,7 @@ lazy_static::lazy_static! {
 }
 
 const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
+const SEARCH_CURSOR_PADDING: usize = 8;
 
 pub struct CopyOverlay {
     delegate: Arc<dyn Pane>,
@@ -66,6 +67,7 @@ struct CopyRenderable {
 
     /// The text that the user entered
     pattern: Pattern,
+    search_cursor: StableCursorPosition,
     /// The most recently queried set of matches
     results: Vec<SearchResult>,
     by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
@@ -125,6 +127,22 @@ impl CopyOverlay {
             .clone()
             .ok_or_else(|| anyhow::anyhow!("failed to clone window handle"))?;
         let dims = pane.get_dimensions();
+        let pattern = if params.pattern.is_empty() {
+            SAVED_PATTERN
+                .lock()
+                .get(&tab_id)
+                .map(|p| p.clone())
+                .unwrap_or(params.pattern)
+        } else {
+            params.pattern
+        };
+
+        let search_cursor = StableCursorPosition {
+            x: SEARCH_CURSOR_PADDING + pattern.len(),
+            y: 0,
+            shape: termwiz::surface::CursorShape::SteadyBlock,
+            visibility: termwiz::surface::CursorVisibility::Visible,
+        };
         let mut render = CopyRenderable {
             cursor,
             window,
@@ -139,15 +157,8 @@ impl CopyOverlay {
             last_result_seqno: SEQ_ZERO,
             last_bar_pos: None,
             tab_id,
-            pattern: if params.pattern.is_empty() {
-                SAVED_PATTERN
-                    .lock()
-                    .get(&tab_id)
-                    .map(|p| p.clone())
-                    .unwrap_or(params.pattern)
-            } else {
-                params.pattern
-            },
+            pattern,
+            search_cursor,
             editing_search: params.editing_search,
             result_pos: None,
             selection_mode: SelectionMode::Cell,
@@ -159,6 +170,7 @@ impl CopyOverlay {
 
         let search_row = render.compute_search_row();
         render.dirty_results.add(search_row);
+        render.search_cursor.y = search_row;
         render.update_search();
 
         Ok(Arc::new(CopyOverlay {
@@ -629,6 +641,7 @@ impl CopyRenderable {
 
     fn clear_pattern(&mut self) {
         self.pattern.clear();
+        self.search_cursor.x = SEARCH_CURSOR_PADDING;
         self.update_search();
     }
 
@@ -676,6 +689,7 @@ impl CopyRenderable {
             Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
         };
         self.pattern = pattern;
+        self.search_cursor.x = SEARCH_CURSOR_PADDING + self.pattern.len();
         self.schedule_update_search();
     }
 
@@ -1141,13 +1155,37 @@ impl Pane for CopyOverlay {
                 (KeyCode::Char(c), KeyModifiers::NONE)
                 | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                     // Type to add to the pattern
-                    render.pattern.push(c);
+                    if render.pattern.capacity() - render.pattern.len() == 0 {
+                        render.pattern.reserve(10);
+                    }
+                    let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
+                    render.pattern.insert(position, c);
+                    render.search_cursor.x += 1;
+
                     render.schedule_update_search();
                 }
                 (KeyCode::Backspace, KeyModifiers::NONE) => {
                     // Backspace to edit the pattern
-                    render.pattern.pop();
-                    render.schedule_update_search();
+                    if render.pattern.len() > 0
+                        && render.search_cursor.x - SEARCH_CURSOR_PADDING > 0
+                    {
+                        let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
+                        render.pattern.remove(position - 1);
+                        if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
+                            render.search_cursor.x -= 1;
+                        }
+                        render.schedule_update_search();
+                    }
+                }
+                (KeyCode::LeftArrow, KeyModifiers::NONE) => {
+                    if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
+                        render.search_cursor.x -= 1;
+                    }
+                }
+                (KeyCode::RightArrow, KeyModifiers::NONE) => {
+                    if render.search_cursor.x - SEARCH_CURSOR_PADDING < render.pattern.len() {
+                        render.search_cursor.x += 1;
+                    }
                 }
                 _ => {}
             }
@@ -1259,12 +1297,7 @@ impl Pane for CopyOverlay {
         let renderer = self.render.lock();
         if renderer.editing_search {
             // place in the search box
-            StableCursorPosition {
-                x: 8 + wezterm_term::unicode_column_width(&renderer.pattern, None),
-                y: renderer.compute_search_row(),
-                shape: termwiz::surface::CursorShape::SteadyBlock,
-                visibility: termwiz::surface::CursorVisibility::Visible,
-            }
+            renderer.search_cursor
         } else {
             renderer.cursor
         }
