@@ -1423,7 +1423,7 @@ impl TermWindow {
     }
 
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
-        metrics::histogram!("mux.pane_output_event.rate", 1.);
+        metrics::histogram!("mux.pane_output_event.rate").record(1.);
         if self.is_pane_visible(pane_id) {
             if let Some(ref win) = self.window {
                 win.invalidate();

@@ -122,10 +122,7 @@ fn send_actions_to_mux(pane: &Weak<dyn Pane>, dead: &Arc<AtomicBool>, actions: V
     match pane.upgrade() {
         Some(pane) => {
             pane.perform_actions(actions);
-            histogram!(
-                "send_actions_to_mux.perform_actions.latency",
-                start.elapsed()
-            );
+            histogram!("send_actions_to_mux.perform_actions.latency").record(start.elapsed());
             Mux::notify_from_any_thread(MuxNotification::PaneOutput(pane.pane_id()));
         }
         None => {
@@ -135,7 +132,7 @@ fn send_actions_to_mux(pane: &Weak<dyn Pane>, dead: &Arc<AtomicBool>, actions: V
             dead.store(true, Ordering::Relaxed);
         }
     }
-    histogram!("send_actions_to_mux.rate", 1.);
+    histogram!("send_actions_to_mux.rate").record(1.);
 }
 
 fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: FileDescriptor) {
@@ -323,7 +320,7 @@ fn read_from_pane_pty(
                 break;
             }
             Ok(size) => {
-                histogram!("read_from_pane_pty.bytes.rate", size as f64);
+                histogram!("read_from_pane_pty.bytes.rate").record(size as f64);
                 log::trace!("read_pty pane {pane_id} read {size} bytes");
                 if let Err(err) = tx.write_all(&buf[..size]) {
                     error!(

@@ -545,7 +545,7 @@ impl ParsedFont {
             let face = lib.face_from_locator(&self.handle)?;
             *cov = face.compute_coverage();
             let elapsed = t.elapsed();
-            metrics::histogram!("font.compute.codepoint.coverage", elapsed);
+            metrics::histogram!("font.compute.codepoint.coverage").record(elapsed);
             log::debug!(
                 "{} codepoint coverage computed in {:?}",
                 self.names.full_name,

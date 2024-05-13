@@ -2,7 +2,7 @@ use config::configuration;
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::Lua;
 use hdrhistogram::Histogram;
-use metrics::{Counter, Gauge, Key, KeyName, Recorder, SharedString, Unit};
+use metrics::{Counter, Gauge, Key, KeyName, Metadata, Recorder, SharedString, Unit};
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -291,8 +291,7 @@ impl Stats {
         let stats = Self::new();
         let inner = Arc::clone(&stats.inner);
         std::thread::spawn(move || Inner::run(inner));
-        let rec = Box::new(stats);
-        metrics::set_boxed_recorder(rec)
+        metrics::set_global_recorder(stats)
             .map_err(|e| anyhow::anyhow!("Failed to set metrics recorder:{}", e))
     }
 }
@@ -304,7 +303,7 @@ impl Recorder for Stats {
 
     fn describe_histogram(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
 
-    fn register_counter(&self, key: &Key) -> Counter {
+    fn register_counter(&self, key: &Key, _metadata: &Metadata) -> Counter {
         let mut inner = self.inner.lock();
         match inner.counters.get(key) {
             Some(existing) => Counter::from_arc(existing.clone()),
@@ -318,11 +317,11 @@ impl Recorder for Stats {
         }
     }
 
-    fn register_gauge(&self, _key: &Key) -> Gauge {
+    fn register_gauge(&self, _key: &Key, _metadata: &Metadata) -> Gauge {
         Gauge::noop()
     }
 
-    fn register_histogram(&self, key: &Key) -> metrics::Histogram {
+    fn register_histogram(&self, key: &Key, _metadata: &Metadata) -> metrics::Histogram {
         let mut inner = self.inner.lock();
         if key.name().ends_with(".rate") {
             match inner.throughput.get(key) {

@@ -68,10 +68,10 @@ impl SpawnQueue {
     // returned function
     fn pop_func(&self) -> Option<SpawnFunc> {
         if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
-            metrics::histogram!("executor.spawn_delay", func.at.elapsed());
+            metrics::histogram!("executor.spawn_delay").record(func.at.elapsed());
             Some(func.func)
         } else if let Some(func) = self.spawned_funcs_low_pri.lock().unwrap().pop_front() {
-            metrics::histogram!("executor.spawn_delay.low_pri", func.at.elapsed());
+            metrics::histogram!("executor.spawn_delay.low_pri").record(func.at.elapsed());
             Some(func.func)
         } else {
             None

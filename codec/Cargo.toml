@@ -12,7 +12,7 @@ anyhow = "1.0"
 config = { path = "../config" }
 leb128 = "0.2"
 log = "0.4"
-metrics = "0.21"
+metrics = "0.22"
 mux = { path = "../mux" }
 portable-pty = { path = "../pty", features = ["serde_support"]}
 rangeset = { path = "../rangeset" }

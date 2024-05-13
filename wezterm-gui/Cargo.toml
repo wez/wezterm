@@ -62,7 +62,7 @@ libc = "0.2"
 lfucache = { path = "../lfucache" }
 log = "0.4"
 luahelper = { path = "../luahelper" }
-metrics = "0.21"
+metrics = "0.22"
 mlua = {version="0.9", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }

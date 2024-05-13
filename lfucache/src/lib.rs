@@ -242,7 +242,7 @@ impl<K: Hash + Eq + Clone + Debug, V, S: Default + BuildHasher> LfuCache<K, V, S
                 }
 
                 let entry = cursor.into_ref()?;
-                metrics::histogram!(self.hit, 1.);
+                metrics::histogram!(self.hit).record(1.);
 
                 self.tick += 1;
 
@@ -267,7 +267,7 @@ impl<K: Hash + Eq + Clone + Debug, V, S: Default + BuildHasher> LfuCache<K, V, S
 
             cursor.move_next();
         }
-        metrics::histogram!(self.miss, 1.);
+        metrics::histogram!(self.miss).record(1.);
         None
     }
 
