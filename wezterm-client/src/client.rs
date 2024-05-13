@@ -572,6 +572,13 @@ impl std::os::windows::io::AsRawSocket for SshStream {
     }
 }
 
+#[cfg(windows)]
+impl std::os::windows::io::AsSocket for SshStream {
+    fn as_socket(&self) -> std::os::windows::io::BorrowedSocket {
+        self.stdout.as_socket()
+    }
+}
+
 impl Read for SshStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
         self.stdout.read(buf)

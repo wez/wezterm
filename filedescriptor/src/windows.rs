@@ -1,7 +1,7 @@
 use crate::{
-    AsRawFileDescriptor, AsRawSocketDescriptor, Error, FileDescriptor, FromRawFileDescriptor,
-    FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
-    Result, StdioDescriptor,
+    AsRawFileDescriptor, AsRawSocketDescriptor, AsSocket, Error, FileDescriptor,
+    FromRawFileDescriptor, FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor,
+    OwnedHandle, Pipe, Result, StdioDescriptor,
 };
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
@@ -317,6 +317,12 @@ impl AsRawSocket for FileDescriptor {
         // FIXME: this isn't a guaranteed conversion!
         debug_assert!(self.handle.is_socket_handle());
         self.handle.as_raw_handle() as RawSocket
+    }
+}
+
+impl AsSocket for FileDescriptor {
+    fn as_socket(&self) -> BorrowedSocket {
+        unsafe { BorrowedSocket::borrow_raw(self.as_raw_socket()) }
     }
 }
 
