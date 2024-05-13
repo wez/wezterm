@@ -300,7 +300,9 @@ impl Capabilities {
                             .term_program_version
                             .as_ref()
                             .unwrap_or(&"0.0.0".to_owned()),
-                    ) >= Version::parse("2.9.20150512")
+                    )
+                    .unwrap_or(Version::new(0, 0, 0))
+                        >= Version::new(2, 9, 20150512)
                 }
                 Some("WezTerm") => true,
                 _ => false,
