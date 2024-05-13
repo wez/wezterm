@@ -49,6 +49,5 @@ predicates = "3.0"
 env_logger = "0.11"
 rstest = "0.19"
 shell-words = "1.1"
-smol-potat = "1.1.2"
 termwiz = { version = "0.22", path = "../termwiz" }
 whoami = "1.5"
