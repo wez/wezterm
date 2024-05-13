@@ -37,6 +37,6 @@ wezterm-version = { path = "../wezterm-version" }
 winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.20"
+cocoa = "0.25"
 objc = "0.2"
 
