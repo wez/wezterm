@@ -39,7 +39,7 @@ serde = {version="1.0", features = ["rc", "derive"]}
 serial = "0.4"
 shell-words = "1.1"
 smol = "2.0"
-terminfo = "0.8"
+terminfo = "0.9"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"

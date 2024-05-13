@@ -10,7 +10,7 @@ publish = false
 anyhow = "1.0"
 config = { path = "../../config" }
 finl_unicode = "1.2"
-terminfo = "0.8"
+terminfo = "0.9"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 wezterm-input-types = { path = "../../wezterm-input-types" }
 luahelper = { path = "../../luahelper" }

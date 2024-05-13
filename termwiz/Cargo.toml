@@ -38,7 +38,7 @@ serde = {version="1.0", features = ["rc", "derive"], optional=true}
 siphasher = "0.3"
 sha2 = "0.10"
 tempfile = "3.4"
-terminfo = "0.8"
+terminfo = "0.9"
 thiserror = "1.0"
 unicode-segmentation = "1.8"
 ucd-trie = "0.1"
