@@ -39,5 +39,5 @@ winapi = { version = "0.3", features = [
 winreg = "0.10"
 
 [dev-dependencies]
-smol = "1.2"
+smol = "2.0"
 futures = "0.3"

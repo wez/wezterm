@@ -8,6 +8,9 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dependencies]
+async-io = "2.3"
+
 [target.'cfg(not(any(windows, target_os="macos")))'.dependencies]
 openssl = "0.10"
 

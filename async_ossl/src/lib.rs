@@ -11,9 +11,18 @@ pub struct AsyncSslStream {
     s: SslStream<TcpStream>,
 }
 
+unsafe impl async_io::IoSafe for AsyncSslStream {}
+
 impl AsyncSslStream {
     pub fn new(s: SslStream<TcpStream>) -> Self {
         Self { s }
+    }
+}
+
+#[cfg(unix)]
+impl std::os::fd::AsFd for AsyncSslStream {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+        self.s.get_ref().as_fd()
     }
 }
 

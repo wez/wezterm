@@ -61,6 +61,12 @@ impl Drop for OwnedHandle {
     }
 }
 
+impl std::os::fd::AsFd for OwnedHandle {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+        unsafe { std::os::fd::BorrowedFd::borrow_raw(self.handle) }
+    }
+}
+
 impl AsRawFd for OwnedHandle {
     fn as_raw_fd(&self) -> RawFd {
         self.handle
@@ -221,6 +227,12 @@ impl std::io::Write for FileDescriptor {
     }
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
+    }
+}
+
+impl std::os::fd::AsFd for FileDescriptor {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+        self.handle.as_fd()
     }
 }
 

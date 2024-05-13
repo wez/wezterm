@@ -206,17 +206,6 @@ dependencies = [
 
 [[package]]
 name = "async-channel"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81953c529336010edd6d8e358f886d9581267795c61b19475b71314bffa46d35"
-dependencies = [
- "concurrent-queue",
- "event-listener 2.5.3",
- "futures-core",
-]
-
-[[package]]
-name = "async-channel"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f2776ead772134d55b62dd45e59a79e21612d85d0af729b8b7d3967d601a62a"
@@ -239,18 +228,6 @@ dependencies = [
  "fastrand 2.1.0",
  "futures-lite 2.3.0",
  "slab",
-]
-
-[[package]]
-name = "async-fs"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "279cf904654eeebfa37ac9bb1598880884924aab82e290aa65c9e77a0e142e06"
-dependencies = [
- "async-lock 2.8.0",
- "autocfg",
- "blocking",
- "futures-lite 1.13.0",
 ]
 
 [[package]]
@@ -325,30 +302,13 @@ dependencies = [
 
 [[package]]
 name = "async-net"
-version = "1.8.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0434b1ed18ce1cf5769b8ac540e33f01fa9471058b5e89da9e06f3c882a8c12f"
+checksum = "b948000fad4873c1c9339d60f2623323a0cfd3816e5181033c6a5cb68b2accf7"
 dependencies = [
- "async-io 1.13.0",
+ "async-io 2.3.2",
  "blocking",
- "futures-lite 1.13.0",
-]
-
-[[package]]
-name = "async-process"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea6438ba0a08d81529c69b36700fa2f95837bfe3e776ab39cde9c14d9149da88"
-dependencies = [
- "async-io 1.13.0",
- "async-lock 2.8.0",
- "async-signal",
- "blocking",
- "cfg-if",
- "event-listener 3.1.0",
- "futures-lite 1.13.0",
- "rustix 0.38.34",
- "windows-sys 0.48.0",
+ "futures-lite 2.3.0",
 ]
 
 [[package]]
@@ -357,7 +317,7 @@ version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a53fc6301894e04a92cb2584fedde80cb25ba8e02d9dc39d4a87d036e22f397d"
 dependencies = [
- "async-channel 2.3.0",
+ "async-channel",
  "async-io 2.3.2",
  "async-lock 3.3.0",
  "async-signal",
@@ -421,6 +381,7 @@ dependencies = [
 name = "async_ossl"
 version = "0.1.0"
 dependencies = [
+ "async-io 2.3.2",
  "openssl",
 ]
 
@@ -592,7 +553,7 @@ version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "495f7104e962b7356f0aeb34247aca1fe7d2e783b346582db7f2904cb5717e88"
 dependencies = [
- "async-channel 2.3.0",
+ "async-channel",
  "async-lock 3.3.0",
  "async-task",
  "futures-io",
@@ -1638,17 +1599,6 @@ name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
-
-[[package]]
-name = "event-listener"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d93877bcde0eb80ca09131a08d23f0a5c18a620b01db137dba666d18cd9b30c2"
-dependencies = [
- "concurrent-queue",
- "parking",
- "pin-project-lite",
-]
 
 [[package]]
 name = "event-listener"
@@ -4334,7 +4284,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-executor",
- "async-io 1.13.0",
+ "async-io 2.3.2",
  "async-task",
  "flume 0.10.14",
  "lazy_static",
@@ -5197,19 +5147,19 @@ dependencies = [
 
 [[package]]
 name = "smol"
-version = "1.3.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13f2b548cd8447f8de0fdf1c592929f70f4fc7039a05e47404b0d096ec6987a1"
+checksum = "e635339259e51ef85ac7aa29a1cd991b957047507288697a690e80ab97d07cad"
 dependencies = [
- "async-channel 1.9.0",
+ "async-channel",
  "async-executor",
- "async-fs 1.6.0",
- "async-io 1.13.0",
- "async-lock 2.8.0",
+ "async-fs",
+ "async-io 2.3.2",
+ "async-lock 3.3.0",
  "async-net",
- "async-process 1.8.1",
+ "async-process",
  "blocking",
- "futures-lite 1.13.0",
+ "futures-lite 2.3.0",
 ]
 
 [[package]]
@@ -6479,6 +6429,7 @@ name = "wezterm-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-io 2.3.2",
  "async-trait",
  "async_ossl",
  "codec",
@@ -6731,6 +6682,7 @@ name = "wezterm-mux-server-impl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-io 2.3.2",
  "async_ossl",
  "codec",
  "config",
@@ -6828,7 +6780,7 @@ dependencies = [
 name = "wezterm-toast-notification"
 version = "0.1.0"
 dependencies = [
- "async-io 1.13.0",
+ "async-io 2.3.2",
  "cocoa 0.20.2",
  "core-foundation 0.7.0",
  "futures-util",
@@ -7016,8 +6968,8 @@ name = "window"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-channel 1.9.0",
- "async-io 1.13.0",
+ "async-channel",
+ "async-io 2.3.2",
  "async-task",
  "async-trait",
  "bitflags 1.3.2",
@@ -7527,10 +7479,10 @@ checksum = "e5915716dff34abef1351d2b10305b019c8ef33dcf6c72d31a6e227d5d9d7a21"
 dependencies = [
  "async-broadcast",
  "async-executor",
- "async-fs 2.1.2",
+ "async-fs",
  "async-io 2.3.2",
  "async-lock 3.3.0",
- "async-process 2.2.2",
+ "async-process",
  "async-recursion",
  "async-task",
  "async-trait",

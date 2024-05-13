@@ -16,7 +16,7 @@ log = "0.4"
 serde = {version="1.0", features = ["derive"]}
 zbus = "4.2"
 zvariant = "4.0"
-async-io = "1.10"
+async-io = "2.3"
 futures-util = "0.3"
 
 [target.'cfg(target_os="macos")'.dependencies]

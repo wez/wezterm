@@ -524,6 +524,7 @@ where
     T: std::io::Write,
     T: std::io::Read,
     T: Send,
+    T: async_io::IoSafe,
 {
     async fn wait_for_readable(&self) -> anyhow::Result<()> {
         Ok(self.readable().await?)
@@ -542,9 +543,18 @@ struct SshStream {
     stdout: FileDescriptor,
 }
 
+unsafe impl async_io::IoSafe for SshStream {}
+
 impl std::fmt::Debug for SshStream {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(fmt, "SshStream {{...}}")
+    }
+}
+
+#[cfg(unix)]
+impl std::os::fd::AsFd for SshStream {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+        self.stdout.as_fd()
     }
 }
 

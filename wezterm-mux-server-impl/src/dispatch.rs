@@ -9,7 +9,7 @@ use smol::prelude::*;
 use smol::Async;
 
 #[cfg(unix)]
-pub trait AsRawDesc: std::os::unix::io::AsRawFd {}
+pub trait AsRawDesc: std::os::unix::io::AsRawFd + std::os::fd::AsFd {}
 #[cfg(windows)]
 pub trait AsRawDesc: std::os::windows::io::AsRawSocket {}
 
@@ -30,6 +30,7 @@ where
     T: std::io::Write,
     T: AsRawDesc,
     T: std::fmt::Debug,
+    T: async_io::IoSafe,
 {
     let stream = smol::Async::new(stream)?;
     process_async(stream).await
@@ -41,6 +42,7 @@ where
     T: std::io::Read,
     T: std::io::Write,
     T: std::fmt::Debug,
+    T: async_io::IoSafe,
 {
     log::trace!("process_async called");
 

@@ -13,6 +13,6 @@ config = { path = "../../config" }
 luahelper = { path = "../../luahelper" }
 lazy_static = "1.4"
 promise = { path = "../../promise" }
-smol = "1.2"
+smol = "2.0"
 spa = "0.3.1"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }

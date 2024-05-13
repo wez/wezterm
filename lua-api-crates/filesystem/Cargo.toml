@@ -11,4 +11,4 @@ filenamegen = "0.2"
 anyhow = "1.0"
 config = { path = "../../config" }
 luahelper = { path = "../../luahelper" }
-smol = "1.2"
+smol = "2.0"
