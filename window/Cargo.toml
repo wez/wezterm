@@ -78,8 +78,8 @@ xkbcommon = { version = "0.7.0", features = ["x11", "wayland"] }
 mio = {version="0.8", features=["os-ext"]}
 libc = "0.2"
 xcb-imdkit = { version="0.3", git="https://github.com/wez/xcb-imdkit-rs.git", rev="358e226573461fe540efb920e2aad740e3c6fab1"}
-zbus = "3.14"
-zvariant = "3.15"
+zbus = "4.2"
+zvariant = "4.0"
 
 smithay-client-toolkit = {version = "0.18", default-features=false, optional=true}
 wayland-protocols = {version="0.31", optional=true}
