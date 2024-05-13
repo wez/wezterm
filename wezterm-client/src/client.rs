@@ -25,7 +25,11 @@ use std::io::{Read, Write};
 use std::marker::Unpin;
 use std::net::TcpStream;
 #[cfg(unix)]
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, RawFd};
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::io::{AsRawSocket, AsSocket, BorrowedSocket, RawSocket};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
@@ -531,6 +535,46 @@ where
     }
 }
 
+/// This wrapper makes UnixStream IoSafe on all platforms.
+/// This isn't strictly needed on unix, because async-io
+/// includes an impl for the std UnixStream, but on Windows
+/// the uds_windows crate doesn't have an impl.
+/// Here we define it for all platforms in the interest of
+/// minimizing platform differences.
+#[derive(Debug)]
+struct IoSafeUnixStream(UnixStream);
+
+#[cfg(unix)]
+impl AsFd for IoSafeUnixStream {
+    fn as_fd(&self) -> BorrowedFd {
+        self.0.as_fd()
+    }
+}
+
+#[cfg(windows)]
+impl AsSocket for IoSafeUnixStream {
+    fn as_socket(&self) -> BorrowedSocket {
+        self.0.as_socket()
+    }
+}
+
+impl Read for IoSafeUnixStream {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        self.0.read(buf)
+    }
+}
+
+impl Write for IoSafeUnixStream {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        self.0.write(buf)
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        self.0.flush()
+    }
+}
+
+unsafe impl async_io::IoSafe for IoSafeUnixStream {}
+
 #[derive(Debug)]
 struct Reconnectable {
     config: ClientDomainConfig,
@@ -552,29 +596,29 @@ impl std::fmt::Debug for SshStream {
 }
 
 #[cfg(unix)]
-impl std::os::fd::AsFd for SshStream {
-    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+impl AsFd for SshStream {
+    fn as_fd(&self) -> BorrowedFd {
         self.stdout.as_fd()
     }
 }
 
 #[cfg(unix)]
-impl std::os::unix::io::AsRawFd for SshStream {
-    fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
+impl AsRawFd for SshStream {
+    fn as_raw_fd(&self) -> RawFd {
         self.stdout.as_raw_fd()
     }
 }
 
 #[cfg(windows)]
-impl std::os::windows::io::AsRawSocket for SshStream {
-    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
+impl AsRawSocket for SshStream {
+    fn as_raw_socket(&self) -> RawSocket {
         self.stdout.as_raw_socket()
     }
 }
 
 #[cfg(windows)]
-impl std::os::windows::io::AsSocket for SshStream {
-    fn as_socket(&self) -> std::os::windows::io::BorrowedSocket {
+impl AsSocket for SshStream {
+    fn as_socket(&self) -> BorrowedSocket {
         self.stdout.as_socket()
     }
 }
@@ -798,7 +842,7 @@ impl Reconnectable {
         ui.output_str("Connected!\n");
         stream.set_read_timeout(Some(unix_dom.read_timeout))?;
         stream.set_write_timeout(Some(unix_dom.write_timeout))?;
-        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(stream)?);
+        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(IoSafeUnixStream(stream))?);
         self.stream.replace(stream);
         Ok(())
     }
