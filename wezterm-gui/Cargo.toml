@@ -81,7 +81,7 @@ shlex = "1.1"
 smol = "2.0"
 tabout = { path = "../tabout" }
 tempfile = "3.4"
-terminfo = "0.8"
+terminfo = "0.9"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"

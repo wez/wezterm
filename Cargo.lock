@@ -3254,7 +3254,7 @@ dependencies = [
  "serial",
  "shell-words",
  "smol",
- "terminfo",
+ "terminfo 0.8.0",
  "termwiz",
  "termwiz-funcs",
  "textwrap",
@@ -5253,6 +5253,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "terminfo"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4ea810f0692f9f51b382fff5893887bb4580f5fa246fde546e0b13e7fcee662"
+dependencies = [
+ "fnv",
+ "nom",
+ "phf",
+ "phf_codegen",
+]
+
+[[package]]
 name = "termios"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5311,7 +5323,7 @@ dependencies = [
  "signal-hook",
  "siphasher",
  "tempfile",
- "terminfo",
+ "terminfo 0.8.0",
  "termios 0.3.3",
  "thiserror",
  "ucd-trie",
@@ -5335,7 +5347,7 @@ dependencies = [
  "finl_unicode",
  "lazy_static",
  "luahelper",
- "terminfo",
+ "terminfo 0.8.0",
  "termwiz",
  "wezterm-dynamic",
  "wezterm-input-types",
@@ -6340,7 +6352,7 @@ dependencies = [
  "smol",
  "tabout",
  "tempfile",
- "terminfo",
+ "terminfo 0.9.0",
  "termwiz",
  "termwiz-funcs",
  "textwrap",
@@ -6508,7 +6520,7 @@ dependencies = [
  "num-traits",
  "ordered-float",
  "serde",
- "terminfo",
+ "terminfo 0.8.0",
  "termwiz",
  "unicode-normalization",
  "url",
