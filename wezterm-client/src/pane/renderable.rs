@@ -1,5 +1,4 @@
 use crate::domain::ClientInner;
-use std::num::NonZeroUsize;
 use crate::pane::clientpane::ClientPane;
 use anyhow::anyhow;
 use codec::*;
@@ -13,6 +12,7 @@ use rangeset::*;
 use ratelim::RateLimiter;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::num::NonZeroUsize;
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -105,7 +105,9 @@ impl RenderableInner {
             poll_interval: BASE_POLL_INTERVAL,
             cursor_position: StableCursorPosition::default(),
             dimensions,
-            lines: LruCache::new(NonZeroUsize::new(configuration().scrollback_lines.max(128)).unwrap()),
+            lines: LruCache::new(
+                NonZeroUsize::new(configuration().scrollback_lines.max(128)).unwrap(),
+            ),
             title: title.to_string(),
             working_dir: None,
             fetch_limiter,

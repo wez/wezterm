@@ -28,7 +28,7 @@ lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"
 memmap2 = "0.2"
-metrics = { version="0.17", features=["std"]}
+metrics = "0.21"
 ordered-float = "4.1"
 rangeset = { path = "../rangeset" }
 termwiz = { path = "../termwiz" }
