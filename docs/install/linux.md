@@ -172,20 +172,29 @@ hide:
     * openSUSE Tumbleweed
     * RHEL 8, 9
 
-    For openSUSE, install `dnf` beforehand with
-
-    ```console
-    $ sudo zypper in dnf
-    ```
 
     To perform initial installation:
 
     ```console
+    $ sudo dnf copr enable wezfurlong/wezterm-nightly
+    $ sudo dnf install wezterm
+    ```
+    ## openSUSE specific
+
+    To perform initial installation:
+
+    ```console
+    $ sudo zypper in dnf
     $ sudo dnf copr enable wezfurlong/wezterm-nightly <repository>
+    ```
+    where `<repository>` is one of the following, depending on the flavor and architecture:
+    `opensuse-tumbleweed-x86_64`, `opensuse-tumbleweed-aarch64`, `opensuse-leap-15.5-x86_64`, `opensuse-leap-15.5-aarch64`.
+
+    ```console
     $ sudo dnf install wezterm
     ```
 
-    To update:
+    ## Update
 
     ```console
     $ sudo dnf update wezterm
@@ -223,16 +232,10 @@ hide:
     ## openSUSE
 
     !!! note
-        If you want nightly versions of WezTerm, it is recommended to use Copr.
+        It is recommended that you install via Copr so that it is easiest
+        to stay up to date as future versions of wezterm are released.
 
-    ## openSUSE Tumbleweed
-
-    The stable version of WezTerm is available in the official repositories.
-
-    ```console
-    $ zypper install wezterm
-    ```
-    ## openSUSE Slowroll
+    ## openSUSE Tumbleweed/Slowroll
 
     The stable version of WezTerm is available in the official repositories.
 
@@ -242,7 +245,7 @@ hide:
 
     ## openSUSE Leap
 
-    Use Copr or built if from source.
+    Use Copr or build if from source.
 
 === "Arch"
     ## Arch Linux
