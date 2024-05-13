@@ -28,7 +28,7 @@ luahelper = { path = "../luahelper" }
 metrics = "0.22"
 mlua = "0.9"
 names = { version = "0.12", default-features = false }
-nix = {version="0.25", features=["term"]}
+nix = {version="0.28", features=["term"]}
 parking_lot = "0.12"
 percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support"]}

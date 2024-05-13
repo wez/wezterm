@@ -46,7 +46,7 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(unix)".dependencies]
-nix = "0.26"
+nix = {version="0.28", features=["resource"]}
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}

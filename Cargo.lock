@@ -944,7 +944,7 @@ dependencies = [
  "log",
  "luahelper",
  "mlua",
- "nix 0.26.4",
+ "nix",
  "notify",
  "once_cell",
  "ordered-float",
@@ -2049,7 +2049,7 @@ dependencies = [
  "fnv",
  "gl_generator",
  "lazy_static",
- "memoffset 0.9.1",
+ "memoffset",
  "smallvec",
  "takeable-option",
 ]
@@ -2600,7 +2600,7 @@ version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b694dc9f70c3bda874626d2aed13b780f137aab435f4e9814121955cf706122e"
 dependencies = [
- "memoffset 0.9.1",
+ "memoffset",
 ]
 
 [[package]]
@@ -3048,7 +3048,7 @@ version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5aa12182b93606fff55b70a5cfe6130eaf7407c2ea4f2c2bcc8b113b67c9928f"
 dependencies = [
- "nix 0.28.0",
+ "nix",
  "winapi",
 ]
 
@@ -3115,24 +3115,6 @@ name = "memmem"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a64a92489e2744ce060c349162be1c5f33c6969234104dbd99ddb5feb08b8c15"
-
-[[package]]
-name = "memoffset"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
-name = "memoffset"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "memoffset"
@@ -3270,7 +3252,7 @@ dependencies = [
  "metrics",
  "mlua",
  "names",
- "nix 0.25.1",
+ "nix",
  "ntapi",
  "parking_lot 0.12.2",
  "percent-encoding",
@@ -3378,33 +3360,6 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nix"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f346ff70e7dbfd675fe90590b92d59ef2de15a8779ae305ebcbfd3f0caf59be4"
-dependencies = [
- "autocfg",
- "bitflags 1.3.2",
- "cfg-if",
- "libc",
- "memoffset 0.6.5",
- "pin-utils",
-]
-
-[[package]]
-name = "nix"
-version = "0.26.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "598beaf3cc6fdd9a5dfb1630c2800c7acd31df7aaf0f565796fba2b53ca1af1b"
-dependencies = [
- "bitflags 1.3.2",
- "cfg-if",
- "libc",
- "memoffset 0.7.1",
- "pin-utils",
-]
-
-[[package]]
-name = "nix"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
@@ -3413,7 +3368,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
- "memoffset 0.9.1",
+ "memoffset",
 ]
 
 [[package]]
@@ -4049,7 +4004,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "nix 0.25.1",
+ "nix",
  "serde",
  "serde_derive",
  "serial",
@@ -5144,7 +5099,7 @@ dependencies = [
  "lazycell",
  "libc",
  "mach2",
- "nix 0.28.0",
+ "nix",
  "num-traits",
  "uom",
  "winapi",
@@ -5405,7 +5360,7 @@ dependencies = [
  "libc",
  "log",
  "memmem",
- "nix 0.26.4",
+ "nix",
  "num-derive 0.3.3",
  "num-traits",
  "ordered-float",
@@ -5792,7 +5747,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89daebc3e6fd160ac4aa9fc8b3bf71e1f74fbf92367ae71fb83a037e8bf164b9"
 dependencies = [
- "memoffset 0.9.1",
+ "memoffset",
  "tempfile",
  "winapi",
 ]
@@ -7340,7 +7295,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "hex",
- "nix 0.28.0",
+ "nix",
  "ordered-stream",
  "rand",
  "serde",
