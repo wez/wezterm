@@ -27,7 +27,7 @@ image = "0.25"
 lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"
-memmap2 = "0.2"
+memmap2 = "0.9"
 metrics = "0.22"
 ordered-float = "4.1"
 rangeset = { path = "../rangeset" }
