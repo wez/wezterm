@@ -1,7 +1,7 @@
 use crate::{
-    AsRawFileDescriptor, AsRawSocketDescriptor, AsSocket, Error, FileDescriptor,
-    FromRawFileDescriptor, FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor,
-    OwnedHandle, Pipe, Result, StdioDescriptor,
+    AsRawFileDescriptor, AsRawSocketDescriptor, Error, FileDescriptor, FromRawFileDescriptor,
+    FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
+    Result, StdioDescriptor,
 };
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
