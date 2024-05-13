@@ -1,4 +1,5 @@
 use crate::domain::ClientInner;
+use std::num::NonZeroUsize;
 use crate::pane::clientpane::ClientPane;
 use anyhow::anyhow;
 use codec::*;
@@ -104,7 +105,7 @@ impl RenderableInner {
             poll_interval: BASE_POLL_INTERVAL,
             cursor_position: StableCursorPosition::default(),
             dimensions,
-            lines: LruCache::new(configuration().scrollback_lines),
+            lines: LruCache::new(NonZeroUsize::new(configuration().scrollback_lines.max(128)).unwrap()),
             title: title.to_string(),
             working_dir: None,
             fetch_limiter,
@@ -634,7 +635,7 @@ impl RenderableInner {
 }
 
 lazy_static::lazy_static! {
-    static ref IMAGE_LRU: Mutex<LruCache<[u8;32], Arc<ImageData>>> = Mutex::new(LruCache::new(128));
+    static ref IMAGE_LRU: Mutex<LruCache<[u8;32], Arc<ImageData>>> = Mutex::new(LruCache::new(NonZeroUsize::new(128).unwrap()));
 }
 
 pub(crate) async fn hydrate_lines(

@@ -25,7 +25,7 @@ hex = "0.4"
 image = "0.25"
 lazy_static = "1.4"
 log = "0.4"
-lru = "0.7"
+lru = "0.12"
 num-traits = "0.2"
 ordered-float = "4.1"
 serde = {version="1.0", features = ["rc"]}

@@ -3,6 +3,7 @@ name = "wezterm-client"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +18,7 @@ futures = "0.3"
 lazy_static = "1.4"
 log = "0.4"
 libc = "0.2"
-lru = "0.7"
+lru = "0.12"
 metrics = { version="0.17", features=["std"]}
 mux = { path = "../mux" }
 openssl = "0.10.57"
