@@ -62,6 +62,12 @@ impl IntoRawSocket for UnixStream {
     }
 }
 #[cfg(windows)]
+impl AsRawSocket for UnixStream {
+    fn as_raw_socket(&self) -> RawSocket {
+        self.0.as_raw_socket()
+    }
+}
+#[cfg(windows)]
 impl AsSocket for UnixStream {
     fn as_socket(&self) -> BorrowedSocket {
         self.0.as_socket()
