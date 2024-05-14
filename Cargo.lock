@@ -6128,12 +6128,12 @@ dependencies = [
  "termwiz",
  "textwrap",
  "thiserror",
- "uds_windows",
  "umask",
  "url",
  "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
+ "wezterm-uds",
  "winapi",
 ]
 
@@ -6281,7 +6281,6 @@ dependencies = [
  "textwrap",
  "thiserror",
  "tiny-skia",
- "uds_windows",
  "umask",
  "unicode-normalization",
  "unicode-segmentation",
@@ -6373,10 +6372,10 @@ dependencies = [
  "rcgen",
  "smol",
  "termwiz",
- "uds_windows",
  "url",
  "wezterm-client",
  "wezterm-term",
+ "wezterm-uds",
  "winapi",
 ]
 
@@ -6418,7 +6417,7 @@ dependencies = [
  "ssh2",
  "termwiz",
  "thiserror",
- "uds_windows",
+ "wezterm-uds",
  "whoami",
 ]
 
@@ -6467,6 +6466,14 @@ dependencies = [
  "xml-rs",
  "zbus",
  "zvariant",
+]
+
+[[package]]
+name = "wezterm-uds"
+version = "0.1.0"
+dependencies = [
+ "async-io",
+ "uds_windows",
 ]
 
 [[package]]

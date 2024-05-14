@@ -111,7 +111,6 @@ window-funcs = { path = "../lua-api-crates/window-funcs" }
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"
-uds_windows = "1.1"
 winapi = { version = "0.3", features = [
     "winuser",
     "consoleapi",

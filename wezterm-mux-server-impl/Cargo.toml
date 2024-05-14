@@ -26,8 +26,8 @@ smol = "2.0"
 url = "2"
 wezterm-client = { path = "../wezterm-client" }
 wezterm-term = { path = "../term", features=["use_serde"] }
+wezterm-uds = { path = "../wezterm-uds" }
 termwiz = { path = "../termwiz", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
-uds_windows = "1.1"
 winapi = { version = "0.3", features = [ "winuser" ]}

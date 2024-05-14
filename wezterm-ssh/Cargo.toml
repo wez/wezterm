@@ -35,7 +35,7 @@ libssh-rs = {version="0.3.2", features=["vendored"], optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
 thiserror = "1.0"
 socket2 = "0.5"
-uds_windows = "1.1.0"
+wezterm-uds = { path = "../wezterm-uds" }
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
 async_ossl = { path = "../async_ossl" }

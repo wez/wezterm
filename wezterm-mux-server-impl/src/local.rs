@@ -1,7 +1,7 @@
-use crate::UnixListener;
 use anyhow::{anyhow, Context as _};
 use config::{create_user_owned_dirs, UnixDomain};
 use promise::spawn::spawn_into_main_thread;
+use wezterm_uds::UnixListener;
 
 pub struct LocalListener {
     listener: UnixListener,

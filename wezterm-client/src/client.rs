@@ -1,6 +1,5 @@
 use crate::domain::{ClientDomain, ClientDomainConfig};
 use crate::pane::ClientPane;
-use crate::UnixStream;
 use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
@@ -34,6 +33,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
 use thiserror::Error;
+use wezterm_uds::UnixStream;
 
 #[derive(Error, Debug)]
 #[error("Timeout")]
@@ -535,46 +535,6 @@ where
     }
 }
 
-/// This wrapper makes UnixStream IoSafe on all platforms.
-/// This isn't strictly needed on unix, because async-io
-/// includes an impl for the std UnixStream, but on Windows
-/// the uds_windows crate doesn't have an impl.
-/// Here we define it for all platforms in the interest of
-/// minimizing platform differences.
-#[derive(Debug)]
-struct IoSafeUnixStream(UnixStream);
-
-#[cfg(unix)]
-impl AsFd for IoSafeUnixStream {
-    fn as_fd(&self) -> BorrowedFd {
-        self.0.as_fd()
-    }
-}
-
-#[cfg(windows)]
-impl AsSocket for IoSafeUnixStream {
-    fn as_socket(&self) -> BorrowedSocket {
-        self.0.as_socket()
-    }
-}
-
-impl Read for IoSafeUnixStream {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        self.0.read(buf)
-    }
-}
-
-impl Write for IoSafeUnixStream {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.0.write(buf)
-    }
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.0.flush()
-    }
-}
-
-unsafe impl async_io::IoSafe for IoSafeUnixStream {}
-
 #[derive(Debug)]
 struct Reconnectable {
     config: ClientDomainConfig,
@@ -842,7 +802,7 @@ impl Reconnectable {
         ui.output_str("Connected!\n");
         stream.set_read_timeout(Some(unix_dom.read_timeout))?;
         stream.set_write_timeout(Some(unix_dom.write_timeout))?;
-        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(IoSafeUnixStream(stream))?);
+        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(stream)?);
         self.stream.replace(stream);
         Ok(())
     }

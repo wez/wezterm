@@ -1,5 +1,4 @@
 use crate::sessionhandler::{PduSender, SessionHandler};
-use crate::UnixStream;
 use anyhow::Context;
 use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
@@ -7,6 +6,7 @@ use futures::FutureExt;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;
+use wezterm_uds::UnixStream;
 
 #[cfg(unix)]
 pub trait AsRawDesc: std::os::unix::io::AsRawFd + std::os::fd::AsFd {}

@@ -37,9 +37,9 @@ url = "2"
 wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
+wezterm-uds = { path = "../wezterm-uds" }
 
 [target."cfg(windows)".dependencies]
-uds_windows = "1.1"
 winapi = { version = "0.3", features = [
     "winuser",
 ]}

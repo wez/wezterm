@@ -827,15 +827,14 @@ impl SessionInner {
                 .identity_agent()
                 .ok_or_else(|| anyhow!("no identity agent in config"))?;
             let mut fd = {
+                use wezterm_uds::UnixStream;
                 #[cfg(unix)]
                 {
-                    use std::os::unix::net::UnixStream;
                     FileDescriptor::new(UnixStream::connect(&identity_agent)?)
                 }
                 #[cfg(windows)]
                 unsafe {
                     use std::os::windows::io::{FromRawSocket, IntoRawSocket};
-                    use uds_windows::UnixStream;
                     FileDescriptor::from_raw_socket(
                         UnixStream::connect(&identity_agent)?.into_raw_socket(),
                     )
