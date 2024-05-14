@@ -172,7 +172,7 @@ fn rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     let cloned = Rc::clone(&arc);
 
     // We must not drop this ref though; turn it back into a raw pointer!
-    Rc::into_raw(arc);
+    let _ = Rc::into_raw(arc);
 
     cloned
 }
