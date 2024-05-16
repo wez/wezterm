@@ -44,3 +44,13 @@ config.window_frame = {
   border_top_color = 'purple',
 }
 ```
+
+You may specify the font and font size for the tabbar:
+```lua
+config.window_frame = {
+  font = require('wezterm').font 'Roboto',
+  font_size = 12,
+}
+```
+
+The default font is `Roboto`. The default font_size is `10pt` on Windows and `12pt` on other systems.

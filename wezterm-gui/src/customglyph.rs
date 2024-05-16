@@ -1,7 +1,7 @@
 use crate::glyphcache::{GlyphCache, SizedBlockKey};
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::Sprite;
-use ::window::color::{LinearRgba, SrgbaPixel};
+use ::window::color::SrgbaPixel;
 use config::DimensionContext;
 use std::ops::Range;
 use termwiz::surface::CursorShape;
@@ -16,7 +16,15 @@ pub enum PolyAA {
 }
 
 bitflags::bitflags! {
-    pub struct Quadrant: u8{
+    //  ╭──────╮
+    //  │UL╱╲UR│
+    //  │ ╱  ╲ │
+    //  │╱    ╲│
+    //  │╲    ╱│
+    //  │ ╲  ╱ │
+    //  │LL╲╱LR│
+    //  ╰──────╯
+    pub struct CellDiagonal: u8{
         const UPPER_LEFT = 1<<1;
         const UPPER_RIGHT = 1<<2;
         const LOWER_LEFT = 1<<3;
@@ -25,19 +33,17 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
-    pub struct Sextant: u8{
-        /// Upper-left
-        const ONE = 1<<1;
-        /// Upper-right
-        const TWO = 1<<2;
-        /// Middle left
-        const THREE = 1<<3;
-        /// Middle Right
-        const FOUR = 1<<4;
-        /// Lower left
-        const FIVE = 1<<5;
-        /// Lower right
-        const SIX = 1<<6;
+    // ╭────╮
+    // │╲U ╱│
+    // │ ╲╱R│
+    // │L╱╲ │
+    // │╱ D╲│
+    // ╰────╯
+    pub struct Triangle: u8{
+        const UPPER = 1<<1;
+        const RIGHT = 1<<2;
+        const LOWER = 1<<3;
+        const LEFT = 1<<4;
     }
 }
 
@@ -131,31 +137,59 @@ impl BlockCoord {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum Edge {
+pub enum Block {
+    /// Number of 1/8ths: x0, x1, y0, y1 with custom alpha
+    Custom(u8, u8, u8, u8, BlockAlpha),
     /// Number of 1/8ths in the upper half
-    Upper(u8),
+    UpperBlock(u8),
     /// Number of 1/8ths in the lower half
-    Lower(u8),
+    LowerBlock(u8),
     /// Number of 1/8ths in the left half
-    Left(u8),
+    LeftBlock(u8),
     /// Number of 1/8ths in the right half
-    Right(u8),
+    RightBlock(u8),
+    /// Number of 1/8ths: x0, x1
+    VerticalBlock(u8, u8),
+    /// Number of 1/8ths: y0, y1
+    HorizontalBlock(u8, u8),
+    /// Quadrants
+    // ╭──┬──╮
+    // │UL│UR│
+    // ├──┼──┤
+    // │LL│LR│
+    // ╰──┴──╯
+    QuadrantUL,
+    QuadrantUR,
+    QuadrantLL,
+    QuadrantLR,
+    /// Sextants by enum combination
+    // ╭───┬───╮
+    // │ 1 │ 2 │
+    // ├───┼───┤
+    // │ 3 │ 4 │
+    // ├───┼───┤
+    // │ 5 │ 6 │
+    // ╰───┴───╯
+    Sextant1,
+    Sextant2,
+    Sextant3,
+    Sextant4,
+    Sextant5,
+    Sextant6,
 }
 
 /// Represents a Block Element glyph, decoded from
 /// <https://en.wikipedia.org/wiki/Block_Elements>
 /// <https://www.unicode.org/charts/PDF/U2580.pdf>
+/// <https://unicode.org/charts/PDF/U1FB00.pdf>
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockKey {
-    /// List of edge rectangles
-    Edges(&'static [Edge]),
-
-    /// Full block with alpha level
-    Full(BlockAlpha),
-    /// A combination of quadrants
-    Quadrants(Quadrant),
-    /// A combination of sextants <https://unicode.org/charts/PDF/U1FB00.pdf>
-    Sextants(Sextant),
+    /// List of block rectangles
+    Blocks(&'static [Block]),
+    /// List of triangles
+    Triangles(Triangle, BlockAlpha),
+    /// A combination of small diagonal lines
+    CellDiagonals(CellDiagonal),
     /// A braille dot pattern
     Braille(u8),
 
@@ -237,6 +271,7 @@ impl PolyCommand {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum PolyStyle {
     Fill,
+    OutlineAlpha,
     OutlineThin,
     // A line with the thickness as underlines
     Outline,
@@ -251,14 +286,20 @@ impl PolyStyle {
                 pixmap.fill_path(path, paint, FillRule::Winding, Transform::identity(), None);
             }
 
-            PolyStyle::OutlineThin | PolyStyle::Outline | PolyStyle::OutlineHeavy => {
+            PolyStyle::OutlineThin
+            | PolyStyle::Outline
+            | PolyStyle::OutlineHeavy
+            | PolyStyle::OutlineAlpha => {
                 let mut stroke = Stroke::default();
                 stroke.width = width;
                 if self == PolyStyle::OutlineHeavy {
                     stroke.width *= 3.01; // NOTE: Changing this makes block cursor disproportionate at different font sizes and resolutions
                 } else if self == PolyStyle::OutlineThin {
                     stroke.width = 1.2;
+                } else if self == PolyStyle::OutlineAlpha {
+                    stroke.width = 0.25; // NOTE: This is for filling antialiased border between triangles when using the alpha style
                 }
+
                 pixmap.stroke_path(path, paint, &stroke, Transform::identity(), None);
             }
         }
@@ -3203,233 +3244,300 @@ impl BlockKey {
             ]),
 
             // [▀] UPPER HALF BLOCK
-            0x2580 => Self::Edges(&[Edge::Upper(4)]),
+            0x2580 => Self::Blocks(&[Block::UpperBlock(4)]),
             // [▁] LOWER 1 EIGHTH BLOCK
-            0x2581 => Self::Edges(&[Edge::Lower(1)]),
+            0x2581 => Self::Blocks(&[Block::LowerBlock(1)]),
             // [▂] LOWER 2 EIGHTHS BLOCK
-            0x2582 => Self::Edges(&[Edge::Lower(2)]),
+            0x2582 => Self::Blocks(&[Block::LowerBlock(2)]),
             // [▃] LOWER 3 EIGHTHS BLOCK
-            0x2583 => Self::Edges(&[Edge::Lower(3)]),
+            0x2583 => Self::Blocks(&[Block::LowerBlock(3)]),
             // [▄] LOWER 4 EIGHTHS BLOCK
-            0x2584 => Self::Edges(&[Edge::Lower(4)]),
+            0x2584 => Self::Blocks(&[Block::LowerBlock(4)]),
             // [▅] LOWER 5 EIGHTHS BLOCK
-            0x2585 => Self::Edges(&[Edge::Lower(5)]),
+            0x2585 => Self::Blocks(&[Block::LowerBlock(5)]),
             // [▆] LOWER 6 EIGHTHS BLOCK
-            0x2586 => Self::Edges(&[Edge::Lower(6)]),
+            0x2586 => Self::Blocks(&[Block::LowerBlock(6)]),
             // [▇] LOWER 7 EIGHTHS BLOCK
-            0x2587 => Self::Edges(&[Edge::Lower(7)]),
+            0x2587 => Self::Blocks(&[Block::LowerBlock(7)]),
             // [█] FULL BLOCK
-            0x2588 => Self::Full(BlockAlpha::Full),
+            0x2588 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Full)]),
             // [▉] LEFT 7 EIGHTHS BLOCK
-            0x2589 => Self::Edges(&[Edge::Left(7)]),
+            0x2589 => Self::Blocks(&[Block::LeftBlock(7)]),
             // [▊] LEFT 6 EIGHTHS BLOCK
-            0x258a => Self::Edges(&[Edge::Left(6)]),
+            0x258a => Self::Blocks(&[Block::LeftBlock(6)]),
             // [▋] LEFT 5 EIGHTHS BLOCK
-            0x258b => Self::Edges(&[Edge::Left(5)]),
+            0x258b => Self::Blocks(&[Block::LeftBlock(5)]),
             // [▌] LEFT 4 EIGHTHS BLOCK
-            0x258c => Self::Edges(&[Edge::Left(4)]),
+            0x258c => Self::Blocks(&[Block::LeftBlock(4)]),
             // [▍] LEFT 3 EIGHTHS BLOCK
-            0x258d => Self::Edges(&[Edge::Left(3)]),
+            0x258d => Self::Blocks(&[Block::LeftBlock(3)]),
             // [▎] LEFT 2 EIGHTHS BLOCK
-            0x258e => Self::Edges(&[Edge::Left(2)]),
+            0x258e => Self::Blocks(&[Block::LeftBlock(2)]),
             // [▏] LEFT 1 EIGHTHS BLOCK
-            0x258f => Self::Edges(&[Edge::Left(1)]),
+            0x258f => Self::Blocks(&[Block::LeftBlock(1)]),
             // [▐] RIGHT HALF BLOCK
-            0x2590 => Self::Edges(&[Edge::Right(4)]),
+            0x2590 => Self::Blocks(&[Block::RightBlock(4)]),
             // [░] LIGHT SHADE
-            0x2591 => Self::Full(BlockAlpha::Light),
+            0x2591 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Light)]),
             // [▒] MEDIUM SHADE
-            0x2592 => Self::Full(BlockAlpha::Medium),
+            0x2592 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Medium)]),
             // [▓] DARK SHADE
-            0x2593 => Self::Full(BlockAlpha::Dark),
+            0x2593 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Dark)]),
             // [▔] UPPER ONE EIGHTH BLOCK
-            0x2594 => Self::Edges(&[Edge::Upper(1)]),
+            0x2594 => Self::Blocks(&[Block::UpperBlock(1)]),
             // [▕] RIGHT ONE EIGHTH BLOCK
-            0x2595 => Self::Edges(&[Edge::Right(1)]),
+            0x2595 => Self::Blocks(&[Block::RightBlock(1)]),
             // [▖] QUADRANT LOWER LEFT
-            0x2596 => Self::Quadrants(Quadrant::LOWER_LEFT),
+            0x2596 => Self::Blocks(&[Block::QuadrantLL]),
             // [▗] QUADRANT LOWER RIGHT
-            0x2597 => Self::Quadrants(Quadrant::LOWER_RIGHT),
+            0x2597 => Self::Blocks(&[Block::QuadrantLR]),
             // [▘] QUADRANT UPPER LEFT
-            0x2598 => Self::Quadrants(Quadrant::UPPER_LEFT),
+            0x2598 => Self::Blocks(&[Block::QuadrantUL]),
             // [▙] QUADRANT UPPER LEFT AND LOWER LEFT AND LOWER RIGHT
-            0x2599 => {
-                Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT)
-            }
+            0x2599 => Self::Blocks(&[Block::QuadrantUL, Block::QuadrantLL, Block::QuadrantLR]),
             // [▚] QUADRANT UPPER LEFT AND LOWER RIGHT
-            0x259a => Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_RIGHT),
+            0x259a => Self::Blocks(&[Block::QuadrantUL, Block::QuadrantLR]),
             // [▛] QUADRANT UPPER LEFT AND UPPER RIGHT AND LOWER LEFT
-            0x259b => {
-                Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT)
-            }
+            0x259b => Self::Blocks(&[Block::QuadrantUL, Block::QuadrantUR, Block::QuadrantLL]),
             // [▜] QUADRANT UPPER LEFT AND UPPER RIGHT AND LOWER RIGHT
-            0x259c => Self::Quadrants(
-                Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_RIGHT,
-            ),
+            0x259c => Self::Blocks(&[Block::QuadrantUL, Block::QuadrantUR, Block::QuadrantLR]),
             // [▝] QUADRANT UPPER RIGHT
-            0x259d => Self::Quadrants(Quadrant::UPPER_RIGHT),
+            0x259d => Self::Blocks(&[Block::QuadrantUR]),
             // [▞] QUADRANT UPPER RIGHT AND LOWER LEFT
-            0x259e => Self::Quadrants(Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT),
+            0x259e => Self::Blocks(&[Block::QuadrantUR, Block::QuadrantLL]),
             // [▟] QUADRANT UPPER RIGHT AND LOWER LEFT AND LOWER RIGHT
-            0x259f => Self::Quadrants(
-                Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT,
-            ),
+            0x259f => Self::Blocks(&[Block::QuadrantUR, Block::QuadrantLL, Block::QuadrantLR]),
             // [🬀] BLOCK SEXTANT-1
-            0x1fb00 => Self::Sextants(Sextant::ONE),
+            0x1fb00 => Self::Blocks(&[Block::Sextant1]),
             // [🬁] BLOCK SEXTANT-2
-            0x1fb01 => Self::Sextants(Sextant::TWO),
+            0x1fb01 => Self::Blocks(&[Block::Sextant2]),
             // [🬂] BLOCK SEXTANT-12
-            0x1fb02 => Self::Sextants(Sextant::ONE | Sextant::TWO),
+            0x1fb02 => Self::Blocks(&[Block::Sextant1, Block::Sextant2]),
             // [🬃] BLOCK SEXTANT-3
-            0x1fb03 => Self::Sextants(Sextant::THREE),
+            0x1fb03 => Self::Blocks(&[Block::Sextant3]),
             // [🬄] BLOCK SEXTANT-13
-            0x1fb04 => Self::Sextants(Sextant::ONE | Sextant::THREE),
+            0x1fb04 => Self::Blocks(&[Block::Sextant1, Block::Sextant3]),
             // [🬅] BLOCK SEXTANT-23
-            0x1fb05 => Self::Sextants(Sextant::TWO | Sextant::THREE),
+            0x1fb05 => Self::Blocks(&[Block::Sextant2, Block::Sextant3]),
             // [🬆] BLOCK SEXTANT-123
-            0x1fb06 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE),
+            0x1fb06 => Self::Blocks(&[Block::Sextant1, Block::Sextant2, Block::Sextant3]),
             // [🬇] BLOCK SEXTANT-4
-            0x1fb07 => Self::Sextants(Sextant::FOUR),
+            0x1fb07 => Self::Blocks(&[Block::Sextant4]),
             // [🬈] BLOCK SEXTANT-14
-            0x1fb08 => Self::Sextants(Sextant::ONE | Sextant::FOUR),
+            0x1fb08 => Self::Blocks(&[Block::Sextant1, Block::Sextant4]),
             // [🬉] BLOCK SEXTANT-24
-            0x1fb09 => Self::Sextants(Sextant::TWO | Sextant::FOUR),
+            0x1fb09 => Self::Blocks(&[Block::Sextant2, Block::Sextant4]),
             // [🬊] BLOCK SEXTANT-124
-            0x1fb0a => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR),
+            0x1fb0a => Self::Blocks(&[Block::Sextant1, Block::Sextant2, Block::Sextant4]),
             // [🬋] BLOCK SEXTANT-34
-            0x1fb0b => Self::Sextants(Sextant::THREE | Sextant::FOUR),
+            0x1fb0b => Self::Blocks(&[Block::Sextant3, Block::Sextant4]),
             // [🬌] BLOCK SEXTANT-134
-            0x1fb0c => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR),
+            0x1fb0c => Self::Blocks(&[Block::Sextant1, Block::Sextant3, Block::Sextant4]),
             // [🬍] BLOCK SEXTANT-234
-            0x1fb0d => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            0x1fb0d => Self::Blocks(&[Block::Sextant2, Block::Sextant3, Block::Sextant4]),
             // [🬎] BLOCK SEXTANT-1234
-            0x1fb0e => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            0x1fb0e => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+            ]),
             // [🬏] BLOCK SEXTANT-5
-            0x1fb0f => Self::Sextants(Sextant::FIVE),
+            0x1fb0f => Self::Blocks(&[Block::Sextant5]),
             // [🬐] BLOCK SEXTANT-15
-            0x1fb10 => Self::Sextants(Sextant::ONE | Sextant::FIVE),
+            0x1fb10 => Self::Blocks(&[Block::Sextant1, Block::Sextant5]),
             // [🬑] BLOCK SEXTANT-25
-            0x1fb11 => Self::Sextants(Sextant::TWO | Sextant::FIVE),
+            0x1fb11 => Self::Blocks(&[Block::Sextant2, Block::Sextant5]),
             // [🬒] BLOCK SEXTANT-125
-            0x1fb12 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE),
+            0x1fb12 => Self::Blocks(&[Block::Sextant1, Block::Sextant2, Block::Sextant5]),
             // [🬓] BLOCK SEXTANT-35
-            0x1fb13 => Self::Sextants(Sextant::THREE | Sextant::FIVE),
+            0x1fb13 => Self::Blocks(&[Block::Sextant3, Block::Sextant5]),
             // [🬔] BLOCK SEXTANT-235
-            0x1fb14 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            0x1fb14 => Self::Blocks(&[Block::Sextant2, Block::Sextant3, Block::Sextant5]),
             // [🬕] BLOCK SEXTANT-1235
-            0x1fb15 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            0x1fb15 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant5,
+            ]),
             // [🬖] BLOCK SEXTANT-45
-            0x1fb16 => Self::Sextants(Sextant::FOUR | Sextant::FIVE),
+            0x1fb16 => Self::Blocks(&[Block::Sextant4, Block::Sextant5]),
             // [🬗] BLOCK SEXTANT-145
-            0x1fb17 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE),
+            0x1fb17 => Self::Blocks(&[Block::Sextant1, Block::Sextant4, Block::Sextant5]),
             // [🬘] BLOCK SEXTANT-245
-            0x1fb18 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            0x1fb18 => Self::Blocks(&[Block::Sextant2, Block::Sextant4, Block::Sextant5]),
             // [🬙] BLOCK SEXTANT-1245
-            0x1fb19 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            0x1fb19 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant4,
+                Block::Sextant5,
+            ]),
             // [🬚] BLOCK SEXTANT-345
-            0x1fb1a => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE),
+            0x1fb1a => Self::Blocks(&[Block::Sextant3, Block::Sextant4, Block::Sextant5]),
             // [🬛] BLOCK SEXTANT-1345
-            0x1fb1b => {
-                Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
-            }
-            // Braille dot patterns
-            // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
-            // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
-            // ⠠ ⠡ ⠢ ⠣ ⠤ ⠥ ⠦ ⠧ ⠨ ⠩ ⠪ ⠫ ⠬ ⠭ ⠮ ⠯
-            // ⠰ ⠱ ⠲ ⠳ ⠴ ⠵ ⠶ ⠷ ⠸ ⠹ ⠺ ⠻ ⠼ ⠽ ⠾ ⠿
-            // ⡀ ⡁ ⡂ ⡃ ⡄ ⡅ ⡆ ⡇ ⡈ ⡉ ⡊ ⡋ ⡌ ⡍ ⡎ ⡏
-            // ⡐ ⡑ ⡒ ⡓ ⡔ ⡕ ⡖ ⡗ ⡘ ⡙ ⡚ ⡛ ⡜ ⡝ ⡞ ⡟
-            // ⡠ ⡡ ⡢ ⡣ ⡤ ⡥ ⡦ ⡧ ⡨ ⡩ ⡪ ⡫ ⡬ ⡭ ⡮ ⡯
-            // ⡰ ⡱ ⡲ ⡳ ⡴ ⡵ ⡶ ⡷ ⡸ ⡹ ⡺ ⡻ ⡼ ⡽ ⡾ ⡿
-            // ⢀ ⢁ ⢂ ⢃ ⢄ ⢅ ⢆ ⢇ ⢈ ⢉ ⢊ ⢋ ⢌ ⢍ ⢎ ⢏
-            // ⢐ ⢑ ⢒ ⢓ ⢔ ⢕ ⢖ ⢗ ⢘ ⢙ ⢚ ⢛ ⢜ ⢝ ⢞ ⢟
-            // ⢠ ⢡ ⢢ ⢣ ⢤ ⢥ ⢦ ⢧ ⢨ ⢩ ⢪ ⢫ ⢬ ⢭ ⢮ ⢯
-            // ⢰ ⢱ ⢲ ⢳ ⢴ ⢵ ⢶ ⢷ ⢸ ⢹ ⢺ ⢻ ⢼ ⢽ ⢾ ⢿
-            // ⣀ ⣁ ⣂ ⣃ ⣄ ⣅ ⣆ ⣇ ⣈ ⣉ ⣊ ⣋ ⣌ ⣍ ⣎ ⣏
-            // ⣐ ⣑ ⣒ ⣓ ⣔ ⣕ ⣖ ⣗ ⣘ ⣙ ⣚ ⣛ ⣜ ⣝ ⣞ ⣟
-            // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
-            // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
-            n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
+            0x1fb1b => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+            ]),
             // [🬜] BLOCK SEXTANT-2345
-            0x1fb1c => {
-                Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
-            }
+            0x1fb1c => Self::Blocks(&[
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+            ]),
             // [🬝] BLOCK SEXTANT-12345
-            0x1fb1d => Self::Sextants(
-                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE,
-            ),
+            0x1fb1d => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+            ]),
             // [🬞] BLOCK SEXTANT-6
-            0x1fb1e => Self::Sextants(Sextant::SIX),
+            0x1fb1e => Self::Blocks(&[Block::Sextant6]),
             // [🬟] BLOCK SEXTANT-16
-            0x1fb1f => Self::Sextants(Sextant::ONE | Sextant::SIX),
+            0x1fb1f => Self::Blocks(&[Block::Sextant1, Block::Sextant6]),
             // [🬠] BLOCK SEXTANT-26
-            0x1fb20 => Self::Sextants(Sextant::TWO | Sextant::SIX),
+            0x1fb20 => Self::Blocks(&[Block::Sextant2, Block::Sextant6]),
             // [🬡] BLOCK SEXTANT-126
-            0x1fb21 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::SIX),
+            0x1fb21 => Self::Blocks(&[Block::Sextant1, Block::Sextant2, Block::Sextant6]),
             // [🬢] BLOCK SEXTANT-36
-            0x1fb22 => Self::Sextants(Sextant::THREE | Sextant::SIX),
+            0x1fb22 => Self::Blocks(&[Block::Sextant3, Block::Sextant6]),
             // [🬣] BLOCK SEXTANT-136
-            0x1fb23 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::SIX),
+            0x1fb23 => Self::Blocks(&[Block::Sextant1, Block::Sextant3, Block::Sextant6]),
             // [🬤] BLOCK SEXTANT-236
-            0x1fb24 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            0x1fb24 => Self::Blocks(&[Block::Sextant2, Block::Sextant3, Block::Sextant6]),
             // [🬥] BLOCK SEXTANT-1236
-            0x1fb25 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            0x1fb25 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant6,
+            ]),
             // [🬦] BLOCK SEXTANT-46
-            0x1fb26 => Self::Sextants(Sextant::FOUR | Sextant::SIX),
+            0x1fb26 => Self::Blocks(&[Block::Sextant4, Block::Sextant6]),
             // [🬧] BLOCK SEXTANT-146
-            0x1fb27 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::SIX),
+            0x1fb27 => Self::Blocks(&[Block::Sextant1, Block::Sextant4, Block::Sextant6]),
             // [🬨] BLOCK SEXTANT-1246
-            0x1fb28 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::SIX),
+            0x1fb28 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant4,
+                Block::Sextant6,
+            ]),
             // [🬩] BLOCK SEXTANT-346
-            0x1fb29 => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb29 => Self::Blocks(&[Block::Sextant3, Block::Sextant4, Block::Sextant6]),
             // [🬪] BLOCK SEXTANT-1346
-            0x1fb2a => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb2a => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant6,
+            ]),
             // [🬫] BLOCK SEXTANT-2346
-            0x1fb2b => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb2b => Self::Blocks(&[
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant6,
+            ]),
             // [🬬] BLOCK SEXTANT-12346
-            0x1fb2c => Self::Sextants(
-                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX,
-            ),
+            0x1fb2c => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant6,
+            ]),
             // [🬭] BLOCK SEXTANT-56
-            0x1fb2d => Self::Sextants(Sextant::FIVE | Sextant::SIX),
+            0x1fb2d => Self::Blocks(&[Block::Sextant5, Block::Sextant6]),
             // [🬮] BLOCK SEXTANT-156
-            0x1fb2e => Self::Sextants(Sextant::ONE | Sextant::FIVE | Sextant::SIX),
+            0x1fb2e => Self::Blocks(&[Block::Sextant1, Block::Sextant5, Block::Sextant6]),
             // [🬯] BLOCK SEXTANT-256
-            0x1fb2f => Self::Sextants(Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            0x1fb2f => Self::Blocks(&[Block::Sextant2, Block::Sextant5, Block::Sextant6]),
             // [🬰] BLOCK SEXTANT-1256
-            0x1fb30 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            0x1fb30 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬱] BLOCK SEXTANT-356
-            0x1fb31 => Self::Sextants(Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb31 => Self::Blocks(&[Block::Sextant3, Block::Sextant5, Block::Sextant6]),
             // [🬲] BLOCK SEXTANT-1356
-            0x1fb32 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb32 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant3,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬳] BLOCK SEXTANT-2356
-            0x1fb33 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb33 => Self::Blocks(&[
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬴] BLOCK SEXTANT-12356
-            0x1fb34 => Self::Sextants(
-                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX,
-            ),
+            0x1fb34 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬵] BLOCK SEXTANT-456
-            0x1fb35 => Self::Sextants(Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb35 => Self::Blocks(&[Block::Sextant4, Block::Sextant5, Block::Sextant6]),
             // [🬶] BLOCK SEXTANT-1456
-            0x1fb36 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb36 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬷] BLOCK SEXTANT-2456
-            0x1fb37 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb37 => Self::Blocks(&[
+                Block::Sextant2,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬸] BLOCK SEXTANT-12456
-            0x1fb38 => Self::Sextants(
-                Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
-            ),
+            0x1fb38 => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant2,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬹] BLOCK SEXTANT-3456
-            0x1fb39 => {
-                Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX)
-            }
+            0x1fb39 => Self::Blocks(&[
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬺] BLOCK SEXTANT-13456
-            0x1fb3a => Self::Sextants(
-                Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
-            ),
+            0x1fb3a => Self::Blocks(&[
+                Block::Sextant1,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬻] BLOCK SEXTANT-23456
-            0x1fb3b => Self::Sextants(
-                Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
-            ),
+            0x1fb3b => Self::Blocks(&[
+                Block::Sextant2,
+                Block::Sextant3,
+                Block::Sextant4,
+                Block::Sextant5,
+                Block::Sextant6,
+            ]),
             // [🬼] LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly(&[Poly {
                 path: &[
@@ -3485,34 +3593,858 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
+            // [🭁] LOWER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb41 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭂] LOWER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb42 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭃] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb43 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭄] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb44 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭅] LOWER RIGHT BLOCK DIAGONAL UPPER LEFT TO UPPER CENTRE
+            0x1fb45 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭆] LOWER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER MIDDLE RIGHT
+            0x1fb46 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭇] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb47 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭈] LOWER RIGHT BLOCK DIAGONAL LOWER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb48 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭉] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb49 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭊] LOWER RIGHT BLOCK DIAGONAL LOWER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb4a => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭋] LOWER RIGHT BLOCK DIAGONAL LOWER CENTRE TO UPPER RIGHT
+            0x1fb4b => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭌] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb4c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭍] LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb4d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭎] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb4e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭏] LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb4f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭐] LOWER LEFT BLOCK DIAGONAL UPPER CENTRE TO LOWER RIGHT
+            0x1fb50 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭑] LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER MIDDLE RIGHT
+            0x1fb51 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭒] UPPER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb52 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭓] UPPER RIGHT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb53 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭔] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb54 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭕] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb55 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭖] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
+            0x1fb56 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭗] UPPER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb57 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭘] UPPER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb58 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭙] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER CENTRE
+            0x1fb59 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭚] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER RIGHT
+            0x1fb5a => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭛] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO UPPER CENTRE
+            0x1fb5b => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭜] UPPER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO UPPER MIDDLE RIGHT
+            0x1fb5c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭝] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb5d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭞] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb5e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭟] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb5f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭠] UPPER LEFT BLOCK DIAGONAL LOWER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb60 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭡] UPPER LEFT BLOCK DIAGONAL LOWER CENTRE TO UPPER RIGHT
+            0x1fb61 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭢] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO UPPER MIDDLE RIGHT
+            0x1fb62 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭣] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO UPPER MIDDLE RIGHT
+            0x1fb63 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭤] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO LOWER MIDDLE RIGHT
+            0x1fb64 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭥] UPPER RIGHT BLOCK DIAGONAL UPPER LEFT TO LOWER MIDDLE RIGHT
+            0x1fb65 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭦] UPPER RIGHT BLOCK DIAGONAL UPPER CENTRE TO LOWER RIGHT
+            0x1fb66 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭧] UPPER RIGHT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER MIDDLE RIGHT
+            0x1fb67 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(2, 3)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }]),
+            // [🭨] UPPER AND RIGHT AND LOWER TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb68 => Self::Triangles(
+                Triangle::UPPER | Triangle::RIGHT | Triangle::LOWER,
+                BlockAlpha::Full,
+            ),
+            // [🭩] LEFT AND LOWER AND RIGHT TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb69 => Self::Triangles(
+                Triangle::LEFT | Triangle::LOWER | Triangle::RIGHT,
+                BlockAlpha::Full,
+            ),
+            // [🭪] UPPER AND LEFT AND LOWER TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb6a => Self::Triangles(
+                Triangle::UPPER | Triangle::LEFT | Triangle::LOWER,
+                BlockAlpha::Full,
+            ),
+            // [🭫] LEFT AND UPPER AND RIGHT TRIANGULAR THREE QUARTERS BLOCK
+            0x1fb6b => Self::Triangles(
+                Triangle::LEFT | Triangle::UPPER | Triangle::RIGHT,
+                BlockAlpha::Full,
+            ),
+            // [🭬] LEFT TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6c => Self::Triangles(Triangle::LEFT, BlockAlpha::Full),
+            // [🭭] UPPER TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6d => Self::Triangles(Triangle::UPPER, BlockAlpha::Full),
+            // [🭮] RIGHT TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6e => Self::Triangles(Triangle::RIGHT, BlockAlpha::Full),
+            // [🭯] LOWER TRIANGULAR ONE QUARTER BLOCK
+            0x1fb6f => Self::Triangles(Triangle::LOWER, BlockAlpha::Full),
+            // [🭰] VERTICAL ONE EIGHTH BLOCK-2
+            0x1fb70 => Self::Blocks(&[Block::VerticalBlock(1, 2)]),
+            // [🭱] VERTICAL ONE EIGHTH BLOCK-3
+            0x1fb71 => Self::Blocks(&[Block::VerticalBlock(2, 3)]),
+            // [🭲] VERTICAL ONE EIGHTH BLOCK-4
+            0x1fb72 => Self::Blocks(&[Block::VerticalBlock(3, 4)]),
+            // [🭳] VERTICAL ONE EIGHTH BLOCK-5
+            0x1fb73 => Self::Blocks(&[Block::VerticalBlock(4, 5)]),
+            // [🭴] VERTICAL ONE EIGHTH BLOCK-6
+            0x1fb74 => Self::Blocks(&[Block::VerticalBlock(5, 6)]),
+            // [🭵] VERTICAL ONE EIGHTH BLOCK-7
+            0x1fb75 => Self::Blocks(&[Block::VerticalBlock(6, 7)]),
+            // [🭶] HORIZONTAL ONE EIGHTH BLOCK-2
+            0x1fb76 => Self::Blocks(&[Block::HorizontalBlock(1, 2)]),
+            // [🭷] HORIZONTAL ONE EIGHTH BLOCK-3
+            0x1fb77 => Self::Blocks(&[Block::HorizontalBlock(2, 3)]),
+            // [🭸] HORIZONTAL ONE EIGHTH BLOCK-4
+            0x1fb78 => Self::Blocks(&[Block::HorizontalBlock(3, 4)]),
+            // [🭹] HORIZONTAL ONE EIGHTH BLOCK-5
+            0x1fb79 => Self::Blocks(&[Block::HorizontalBlock(4, 5)]),
+            // [🭺] HORIZONTAL ONE EIGHTH BLOCK-6
+            0x1fb7a => Self::Blocks(&[Block::HorizontalBlock(5, 6)]),
+            // [🭻] HORIZONTAL ONE EIGHTH BLOCK-7
+            0x1fb7b => Self::Blocks(&[Block::HorizontalBlock(6, 7)]),
             // [🭼] Left and lower one eighth block
-            0x1fb7c => Self::Edges(&[Edge::Left(1), Edge::Lower(1)]),
+            0x1fb7c => Self::Blocks(&[Block::LeftBlock(1), Block::LowerBlock(1)]),
             // [🭽] Left and upper one eighth block
-            0x1fb7d => Self::Edges(&[Edge::Left(1), Edge::Upper(1)]),
+            0x1fb7d => Self::Blocks(&[Block::LeftBlock(1), Block::UpperBlock(1)]),
             // [🭾] Right and upper one eighth block
-            0x1fb7e => Self::Edges(&[Edge::Right(1), Edge::Upper(1)]),
+            0x1fb7e => Self::Blocks(&[Block::RightBlock(1), Block::UpperBlock(1)]),
             // [🭿] Right and lower one eighth block
-            0x1fb7f => Self::Edges(&[Edge::Right(1), Edge::Lower(1)]),
+            0x1fb7f => Self::Blocks(&[Block::RightBlock(1), Block::LowerBlock(1)]),
+            // [🮀] UPPER AND LOWER ONE EIGHTH BLOCK
+            0x1fb80 => Self::Blocks(&[Block::UpperBlock(1), Block::LowerBlock(1)]),
+            // [🮁] HORIZONTAL ONE EIGHTH BLOCK-1358
+            0x1fb81 => Self::Blocks(&[
+                Block::UpperBlock(1),
+                Block::HorizontalBlock(2, 3),
+                Block::HorizontalBlock(4, 5),
+                Block::LowerBlock(1),
+            ]),
             // [🮂] Upper One Quarter Block
-            0x1fb82 => Self::Edges(&[Edge::Upper(2)]),
+            0x1fb82 => Self::Blocks(&[Block::UpperBlock(2)]),
             // [🮃] Upper three eighths block
-            0x1fb83 => Self::Edges(&[Edge::Upper(3)]),
+            0x1fb83 => Self::Blocks(&[Block::UpperBlock(3)]),
             // [🮄] Upper five eighths block
-            0x1fb84 => Self::Edges(&[Edge::Upper(5)]),
+            0x1fb84 => Self::Blocks(&[Block::UpperBlock(5)]),
             // [🮅] Upper three quarters block
-            0x1fb85 => Self::Edges(&[Edge::Upper(6)]),
+            0x1fb85 => Self::Blocks(&[Block::UpperBlock(6)]),
             // [🮆] Upper seven eighths block
-            0x1fb86 => Self::Edges(&[Edge::Upper(7)]),
+            0x1fb86 => Self::Blocks(&[Block::UpperBlock(7)]),
             // [🮇] Right One Quarter Block
-            0x1fb87 => Self::Edges(&[Edge::Right(2)]),
+            0x1fb87 => Self::Blocks(&[Block::RightBlock(2)]),
             // [🮈] Right three eighths block
-            0x1fb88 => Self::Edges(&[Edge::Right(3)]),
+            0x1fb88 => Self::Blocks(&[Block::RightBlock(3)]),
             // [🮉] Right five eighths block
-            0x1fb89 => Self::Edges(&[Edge::Right(5)]),
+            0x1fb89 => Self::Blocks(&[Block::RightBlock(5)]),
             // [🮊] Right three quarters block
-            0x1fb8a => Self::Edges(&[Edge::Right(6)]),
+            0x1fb8a => Self::Blocks(&[Block::RightBlock(6)]),
             // [🮋] Right seven eighths block
-            0x1fb8b => Self::Edges(&[Edge::Right(7)]),
+            0x1fb8b => Self::Blocks(&[Block::RightBlock(7)]),
+            // [🮌] LEFT HALF MEDIUM SHADE
+            0x1fb8c => Self::Blocks(&[Block::Custom(0, 4, 0, 8, BlockAlpha::Medium)]),
+            // [🮍] RIGHT HALF MEDIUM SHADE
+            0x1fb8d => Self::Blocks(&[Block::Custom(4, 8, 0, 8, BlockAlpha::Medium)]),
+            // [🮎] UPPER HALF MEDIUM SHADE
+            0x1fb8e => Self::Blocks(&[Block::Custom(0, 8, 0, 4, BlockAlpha::Medium)]),
+            // [🮏] LOWER HALF MEDIUM SHADE
+            0x1fb8f => Self::Blocks(&[Block::Custom(0, 8, 4, 8, BlockAlpha::Medium)]),
+            // [🮐] INVERSE MEDIUM SHADE
+            0x1fb90 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Medium)]),
+            // [🮑] UPPER HALF BLOCK AND LOWER HALF INVERSE MEDIUM SHADE
+            0x1fb91 => Self::Blocks(&[
+                Block::UpperBlock(4),
+                Block::Custom(0, 8, 4, 8, BlockAlpha::Medium),
+            ]),
+            // [🮒] UPPER HALF INVERSE MEDIUM SHADE AND LOWER HALF BLOCK
+            0x1fb92 => Self::Blocks(&[
+                Block::Custom(0, 8, 0, 4, BlockAlpha::Medium),
+                Block::LowerBlock(4),
+            ]),
+            // [🮓] LEFT HALF BLOCK AND RIGHT HALF INVERSE MEDIUM SHADE
+            // NOTE: not official!
+            0x1fb93 => Self::Blocks(&[
+                Block::LeftBlock(4),
+                Block::Custom(4, 8, 0, 8, BlockAlpha::Medium),
+            ]),
+            // [🮔] LEFT HALF INVERSE MEDIUM SHADE AND RIGHT HALF BLOCK
+            0x1fb94 => Self::Blocks(&[
+                Block::Custom(0, 4, 0, 8, BlockAlpha::Medium),
+                Block::RightBlock(4),
+            ]),
+            // [🮕] CHECKER BOARD FILL
+            0x1fb95 => Self::Blocks(&[
+                Block::Custom(0, 2, 0, 2, BlockAlpha::Full),
+                Block::Custom(0, 2, 4, 6, BlockAlpha::Full),
+                Block::Custom(2, 4, 2, 4, BlockAlpha::Full),
+                Block::Custom(2, 4, 6, 8, BlockAlpha::Full),
+                Block::Custom(4, 6, 0, 2, BlockAlpha::Full),
+                Block::Custom(4, 6, 4, 6, BlockAlpha::Full),
+                Block::Custom(6, 8, 2, 4, BlockAlpha::Full),
+                Block::Custom(6, 8, 6, 8, BlockAlpha::Full),
+            ]),
+            // [🮖] INVERSE CHECKER BOARD FILL
+            0x1fb96 => Self::Blocks(&[
+                Block::Custom(0, 2, 2, 4, BlockAlpha::Full),
+                Block::Custom(0, 2, 6, 8, BlockAlpha::Full),
+                Block::Custom(2, 4, 0, 2, BlockAlpha::Full),
+                Block::Custom(2, 4, 4, 6, BlockAlpha::Full),
+                Block::Custom(4, 6, 2, 4, BlockAlpha::Full),
+                Block::Custom(4, 6, 6, 8, BlockAlpha::Full),
+                Block::Custom(6, 8, 0, 2, BlockAlpha::Full),
+                Block::Custom(6, 8, 4, 6, BlockAlpha::Full),
+            ]),
+            // [🮗] HEAVY HORIZONTAL FILL
+            0x1fb97 => Self::Blocks(&[Block::HorizontalBlock(2, 4), Block::HorizontalBlock(6, 8)]),
+            // [🮘] UPPER LEFT TO LOWER RIGHT FILL
+            // NOTE: This is a quick placeholder which doesn't scale correctly
+            0x1fb98 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(3, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(3, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(5, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(7, 10)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(9, 10)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(3, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(5, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(7, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(5, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(9, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+            ]),
+            // [🮙] UPPER RIGHT TO LOWER LEFT FILL
+            // NOTE: This is a quick placeholder which doesn't scale correctly
+            0x1fb99 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(3, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(3, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(5, 10)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 6), BlockCoord::Zero),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(7, 10)),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(9, 10)),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(3, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(5, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(5, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(7, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 6), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(9, 10)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineThin,
+                },
+            ]),
+            // [🮚] UPPER AND LOWER TRIANGULAR HALF BLOCK
+            0x1fb9a => Self::Triangles(Triangle::UPPER | Triangle::LOWER, BlockAlpha::Full),
+            // [🮛] LEFT AND RIGHT TRIANGULAR HALF BLOCK
+            0x1fb9b => Self::Triangles(Triangle::LEFT | Triangle::RIGHT, BlockAlpha::Full),
+            // [🮜] UPPER UPPER LEFT TRIANGULAR MEDIUM SHADE
+            0x1fb9c => Self::Triangles(Triangle::LEFT | Triangle::UPPER, BlockAlpha::Medium),
+            // [🮝] UPPER RIGHT TRIANGULAR MEDIUM SHADE
+            0x1fb9d => Self::Triangles(Triangle::RIGHT | Triangle::UPPER, BlockAlpha::Medium),
+            // [🮞] LOWER RIGHT TRIANGULAR MEDIUM SHADE
+            0x1fb9e => Self::Triangles(Triangle::RIGHT | Triangle::LOWER, BlockAlpha::Medium),
+            // [🮟] LOWER LEFT TRIANGULAR MEDIUM SHADE
+            0x1fb9f => Self::Triangles(Triangle::LEFT | Triangle::LOWER, BlockAlpha::Medium),
+            // [🮠] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT
+            0x1fba0 => Self::CellDiagonals(CellDiagonal::UPPER_LEFT),
+            // [🮡] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT
+            0x1fba1 => Self::CellDiagonals(CellDiagonal::UPPER_RIGHT),
+            // [🮢] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE
+            0x1fba2 => Self::CellDiagonals(CellDiagonal::LOWER_LEFT),
+            // [🮣] BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba3 => Self::CellDiagonals(CellDiagonal::LOWER_RIGHT),
+            // [🮤] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+            0x1fba4 => Self::CellDiagonals(CellDiagonal::UPPER_LEFT | CellDiagonal::LOWER_LEFT),
+            // [🮥] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba5 => Self::CellDiagonals(CellDiagonal::UPPER_RIGHT | CellDiagonal::LOWER_RIGHT),
+            // [🮦] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+            0x1fba6 => Self::CellDiagonals(CellDiagonal::LOWER_LEFT | CellDiagonal::LOWER_RIGHT),
+            // [🮧] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT
+            0x1fba7 => Self::CellDiagonals(CellDiagonal::UPPER_LEFT | CellDiagonal::UPPER_RIGHT),
+            // [🮨] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT AND MIDDLE RIGHT TO LOWER CENTRE
+            0x1fba8 => Self::CellDiagonals(CellDiagonal::UPPER_LEFT | CellDiagonal::LOWER_RIGHT),
+            // [🮩] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT AND MIDDLE LEFT TO LOWER CENTRE
+            0x1fba9 => Self::CellDiagonals(CellDiagonal::UPPER_RIGHT | CellDiagonal::LOWER_LEFT),
+            // [🮪] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE TO MIDDLE LEFT
+            0x1fbaa => Self::CellDiagonals(
+                CellDiagonal::UPPER_RIGHT | CellDiagonal::LOWER_LEFT | CellDiagonal::LOWER_RIGHT,
+            ),
+            // [🮫] BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE TO MIDDLE RIGHT
+            0x1fbab => Self::CellDiagonals(
+                CellDiagonal::UPPER_LEFT | CellDiagonal::LOWER_LEFT | CellDiagonal::LOWER_RIGHT,
+            ),
+            // [🮬] BOX DRAWINGS LIGHT DIAGONAL MIDDLE LEFT TO UPPER CENTRE TO MIDDLE RIGHT TO LOWER CENTRE
+            0x1fbac => Self::CellDiagonals(
+                CellDiagonal::UPPER_LEFT | CellDiagonal::UPPER_RIGHT | CellDiagonal::LOWER_RIGHT,
+            ),
+            // [🮭] BOX DRAWINGS LIGHT DIAGONAL MIDDLE RIGHT TO UPPER CENTRE TO MIDDLE LEFT TO LOWER CENTRE
+            0x1fbad => Self::CellDiagonals(
+                CellDiagonal::UPPER_LEFT | CellDiagonal::UPPER_RIGHT | CellDiagonal::LOWER_LEFT,
+            ),
+            // [🮮] BOX DRAWINGS LIGHT DIAGONAL DIAMOND
+            0x1fbae => Self::CellDiagonals(
+                CellDiagonal::UPPER_LEFT
+                    | CellDiagonal::UPPER_RIGHT
+                    | CellDiagonal::LOWER_LEFT
+                    | CellDiagonal::LOWER_RIGHT,
+            ),
+            // [🮯] BOX DRAWINGS LIGHT HORIZONTAL WITH VERTICAL STROKE
+            0x1fbaf => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::Close,
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+            // Braille dot patterns
+            // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
+            // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
+            // ⠠ ⠡ ⠢ ⠣ ⠤ ⠥ ⠦ ⠧ ⠨ ⠩ ⠪ ⠫ ⠬ ⠭ ⠮ ⠯
+            // ⠰ ⠱ ⠲ ⠳ ⠴ ⠵ ⠶ ⠷ ⠸ ⠹ ⠺ ⠻ ⠼ ⠽ ⠾ ⠿
+            // ⡀ ⡁ ⡂ ⡃ ⡄ ⡅ ⡆ ⡇ ⡈ ⡉ ⡊ ⡋ ⡌ ⡍ ⡎ ⡏
+            // ⡐ ⡑ ⡒ ⡓ ⡔ ⡕ ⡖ ⡗ ⡘ ⡙ ⡚ ⡛ ⡜ ⡝ ⡞ ⡟
+            // ⡠ ⡡ ⡢ ⡣ ⡤ ⡥ ⡦ ⡧ ⡨ ⡩ ⡪ ⡫ ⡬ ⡭ ⡮ ⡯
+            // ⡰ ⡱ ⡲ ⡳ ⡴ ⡵ ⡶ ⡷ ⡸ ⡹ ⡺ ⡻ ⡼ ⡽ ⡾ ⡿
+            // ⢀ ⢁ ⢂ ⢃ ⢄ ⢅ ⢆ ⢇ ⢈ ⢉ ⢊ ⢋ ⢌ ⢍ ⢎ ⢏
+            // ⢐ ⢑ ⢒ ⢓ ⢔ ⢕ ⢖ ⢗ ⢘ ⢙ ⢚ ⢛ ⢜ ⢝ ⢞ ⢟
+            // ⢠ ⢡ ⢢ ⢣ ⢤ ⢥ ⢦ ⢧ ⢨ ⢩ ⢪ ⢫ ⢬ ⢭ ⢮ ⢯
+            // ⢰ ⢱ ⢲ ⢳ ⢴ ⢵ ⢶ ⢷ ⢸ ⢹ ⢺ ⢻ ⢼ ⢽ ⢾ ⢿
+            // ⣀ ⣁ ⣂ ⣃ ⣄ ⣅ ⣆ ⣇ ⣈ ⣉ ⣊ ⣋ ⣌ ⣍ ⣎ ⣏
+            // ⣐ ⣑ ⣒ ⣓ ⣔ ⣕ ⣖ ⣗ ⣘ ⣙ ⣚ ⣛ ⣜ ⣝ ⣞ ⣟
+            // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
+            // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
+            n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
             // [] Powerline filled right arrow
             0xe0b0 => Self::Poly(&[Poly {
                 path: &[
@@ -3616,16 +4548,7 @@ impl BlockKey {
             }]),
 
             // [] Powerline filled bottom left half triangle
-            0xe0b8 => Self::Poly(&[Poly {
-                path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::Close,
-                ],
-                intensity: BlockAlpha::Full,
-                style: PolyStyle::Fill,
-            }]),
+            0xe0b8 => Self::Triangles(Triangle::LEFT | Triangle::LOWER, BlockAlpha::Full),
             // [] Powerline outline bottom left half triangle
             0xe0b9 => Self::Poly(&[Poly {
                 path: &[
@@ -3636,16 +4559,7 @@ impl BlockKey {
                 style: PolyStyle::Outline,
             }]),
             // [] Powerline filled bottom right half triangle
-            0xe0ba => Self::Poly(&[Poly {
-                path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
-                    PolyCommand::Close,
-                ],
-                intensity: BlockAlpha::Full,
-                style: PolyStyle::Fill,
-            }]),
+            0xe0ba => Self::Triangles(Triangle::RIGHT | Triangle::LOWER, BlockAlpha::Full),
             // [] Powerline outline bottom right half triangle
             0xe0bb => Self::Poly(&[Poly {
                 path: &[
@@ -3676,16 +4590,7 @@ impl BlockKey {
                 style: PolyStyle::Outline,
             }]),
             // [] Powerline filled top right half triangle
-            0xe0be => Self::Poly(&[Poly {
-                path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-                    PolyCommand::Close,
-                ],
-                intensity: BlockAlpha::Full,
-                style: PolyStyle::Fill,
-            }]),
+            0xe0be => Self::Triangles(Triangle::RIGHT | Triangle::UPPER, BlockAlpha::Full),
             // [] Powerline outline top right half triangle
             0xe0bf => Self::Poly(&[Poly {
                 path: &[
@@ -3877,94 +4782,224 @@ impl GlyphCache {
         buffer.clear_rect(cell_rect, black);
 
         match key.block {
-            BlockKey::Edges(edges) => {
-                for edge in edges.iter() {
-                    match edge {
-                        Edge::Upper(num) => {
-                            let lower = metrics.cell_size.height as f32 * (*num as f32) / 8.;
-                            let width = metrics.cell_size.width as usize;
-                            fill_rect(&mut buffer, 0..width, 0..scale(lower));
+            BlockKey::Blocks(blocks) => {
+                let width = metrics.cell_size.width as f32;
+                let height = metrics.cell_size.height as f32;
+                let (x_half, y_half, y_third) = (width / 2., height / 2., height / 3.);
+                let (x_eighth, y_eighth) = (width / 8., height / 8.);
+
+                for block in blocks.iter() {
+                    match block {
+                        Block::Custom(x0, x1, y0, y1, alpha) => {
+                            let left = (*x0 as f32) * x_eighth;
+                            let right = (*x1 as f32) * x_eighth;
+                            let top = (*y0 as f32) * y_eighth;
+                            let bottom = (*y1 as f32) * y_eighth;
+                            fill_rect(&mut buffer, left..right, top..bottom, *alpha);
                         }
-                        Edge::Lower(num) => {
-                            let upper = metrics.cell_size.height as f32 * ((8 - num) as f32) / 8.;
-                            let width = metrics.cell_size.width as usize;
-                            let height = metrics.cell_size.height as usize;
-                            fill_rect(&mut buffer, 0..width, scale(upper)..height);
+                        Block::UpperBlock(num) => {
+                            let lower = (*num as f32) * y_eighth;
+                            fill_rect(&mut buffer, 0.0..width, 0.0..lower, BlockAlpha::Full);
                         }
-                        Edge::Left(num) => {
-                            let width = metrics.cell_size.width as f32 * (*num as f32) / 8.;
-                            let height = metrics.cell_size.height as usize;
-                            fill_rect(&mut buffer, 0..scale(width), 0..height);
+                        Block::LowerBlock(num) => {
+                            let upper = ((8 - num) as f32) * y_eighth;
+                            fill_rect(&mut buffer, 0.0..width, upper..height, BlockAlpha::Full);
                         }
-                        Edge::Right(num) => {
-                            let left = metrics.cell_size.width as f32 * ((8 - num) as f32) / 8.;
-                            let width = metrics.cell_size.width as usize;
-                            let height = metrics.cell_size.height as usize;
-                            fill_rect(&mut buffer, scale(left)..width, 0..height);
+                        Block::LeftBlock(num) => {
+                            let right = (*num as f32) * x_eighth;
+                            fill_rect(&mut buffer, 0.0..right, 0.0..height, BlockAlpha::Full);
                         }
+                        Block::RightBlock(num) => {
+                            let left = ((8 - num) as f32) * x_eighth;
+                            fill_rect(&mut buffer, left..width, 0.0..height, BlockAlpha::Full);
+                        }
+                        Block::VerticalBlock(x0, x1) => {
+                            let left = (*x0 as f32) * x_eighth;
+                            let right = (*x1 as f32) * x_eighth;
+                            fill_rect(&mut buffer, left..right, 0.0..height, BlockAlpha::Full);
+                        }
+                        Block::HorizontalBlock(y0, y1) => {
+                            let top = (*y0 as f32) * y_eighth;
+                            let bottom = (*y1 as f32) * y_eighth;
+                            fill_rect(&mut buffer, 0.0..width, top..bottom, BlockAlpha::Full);
+                        }
+                        Block::QuadrantUL => {
+                            fill_rect(&mut buffer, 0.0..x_half, 0.0..y_half, BlockAlpha::Full)
+                        }
+                        Block::QuadrantUR => {
+                            fill_rect(&mut buffer, x_half..width, 0.0..y_half, BlockAlpha::Full)
+                        }
+                        Block::QuadrantLL => {
+                            fill_rect(&mut buffer, 0.0..x_half, y_half..height, BlockAlpha::Full)
+                        }
+                        Block::QuadrantLR => {
+                            fill_rect(&mut buffer, x_half..width, y_half..height, BlockAlpha::Full)
+                        }
+                        Block::Sextant1 => {
+                            fill_rect(&mut buffer, 0.0..x_half, 0.0..y_third, BlockAlpha::Full)
+                        }
+                        Block::Sextant2 => {
+                            fill_rect(&mut buffer, x_half..width, 0.0..y_third, BlockAlpha::Full)
+                        }
+                        Block::Sextant3 => fill_rect(
+                            &mut buffer,
+                            0.0..x_half,
+                            y_third..(y_third * 2.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Sextant4 => fill_rect(
+                            &mut buffer,
+                            x_half..width,
+                            y_third..(y_third * 2.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Sextant5 => fill_rect(
+                            &mut buffer,
+                            0.0..x_half,
+                            (y_third * 2.)..height,
+                            BlockAlpha::Full,
+                        ),
+                        Block::Sextant6 => fill_rect(
+                            &mut buffer,
+                            x_half..width,
+                            (y_third * 2.)..height,
+                            BlockAlpha::Full,
+                        ),
                     }
                 }
             }
+            BlockKey::Triangles(triangles, alpha) => {
+                let mut draw = |cmd: &'static [PolyCommand], style: PolyStyle| {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: cmd,
+                            intensity: alpha,
+                            style: style,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                };
 
-            BlockKey::Full(alpha) => {
-                let alpha = alpha.to_scale();
-                let fill = LinearRgba::with_components(alpha, alpha, alpha, alpha);
+                macro_rules! start {
+                    () => {
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2))
+                    };
+                }
+                macro_rules! close {
+                    () => {
+                        PolyCommand::Close
+                    };
+                }
+                macro_rules! p0 {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero)
+                    };
+                }
+                macro_rules! p1 {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero)
+                    };
+                }
+                macro_rules! p2 {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One)
+                    };
+                }
+                macro_rules! p3 {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One)
+                    };
+                }
 
-                buffer.clear_rect(cell_rect, fill.srgba_pixel());
+                // Draw triangles
+                if triangles.contains(Triangle::UPPER) {
+                    draw(&[start!(), p0!(), p1!(), close!()], PolyStyle::Fill);
+                }
+                if triangles.contains(Triangle::LOWER) {
+                    draw(&[start!(), p2!(), p3!(), close!()], PolyStyle::Fill);
+                }
+                if triangles.contains(Triangle::LEFT) {
+                    draw(&[start!(), p0!(), p2!(), close!()], PolyStyle::Fill);
+                }
+                if triangles.contains(Triangle::RIGHT) {
+                    draw(&[start!(), p1!(), p3!(), close!()], PolyStyle::Fill);
+                }
+
+                // Fill antialiased lines between triangles
+                let style = if alpha == BlockAlpha::Full {
+                    PolyStyle::Outline
+                } else {
+                    PolyStyle::OutlineAlpha
+                };
+                if triangles.contains(Triangle::UPPER | Triangle::LEFT) {
+                    draw(&[start!(), p0!()], style);
+                }
+                if triangles.contains(Triangle::UPPER | Triangle::RIGHT) {
+                    draw(&[start!(), p1!()], style);
+                }
+                if triangles.contains(Triangle::LOWER | Triangle::LEFT) {
+                    draw(&[start!(), p2!()], style);
+                }
+                if triangles.contains(Triangle::LOWER | Triangle::RIGHT) {
+                    draw(&[start!(), p3!()], style);
+                }
             }
-            BlockKey::Quadrants(quads) => {
-                let y_half = metrics.cell_size.height as f32 / 2.;
-                let x_half = metrics.cell_size.width as f32 / 2.;
-                let width = metrics.cell_size.width as usize;
-                let height = metrics.cell_size.height as usize;
-                if quads.contains(Quadrant::UPPER_LEFT) {
-                    fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_half));
-                }
-                if quads.contains(Quadrant::UPPER_RIGHT) {
-                    fill_rect(&mut buffer, scale(x_half)..width, 0..scale(y_half));
-                }
-                if quads.contains(Quadrant::LOWER_LEFT) {
-                    fill_rect(&mut buffer, 0..scale(x_half), scale(y_half)..height);
-                }
-                if quads.contains(Quadrant::LOWER_RIGHT) {
-                    fill_rect(&mut buffer, scale(x_half)..width, scale(y_half)..height);
-                }
-            }
-            BlockKey::Sextants(s) => {
-                let y_third = metrics.cell_size.height as f32 / 3.;
-                let x_half = metrics.cell_size.width as f32 / 2.;
-                let width = metrics.cell_size.width as usize;
-                let height = metrics.cell_size.height as usize;
+            BlockKey::CellDiagonals(diagonals) => {
+                let mut draw = |cmd: &'static [PolyCommand]| {
+                    self.draw_polys(
+                        &metrics,
+                        &[Poly {
+                            path: cmd,
+                            intensity: BlockAlpha::Full,
+                            style: PolyStyle::Outline,
+                        }],
+                        &mut buffer,
+                        if config::configuration().anti_alias_custom_block_glyphs {
+                            PolyAA::AntiAlias
+                        } else {
+                            PolyAA::MoarPixels
+                        },
+                    );
+                };
 
-                if s.contains(Sextant::ONE) {
-                    fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_third));
+                macro_rules! U {
+                    () => {
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero)
+                    };
                 }
-                if s.contains(Sextant::TWO) {
-                    fill_rect(&mut buffer, scale(x_half)..width, 0..scale(y_third));
+                macro_rules! D {
+                    () => {
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One)
+                    };
                 }
-                if s.contains(Sextant::THREE) {
-                    fill_rect(
-                        &mut buffer,
-                        0..scale(x_half),
-                        scale(y_third)..scale(y_third * 2.),
-                    );
+                macro_rules! L {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2))
+                    };
                 }
-                if s.contains(Sextant::FOUR) {
-                    fill_rect(
-                        &mut buffer,
-                        scale(x_half)..width,
-                        scale(y_third)..scale(y_third * 2.),
-                    );
+                macro_rules! R {
+                    () => {
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2))
+                    };
                 }
-                if s.contains(Sextant::FIVE) {
-                    fill_rect(&mut buffer, 0..scale(x_half), scale(y_third * 2.)..height);
+
+                if diagonals.contains(CellDiagonal::UPPER_LEFT) {
+                    draw(&[U!(), L!()]);
                 }
-                if s.contains(Sextant::SIX) {
-                    fill_rect(
-                        &mut buffer,
-                        scale(x_half)..width,
-                        scale(y_third * 2.)..height,
-                    );
+                if diagonals.contains(CellDiagonal::UPPER_RIGHT) {
+                    draw(&[U!(), R!()]);
+                }
+                if diagonals.contains(CellDiagonal::LOWER_LEFT) {
+                    draw(&[D!(), L!()]);
+                }
+                if diagonals.contains(CellDiagonal::LOWER_RIGHT) {
+                    draw(&[D!(), R!()]);
                 }
             }
             BlockKey::Braille(dots_pattern) => {
@@ -4053,14 +5088,11 @@ impl GlyphCache {
 }
 
 // Fill a rectangular region described by the x and y ranges
-fn fill_rect(buffer: &mut Image, x: Range<usize>, y: Range<usize>) {
+fn fill_rect(buffer: &mut Image, x: Range<f32>, y: Range<f32>, intensity: BlockAlpha) {
     let (width, height) = buffer.image_dimensions();
     let mut pixmap =
         PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
             .expect("make pixmap from existing bitmap");
-
-    let x = x.start as f32..x.end as f32;
-    let y = y.start as f32..y.end as f32;
 
     let path = PathBuilder::from_rect(
         tiny_skia::Rect::from_xywh(x.start, y.start, x.end - x.start, y.end - y.start)
@@ -4068,7 +5100,11 @@ fn fill_rect(buffer: &mut Image, x: Range<usize>, y: Range<usize>) {
     );
 
     let mut paint = Paint::default();
-    paint.set_color(tiny_skia::Color::WHITE);
+    let intensity = intensity.to_scale();
+    paint.set_color(
+        tiny_skia::Color::from_rgba(intensity, intensity, intensity, intensity).unwrap(),
+    );
+    paint.anti_alias = false;
     paint.force_hq_pipeline = true;
 
     pixmap.fill_path(
@@ -4078,8 +5114,4 @@ fn fill_rect(buffer: &mut Image, x: Range<usize>, y: Range<usize>) {
         Transform::identity(),
         None,
     );
-}
-
-fn scale(f: f32) -> usize {
-    f.ceil().max(1.) as usize
 }

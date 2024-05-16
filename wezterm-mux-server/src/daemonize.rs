@@ -5,6 +5,7 @@ use std::io::Write;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 enum Fork {
+    #[allow(dead_code)]
     Child(pid_t),
     Parent(pid_t),
 }

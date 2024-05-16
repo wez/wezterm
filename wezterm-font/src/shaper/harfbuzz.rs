@@ -593,7 +593,7 @@ impl FontShaper for HarfbuzzShaper {
             range,
             presentation_width,
         );
-        metrics::histogram!("shape.harfbuzz", start.elapsed());
+        metrics::histogram!("shape.harfbuzz").record(start.elapsed());
         /*
         if let Ok(glyphs) = &result {
             for g in glyphs {

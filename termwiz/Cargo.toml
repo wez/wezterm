@@ -22,22 +22,22 @@ finl_unicode = "1.2"
 fixedbitset = "0.4"
 fnv = {version="1.0", optional=true}
 hex = "0.4"
-image = {version="0.24.6", optional=true}
+image = {version="0.25", optional=true}
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 memmem = "0.1"
+num-derive = "0.4"
 num-traits = "0.2"
 ordered-float = "4.1"
 pest = "2.1"
 pest_derive = "2.1"
 phf = "0.11"
-semver = "0.11"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
 siphasher = "0.3"
 sha2 = "0.10"
 tempfile = "3.4"
-terminfo = "0.8"
+terminfo = "0.9"
 thiserror = "1.0"
 unicode-segmentation = "1.8"
 ucd-trie = "0.1"
@@ -55,19 +55,16 @@ use_image = ["image"]
 docs = ["widgets", "use_serde"]
 
 [dev-dependencies]
-criterion = "0.4"
+criterion = "0.5"
 varbincode = "0.1"
-k9 = "0.11"
+k9 = "0.12"
 env_logger = "0.11"
 
-[dependencies.num-derive]
-features = ["full-syntax"]
-version = "0.3"
 
 [target."cfg(unix)".dependencies]
 signal-hook = "0.3"
 termios = "0.3"
-nix = "0.26"
+nix = {version="0.28", features=["mman", "fs"]}
 
 [target."cfg(windows)".dependencies.winapi]
 features = [

@@ -1,4 +1,4 @@
-# CopyMode `MoveForewardSemanticZone`
+# CopyMode `MoveForwardSemanticZone`
 
 {{since('20220903-194523-3bb1ed61')}}
 
@@ -17,7 +17,7 @@ return {
       {
         key = 'Z',
         mods = 'NONE',
-        action = act.CopyMode 'MoveForewardSemanticZone',
+        action = act.CopyMode 'MoveForwardSemanticZone',
       },
     },
   },

@@ -377,6 +377,12 @@ pub struct Config {
     #[dynamic(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
+    #[dynamic(default = "default_true")]
+    pub mux_enable_ssh_agent: bool,
+
+    #[dynamic(default)]
+    pub default_ssh_auth_sock: Option<String>,
+
     /// How many ms to delay after reading a chunk of output
     /// in order to try to coalesce fragmented writes into
     /// a single bigger chunk of output and reduce the chances
@@ -1729,10 +1735,17 @@ fn default_max_fps() -> u8 {
 }
 
 fn default_tiling_desktop_environments() -> Vec<String> {
-    ["X11 LG3D", "X11 bspwm", "X11 i3", "X11 dwm", "X11 awesome"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    [
+        "X11 LG3D",
+        "X11 Qtile",
+        "X11 awesome",
+        "X11 bspwm",
+        "X11 dwm",
+        "X11 i3",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
 
 fn default_stateless_process_list() -> Vec<String> {

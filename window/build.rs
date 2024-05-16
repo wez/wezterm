@@ -8,7 +8,7 @@ fn main() {
 
     let dest = PathBuf::from(&env::var("OUT_DIR").unwrap());
     let target = env::var("TARGET").unwrap();
-    let mut file = File::create(&dest.join("egl_bindings.rs")).unwrap();
+    let mut file = File::create(dest.join("egl_bindings.rs")).unwrap();
     let reg = Registry::new(
         Api::Egl,
         (1, 5),
@@ -43,13 +43,13 @@ fn main() {
     }
 
     if target.contains("windows") {
-        let mut file = File::create(&dest.join("wgl_bindings.rs")).unwrap();
+        let mut file = File::create(dest.join("wgl_bindings.rs")).unwrap();
         let reg = Registry::new(Api::Wgl, (1, 0), Profile::Core, Fallbacks::All, []);
 
         reg.write_bindings(gl_generator::StructGenerator, &mut file)
             .unwrap();
 
-        let mut file = File::create(&dest.join("wgl_extra_bindings.rs")).unwrap();
+        let mut file = File::create(dest.join("wgl_extra_bindings.rs")).unwrap();
         Registry::new(
             Api::Wgl,
             (1, 0),

@@ -1,5 +1,4 @@
 use crate::sessionhandler::{PduSender, SessionHandler};
-use crate::UnixStream;
 use anyhow::Context;
 use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
@@ -7,11 +6,12 @@ use futures::FutureExt;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;
+use wezterm_uds::UnixStream;
 
 #[cfg(unix)]
-pub trait AsRawDesc: std::os::unix::io::AsRawFd {}
+pub trait AsRawDesc: std::os::unix::io::AsRawFd + std::os::fd::AsFd {}
 #[cfg(windows)]
-pub trait AsRawDesc: std::os::windows::io::AsRawSocket {}
+pub trait AsRawDesc: std::os::windows::io::AsRawSocket + std::os::windows::io::AsSocket {}
 
 impl AsRawDesc for UnixStream {}
 impl AsRawDesc for AsyncSslStream {}
@@ -30,6 +30,7 @@ where
     T: std::io::Write,
     T: AsRawDesc,
     T: std::fmt::Debug,
+    T: async_io::IoSafe,
 {
     let stream = smol::Async::new(stream)?;
     process_async(stream).await
@@ -41,6 +42,7 @@ where
     T: std::io::Read,
     T: std::io::Write,
     T: std::fmt::Debug,
+    T: async_io::IoSafe,
 {
     log::trace!("process_async called");
 

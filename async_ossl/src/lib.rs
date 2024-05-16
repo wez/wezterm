@@ -11,9 +11,18 @@ pub struct AsyncSslStream {
     s: SslStream<TcpStream>,
 }
 
+unsafe impl async_io::IoSafe for AsyncSslStream {}
+
 impl AsyncSslStream {
     pub fn new(s: SslStream<TcpStream>) -> Self {
         Self { s }
+    }
+}
+
+#[cfg(unix)]
+impl std::os::fd::AsFd for AsyncSslStream {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd {
+        self.s.get_ref().as_fd()
     }
 }
 
@@ -28,6 +37,13 @@ impl std::os::unix::io::AsRawFd for AsyncSslStream {
 impl std::os::windows::io::AsRawSocket for AsyncSslStream {
     fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
         self.s.get_ref().as_raw_socket()
+    }
+}
+
+#[cfg(windows)]
+impl std::os::windows::io::AsSocket for AsyncSslStream {
+    fn as_socket(&self) -> std::os::windows::io::BorrowedSocket {
+        self.s.get_ref().as_socket()
     }
 }
 

@@ -2,12 +2,13 @@
 name = "battery"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0"
-starship-battery = "0.7"
+starship-battery = "0.8"
 config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 luahelper = { path = "../../luahelper" }

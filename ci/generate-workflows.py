@@ -424,40 +424,54 @@ rustup default {toolchain}
             )
         ]
 
-    def build_all_release(self):
+    def fixup_windows_path(self, cmd):
         if "win" in self.name:
-            return [
-                RunStep(
-                    name="Build (Release mode)",
-                    shell="cmd",
-                    run="""
-PATH C:\\Strawberry\\perl\\bin;%PATH%
-cargo build --all --release""",
-                )
-            ]
-        if "macos" in self.name:
-            return [
-                RunStep(
-                    name="Build (Release mode Intel)",
-                    run="cargo build --target x86_64-apple-darwin --all --release",
-                ),
-                RunStep(
-                    name="Build (Release mode ARM)",
-                    run="cargo build --target aarch64-apple-darwin --all --release",
-                ),
-            ]
-        if self.name == "centos7":
-            enable = "source /opt/rh/devtoolset-9/enable && "
-        else:
-            enable = ""
-        return [
-            RunStep(
-                name="Build (Release mode)", run=enable + "cargo build --all --release"
-            )
-        ]
+            return "PATH C:\\Strawberry\\perl\\bin;%PATH%\n" + cmd
+        return cmd
 
-    def test_all_release(self):
-        run = "cargo nextest run --all --release --no-fail-fast"
+    def build_all_release(self):
+        bin_crates = [
+            "wezterm",
+            "wezterm-gui",
+            "wezterm-mux-server",
+            "strip-ansi-escapes",
+        ]
+        steps = []
+        for bin in bin_crates:
+            if "win" in self.name:
+                steps += [
+                    RunStep(
+                        name=f"Build {bin} (Release mode)",
+                        shell="cmd",
+                        run=self.fixup_windows_path(f"cargo build -p {bin} --release"),
+                    )
+                ]
+            elif "macos" in self.name:
+                steps += [
+                    RunStep(
+                        name=f"Build {bin} (Release mode Intel)",
+                        run=f"cargo build --target x86_64-apple-darwin -p {bin} --release",
+                    ),
+                    RunStep(
+                        name=f"Build {bin} (Release mode ARM)",
+                        run=f"cargo build --target aarch64-apple-darwin -p {bin} --release",
+                    ),
+                ]
+            else:
+                if self.name == "centos7":
+                    enable = "source /opt/rh/devtoolset-9/enable && "
+                else:
+                    enable = ""
+                steps += [
+                    RunStep(
+                        name=f"Build {bin} (Release mode)",
+                        run=enable + f"cargo build -p {bin} --release",
+                    )
+                ]
+        return steps
+
+    def test_all(self):
+        run = "cargo nextest run --all --no-fail-fast"
         if "macos" in self.name:
             run += " --target=x86_64-apple-darwin"
         if self.name == "centos7":
@@ -466,10 +480,9 @@ cargo build --all --release""",
             # Install cargo-nextest
             InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
-            RunStep(
-                name="Test (Release mode)",
-                run=run,
-            ),
+            RunStep(name="Test", run=self.fixup_windows_path(run), shell="cmd")
+            if "win" in self.name
+            else RunStep(name="Test", run=run),
         ]
 
     def package(self, trusted=False):
@@ -892,14 +905,14 @@ cargo build --all --release""",
         steps += self.install_openssh_server()
         steps += self.checkout()
         # We should be able to cache mac builds now?
-        steps += self.install_rust() # cache="mac" not in self.name)
+        steps += self.install_rust()  # cache="mac" not in self.name)
         steps += self.install_system_deps()
         return steps
 
     def pull_request(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package()
         steps += self.upload_artifact()
 
@@ -928,7 +941,7 @@ cargo build --all --release""",
     def continuous(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package(trusted=True)
         steps += self.upload_artifact_nightly()
 
@@ -952,7 +965,7 @@ cargo build --all --release""",
     def tag(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
-        steps += self.test_all_release()
+        steps += self.test_all()
         steps += self.package(trusted=True)
         steps += self.upload_artifact()
         steps += self.update_homebrew_tap()
