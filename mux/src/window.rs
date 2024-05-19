@@ -131,6 +131,8 @@ impl Window {
 
         if len > 0 && self.active >= len {
             self.set_active_without_saving(len - 1);
+        } else if len > 0 {
+            self.set_active_without_saving(self.active);
         }
     }
 
@@ -161,7 +163,6 @@ impl Window {
         }
         let tab = self.tabs.remove(idx);
         self.fixup_active_tab_after_removal(active);
-        self.invalidate();
         tab
     }
 
