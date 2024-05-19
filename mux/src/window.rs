@@ -161,6 +161,7 @@ impl Window {
         }
         let tab = self.tabs.remove(idx);
         self.fixup_active_tab_after_removal(active);
+        self.invalidate();
         tab
     }
 
