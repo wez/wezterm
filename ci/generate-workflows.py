@@ -812,6 +812,8 @@ rustup default {toolchain}
             self.env["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
         if "alpine" in self.name:
             self.env["RUSTFLAGS"] = "-C target-feature=-crt-static"
+        if "win" in self.name:
+            self.env["RUSTUP_WINDOWS_PATH_ADD_BIN"] = "1"
         return
 
     def prep_environment(self, cache=True):
