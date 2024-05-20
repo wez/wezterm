@@ -38,6 +38,7 @@ impl SftpWrap {
             Self::LibSsh(sftp) => {
                 use crate::sftp::types::WriteMode;
                 use libc::{O_APPEND, O_RDONLY, O_RDWR, O_WRONLY};
+                use libssh_rs::OpenFlags;
                 use std::convert::TryInto;
                 let accesstype = match (opts.write, opts.read) {
                     (Some(WriteMode::Append), true) => O_RDWR | O_APPEND,
@@ -47,8 +48,11 @@ impl SftpWrap {
                     (None, true) => O_RDONLY,
                     (None, false) => 0,
                 };
-                let file =
-                    sftp.open(filename.as_str(), accesstype, opts.mode.try_into().unwrap())?;
+                let file = sftp.open(
+                    filename.as_str(),
+                    OpenFlags::from_bits_truncate(accesstype),
+                    opts.mode.try_into().unwrap(),
+                )?;
                 Ok(FileWrap::LibSsh(file))
             }
         }

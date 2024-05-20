@@ -3,6 +3,7 @@ name = "wezterm-font"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,12 +23,12 @@ euclid = "0.22"
 finl_unicode = "1.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
-image = "0.24.6"
+image = "0.25"
 lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"
-memmap2 = "0.2"
-metrics = { version="0.17", features=["std"]}
+memmap2 = "0.9"
+metrics = "0.22"
 ordered-float = "4.1"
 rangeset = { path = "../rangeset" }
 termwiz = { path = "../termwiz" }
@@ -53,5 +54,5 @@ core-text = "20.0"
 objc = "0.2"
 
 [dev-dependencies]
-k9 = "0.11.0"
+k9 = "0.12.0"
 env_logger = "0.11"

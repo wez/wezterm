@@ -320,6 +320,12 @@ impl AsRawSocket for FileDescriptor {
     }
 }
 
+impl AsSocket for FileDescriptor {
+    fn as_socket(&self) -> BorrowedSocket {
+        unsafe { BorrowedSocket::borrow_raw(self.as_raw_socket()) }
+    }
+}
+
 impl FromRawSocket for FileDescriptor {
     unsafe fn from_raw_socket(handle: RawSocket) -> FileDescriptor {
         Self {

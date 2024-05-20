@@ -3,6 +3,7 @@ name = "wezterm"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,8 +17,9 @@ codec = { path = "../codec" }
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
-hostname = "0.3"
-image = "0.24.6"
+hostname = "0.4"
+humantime = "2.1"
+image = "0.25"
 libc = "0.2"
 log = "0.4"
 mux = { path = "../mux" }
@@ -26,7 +28,7 @@ promise = { path = "../promise" }
 serde = {version="1.0", features = ["derive"]}
 serde_json = "1.0"
 shell-words = "1.1"
-smol = "1.2"
+smol = "2.0"
 tabout = { path = "../tabout" }
 tempfile = "3.3"
 termwiz = { path = "../termwiz" }

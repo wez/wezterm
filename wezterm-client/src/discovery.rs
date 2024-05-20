@@ -1,7 +1,7 @@
-use crate::UnixStream;
 use anyhow::Context;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
+use wezterm_uds::UnixStream;
 
 /// There's a lot more code in this windows module than I thought I would need
 /// to write.  Ostensibly, we could get away with making a symlink by taking

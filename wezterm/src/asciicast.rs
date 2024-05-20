@@ -161,8 +161,8 @@ mod win {
             let mut saved_output = 0;
             let saved_cp;
             unsafe {
-                GetConsoleMode(read.as_raw_file_descriptor(), &mut saved_input);
-                GetConsoleMode(write.as_raw_file_descriptor(), &mut saved_output);
+                GetConsoleMode(read.as_raw_file_descriptor() as *mut _, &mut saved_input);
+                GetConsoleMode(write.as_raw_file_descriptor() as *mut _, &mut saved_output);
                 saved_cp = GetConsoleOutputCP();
                 SetConsoleOutputCP(CP_UTF8);
             }
@@ -179,8 +179,8 @@ mod win {
         pub fn set_cooked(&mut self) -> anyhow::Result<()> {
             unsafe {
                 SetConsoleOutputCP(self.saved_cp);
-                SetConsoleMode(self.read.as_raw_handle(), self.saved_input);
-                SetConsoleMode(self.write.as_raw_handle(), self.saved_output);
+                SetConsoleMode(self.read.as_raw_handle() as *mut _, self.saved_input);
+                SetConsoleMode(self.write.as_raw_handle() as *mut _, self.saved_output);
             }
             Ok(())
         }
@@ -188,11 +188,11 @@ mod win {
         pub fn set_raw(&mut self) -> anyhow::Result<()> {
             unsafe {
                 SetConsoleMode(
-                    self.read.as_raw_file_descriptor(),
+                    self.read.as_raw_file_descriptor() as *mut _,
                     ENABLE_VIRTUAL_TERMINAL_INPUT,
                 );
                 SetConsoleMode(
-                    self.write.as_raw_file_descriptor(),
+                    self.write.as_raw_file_descriptor() as *mut _,
                     ENABLE_PROCESSED_OUTPUT
                         | ENABLE_WRAP_AT_EOL_OUTPUT
                         | ENABLE_VIRTUAL_TERMINAL_PROCESSING
@@ -626,6 +626,7 @@ impl PlayCommand {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum Summarized {
     Action(Action),

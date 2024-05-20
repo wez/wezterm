@@ -149,7 +149,9 @@ impl TerminfoRenderer {
                 None => 0,
             };
 
-            if attr.foreground() != current_foreground {
+            if attr.foreground() != current_foreground
+                && self.caps.color_level() != ColorLevel::MonoChrome
+            {
                 match (has_true_color, attr.foreground()) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
@@ -183,7 +185,9 @@ impl TerminfoRenderer {
                 }
             }
 
-            if attr.background() != current_background {
+            if attr.background() != current_background
+                && self.caps.color_level() != ColorLevel::MonoChrome
+            {
                 match (has_true_color, attr.background()) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {

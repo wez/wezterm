@@ -7,6 +7,7 @@ use libc::{self, winsize};
 use std::cell::RefCell;
 use std::ffi::OsStr;
 use std::io::{Read, Write};
+use std::os::fd::AsFd;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::os::unix::process::CommandExt;
@@ -378,7 +379,7 @@ impl MasterPty for UnixMasterPty {
     }
 
     fn get_termios(&self) -> Option<nix::sys::termios::Termios> {
-        nix::sys::termios::tcgetattr(self.fd.0.as_raw_fd()).ok()
+        nix::sys::termios::tcgetattr(self.fd.0.as_fd()).ok()
     }
 }
 

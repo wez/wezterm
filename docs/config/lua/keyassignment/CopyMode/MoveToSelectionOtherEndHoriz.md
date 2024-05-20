@@ -17,7 +17,7 @@ return {
       {
         key = 'O',
         mods = 'NONE',
-        action = act.CopyMode 'MoveToSelectionOtherEnd',
+        action = act.CopyMode 'MoveToSelectionOtherEndHoriz',
       },
     },
   },

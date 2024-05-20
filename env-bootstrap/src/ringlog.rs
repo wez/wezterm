@@ -281,6 +281,8 @@ fn setup_pretty() -> (LevelFilter, Logger) {
         ("wgpu_core", LevelFilter::Error),
         ("wgpu_hal", LevelFilter::Error),
         ("gfx_backend_metal", LevelFilter::Error),
+        ("tracing", LevelFilter::Error),
+        ("zbus", LevelFilter::Error),
     ] {
         filters.filter_module(module, level);
     }

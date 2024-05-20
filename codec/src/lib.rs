@@ -37,8 +37,8 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
 
 #[derive(Error, Debug)]
-#[error("Corrupt Response")]
-pub struct CorruptResponse;
+#[error("Corrupt Response: {0}")]
+pub struct CorruptResponse(String);
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
@@ -81,9 +81,9 @@ fn encode_raw_as_vec(
     buffer.extend_from_slice(data);
 
     if is_compressed {
-        metrics::histogram!("pdu.encode.compressed.size", buffer.len() as f64);
+        metrics::histogram!("pdu.encode.compressed.size").record(buffer.len() as f64);
     } else {
-        metrics::histogram!("pdu.encode.size", buffer.len() as f64);
+        metrics::histogram!("pdu.encode.size").record(buffer.len() as f64);
     }
 
     Ok(buffer)
@@ -173,44 +173,54 @@ async fn decode_raw_async<R: Unpin + AsyncRead + std::fmt::Debug>(
     r: &mut R,
     max_serial: Option<u64>,
 ) -> anyhow::Result<Decoded> {
-    let len = read_u64_async(r).await.context("reading PDU length")?;
+    let len = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU length")?;
     let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
         (len & !COMPRESSED_MASK, true)
     } else {
         (len, false)
     };
-    let serial = read_u64_async(r).await.context("reading PDU serial")?;
+    let serial = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU serial")?;
     if let Some(max_serial) = max_serial {
         if serial > max_serial && max_serial > 0 {
-            return Err(CorruptResponse).context("decode_raw");
+            return Err(CorruptResponse(format!(
+                "decode_raw_async: serial {serial} is implausibly large \
+                (bigger than {max_serial})"
+            ))
+            .into());
         }
     }
-    let ident = read_u64_async(r).await.context("reading PDU ident")?;
+    let ident = read_u64_async(r)
+        .await
+        .context("decode_raw_async failed to read PDU ident")?;
     let data_len =
         match (len as usize).overflowing_sub(encoded_length(ident) + encoded_length(serial)) {
             (_, true) => {
-                anyhow::bail!(
-                    "sizes don't make sense: len:{} serial:{} (enc={}) ident:{} (enc={})",
-                    len,
-                    serial,
+                return Err(CorruptResponse(format!(
+                    "decode_raw_async: sizes don't make sense: \
+                    len:{len} serial:{serial} (enc={}) ident:{ident} (enc={})",
                     encoded_length(serial),
-                    ident,
                     encoded_length(ident)
-                );
+                ))
+                .into());
             }
             (data_len, false) => data_len,
         };
 
     if is_compressed {
-        metrics::histogram!("pdu.decode.compressed.size", data_len as f64);
+        metrics::histogram!("pdu.decode.compressed.size").record(data_len as f64);
     } else {
-        metrics::histogram!("pdu.decode.size", data_len as f64);
+        metrics::histogram!("pdu.decode.size").record(data_len as f64);
     }
 
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data).await.with_context(|| {
         format!(
-            "reading {} bytes of data for PDU of length {} with serial={} ident={}",
+            "decode_raw_async failed to read {} bytes of data \
+            for PDU of length {} with serial={} ident={}",
             data_len, len, serial, ident
         )
     })?;
@@ -249,9 +259,9 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> anyhow::Result<Decoded> {
         };
 
     if is_compressed {
-        metrics::histogram!("pdu.decode.compressed.size", data_len as f64);
+        metrics::histogram!("pdu.decode.compressed.size").record(data_len as f64);
     } else {
-        metrics::histogram!("pdu.decode.size", data_len as f64);
+        metrics::histogram!("pdu.decode.size").record(data_len as f64);
     }
 
     let mut data = vec![0u8; data_len];
@@ -340,8 +350,8 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw($vers, serial, &data, is_compressed, w)?;
                             log::debug!("encode {} size={encoded_size}", stringify!($name));
-                            metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
-                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size", "pdu" => stringify!($name)).record(encoded_size as f64);
+                            metrics::histogram!("pdu.size.rate", "pdu" => stringify!($name)).record(encoded_size as f64);
                             Ok(())
                         }
                     ,)*
@@ -356,8 +366,8 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw_async($vers, serial, &data, is_compressed, w).await?;
                             log::debug!("encode_async {} size={encoded_size}", stringify!($name));
-                            metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
-                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size", "pdu" => stringify!($name)).record(encoded_size as f64);
+                            metrics::histogram!("pdu.size.rate", "pdu" => stringify!($name)).record(encoded_size as f64);
                             Ok(())
                         }
                     ,)*
@@ -380,8 +390,8 @@ macro_rules! pdu {
                 match decoded.ident {
                     $(
                         $vers => {
-                            metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => stringify!($name));
-                            metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size", "pdu" => stringify!($name)).record(decoded.data.len() as f64);
+                            metrics::histogram!("pdu.size.rate", "pdu" => stringify!($name)).record(decoded.data.len() as f64);
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
                                 pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
@@ -389,8 +399,8 @@ macro_rules! pdu {
                         }
                     ,)*
                     _ => {
-                        metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => "??");
-                        metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => "??");
+                        metrics::histogram!("pdu.size", "pdu" => "??").record(decoded.data.len() as f64);
+                        metrics::histogram!("pdu.size.rate", "pdu" => "??").record(decoded.data.len() as f64);
                         Ok(DecodedPdu {
                             serial: decoded.serial,
                             pdu: Pdu::Invalid{ident:decoded.ident}
@@ -408,7 +418,7 @@ macro_rules! pdu {
                 match decoded.ident {
                     $(
                         $vers => {
-                            metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size", "pdu" => stringify!($name)).record(decoded.data.len() as f64);
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
                                 pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
@@ -416,7 +426,7 @@ macro_rules! pdu {
                         }
                     ,)*
                     _ => {
-                        metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => "??");
+                        metrics::histogram!("pdu.size", "pdu" => "??").record(decoded.data.len() as f64);
                         Ok(DecodedPdu {
                             serial: decoded.serial,
                             pdu: Pdu::Invalid{ident:decoded.ident}
@@ -431,7 +441,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 42;
+pub const CODEC_VERSION: usize = 43;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -823,6 +833,7 @@ pub struct WindowWorkspaceChanged {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetClientId {
     pub client_id: ClientId,
+    pub is_proxy: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

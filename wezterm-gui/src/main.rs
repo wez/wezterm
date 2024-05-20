@@ -1219,6 +1219,9 @@ fn run() -> anyhow::Result<()> {
         opts.skip_config,
     )?;
     let config = config::configuration();
+    if let Some(value) = &config.default_ssh_auth_sock {
+        std::env::set_var("SSH_AUTH_SOCK", value);
+    }
 
     let sub = match opts.cmd.as_ref().cloned() {
         Some(SubCommand::BlockingStart(start)) => {

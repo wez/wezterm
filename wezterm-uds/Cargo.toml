@@ -1,0 +1,12 @@
+[package]
+name = "wezterm-uds"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/wez/wezterm"
+description = "Portable unix domain sockets"
+license = "MIT"
+documentation = "https://docs.rs/wezterm-uds"
+
+[dependencies]
+async-io = "2.3"
+uds_windows = "1.1"

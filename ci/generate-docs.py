@@ -79,6 +79,8 @@ def load_scheme(scheme):
         "[^a-z0-9_]", "_", scheme["metadata"]["name"].lower().replace("+", "plus")
     )
 
+    if "ansi" not in scheme["colors"]:
+        raise Exception(f"scheme {scheme} is missing ansi colors!!?")
     colors = scheme["colors"]["ansi"] + scheme["colors"]["brights"]
 
     data = {

@@ -1,6 +1,6 @@
 //! A Renderer for windows consoles
 
-use crate::caps::Capabilities;
+use crate::caps::{Capabilities, ColorLevel};
 use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
@@ -17,17 +17,19 @@ use winapi::um::wincon::{
 
 pub struct WindowsConsoleRenderer {
     pending_attr: CellAttributes,
+    capabilities: Capabilities,
 }
 
 impl WindowsConsoleRenderer {
-    pub fn new(_caps: Capabilities) -> Self {
+    pub fn new(capabilities: Capabilities) -> Self {
         Self {
             pending_attr: CellAttributes::default(),
+            capabilities,
         }
     }
 }
 
-fn to_attr_word(attr: &CellAttributes) -> u16 {
+fn to_attr_word(capabilities: &Capabilities, attr: &CellAttributes) -> u16 {
     macro_rules! ansi_colors_impl {
         ($idx:expr, $default:ident,
                 $red:ident, $green:ident, $blue:ident,
@@ -69,6 +71,21 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         };
     }
 
+    let reverse = if attr.reverse() {
+        COMMON_LVB_REVERSE_VIDEO
+    } else {
+        0
+    };
+    let underline = if attr.underline() != Underline::None {
+        COMMON_LVB_UNDERSCORE
+    } else {
+        0
+    };
+
+    if capabilities.color_level() == ColorLevel::MonoChrome {
+        return reverse | underline;
+    }
+
     let fg = match attr.foreground() {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
             FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
@@ -96,17 +113,6 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
             BACKGROUND_BLUE,
             BACKGROUND_INTENSITY
         ),
-    };
-
-    let reverse = if attr.reverse() {
-        COMMON_LVB_REVERSE_VIDEO
-    } else {
-        0
-    };
-    let underline = if attr.underline() != Underline::None {
-        COMMON_LVB_UNDERSCORE
-    } else {
-        0
     };
 
     bg | fg | reverse | underline
@@ -308,7 +314,7 @@ impl WindowsConsoleRenderer {
             dirty: false,
             rows,
             cols,
-            pending_attr: to_attr_word(&CellAttributes::default()),
+            pending_attr: to_attr_word(&self.capabilities, &CellAttributes::default()),
         };
 
         for change in changes {
@@ -318,7 +324,13 @@ impl WindowsConsoleRenderer {
                         .set_background(color.clone())
                         .clone();
 
-                    buffer.fill(' ', to_attr_word(&attr), 0, 0, cols * rows);
+                    buffer.fill(
+                        ' ',
+                        to_attr_word(&self.capabilities, &attr),
+                        0,
+                        0,
+                        cols * rows,
+                    );
                     buffer.set_cursor(0, 0, out)?;
                 }
                 Change::ClearToEndOfLine(color) => {
@@ -328,7 +340,7 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_word(&self.capabilities, &attr),
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols.saturating_sub(buffer.cursor_x),
@@ -341,14 +353,18 @@ impl WindowsConsoleRenderer {
 
                     buffer.fill(
                         ' ',
-                        to_attr_word(&attr),
+                        to_attr_word(&self.capabilities, &attr),
                         buffer.cursor_x,
                         buffer.cursor_y,
                         cols * rows,
                     );
                 }
                 Change::Text(text) => {
-                    buffer.write_text(&text, to_attr_word(&self.pending_attr), out)?;
+                    buffer.write_text(
+                        &text,
+                        to_attr_word(&self.capabilities, &self.pending_attr),
+                        out,
+                    )?;
                 }
                 Change::CursorPosition { x, y } => {
                     let x = match x {

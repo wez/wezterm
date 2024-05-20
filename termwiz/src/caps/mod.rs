@@ -55,11 +55,14 @@
 //! the terminal capabilities, but also offers a `ProbeHints`
 //! that can be used by the embedding application to override those choices.
 use crate::{builder, Result};
-use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
 
 pub mod probed;
+
+/// Environment variable name indicating that color output should be disabled.
+/// See <https://no-color.org>
+const NO_COLOR_ENV: &str = "NO_COLOR";
 
 builder! {
     /// Use the `ProbeHints` to configure an instance of
@@ -121,12 +124,21 @@ builder! {
 
 impl ProbeHints {
     pub fn new_from_env() -> Self {
-        ProbeHints::default()
+        let mut probe_hints = ProbeHints::default()
             .term(var("TERM").ok())
             .colorterm(var("COLORTERM").ok())
             .colorterm_bce(var("COLORTERM_BCE").ok())
             .term_program(var("TERM_PROGRAM").ok())
-            .term_program_version(var("TERM_PROGRAM_VERSION").ok())
+            .term_program_version(var("TERM_PROGRAM_VERSION").ok());
+
+        if !std::env::var(NO_COLOR_ENV)
+            .unwrap_or("".to_string())
+            .is_empty()
+        {
+            probe_hints.color_level = Some(ColorLevel::MonoChrome);
+        }
+
+        probe_hints
     }
 }
 
@@ -146,6 +158,9 @@ pub enum ColorLevel {
     /// What we care about here is whether the terminal supports the escape
     /// sequence to specify RGB values rather than a palette index.
     TrueColor,
+    /// Describes monochrome (black and white) color support.
+    /// Enabled via NO_COLOR environment variable.
+    MonoChrome,
 }
 
 /// `Capabilities` holds information about the capabilities of a terminal.
@@ -279,12 +294,13 @@ impl Capabilities {
                     // here because the iTerm2 docs don't say when the
                     // image protocol was first implemented, but do mention
                     // the gif version.
-                    Version::parse(
+                    version_ge(
                         hints
                             .term_program_version
                             .as_ref()
                             .unwrap_or(&"0.0.0".to_owned()),
-                    ) >= Version::parse("2.9.20150512")
+                        "2.9.20150512",
+                    )
                 }
                 Some("WezTerm") => true,
                 _ => false,
@@ -360,9 +376,61 @@ impl Capabilities {
     }
 }
 
+/// Returns true if the version string `a` is >= `b`
+fn version_ge(a: &str, b: &str) -> bool {
+    let mut a = a.split('.');
+    let mut b = b.split('.');
+
+    loop {
+        match (a.next(), b.next()) {
+            (Some(a), Some(b)) => match (a.parse::<u64>(), b.parse::<u64>()) {
+                (Ok(a), Ok(b)) => {
+                    if a > b {
+                        return true;
+                    }
+                    if a < b {
+                        return false;
+                    }
+                }
+                _ => {
+                    if a > b {
+                        return true;
+                    }
+                    if a < b {
+                        return false;
+                    }
+                }
+            },
+            (Some(_), None) => {
+                // A is greater
+                return true;
+            }
+            (None, Some(_)) => {
+                // A is smaller
+                return false;
+            }
+            (None, None) => {
+                // Equal
+                return true;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn version_cmp() {
+        assert!(version_ge("1", "0"));
+        assert!(version_ge("1.0", "0"));
+        assert!(!version_ge("0", "1"));
+        assert!(version_ge("3.2", "2.9"));
+        assert!(version_ge("3.2.0beta5", "2.9"));
+        assert!(version_ge("3.2.0beta5", "3.2.0"));
+        assert!(version_ge("3.2.0beta5", "3.2.0beta1"));
+    }
 
     fn load_terminfo() -> terminfo::Database {
         // Load our own compiled data so that the tests have an

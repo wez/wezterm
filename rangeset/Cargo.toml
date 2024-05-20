@@ -3,12 +3,13 @@ name = "rangeset"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 [dependencies]
-num = "0.3"
+num = "0.4"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"
 
 [[bench]]
 name = "rangeset"

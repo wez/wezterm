@@ -2,6 +2,7 @@
 name = "spawn-funcs"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,7 +12,7 @@ config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 log = "0.4"
 luahelper = { path = "../../luahelper" }
-smol = "1.2"
+smol = "2.0"
 bstr = "1.0"
 wezterm-open-url = { path = "../../wezterm-open-url" }
 

@@ -712,7 +712,7 @@ impl crate::TermWindow {
             .context("populate_image_quad")?;
         }
 
-        metrics::histogram!("render_screen_line", start.elapsed());
+        metrics::histogram!("render_screen_line").record(start.elapsed());
 
         Ok(RenderScreenLineResult {
             invalidate_on_hover_change,

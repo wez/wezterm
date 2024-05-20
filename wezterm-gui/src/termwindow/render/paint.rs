@@ -112,8 +112,8 @@ impl crate::TermWindow {
             self.last_frame_duration,
             self.fps
         );
-        metrics::histogram!("gui.paint.impl", self.last_frame_duration);
-        metrics::histogram!("gui.paint.impl.rate", 1.);
+        metrics::histogram!("gui.paint.impl").record(self.last_frame_duration);
+        metrics::histogram!("gui.paint.impl.rate").record(1.);
 
         // If self.has_animation is some, then the last render detected
         // image attachments with multiple frames, so we also need to
@@ -181,7 +181,7 @@ impl crate::TermWindow {
             .context("layer_for_zindex(0)")?;
         let mut layers = layer.quad_allocator();
         log::trace!("quad map elapsed {:?}", start.elapsed());
-        metrics::histogram!("quad.map", start.elapsed());
+        metrics::histogram!("quad.map").record(start.elapsed());
 
         let mut paint_terminal_background = false;
 

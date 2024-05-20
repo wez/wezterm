@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2018"
 links = "freetype"
 build = "build.rs"
+publish = false
 
 [dependencies]
 fixed = "1.23"

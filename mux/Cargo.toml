@@ -3,6 +3,7 @@ name = "mux"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,15 +20,15 @@ downcast-rs = "1.0"
 fancy-regex = "0.11"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 luahelper = { path = "../luahelper" }
-metrics = { version="0.17", features=["std"]}
+metrics = "0.22"
 mlua = "0.9"
 names = { version = "0.12", default-features = false }
-nix = {version="0.25", features=["term"]}
+nix = {version="0.28", features=["term"]}
 parking_lot = "0.12"
 percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support"]}
@@ -37,8 +38,8 @@ rangeset = { path = "../rangeset" }
 serde = {version="1.0", features = ["rc", "derive"]}
 serial = "0.4"
 shell-words = "1.1"
-smol = "1.2"
-terminfo = "0.8"
+smol = "2.0"
+terminfo = "0.9"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
@@ -47,7 +48,6 @@ url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-term = { path = "../term", features=["use_serde"] }
-flume = "0.10"
 
 [target."cfg(windows)".dependencies]
 ntapi = "0.4"
@@ -60,4 +60,4 @@ winapi = { version = "0.3", features = [
 ]}
 
 [dev-dependencies]
-k9 = "0.11"
+k9 = "0.12"

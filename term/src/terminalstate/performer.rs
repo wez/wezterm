@@ -150,7 +150,6 @@ impl<'a> Performer<'a> {
                 {
                     let y = self.cursor.y;
                     let is_conpty = self.state.enable_conpty_quirks;
-                    let is_alt = self.state.screen.alt_screen_is_active;
                     let screen = self.screen_mut();
                     let y = screen.phys_row(y);
 
@@ -162,14 +161,13 @@ impl<'a> Performer<'a> {
                         }
                     }
 
-                    let should_mark_wrapped = !is_alt
-                        && (!is_conpty
-                            || screen
-                                .line_mut(y)
-                                .visible_cells()
-                                .last()
-                                .map(|cell| makes_sense_to_wrap(cell.str()))
-                                .unwrap_or(false));
+                    let should_mark_wrapped = !is_conpty
+                        || screen
+                            .line_mut(y)
+                            .visible_cells()
+                            .last()
+                            .map(|cell| makes_sense_to_wrap(cell.str()))
+                            .unwrap_or(false);
                     if should_mark_wrapped {
                         screen.line_mut(y).set_last_cell_was_wrapped(true, seqno);
                     }
