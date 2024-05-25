@@ -103,7 +103,7 @@ hide:
     $ curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
     $ echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' | sudo tee /etc/apt/sources.list.d/wezterm.list
     ```
-    
+
     Update your dependencies:
 
     ```console
@@ -167,7 +167,7 @@ hide:
     available in Copr for `x86_64` and `aarch64`:
 
     * Centos Stream 8 and 9
-    * Fedora 38, 39, rawhide
+    * Fedora 38, 39, 40, rawhide
     * OpenSUSE Leap 15.5
     * OpenSUSE Tumbleweed
     * RHEL 8, 9
@@ -201,9 +201,10 @@ hide:
     |------------|------------------|---------------------|
     |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
     |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
-    |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|[{{ fedora37_rpm_nightly_asset }}]({{ fedora37_rpm_nightly }})|
+    |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|No longer supported|
     |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|[{{ fedora38_rpm_nightly_asset }}]({{ fedora38_rpm_nightly }})|
     |Fedora39    |[{{ fedora39_rpm_stable_asset }}]({{ fedora39_rpm_stable }})|[{{ fedora39_rpm_nightly_asset }}]({{ fedora39_rpm_nightly }})|
+    |Fedora40    |Nightly only|[{{ fedora40_rpm_nightly_asset }}]({{ fedora40_rpm_nightly }})|
 
     To download and install from the CLI you can use something like this, which
     shows how to install the Fedora 39 package:
