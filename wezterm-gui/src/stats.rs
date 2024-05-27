@@ -2,10 +2,11 @@ use config::configuration;
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::Lua;
 use hdrhistogram::Histogram;
-use metrics::{GaugeValue, Key, Recorder, Unit};
+use metrics::{Counter, Gauge, Key, KeyName, Metadata, Recorder, SharedString, Unit};
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tabout::{tabulate_output, Alignment, Column};
 
@@ -14,21 +15,40 @@ lazy_static::lazy_static! {
     static ref INNER: Arc<Mutex<Inner>> = make_inner();
 }
 
-struct Throughput {
+struct ThroughputInner {
     hist: Histogram<u64>,
     last: Option<Instant>,
     count: u64,
 }
 
+struct Throughput {
+    inner: Mutex<ThroughputInner>,
+}
+
 impl Throughput {
     fn new() -> Self {
         Self {
-            hist: Histogram::new(2).expect("failed to create histogram"),
-            last: None,
-            count: 0,
+            inner: Mutex::new(ThroughputInner {
+                hist: Histogram::new(2).expect("failed to create histogram"),
+                last: None,
+                count: 0,
+            }),
         }
     }
+    fn current(&self) -> u64 {
+        self.inner.lock().current()
+    }
 
+    fn percentiles(&self) -> (u64, u64, u64) {
+        let inner = self.inner.lock();
+        let p50 = inner.hist.value_at_percentile(50.);
+        let p75 = inner.hist.value_at_percentile(75.);
+        let p95 = inner.hist.value_at_percentile(95.);
+        (p50, p75, p95)
+    }
+}
+
+impl ThroughputInner {
     fn add(&mut self, value: u64) {
         if let Some(ref last) = self.last {
             let elapsed = last.elapsed();
@@ -57,14 +77,69 @@ impl Throughput {
     }
 }
 
+impl metrics::HistogramFn for Throughput {
+    fn record(&self, value: f64) {
+        self.inner.lock().add(value as u64);
+    }
+}
+
+struct ScaledHistogram {
+    hist: Mutex<Histogram<u64>>,
+    scale: f64,
+}
+
+impl ScaledHistogram {
+    fn new(scale: f64) -> Arc<Self> {
+        Arc::new(Self {
+            hist: Mutex::new(Histogram::new(2).expect("failed to create new Histogram")),
+            scale,
+        })
+    }
+    fn percentiles(&self) -> (u64, u64, u64) {
+        let hist = self.hist.lock();
+        let p50 = hist.value_at_percentile(50.);
+        let p75 = hist.value_at_percentile(75.);
+        let p95 = hist.value_at_percentile(95.);
+        (p50, p75, p95)
+    }
+
+    fn latency_percentiles(&self) -> (Duration, Duration, Duration) {
+        let hist = self.hist.lock();
+        let p50 = pctile_latency(&*hist, 50.);
+        let p75 = pctile_latency(&*hist, 75.);
+        let p95 = pctile_latency(&*hist, 95.);
+        (p50, p75, p95)
+    }
+}
+
+impl metrics::HistogramFn for ScaledHistogram {
+    fn record(&self, value: f64) {
+        self.hist.lock().record((value * self.scale) as u64).ok();
+    }
+}
+
 fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
     Duration::from_nanos(histogram.value_at_percentile(p))
 }
 
+struct MyCounter {
+    value: AtomicUsize,
+}
+
+impl metrics::CounterFn for MyCounter {
+    fn increment(&self, value: u64) {
+        self.value.fetch_add(value as usize, Ordering::Relaxed);
+    }
+
+    fn absolute(&self, value: u64) {
+        self.value.store(value as usize, Ordering::Relaxed);
+    }
+}
+
 struct Inner {
-    histograms: HashMap<Key, Histogram<u64>>,
-    throughput: HashMap<Key, Throughput>,
-    counters: HashMap<Key, u64>,
+    histograms: HashMap<Key, Arc<ScaledHistogram>>,
+    throughput: HashMap<Key, Arc<Throughput>>,
+    counters: HashMap<Key, Arc<MyCounter>>,
 }
 
 impl Inner {
@@ -136,12 +211,10 @@ impl Inner {
             if last_print.elapsed() >= Duration::from_secs(seconds) {
                 let mut data = vec![];
 
-                let mut inner = inner.lock().unwrap();
+                let mut inner = inner.lock();
                 for (key, tput) in &mut inner.throughput {
                     let current = tput.current();
-                    let p50 = tput.hist.value_at_percentile(50.);
-                    let p75 = tput.hist.value_at_percentile(75.);
-                    let p95 = tput.hist.value_at_percentile(95.);
+                    let (p50, p75, p95) = tput.percentiles();
                     data.push(vec![
                         key.to_string(),
                         format!("{:.2?}", current),
@@ -157,9 +230,7 @@ impl Inner {
                 data.clear();
                 for (key, histogram) in &inner.histograms {
                     if key.name().ends_with(".size") {
-                        let p50 = histogram.value_at_percentile(50.);
-                        let p75 = histogram.value_at_percentile(75.);
-                        let p95 = histogram.value_at_percentile(95.);
+                        let (p50, p75, p95) = histogram.percentiles();
                         data.push(vec![
                             key.to_string(),
                             format!("{:.2?}", p50),
@@ -167,9 +238,7 @@ impl Inner {
                             format!("{:.2?}", p95),
                         ]);
                     } else {
-                        let p50 = pctile_latency(histogram, 50.);
-                        let p75 = pctile_latency(histogram, 75.);
-                        let p95 = pctile_latency(histogram, 95.);
+                        let (p50, p75, p95) = histogram.latency_percentiles();
                         data.push(vec![
                             key.to_string(),
                             format!("{:.2?}", p50),
@@ -184,7 +253,10 @@ impl Inner {
 
                 data.clear();
                 for (key, count) in &inner.counters {
-                    data.push(vec![key.to_string(), count.to_string()]);
+                    data.push(vec![
+                        key.to_string(),
+                        count.value.load(Ordering::Relaxed).to_string(),
+                    ]);
                 }
                 data.sort_by(|a, b| a[0].cmp(&b[0]));
                 eprintln!();
@@ -219,61 +291,65 @@ impl Stats {
         let stats = Self::new();
         let inner = Arc::clone(&stats.inner);
         std::thread::spawn(move || Inner::run(inner));
-        let rec = Box::new(stats);
-        metrics::set_boxed_recorder(rec)
+        metrics::set_global_recorder(stats)
             .map_err(|e| anyhow::anyhow!("Failed to set metrics recorder:{}", e))
     }
 }
 
 impl Recorder for Stats {
-    fn register_counter(
-        &self,
-        _key: &Key,
-        _unit: Option<Unit>,
-        _description: Option<&'static str>,
-    ) {
+    fn describe_counter(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+
+    fn describe_gauge(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+
+    fn describe_histogram(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+
+    fn register_counter(&self, key: &Key, _metadata: &Metadata) -> Counter {
+        let mut inner = self.inner.lock();
+        match inner.counters.get(key) {
+            Some(existing) => Counter::from_arc(existing.clone()),
+            None => {
+                let counter = Arc::new(MyCounter {
+                    value: AtomicUsize::new(0),
+                });
+                inner.counters.insert(key.clone(), counter.clone());
+                metrics::Counter::from_arc(counter)
+            }
+        }
     }
 
-    fn register_gauge(&self, _key: &Key, _unit: Option<Unit>, _description: Option<&'static str>) {}
-
-    fn register_histogram(
-        &self,
-        _key: &Key,
-        _unit: Option<Unit>,
-        _description: Option<&'static str>,
-    ) {
+    fn register_gauge(&self, _key: &Key, _metadata: &Metadata) -> Gauge {
+        Gauge::noop()
     }
 
-    fn increment_counter(&self, key: &Key, value: u64) {
-        let mut inner = self.inner.lock().unwrap();
-        let counter = inner.counters.entry(key.clone()).or_insert_with(|| 0);
-        *counter = *counter + value;
-    }
-
-    fn update_gauge(&self, key: &Key, value: GaugeValue) {
-        log::trace!("gauge '{}' -> {:?}", key, value);
-    }
-
-    fn record_histogram(&self, key: &Key, value: f64) {
-        let mut inner = self.inner.lock().unwrap();
+    fn register_histogram(&self, key: &Key, _metadata: &Metadata) -> metrics::Histogram {
+        let mut inner = self.inner.lock();
         if key.name().ends_with(".rate") {
-            let tput = inner
-                .throughput
-                .entry(key.clone())
-                .or_insert_with(|| Throughput::new());
-            tput.add(value as u64);
+            match inner.throughput.get(key) {
+                Some(existing) => metrics::Histogram::from_arc(existing.clone()),
+                None => {
+                    let tput = Arc::new(Throughput::new());
+                    inner.throughput.insert(key.clone(), tput.clone());
+
+                    metrics::Histogram::from_arc(tput)
+                }
+            }
         } else {
-            let value = if key.name().ends_with(".size") {
-                value
-            } else {
-                // Assume seconds; convert to nanoseconds
-                value * 1_000_000_000.0
-            };
-            let histogram = inner
-                .histograms
-                .entry(key.clone())
-                .or_insert_with(|| Histogram::new(2).expect("failed to crate new Histogram"));
-            histogram.record(value as u64).ok();
+            match inner.histograms.get(key) {
+                Some(existing) => metrics::Histogram::from_arc(existing.clone()),
+                None => {
+                    let scale = if key.name().ends_with(".size") {
+                        1.0
+                    } else {
+                        // Assume seconds; convert to nanoseconds
+                        1_000_000_000.0
+                    };
+
+                    let histogram = ScaledHistogram::new(scale);
+                    inner.histograms.insert(key.clone(), histogram.clone());
+
+                    metrics::Histogram::from_arc(histogram)
+                }
+            }
         }
     }
 }
@@ -283,11 +359,11 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     metrics_mod.set(
         "get_counters",
         lua.create_function(|_, _: ()| {
-            let inner = INNER.lock().unwrap();
-            let counters: HashMap<String, u64> = inner
+            let inner = INNER.lock();
+            let counters: HashMap<String, usize> = inner
                 .counters
                 .iter()
-                .map(|(k, &v)| (k.name().to_string(), v))
+                .map(|(k, v)| (k.name().to_string(), v.value.load(Ordering::Relaxed)))
                 .collect();
             Ok(counters)
         })?,
@@ -295,16 +371,17 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     metrics_mod.set(
         "get_throughput",
         lua.create_function(|_, _: ()| {
-            let mut inner = INNER.lock().unwrap();
+            let mut inner = INNER.lock();
             let counters: HashMap<String, HashMap<String, u64>> = inner
                 .throughput
                 .iter_mut()
                 .map(|(k, tput)| {
                     let mut res = HashMap::new();
                     res.insert("current".to_string(), tput.current());
-                    res.insert("p50".to_string(), tput.hist.value_at_percentile(50.));
-                    res.insert("p75".to_string(), tput.hist.value_at_percentile(75.));
-                    res.insert("p95".to_string(), tput.hist.value_at_percentile(95.));
+                    let (p50, p75, p95) = tput.percentiles();
+                    res.insert("p50".to_string(), p50);
+                    res.insert("p75".to_string(), p75);
+                    res.insert("p95".to_string(), p95);
                     (k.name().to_string(), res)
                 })
                 .collect();
@@ -314,16 +391,17 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     metrics_mod.set(
         "get_sizes",
         lua.create_function(|_, _: ()| {
-            let mut inner = INNER.lock().unwrap();
+            let mut inner = INNER.lock();
             let counters: HashMap<String, HashMap<String, u64>> = inner
                 .histograms
                 .iter_mut()
                 .filter_map(|(key, hist)| {
                     if key.name().ends_with(".size") {
                         let mut res = HashMap::new();
-                        res.insert("p50".to_string(), hist.value_at_percentile(50.));
-                        res.insert("p75".to_string(), hist.value_at_percentile(75.));
-                        res.insert("p95".to_string(), hist.value_at_percentile(95.));
+                        let (p50, p75, p95) = hist.percentiles();
+                        res.insert("p50".to_string(), p50);
+                        res.insert("p75".to_string(), p75);
+                        res.insert("p95".to_string(), p95);
                         Some((key.name().to_string(), res))
                     } else {
                         None
@@ -336,25 +414,17 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     metrics_mod.set(
         "get_latency",
         lua.create_function(|_, _: ()| {
-            let mut inner = INNER.lock().unwrap();
+            let mut inner = INNER.lock();
             let counters: HashMap<String, HashMap<String, String>> = inner
                 .histograms
                 .iter_mut()
                 .filter_map(|(key, hist)| {
                     if !key.name().ends_with(".size") {
                         let mut res = HashMap::new();
-                        res.insert(
-                            "p50".to_string(),
-                            format!("{:?}", pctile_latency(hist, 50.)),
-                        );
-                        res.insert(
-                            "p75".to_string(),
-                            format!("{:?}", pctile_latency(hist, 75.)),
-                        );
-                        res.insert(
-                            "p95".to_string(),
-                            format!("{:?}", pctile_latency(hist, 95.)),
-                        );
+                        let (p50, p75, p95) = hist.latency_percentiles();
+                        res.insert("p50".to_string(), format!("{p50:?}"));
+                        res.insert("p75".to_string(), format!("{p75:?}"));
+                        res.insert("p95".to_string(), format!("{p95:?}"));
                         Some((key.name().to_string(), res))
                     } else {
                         None

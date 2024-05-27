@@ -1,6 +1,5 @@
 use crate::domain::{ClientDomain, ClientDomainConfig};
 use crate::pane::ClientPane;
-use crate::UnixStream;
 use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
@@ -25,11 +24,16 @@ use std::io::{Read, Write};
 use std::marker::Unpin;
 use std::net::TcpStream;
 #[cfg(unix)]
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, RawFd};
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::io::{AsRawSocket, AsSocket, BorrowedSocket, RawSocket};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
 use thiserror::Error;
+use wezterm_uds::UnixStream;
 
 #[derive(Error, Debug)]
 #[error("Timeout")]
@@ -51,7 +55,8 @@ enum ReaderMessage {
 pub struct Client {
     sender: Sender<ReaderMessage>,
     local_domain_id: Option<DomainId>,
-    client_id: ClientId,
+    pub client_id: ClientId,
+    client_domain_config: ClientDomainConfig,
     pub is_reconnectable: bool,
     pub is_local: bool,
 }
@@ -78,8 +83,8 @@ macro_rules! rpc {
             let start = std::time::Instant::now();
             let result = self.send_pdu(Pdu::$request_type(pdu)).await;
             let elapsed = start.elapsed();
-            metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
-            metrics::counter!("rpc.count", 1, "method" => stringify!($method_name));
+            metrics::histogram!("rpc", "method" => stringify!($method_name)).record(elapsed);
+            metrics::counter!("rpc.count", "method" => stringify!($method_name)).increment(1);
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),
@@ -97,8 +102,8 @@ macro_rules! rpc {
             let start = std::time::Instant::now();
             let result = self.send_pdu(Pdu::$request_type($request_type{})).await;
             let elapsed = start.elapsed();
-            metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
-            metrics::counter!("rpc.count", 1, "method" => stringify!($method_name));
+            metrics::histogram!("rpc", "method" => stringify!($method_name)).record(elapsed);
+            metrics::counter!("rpc.count", "method" => stringify!($method_name)).increment(1);
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),
@@ -523,6 +528,7 @@ where
     T: std::io::Write,
     T: std::io::Read,
     T: Send,
+    T: async_io::IoSafe,
 {
     async fn wait_for_readable(&self) -> anyhow::Result<()> {
         Ok(self.readable().await?)
@@ -541,6 +547,8 @@ struct SshStream {
     stdout: FileDescriptor,
 }
 
+unsafe impl async_io::IoSafe for SshStream {}
+
 impl std::fmt::Debug for SshStream {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(fmt, "SshStream {{...}}")
@@ -548,16 +556,30 @@ impl std::fmt::Debug for SshStream {
 }
 
 #[cfg(unix)]
-impl std::os::unix::io::AsRawFd for SshStream {
-    fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
+impl AsFd for SshStream {
+    fn as_fd(&self) -> BorrowedFd {
+        self.stdout.as_fd()
+    }
+}
+
+#[cfg(unix)]
+impl AsRawFd for SshStream {
+    fn as_raw_fd(&self) -> RawFd {
         self.stdout.as_raw_fd()
     }
 }
 
 #[cfg(windows)]
-impl std::os::windows::io::AsRawSocket for SshStream {
-    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
+impl AsRawSocket for SshStream {
+    fn as_raw_socket(&self) -> RawSocket {
         self.stdout.as_raw_socket()
+    }
+}
+
+#[cfg(windows)]
+impl AsSocket for SshStream {
+    fn as_socket(&self) -> BorrowedSocket {
+        self.stdout.as_socket()
     }
 }
 
@@ -663,7 +685,9 @@ impl Reconnectable {
         let sess = ssh_connect_with_ui(ssh_config, ui)?;
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
-        let cmd = if initial {
+        let cmd = if let Some(cmd) = ssh_dom.override_proxy_command.clone() {
+            cmd
+        } else if initial {
             format!("{} cli --prefer-mux proxy", proxy_bin)
         } else {
             format!("{} cli --prefer-mux --no-auto-start proxy", proxy_bin)
@@ -1015,6 +1039,7 @@ impl Reconnectable {
 
 impl Client {
     fn new(local_domain_id: Option<DomainId>, mut reconnectable: Reconnectable) -> Self {
+        let client_domain_config = reconnectable.config.clone();
         let is_reconnectable = reconnectable.reconnectable();
         let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
@@ -1112,7 +1137,12 @@ impl Client {
             is_reconnectable,
             is_local,
             client_id,
+            client_domain_config,
         }
+    }
+
+    pub fn into_client_domain_config(self) -> ClientDomainConfig {
+        self.client_domain_config
     }
 
     pub async fn verify_version_compat(
@@ -1135,6 +1165,7 @@ impl Client {
                 );
                 self.set_client_id(SetClientId {
                     client_id: self.client_id.clone(),
+                    is_proxy: false,
                 })
                 .await?;
                 Ok(info)
@@ -1157,21 +1188,24 @@ impl Client {
                 } else if err.root_cause().is::<CorruptResponse>() {
                     "Received an implausible and likely corrupt response from \
                     the server. This can happen if the remote host outputs \
-                    to stdout prior to running commands."
+                    to stdout prior to running commands. \
+                    Check your shell startup!"
                         .to_string()
                 } else if err.root_cause().is::<ChannelSendError>() {
                     "Internal channel was closed prior to sending request. \
                     This may indicate that the remote host output invalid data \
-                    to stdout prior to running the requested command"
+                    to stdout prior to running the requested command. \
+                    Check your shell startup!"
                         .to_string()
                 } else {
                     format!(
                         "Please install the same version of wezterm on both \
                      the client and server! \
-                     The server reported error '{}' while being asked for its \
+                     The server reported error '{err}' while being asked for its \
                      version.  This likely means that the server is older \
-                     than the client.\n",
-                        err
+                     than the client, but it could also happen if the remote \
+                     host outputs to stdout prior to running commands. \
+                     Check your shell startup!",
                     )
                 };
                 ui.output_str(&msg);

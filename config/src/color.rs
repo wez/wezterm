@@ -728,8 +728,15 @@ fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
 
 impl ColorSchemeFile {
     pub fn from_toml_value(value: &toml::Value) -> anyhow::Result<Self> {
-        Self::from_dynamic(&crate::toml_to_dynamic(value), Default::default())
-            .map_err(|e| anyhow::anyhow!("{}", e))
+        let scheme = Self::from_dynamic(&crate::toml_to_dynamic(value), Default::default())
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+        anyhow::ensure!(
+            scheme.colors.ansi.is_some(),
+            "scheme is missing ANSI colors"
+        );
+
+        Ok(scheme)
     }
 
     pub fn from_toml_str(s: &str) -> anyhow::Result<Self> {

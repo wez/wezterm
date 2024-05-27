@@ -243,6 +243,13 @@ impl SessionInner {
             .try_send(SessionEvent::Authenticated)
             .context("notifying user that session is authenticated")?;
 
+        if let Some("yes") = self.config.get("forwardagent").map(|s| s.as_str()) {
+            if self.identity_agent().is_some() {
+                sess.enable_accept_agent_forward(true);
+            } else {
+                log::error!("ForwardAgent is set to yes, but IdentityAgent is not set");
+            }
+        }
         sess.set_blocking(false);
         let mut sess = SessionWrap::with_libssh(sess);
         self.request_loop(&mut sess)
@@ -405,6 +412,7 @@ impl SessionInner {
             self.tick_io()?;
             self.drain_request_pipe();
             self.dispatch_pending_requests(sess)?;
+            self.connect_pending_agent_forward_channels(sess);
 
             if self.channels.is_empty() && self.session_was_dropped {
                 log::trace!(
@@ -517,8 +525,16 @@ impl SessionInner {
 
             let stdin = &mut chan.descriptors[0];
             if stdin.fd.is_some() && !stdin.buf.is_empty() {
-                write_from_buf(&mut chan.channel.writer(), &mut stdin.buf)
-                    .context("writing to channel")?;
+                if let Err(err) = write_from_buf(&mut chan.channel.writer(), &mut stdin.buf)
+                    .context("writing to channel")
+                {
+                    log::trace!(
+                        "Failed to write data to channel {} stdin: {:#}, closing pipe",
+                        id,
+                        err
+                    );
+                    stdin.fd.take();
+                }
             }
 
             for (idx, out) in chan
@@ -805,6 +821,61 @@ impl SessionInner {
         }
     }
 
+    fn connect_pending_agent_forward_channels(&mut self, sess: &mut SessionWrap) {
+        fn process_one(sess: &mut SessionInner, channel: ChannelWrap) -> anyhow::Result<()> {
+            let identity_agent = sess
+                .identity_agent()
+                .ok_or_else(|| anyhow!("no identity agent in config"))?;
+            let mut fd = {
+                use wezterm_uds::UnixStream;
+                #[cfg(unix)]
+                {
+                    FileDescriptor::new(UnixStream::connect(&identity_agent)?)
+                }
+                #[cfg(windows)]
+                unsafe {
+                    use std::os::windows::io::{FromRawSocket, IntoRawSocket};
+                    FileDescriptor::from_raw_socket(
+                        UnixStream::connect(&identity_agent)?.into_raw_socket(),
+                    )
+                }
+            };
+            fd.set_non_blocking(true)?;
+
+            let read_from_agent = fd;
+            let write_to_agent = read_from_agent.try_clone()?;
+            let channel_id = sess.next_channel_id;
+            sess.next_channel_id += 1;
+            let info = ChannelInfo {
+                channel_id,
+                channel,
+                exit: None,
+                exited: false,
+                descriptors: [
+                    DescriptorState {
+                        fd: Some(read_from_agent),
+                        buf: VecDeque::with_capacity(8192),
+                    },
+                    DescriptorState {
+                        fd: Some(write_to_agent),
+                        buf: VecDeque::with_capacity(8192),
+                    },
+                    DescriptorState {
+                        fd: None,
+                        buf: VecDeque::with_capacity(8192),
+                    },
+                ],
+            };
+            sess.channels.insert(channel_id, info);
+            Ok(())
+        }
+        while let Some(channel) = sess.accept_agent_forward() {
+            if let Err(err) = process_one(self, channel) {
+                log::error!("error connecting agent forward: {:#}", err);
+            }
+        }
+    }
+
     pub fn signal_channel(&mut self, info: &SignalChannel) -> anyhow::Result<()> {
         let chan_info = self
             .channels
@@ -817,6 +888,14 @@ impl SessionInner {
 
     pub fn exec(&mut self, sess: &mut SessionWrap, exec: Exec) -> anyhow::Result<ExecResult> {
         let mut channel = sess.open_session()?;
+
+        if let Some("yes") = self.config.get("forwardagent").map(|s| s.as_str()) {
+            if self.identity_agent().is_some() {
+                if let Err(err) = channel.request_auth_agent_forwarding() {
+                    log::error!("Failed to request agent forwarding: {:#}", err);
+                }
+            }
+        }
 
         if let Some(env) = &exec.env {
             for (key, val) in env {
@@ -943,6 +1022,13 @@ impl SessionInner {
                 Ok(sess.sftp.as_mut().expect("sftp should have been set above"))
             }
         }
+    }
+
+    pub fn identity_agent(&self) -> Option<String> {
+        self.config
+            .get("identityagent")
+            .map(|s| s.to_owned())
+            .or_else(|| std::env::var("SSH_AUTH_SOCK").ok())
     }
 }
 

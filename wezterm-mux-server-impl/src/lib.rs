@@ -5,11 +5,6 @@ use mux::Mux;
 use std::sync::Arc;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 
-#[cfg(unix)]
-use std::os::unix::net::{UnixListener, UnixStream};
-#[cfg(windows)]
-use uds_windows::{UnixListener, UnixStream};
-
 pub mod dispatch;
 pub mod local;
 pub mod pki;

@@ -3,6 +3,7 @@ name = "config"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,7 +19,7 @@ bitflags = "1.3"
 colorgrad = "0.6"
 dirs-next = "2.0"
 enum-display-derive = "0.1"
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
@@ -33,7 +34,7 @@ promise = { path = "../promise" }
 serde = {version="1.0", features = ["rc", "derive"]}
 serde_json = "1.0"
 shlex = "1.1"
-smol = "1.2"
+smol = "2.0"
 termwiz = { path = "../termwiz", features=["use_serde"] }
 toml = "0.8"
 umask = { path = "../umask" }
@@ -45,7 +46,7 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(unix)".dependencies]
-nix = "0.26"
+nix = {version="0.28", features=["resource"]}
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}

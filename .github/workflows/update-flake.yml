@@ -25,3 +25,4 @@ jobs:
             automated
           pr-assignees: happenslol,gabyx,emiller88
           # TODO pr-reviewers: SomeOtherGitHubUsername,SomeThirdGitHubUsername
+          path-to-flake-dir: 'nix/'

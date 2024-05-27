@@ -106,7 +106,7 @@ impl WglWrapper {
             }
         }
 
-        let lib = libloading::Library::new("opengl32.dll").map_err(|e| {
+        let lib = unsafe { libloading::Library::new("opengl32.dll") }.map_err(|e| {
             log::error!("{:?}", e);
             e
         })?;

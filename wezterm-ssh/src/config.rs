@@ -533,6 +533,15 @@ impl Config {
 
         let mut token_map = self.tokens.clone();
         token_map.insert("%h".to_string(), host.to_string());
+        result
+            .entry("hostname".to_string())
+            .and_modify(|curr| {
+                if let Some(tokens) = self.should_expand_tokens("hostname") {
+                    self.expand_tokens(curr, tokens, &token_map);
+                }
+            })
+            .or_insert_with(|| host.to_string());
+        token_map.insert("%h".to_string(), result["hostname"].to_string());
         token_map.insert("%n".to_string(), host.to_string());
         token_map.insert("%r".to_string(), target_user.to_string());
         token_map.insert(
@@ -552,10 +561,6 @@ impl Config {
                 self.expand_environment(v);
             }
         }
-
-        result
-            .entry("hostname".to_string())
-            .or_insert_with(|| host.to_string());
 
         result
             .entry("port".to_string())
@@ -953,6 +958,39 @@ Config {
     "hostname": "server-foo2",
     "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "22",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn parse_proxy_command_hostname_expansion() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo
+            HostName server-%h
+            ProxyCommand nc -x localhost:1080 %h %p
+            "#,
+        );
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "server-foo",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "proxycommand": "nc -x localhost:1080 server-foo 22",
     "user": "me",
     "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }

@@ -242,6 +242,9 @@ impl SchemeSet {
             let existing: Vec<serde_json::Value> = serde_json::from_str(&data)?;
             for item in existing {
                 let data = ColorSchemeFile::from_json_value(&item)?;
+                if data.colors.ansi.is_none() {
+                    continue;
+                }
                 let name = data.metadata.name.as_ref().unwrap().to_string();
                 by_name.insert(
                     name.to_string(),
@@ -416,6 +419,9 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     schemeses
         .sync_toml("https://github.com/ribru17/bamboo.nvim", "master", "")
+        .await?;
+    schemeses
+        .sync_toml("https://github.com/eldritch-theme/wezterm", "master", "")
         .await?;
     schemeses.accumulate(iterm2::sync_iterm2().await.context("sync iterm2")?);
     schemeses.accumulate(base16::sync().await.context("sync base16")?);

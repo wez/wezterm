@@ -260,10 +260,7 @@ impl Face {
             }
 
             let bytes = unsafe {
-                std::slice::from_raw_parts(
-                    sfnt_name.string as *const u8,
-                    sfnt_name.string_len as usize,
-                )
+                from_raw_parts(sfnt_name.string as *const u8, sfnt_name.string_len as usize)
             };
 
             let encoding = match (sfnt_name.platform_id as u32, sfnt_name.encoding_id as u32) {
@@ -350,14 +347,12 @@ impl Face {
                 {
                     let mm = &*mm;
 
-                    let styles =
-                        std::slice::from_raw_parts(mm.namedstyle, mm.num_namedstyles as usize);
+                    let styles = from_raw_parts(mm.namedstyle, mm.num_namedstyles as usize);
                     let instance = &styles[vidx];
-                    let axes = std::slice::from_raw_parts(mm.axis, mm.num_axis as usize);
+                    let axes = from_raw_parts(mm.axis, mm.num_axis as usize);
 
                     for (i, axis) in axes.iter().enumerate() {
-                        let coords =
-                            std::slice::from_raw_parts(instance.coords, mm.num_axis as usize);
+                        let coords = from_raw_parts(instance.coords, mm.num_axis as usize);
                         let value = coords[i].to_num::<f64>();
                         let default_value = axis.def.to_num::<f64>();
                         let scale = if default_value != 0. {
@@ -436,7 +431,7 @@ impl Face {
     pub fn pixel_sizes(&self) -> Vec<u16> {
         let sizes = unsafe {
             let rec = &(*self.face);
-            std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+            from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
         };
         sizes
             .iter()
@@ -494,7 +489,7 @@ impl Face {
 
                 let sizes = unsafe {
                     let rec = &(*self.face);
-                    std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+                    from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
                 };
                 if sizes.is_empty() {
                     return Err(err);
@@ -723,24 +718,12 @@ impl Face {
             let data = result.assume_init();
             let mut palettes = vec![];
 
-            let name_ids = if data.palette_name_ids.is_null() {
-                &[]
-            } else {
-                std::slice::from_raw_parts(data.palette_name_ids, data.num_palettes as usize)
-            };
-            let flagses = if data.palette_flags.is_null() {
-                &[]
-            } else {
-                std::slice::from_raw_parts(data.palette_flags, data.num_palettes as usize)
-            };
-            let entry_name_ids = if data.palette_entry_name_ids.is_null() {
-                &[]
-            } else {
-                std::slice::from_raw_parts(
-                    data.palette_entry_name_ids,
-                    data.num_palette_entries as usize,
-                )
-            };
+            let name_ids = from_raw_parts(data.palette_name_ids, data.num_palettes as usize);
+            let flagses = from_raw_parts(data.palette_flags, data.num_palettes as usize);
+            let entry_name_ids = from_raw_parts(
+                data.palette_entry_name_ids,
+                data.num_palette_entries as usize,
+            );
 
             let entry_names: Vec<String> = entry_name_ids
                 .iter()
@@ -777,10 +760,8 @@ impl Face {
             ft_result(FT_Get_Sfnt_Name(self.face, i, sfnt_name.as_mut_ptr()), ())
                 .context("FT_Get_Sfnt_Name")?;
             let sfnt_name = sfnt_name.assume_init();
-            let bytes = std::slice::from_raw_parts(
-                sfnt_name.string as *const u8,
-                sfnt_name.string_len as usize,
-            );
+            let bytes =
+                from_raw_parts(sfnt_name.string as *const u8, sfnt_name.string_len as usize);
 
             let encoding = match (sfnt_name.platform_id as u32, sfnt_name.encoding_id as u32) {
                 (TT_PLATFORM_MACINTOSH, TT_MAC_ID_JAPANESE)
@@ -1294,6 +1275,7 @@ struct FreeTypeStream {
     name: String,
 }
 
+#[allow(dead_code)]
 enum StreamBacking {
     File(BufReader<File>),
     Map(Mmap),
@@ -1468,6 +1450,19 @@ impl FreeTypeStream {
     unsafe extern "C" fn close(stream: FT_Stream) {
         let myself = Box::from_raw((*stream).descriptor.pointer as *mut Self);
         drop(myself);
+    }
+}
+
+/// Wrapper around std::slice::from_raw_parts that allows for ptr to be
+/// null. In the null ptr case, an empty slice is returned.
+/// This is necessary because it is common for freetype to encode
+/// empty arrays in that way, and rust 1.78 will panic if a null
+/// ptr is passed in.
+pub(crate) unsafe fn from_raw_parts<'a, T>(ptr: *const T, size: usize) -> &'a [T] {
+    if ptr.is_null() {
+        &[]
+    } else {
+        std::slice::from_raw_parts(ptr, size)
     }
 }
 

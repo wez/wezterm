@@ -83,6 +83,9 @@ pub struct SshDomain {
 
     /// The path to the wezterm binary on the remote host
     pub remote_wezterm_path: Option<String>,
+    /// Override the entire `wezterm cli proxy` invocation that would otherwise
+    /// be computed from remote_wezterm_path and other information.
+    pub override_proxy_command: Option<String>,
 
     pub ssh_backend: Option<SshBackend>,
 

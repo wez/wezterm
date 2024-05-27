@@ -34,6 +34,22 @@ pub struct XConnection {
     pub atom_xsel_data: Atom,
     pub atom_targets: Atom,
     pub atom_clipboard: Atom,
+    pub atom_texturilist: Atom,
+    pub atom_xmozurl: Atom,
+    pub atom_xdndaware: Atom,
+    pub atom_xdndtypelist: Atom,
+    pub atom_xdndselection: Atom,
+    pub atom_xdndenter: Atom,
+    pub atom_xdndposition: Atom,
+    pub atom_xdndstatus: Atom,
+    pub atom_xdndleave: Atom,
+    pub atom_xdnddrop: Atom,
+    pub atom_xdndfinished: Atom,
+    pub atom_xdndactioncopy: Atom,
+    pub atom_xdndactionmove: Atom,
+    pub atom_xdndactionlink: Atom,
+    pub atom_xdndactionask: Atom,
+    pub atom_xdndactionprivate: Atom,
     pub atom_gtk_edge_constraints: Atom,
     pub atom_xsettings_selection: Atom,
     pub atom_xsettings_settings: Atom,
@@ -54,6 +70,7 @@ pub struct XConnection {
     pub atom_net_active_window: Atom,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::x::Window, Arc<Mutex<XWindowInner>>>>,
+    pub(crate) child_to_parent_id: RefCell<HashMap<xcb::x::Window, xcb::x::Window>>,
     should_terminate: RefCell<bool>,
     pub(crate) visual: xcb::x::Visualtype,
     pub(crate) depth: u8,
@@ -562,6 +579,10 @@ impl XConnection {
         self.windows.borrow().get(&window_id).map(Arc::clone)
     }
 
+    fn parent_id_by_child_id(&self, child_id: xcb::x::Window) -> Option<xcb::x::Window> {
+        self.child_to_parent_id.borrow().get(&child_id).copied()
+    }
+
     fn dispatch_pending_events(&self) -> anyhow::Result<()> {
         for window in self.windows.borrow().values() {
             let mut inner = window.lock().unwrap();
@@ -579,6 +600,11 @@ impl XConnection {
         if let Some(window) = self.window_by_id(window_id) {
             let mut inner = window.lock().unwrap();
             inner.dispatch_event(event)?;
+        } else if let Some(parent_id) = self.parent_id_by_child_id(window_id) {
+            if let Some(window) = self.window_by_id(parent_id) {
+                let mut inner = window.lock().unwrap();
+                inner.dispatch_event(event)?;
+            }
         }
         Ok(())
     }
@@ -610,6 +636,22 @@ impl XConnection {
         let atom_xsel_data = Self::intern_atom(&conn, "XSEL_DATA")?;
         let atom_targets = Self::intern_atom(&conn, "TARGETS")?;
         let atom_clipboard = Self::intern_atom(&conn, "CLIPBOARD")?;
+        let atom_texturilist = Self::intern_atom(&conn, "text/uri-list")?;
+        let atom_xmozurl = Self::intern_atom(&conn, "text/x-moz-url")?;
+        let atom_xdndaware = Self::intern_atom(&conn, "XdndAware")?;
+        let atom_xdndtypelist = Self::intern_atom(&conn, "XdndTypeList")?;
+        let atom_xdndselection = Self::intern_atom(&conn, "XdndSelection")?;
+        let atom_xdndenter = Self::intern_atom(&conn, "XdndEnter")?;
+        let atom_xdndposition = Self::intern_atom(&conn, "XdndPosition")?;
+        let atom_xdndstatus = Self::intern_atom(&conn, "XdndStatus")?;
+        let atom_xdndleave = Self::intern_atom(&conn, "XdndLeave")?;
+        let atom_xdnddrop = Self::intern_atom(&conn, "XdndDrop")?;
+        let atom_xdndfinished = Self::intern_atom(&conn, "XdndFinished")?;
+        let atom_xdndactioncopy = Self::intern_atom(&conn, "XdndActionCopy")?;
+        let atom_xdndactionmove = Self::intern_atom(&conn, "XdndActionMove")?;
+        let atom_xdndactionlink = Self::intern_atom(&conn, "XdndActionLink")?;
+        let atom_xdndactionask = Self::intern_atom(&conn, "XdndActionAsk")?;
+        let atom_xdndactionprivate = Self::intern_atom(&conn, "XdndActionPrivate")?;
         let atom_gtk_edge_constraints = Self::intern_atom(&conn, "_GTK_EDGE_CONSTRAINTS")?;
         let atom_xsettings_selection =
             Self::intern_atom(&conn, &format!("_XSETTINGS_S{}", screen_num))?;
@@ -731,6 +773,22 @@ impl XConnection {
             xrm: RefCell::new(xrm),
             atom_protocols,
             atom_clipboard,
+            atom_texturilist,
+            atom_xmozurl,
+            atom_xdndaware,
+            atom_xdndtypelist,
+            atom_xdndselection,
+            atom_xdndenter,
+            atom_xdndposition,
+            atom_xdndstatus,
+            atom_xdndleave,
+            atom_xdnddrop,
+            atom_xdndfinished,
+            atom_xdndactioncopy,
+            atom_xdndactionmove,
+            atom_xdndactionlink,
+            atom_xdndactionask,
+            atom_xdndactionprivate,
             atom_gtk_edge_constraints,
             atom_xsettings_selection,
             atom_xsettings_settings,
@@ -756,6 +814,7 @@ impl XConnection {
             atom_xsel_data,
             atom_targets,
             windows: RefCell::new(HashMap::new()),
+            child_to_parent_id: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             depth,
             visual,

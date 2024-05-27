@@ -1,10 +1,9 @@
 use std::borrow::BorrowMut;
-use std::io::Read;
-use std::os::fd::{AsRawFd, FromRawFd};
-use std::os::unix::fs::FileExt;
 
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeymapFormat, WlKeyboard};
 use wayland_client::{Dispatch, Proxy};
+use xkbcommon::xkb;
+use xkbcommon::xkb::CONTEXT_NO_FLAGS;
 
 use crate::x11::KeyboardWithFallback;
 
@@ -59,37 +58,37 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
                 *state.key_repeat_delay.borrow_mut() = *delay;
             }
             WlKeyboardEvent::Keymap { format, fd, size } => {
-                let mut file = unsafe { std::fs::File::from_raw_fd(fd.as_raw_fd()) };
                 match format.into_result().unwrap() {
                     KeymapFormat::XkbV1 => {
-                        let mut data = vec![0u8; *size as usize];
-                        // If we weren't passed a pipe, be sure to explicitly
-                        // read from the start of the file
-                        match file.read_exact_at(&mut data, 0) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                // ideally: we check for:
-                                // err.kind() == std::io::ErrorKind::NotSeekable
-                                // but that is not yet in stable rust
-                                if err.raw_os_error() == Some(libc::ESPIPE) {
-                                    // It's a pipe, which cannot be seeked, so we
-                                    // just try reading from the current pipe position
-                                    file.read(&mut data).expect("read from Keymap fd/pipe");
-                                } else {
-                                    return Err(err).expect("read_exact_at from Keymap fd");
+                        // In later protocol versions, the fd must be privately mmap'd.
+                        // We let xkb handle this and then turn it back into a string.
+                        #[allow(unused_unsafe)] // Upstream release will change this
+                        match unsafe {
+                            let context = xkb::Context::new(CONTEXT_NO_FLAGS);
+                            let cloned_fd = fd.try_clone().expect("Couldn't clone owned fd");
+                            xkb::Keymap::new_from_fd(
+                                &context,
+                                cloned_fd,
+                                *size as usize,
+                                xkb::KEYMAP_FORMAT_TEXT_V1,
+                                xkb::COMPILE_NO_FLAGS,
+                            )
+                        } {
+                            Ok(Some(keymap)) => {
+                                let s = keymap.get_as_string(xkb::KEYMAP_FORMAT_TEXT_V1);
+                                match KeyboardWithFallback::new_from_string(s) {
+                                    Ok(k) => {
+                                        state.keyboard_mapper.replace(k);
+                                    }
+                                    Err(err) => {
+                                        log::error!("Error processing keymap change: {:#}", err);
+                                    }
                                 }
                             }
-                        }
-                        // Dance around CString panicing on the NUL terminator
-                        // in the xkbcommon crate
-                        while let Some(0) = data.last() {
-                            data.pop();
-                        }
-                        let s = String::from_utf8(data).expect("Failed to read string from data");
-                        match KeyboardWithFallback::new_from_string(s) {
-                            Ok(k) => {
-                                state.keyboard_mapper.replace(k);
+                            Ok(None) => {
+                                log::error!("invalid keymap");
                             }
+
                             Err(err) => {
                                 log::error!("Error processing keymap change: {:#}", err);
                             }

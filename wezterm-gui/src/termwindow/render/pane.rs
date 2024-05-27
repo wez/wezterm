@@ -577,7 +577,7 @@ impl crate::TermWindow {
             // TODO: render a thingy to jump to prior prompt
         }
         */
-        metrics::histogram!("paint_pane.lines", start.elapsed());
+        metrics::histogram!("paint_pane.lines").record(start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());
 
         Ok(())

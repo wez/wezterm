@@ -28,12 +28,28 @@ As features stabilize some brief notes about them will accumulate here.
 * [show_update_window](config/lua/config/show_update_window.md) has been
   deprecated; it no longer has any effect and will be removed in a future
   release.
+* X11: drag and drop is now supported for files, URLs and text. Thanks to
+  @ssiegel! #5316 #640
+* Added Unicode Symbols for Legacy Computing to the set of pixel-perfect block
+  drawing glyphs. See
+  [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more
+  details. Thanks to @stribor14! #5051 #5169
+
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
   and deserialization of JSON, TOML and YAML. Thanks to @expnn! #4969
+* `wezterm ssh` now supports agent forwarding. Thanks to @Riatre! #5345
+* SSH multiplexer domains now support agent forwarding, and will automatically
+  maintain `SSH_AUTH_SOCK` to an appropriate value on the destination host,
+  depending on the value of the new
+  [mux_enable_ssh_agent](config/lua/config/mux_enable_ssh_agent.md) option.
+  ?988 #1647
+* [default_ssh_auth_sock](config/lua/config/default_ssh_auth_sock.md) option
+  to manage `SSH_AUTH_SOCK`.
+
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
-  around resizing. Thanks to @jknockel! #4876 #5032
+  around resizing. Thanks to @jknockel! #4876 #5032 #5033
 * macOS: wacky initial window size with external monitors or certain font
   sizes. #4966 #4250
 * macOS: dragging non-filename data over wezterm could cause it to crash. #4771
@@ -42,9 +58,55 @@ As features stabilize some brief notes about them will accumulate here.
 * Linux: the `divine_process_list` fallback function used the *vmwisze*
   rather than the intended *starttime* field to decide which process
   was the youngest. Thanks to @crides! #5001
+* Wayland: fixed startup on Hyprland >= 0.37.0. Thanks to @fioncat! #5264 #5103
+* Wayland: updated to SCTK 0.18. Thanks to @deviant! #5276 #5154 #5079 #5071
+  #4604 #5209
+* Windows: Window buttons stopped working when using `win32_system_backdrop`.
+  Thanks to @Kushagra2569! #5362 #5348
+* `wezterm cli activate-pane` now respects `unzoom_on_switch_pane`. Thanks to
+  @quantonganh! #5306 #5305
+* wezterm-ssh now correctly handles two-phase processing of `%h` tokens. Thanks
+  to @emc2314 and @wheatdog! #5163 #4503
+* We now respect line wrapping in alt-screen mode. Thanks to @eternity74! #5396
+  #3283
+* Wayland: hang when launched under ChromeOS Crostini. Thanks to @dberlin!
+  #5393 #5397
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
+* Bundled harfbuzz to 8.4.0
+* image crate to 0.25, which means that JPEG images are now decoded via
+  [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
+  handling of non-conforming jpeg images. #5365
+* Color schemes:
+  [Blue Dolphin (Gogh)](colorschemes/b/index.md#blue-dolphin-gogh),
+  [Butrin (Gogh)](colorschemes/b/index.md#butrin-gogh),
+  [CutiePro](colorschemes/c/index.md#cutiepro),
+  [Ef-Dream](colorschemes/e/index.md#ef-dream),
+  [Ef-Reverie](colorschemes/e/index.md#ef-reverie),
+  [Eldritch](colorschemes/e/index.md#eldritch),
+  [Everforest Dark Hard (Gogh)](colorschemes/e/index.md#everforest-dark-hard-gogh),
+  [Everforest Dark Medium (Gogh)](colorschemes/e/index.md#everforest-dark-medium-gogh),
+  [Everforest Dark Soft (Gogh)](colorschemes/e/index.md#everforest-dark-soft-gogh),
+  [Everforest Light Hard (Gogh)](colorschemes/e/index.md#everforest-light-hard-gogh),
+  [Everforest Light Medium (Gogh)](colorschemes/e/index.md#everforest-light-medium-gogh),
+  [Everforest Light Soft (Gogh)](colorschemes/e/index.md#everforest-light-soft-gogh),
+  [Github Light (Gogh)](colorschemes/g/index.md#github-light-gogh),
+  [Kanagawa Dragon (Gogh)](colorschemes/k/index.md#kanagawa-dragon-gogh),
+  [Mellifluous](colorschemes/m/index.md#mellifluous),
+  [Miramare (Gogh)](colorschemes/m/index.md#miramare-gogh),
+  [Modus Operandi (Gogh)](colorschemes/m/index.md#modus-operandi-gogh),
+  [Modus Operandi Tinted (Gogh)](colorschemes/m/index.md#modus-operandi-tinted-gogh),
+  [Modus Vivendi (Gogh)](colorschemes/m/index.md#modus-vivendi-gogh),
+  [Modus Vivendi Tinted (Gogh)](colorschemes/m/index.md#modus-vivendi-tinted-gogh),
+  [NvimDark](colorschemes/n/index.md#nvimdark),
+  [NvimLight](colorschemes/n/index.md#nvimlight),
+  [Quiet (Gogh)](colorschemes/q/index.md#quiet-gogh),
+  [Selenized Black (Gogh)](colorschemes/s/index.md#selenized-black-gogh),
+  [Selenized White (Gogh)](colorschemes/s/index.md#selenized-white-gogh),
+  [Seoul256 (Gogh)](colorschemes/s/index.md#seoul256-gogh),
+  [Seoul256 Light (Gogh)](colorschemes/s/index.md#seoul256-light-gogh),
+  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh)
 
 ### 20240203-110809-5046fc22
 

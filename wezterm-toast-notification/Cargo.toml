@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
 build = "build.rs"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,14 +14,14 @@ log = "0.4"
 
 [target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
 serde = {version="1.0", features = ["derive"]}
-zbus = "3.14"
-zvariant = "3.15"
-async-io = "1.10"
+zbus = "4.2"
+zvariant = "4.0"
+async-io = "2.3"
 futures-util = "0.3"
 
 [target.'cfg(target_os="macos")'.dependencies]
-cocoa = "0.20"
-core-foundation = "0.7"
+cocoa = "0.25"
+core-foundation = "0.9"
 objc = "0.2"
 
 [target.'cfg(windows)'.dependencies]

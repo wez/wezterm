@@ -3,6 +3,7 @@ name = "env-bootstrap"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -36,6 +37,6 @@ wezterm-version = { path = "../wezterm-version" }
 winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.20"
+cocoa = "0.25"
 objc = "0.2"
 

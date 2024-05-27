@@ -107,7 +107,7 @@ impl Atlas {
 
             self.texture.write(rect, im);
 
-            metrics::histogram!("window.atlas.allocate.success.rate", 1.);
+            metrics::histogram!("window.atlas.allocate.success.rate").record(1.);
             Ok(Sprite {
                 texture: Rc::clone(&self.texture),
                 coords: rect,
@@ -115,13 +115,13 @@ impl Atlas {
         } else {
             // It's not possible to satisfy that request
             let size = (reserve_width.max(reserve_height) as usize).next_power_of_two();
-            metrics::histogram!("window.atlas.allocate.failure.rate", 1.);
+            metrics::histogram!("window.atlas.allocate.failure.rate").record(1.);
             Err(OutOfTextureSpace {
                 size: Some((self.side * 2).max(size)),
                 current_size: self.side,
             })
         };
-        metrics::histogram!("window.atlas.allocate.latency", start.elapsed());
+        metrics::histogram!("window.atlas.allocate.latency").record(start.elapsed());
 
         res
     }

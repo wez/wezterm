@@ -11,23 +11,8 @@ async fn fetch_base16_list() -> anyhow::Result<Vec<String>> {
     )
     .await?;
 
-    let mut result = vec![];
-    for doc in yaml_rust::YamlLoader::load_from_str(&data)? {
-        for value in doc
-            .into_hash()
-            .ok_or_else(|| anyhow::anyhow!("list.yaml isn't a hash"))?
-            .values()
-        {
-            result.push(
-                value
-                    .clone()
-                    .into_string()
-                    .ok_or_else(|| anyhow::anyhow!("item {value:?} is not a string"))?,
-            );
-        }
-    }
-
-    Ok(result)
+    let mapping: HashMap<String, String> = serde_yaml::from_str(&data)?;
+    Ok(mapping.into_values().collect())
 }
 
 async fn fetch_repo_tarball(repo_url: &str, branch: &str) -> anyhow::Result<Vec<u8>> {
