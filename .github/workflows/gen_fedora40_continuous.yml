@@ -1,4 +1,4 @@
-name: fedora37_continuous
+name: fedora40_continuous
 
 on:
   schedule:
@@ -10,7 +10,7 @@ on:
       - "**/*.rs"
       - "**/Cargo.lock"
       - "**/Cargo.toml"
-      - ".github/workflows/gen_fedora37_continuous.yml"
+      - ".github/workflows/gen_fedora40_continuous.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
       - "assets/open-wezterm-here"
@@ -27,7 +27,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:37"
+    container: "fedora:40"
     env:
       BUILD_REASON: "Schedule"
       CARGO_INCREMENTAL: "0"
@@ -92,7 +92,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora37"
+          cache-key: "fedora40"
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
@@ -101,11 +101,11 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora37.rpm"
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora40.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora37"
+          name: "fedora40"
           path: "wezterm-*.rpm"
           retention-days: 5
 
@@ -122,7 +122,7 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "fedora37"
+          name: "fedora40"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
