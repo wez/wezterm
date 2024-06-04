@@ -821,7 +821,7 @@ dependencies = [
  "config",
  "leb128",
  "log",
- "metrics",
+ "metrics 0.22.3",
  "mux",
  "portable-pty",
  "rangeset",
@@ -2701,7 +2701,7 @@ dependencies = [
  "fnv",
  "intrusive-collections",
  "k9",
- "metrics",
+ "metrics 0.22.3",
 ]
 
 [[package]]
@@ -3065,6 +3065,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "metrics"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884adb57038347dfbaf2d5065887b6cf4312330dc8e94bc30a1a839bd79d3261"
+dependencies = [
+ "ahash",
+ "portable-atomic",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3153,7 +3163,7 @@ dependencies = [
  "libc",
  "log",
  "luahelper",
- "metrics",
+ "metrics 0.22.3",
  "mlua",
  "names",
  "nix",
@@ -4358,9 +4368,9 @@ checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 
 [[package]]
 name = "rstest"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d5316d2a1479eeef1ea21e7f9ddc67c191d497abc8fc3ba2467857abbb68330"
+checksum = "9afd55a67069d6e434a95161415f5beeada95a01c7b815508a82dcb0e1593682"
 dependencies = [
  "futures",
  "futures-timer",
@@ -4370,12 +4380,13 @@ dependencies = [
 
 [[package]]
 name = "rstest_macros"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04a9df72cc1f67020b0d63ad9bfe4a323e459ea7eb68e03bd9824db49f9a4c25"
+checksum = "4165dfae59a39dd41d8dec720d3cbfbc71f69744efb480a3920f5d4e0cc6798d"
 dependencies = [
  "cfg-if",
  "glob",
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "regex",
@@ -6084,7 +6095,7 @@ dependencies = [
  "libc",
  "log",
  "lru",
- "metrics",
+ "metrics 0.22.3",
  "mux",
  "openssl",
  "parking_lot 0.12.3",
@@ -6171,7 +6182,7 @@ dependencies = [
  "lfucache",
  "log",
  "memmap2 0.9.4",
- "metrics",
+ "metrics 0.22.3",
  "objc",
  "ordered-float",
  "rangeset",
@@ -6223,7 +6234,7 @@ dependencies = [
  "libc",
  "log",
  "luahelper",
- "metrics",
+ "metrics 0.23.0",
  "mlua",
  "mux",
  "mux-lua",
@@ -6645,7 +6656,7 @@ dependencies = [
  "libloading 0.8.3",
  "line_drawing",
  "log",
- "metrics",
+ "metrics 0.22.3",
  "mio",
  "objc",
  "plist",
