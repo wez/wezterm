@@ -53,3 +53,59 @@ $ cargo build --release --no-default-features --features vendored-fonts
 ```
 
 Building without X11 is not supported.
+
+### Building from source on Windows
+1. install windows rust from [the rust website](https://www.rust-lang.org/tools/install) following their instructions.
+
+- Note info on installing other tools for using rust on windows is covered at the microsoft [rust dev environment overview on windows](https://learn.microsoft.com/en-us/windows/dev-environment/rust/overview) page.
+
+2. Install [Strawberry Perl](https://strawberryperl.com/)
+
+- For example, downloaded the msi installer from the Strawberry Perl website, open the download and accept the defaults whe prompted to install strawberry perl in c:\Strawberry
+
+There are many ways to make sure that strawberry perl gets used during wezterm configuration
+Here is one simple way:
+
+Open a cmd.exe terminal  (in wezterm, preferably :-)
+
+Check which version of perl is going to be used by default:
+```
+> where perl
+C:\Program Files\Git\usr\bin\perl.exe
+```
+Uh oh, I have already installed git for windows and git for windows has its own version of perl. Can't use that! (Per Wez's insructions, *only* Strawberry Perl works. So, to fix this (temporarily) set the PATH so that Strawberry perl is found first by typing in the terminal:
+
+```
+set PATH=c:\Strawberry\perl\bin;%PATH%
+```
+Now when we check again which perl is going to be used, we find that Strawberry Perl is going to found first:
+```
+> where perl
+c:\Strawberry\perl\bin\perl.exe
+C:\Program Files\Git\usr\bin\perl.exe
+
+> perl --version
+This is perl 5, version 38, subversion 2 (v5.38.2) built for MSWin32-x64-multi-thread
+```
+This is good, we are set and Strawberry perl will now be used in the build process.
+
+3. clone and build 
+```
+git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
+cd wezterm
+git submodule update --init --recursive
+cargo build 
+```
+
+4. To test out the newly built wezterm, type:
+```
+cargo run --bin wezterm
+```
+
+And it wezterm should pop up in a new window.
+
+
+
+
+
+
