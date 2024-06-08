@@ -11,7 +11,7 @@ ahash = "0.8"
 config = { path = "../config" }
 fnv = "1.0"
 intrusive-collections = "0.9"
-metrics = "0.22"
+metrics = "0.23"
 
 [dev-dependencies]
 k9 = "0.12"
