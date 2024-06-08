@@ -47,7 +47,7 @@ k9 = "0.12.0"
 once_cell = "1.8"
 predicates = "3.0"
 env_logger = "0.11"
-rstest = "0.19"
+rstest = "0.21"
 shell-words = "1.1"
 termwiz = { version = "0.22", path = "../termwiz" }
 whoami = "1.5"
