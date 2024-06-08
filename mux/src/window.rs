@@ -131,6 +131,8 @@ impl Window {
 
         if len > 0 && self.active >= len {
             self.set_active_without_saving(len - 1);
+        } else {
+            self.invalidate();
         }
     }
 
