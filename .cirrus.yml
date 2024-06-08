@@ -3,11 +3,11 @@ env:
   CIRRUS_CLONE_DEPTH: 1
 
 task:
-  name: freebsd-13
+  name: freebsd-14
 
   compute_engine_instance:
     image_project: freebsd-org-cloud-dev
-    image: family/freebsd-13-2
+    image: family/freebsd-14-0
     platform: freebsd
     cpu: 4
     memory: 8G
