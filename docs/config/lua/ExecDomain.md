@@ -146,23 +146,53 @@ return config
 
 ## Example: docker domains
 
-Fully working example is yet to be completely fleshed out (volunteers welcome!) but the
-gist of it is:
+This example shows how to add each running docker container as a domain,
+so that you can spawn a shell into it and/or split it:
 
 {% raw %}
 ```lua
 local wezterm = require 'wezterm'
-local config = {}
+local config = wezterm.config_builder()
 
 function docker_list()
-  -- Use wezterm.run_child_process to run
-  -- `docker container ls --format '{{.ID}}:{{.Names}}'` and parse
-  -- the output and return a mapping from ID -> name
+  local docker_list = {}
+  local success, stdout, stderr = wezterm.run_child_process {
+    'docker',
+    'container',
+    'ls',
+    '--format',
+    '{{.ID}}:{{.Names}}',
+  }
+  for _, line in ipairs(wezterm.split_by_newlines(stdout)) do
+    local id, name = line:match '(.-):(.+)'
+    if id and name then
+      docker_list[id] = name
+    end
+  end
+  return docker_list
+end
+
+function make_docker_label_func(id)
+  return function(name)
+    local success, stdout, stderr = wezterm.run_child_process {
+      'docker',
+      'inspect',
+      '--format',
+      '{{.State.Running}}',
+      id,
+    }
+    local running = stdout == 'true\n'
+    local color = running and 'Green' or 'Red'
+    return wezterm.format {
+      { Foreground = { AnsiColor = color } },
+      { Text = 'docker container named ' .. name },
+    }
+  end
 end
 
 function make_docker_fixup_func(id)
   return function(cmd)
-    cmd.args = cmd.args or { '/bin/bash' }
+    cmd.args = cmd.args or { '/bin/sh' }
     local wrapped = {
       'docker',
       'exec',
@@ -178,32 +208,23 @@ function make_docker_fixup_func(id)
   end
 end
 
-function make_docker_label_func(id)
-  return function(name)
-    -- TODO: query the container state and show info about
-    -- whether it is running or stopped.
-    -- If it stopped, you may wish to change the color to red
-    -- to make it stand out
-    return wezterm.format {
-      { Foreground = { AnsiColor = 'Red' } },
-      { Text = 'docker container named ' .. name },
-    }
-  end
-end
-
-local exec_domains = {}
-for id, name in pairs(docker_list()) do
-  table.insert(
-    exec_domains,
-    wezterm.exec_domain(
-      'docker: ' .. name,
-      make_docker_fixup_func(id),
-      make_docker_label_func(id)
+function compute_exec_domains()
+  local exec_domains = {}
+  for id, name in pairs(docker_list()) do
+    table.insert(
+      exec_domains,
+      wezterm.exec_domain(
+        'docker:' .. name,
+        make_docker_fixup_func(id),
+        make_docker_label_func(id)
+      )
     )
-  )
+  end
+  return exec_domains
 end
 
-config.exec_domains = exec_domains
+config.exec_domains = compute_exec_domains()
+
 return config
 ```
 {% endraw %}

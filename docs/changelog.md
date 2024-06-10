@@ -71,6 +71,10 @@ As features stabilize some brief notes about them will accumulate here.
   #3283
 * Wayland: hang when launched under ChromeOS Crostini. Thanks to @dberlin!
   #5393 #5397
+* macOS: Fixed notch avoidance padding in full screen mode. Thanks to @mbaird!
+  #5515 #3807
+* Render invalidation issue when closing tabs other than the last tab. Thanks
+  to @Mrreadiness! #5441 #5304
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg

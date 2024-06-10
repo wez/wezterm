@@ -895,11 +895,13 @@ impl WindowOps for Window {
                     let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
                     log::trace!("{:?}", insets);
 
-                    // Bleh, the API is supposed to give us the right metrics, but it needs
-                    // a tweak to look good around the notch.
-                    // <https://github.com/wez/wezterm/issues/1737#issuecomment-1085923867>
-                    let top = insets.top.ceil() as usize;
-                    let top = if top > 0 { top + 2 } else { 0 };
+                    let scale = unsafe {
+                        let frame = NSScreen::frame(main_screen);
+                        let backing_frame = NSScreen::convertRectToBacking_(main_screen, frame);
+                        backing_frame.size.height / frame.size.height
+                    };
+
+                    let top = (insets.top.ceil() * scale) as usize;
                     Some(Border {
                         top: ULength::new(top),
                         left: ULength::new(insets.left.ceil() as usize),

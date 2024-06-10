@@ -20,7 +20,7 @@ lazy_static = "1.4"
 log = "0.4"
 libc = "0.2"
 lru = "0.12"
-metrics = "0.22"
+metrics = "0.23"
 mux = { path = "../mux" }
 openssl = "0.10.57"
 parking_lot = "0.12"
