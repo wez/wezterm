@@ -689,7 +689,6 @@ impl CopyRenderable {
             Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
         };
         self.pattern = pattern;
-        self.search_cursor.x = SEARCH_CURSOR_PADDING + self.pattern.len();
         self.schedule_update_search();
     }
 
@@ -1158,8 +1157,15 @@ impl Pane for CopyOverlay {
                     if render.pattern.capacity() - render.pattern.len() == 0 {
                         render.pattern.reserve(10);
                     }
+
                     let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
-                    render.pattern.insert(position, c);
+                    if position == render.pattern.graphemes(true).count() {
+                        render.pattern.push(c);
+                    } else {
+                        let (offset, _) =
+                            render.pattern.grapheme_indices(true).nth(position).unwrap();
+                        render.pattern.insert(offset, c);
+                    }
                     render.search_cursor.x += 1;
 
                     render.schedule_update_search();
@@ -1170,7 +1176,12 @@ impl Pane for CopyOverlay {
                         && render.search_cursor.x - SEARCH_CURSOR_PADDING > 0
                     {
                         let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
-                        render.pattern.remove(position - 1);
+                        let (offset, _) = render
+                            .pattern
+                            .grapheme_indices(true)
+                            .nth(position - 1)
+                            .unwrap();
+                        render.pattern.remove(offset);
                         if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
                             render.search_cursor.x -= 1;
                         }
@@ -1183,7 +1194,9 @@ impl Pane for CopyOverlay {
                     }
                 }
                 (KeyCode::RightArrow, KeyModifiers::NONE) => {
-                    if render.search_cursor.x - SEARCH_CURSOR_PADDING < render.pattern.len() {
+                    if render.search_cursor.x - SEARCH_CURSOR_PADDING
+                        < render.pattern.graphemes(true).count()
+                    {
                         render.search_cursor.x += 1;
                     }
                 }
