@@ -5,6 +5,7 @@ use config::keyassignment::{
     ClipboardCopyDestination, CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry,
     ScrollbackEraseMode, SelectionMode,
 };
+use finl_unicode::grapheme_clusters::Graphemes;
 use mux::domain::DomainId;
 use mux::pane::{
     CachePolicy, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
@@ -36,7 +37,6 @@ lazy_static::lazy_static! {
 }
 
 const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
-const SEARCH_CURSOR_PADDING: usize = 8;
 
 pub struct CopyOverlay {
     delegate: Arc<dyn Pane>,
@@ -67,7 +67,7 @@ struct CopyRenderable {
 
     /// The text that the user entered
     pattern: Pattern,
-    search_cursor: StableCursorPosition,
+    search_cursor_index: usize,
     /// The most recently queried set of matches
     results: Vec<SearchResult>,
     by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
@@ -137,12 +137,7 @@ impl CopyOverlay {
             params.pattern
         };
 
-        let search_cursor = StableCursorPosition {
-            x: SEARCH_CURSOR_PADDING + pattern.len(),
-            y: 0,
-            shape: termwiz::surface::CursorShape::SteadyBlock,
-            visibility: termwiz::surface::CursorVisibility::Visible,
-        };
+        let search_cursor_index = pattern.chars().count();
         let mut render = CopyRenderable {
             cursor,
             window,
@@ -158,7 +153,7 @@ impl CopyOverlay {
             last_bar_pos: None,
             tab_id,
             pattern,
-            search_cursor,
+            search_cursor_index,
             editing_search: params.editing_search,
             result_pos: None,
             selection_mode: SelectionMode::Cell,
@@ -170,7 +165,6 @@ impl CopyOverlay {
 
         let search_row = render.compute_search_row();
         render.dirty_results.add(search_row);
-        render.search_cursor.y = search_row;
         render.update_search();
 
         Ok(Arc::new(CopyOverlay {
@@ -641,7 +635,7 @@ impl CopyRenderable {
 
     fn clear_pattern(&mut self) {
         self.pattern.clear();
-        self.search_cursor.x = SEARCH_CURSOR_PADDING;
+        self.search_cursor_index = 0;
         self.update_search();
     }
 
@@ -689,7 +683,7 @@ impl CopyRenderable {
             Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
         };
         self.pattern = pattern;
-        self.search_cursor.x = SEARCH_CURSOR_PADDING + self.pattern.len();
+        self.search_cursor_index = self.pattern.chars().count();
         self.schedule_update_search();
     }
 
@@ -1158,33 +1152,35 @@ impl Pane for CopyOverlay {
                     if render.pattern.capacity() - render.pattern.len() == 0 {
                         render.pattern.reserve(10);
                     }
-                    let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
-                    render.pattern.insert(position, c);
-                    render.search_cursor.x += 1;
+                    let position = render.search_cursor_index;
+                    let new_pattern = insert_char_at(&render.pattern, position, c);
+                    render.pattern.set_string(new_pattern);
+                    render.search_cursor_index += 1;
 
                     render.schedule_update_search();
                 }
                 (KeyCode::Backspace, KeyModifiers::NONE) => {
                     // Backspace to edit the pattern
                     if render.pattern.len() > 0
-                        && render.search_cursor.x - SEARCH_CURSOR_PADDING > 0
+                        && render.search_cursor_index > 0
                     {
-                        let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
-                        render.pattern.remove(position - 1);
-                        if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
-                            render.search_cursor.x -= 1;
+                        let position = render.search_cursor_index;
+                        let new_pattern = delete_char_at(&mut render.pattern, position - 1);
+                        render.pattern.set_string(new_pattern);
+                        if render.search_cursor_index > 0 {
+                            render.search_cursor_index -= 1;
                         }
                         render.schedule_update_search();
                     }
                 }
                 (KeyCode::LeftArrow, KeyModifiers::NONE) => {
-                    if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
-                        render.search_cursor.x -= 1;
+                    if render.search_cursor_index > 0 {
+                        render.search_cursor_index -= 1;
                     }
                 }
                 (KeyCode::RightArrow, KeyModifiers::NONE) => {
-                    if render.search_cursor.x - SEARCH_CURSOR_PADDING < render.pattern.len() {
-                        render.search_cursor.x += 1;
+                    if render.search_cursor_index < render.pattern.chars().count() {
+                        render.search_cursor_index += 1;
                     }
                 }
                 _ => {}
@@ -1297,7 +1293,12 @@ impl Pane for CopyOverlay {
         let renderer = self.render.lock();
         if renderer.editing_search {
             // place in the search box
-            renderer.search_cursor
+            StableCursorPosition {
+                x: 8 + wezterm_term::unicode_column_width(first_n_chars(&renderer.pattern, renderer.search_cursor_index).as_str(), None),
+                y: renderer.compute_search_row(),
+                shape: termwiz::surface::CursorShape::SteadyBlock,
+                visibility: termwiz::surface::CursorVisibility::Visible,
+            }
         } else {
             renderer.cursor
         }
@@ -1937,4 +1938,59 @@ pub fn copy_key_table() -> KeyTable {
         table.insert((key, mods), KeyTableEntry { action });
     }
     table
+}
+
+fn insert_char_at(s: &str, position: usize, insert_char: char) -> String {
+    let graphemes = Graphemes::new(s).collect::<Vec<&str>>();
+
+    // 保证插入位置不超出范围
+    let position = if position > graphemes.len() {
+        graphemes.len()
+    } else {
+        position
+    };
+
+    let mut result = String::new();
+
+    for (i, grapheme) in graphemes.iter().enumerate() {
+        if i == position {
+            result.push(insert_char);
+        }
+        result.push_str(grapheme);
+    }
+
+    // 如果插入位置正好是字符串末尾，需要在末尾追加插入字符
+    if position == graphemes.len() {
+        result.push(insert_char);
+    }
+
+    result
+}
+
+fn delete_char_at(s: &str, position: usize) -> String {
+    // 将字符串按 Unicode 字符拆分
+    let graphemes = Graphemes::new(s).collect::<Vec<&str>>();
+
+    // 如果位置超出范围，返回原字符串
+    if position >= graphemes.len() {
+        return s.to_string();
+    }
+
+    // 组合新的字符串，排除指定位置的字符
+    graphemes.iter().enumerate()
+        .filter(|&(i, _)| i != position)
+        .map(|(_, &c)| c)
+        .collect()
+}
+
+fn first_n_chars(s: &str, n: usize) -> String {
+    let graphemes = Graphemes::new(s).collect::<Vec<&str>>();
+    if n >= graphemes.len() {
+        return s.to_string();
+    }
+    // 获取前 n 个字符的字节长度
+    graphemes.iter().enumerate()
+        .filter(|&(i, _)| i + 1 <= n)
+        .map(|(_, &c)| c)
+        .collect()
 }

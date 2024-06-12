@@ -66,6 +66,17 @@ impl Default for Pattern {
     }
 }
 
+impl Pattern {
+    /// 更新枚举中的字符串值
+    pub fn set_string(&mut self, new_string: String) {
+        match self {
+            Pattern::CaseSensitiveString(ref mut s) => *s = new_string,
+            Pattern::CaseInSensitiveString(ref mut s) => *s = new_string,
+            Pattern::Regex(ref mut s) => *s = new_string,
+        }
+    }
+}
+
 impl std::ops::Deref for Pattern {
     type Target = String;
     fn deref(&self) -> &String {
