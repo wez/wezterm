@@ -87,6 +87,23 @@ impl std::ops::DerefMut for Pattern {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum PatternType {
+    CaseSensitiveString,
+    CaseInSensitiveString,
+    Regex,
+}
+
+impl From<&Pattern> for PatternType {
+    fn from(value: &Pattern) -> Self {
+        match value {
+            Pattern::CaseSensitiveString(_) => PatternType::CaseSensitiveString,
+            Pattern::CaseInSensitiveString(_) => PatternType::CaseInSensitiveString,
+            Pattern::Regex(_) => PatternType::Regex,
+        }
+    }
+}
+
 /// Why a close request is being made
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CloseReason {

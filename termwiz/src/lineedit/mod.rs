@@ -153,7 +153,7 @@ impl<'term> LineEditor<'term> {
         Self {
             terminal,
             prompt: "> ".to_owned(),
-            line: LineEditBuffer::new(),
+            line: LineEditBuffer::default(),
             history_pos: None,
             bottom_line: None,
             completion: None,

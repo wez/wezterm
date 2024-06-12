@@ -9,12 +9,20 @@ pub struct LineEditBuffer {
     cursor: usize,
 }
 
-impl LineEditBuffer {
-    pub fn new() -> Self {
+impl Default for LineEditBuffer {
+    fn default() -> Self {
         Self {
             line: String::new(),
             cursor: 0,
         }
+    }
+}
+
+impl LineEditBuffer {
+    pub fn new(line: &str, cursor: usize) -> Self {
+        let mut buffer = Self::default();
+        buffer.set_line_and_cursor(line, cursor);
+        return buffer;
     }
 
     pub fn get_line(&self) -> &String {
@@ -40,7 +48,7 @@ impl LineEditBuffer {
 
     pub fn set_line_and_cursor(&mut self, line: &str, cursor: usize) {
         assert!(
-            cursor < line.len(),
+            cursor <= line.len(),
             "cursor {} is outside the byte length of the new line of length {}",
             cursor,
             line.len()
