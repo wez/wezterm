@@ -67,7 +67,7 @@ impl Default for Pattern {
 }
 
 impl Pattern {
-    /// 更新枚举中的字符串值
+    /// Update string value in enum
     pub fn set_string(&mut self, new_string: String) {
         match self {
             Pattern::CaseSensitiveString(ref mut s) => *s = new_string,

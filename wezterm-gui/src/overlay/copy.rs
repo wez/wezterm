@@ -1943,7 +1943,7 @@ pub fn copy_key_table() -> KeyTable {
 fn insert_char_at(s: &str, position: usize, insert_char: char) -> String {
     let graphemes = Graphemes::new(s).collect::<Vec<&str>>();
 
-    // 保证插入位置不超出范围
+    // Ensure that the insertion position does not exceed the range
     let position = if position > graphemes.len() {
         graphemes.len()
     } else {
@@ -1959,7 +1959,7 @@ fn insert_char_at(s: &str, position: usize, insert_char: char) -> String {
         result.push_str(grapheme);
     }
 
-    // 如果插入位置正好是字符串末尾，需要在末尾追加插入字符
+    // append the char at the end if the insertion position is exactly at the end of the string
     if position == graphemes.len() {
         result.push(insert_char);
     }
@@ -1968,15 +1968,13 @@ fn insert_char_at(s: &str, position: usize, insert_char: char) -> String {
 }
 
 fn delete_char_at(s: &str, position: usize) -> String {
-    // 将字符串按 Unicode 字符拆分
     let graphemes = Graphemes::new(s).collect::<Vec<&str>>();
 
-    // 如果位置超出范围，返回原字符串
     if position >= graphemes.len() {
         return s.to_string();
     }
 
-    // 组合新的字符串，排除指定位置的字符
+    // Combine new strings, excluding characters at specified positions
     graphemes.iter().enumerate()
         .filter(|&(i, _)| i != position)
         .map(|(_, &c)| c)
@@ -1988,7 +1986,7 @@ fn first_n_chars(s: &str, n: usize) -> String {
     if n >= graphemes.len() {
         return s.to_string();
     }
-    // 获取前 n 个字符的字节长度
+    // Get the first n characters
     graphemes.iter().enumerate()
         .filter(|&(i, _)| i + 1 <= n)
         .map(|(_, &c)| c)
