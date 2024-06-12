@@ -1164,19 +1164,68 @@ impl Pane for CopyOverlay {
 
                     render.schedule_update_search();
                 }
-                (KeyCode::Backspace, KeyModifiers::NONE) => {
-                    // Backspace to edit the pattern
+                (KeyCode::Char('H'), KeyModifiers::CTRL)
+                | (KeyCode::Backspace, KeyModifiers::NONE) => {
                     render
                         .search_line
                         .kill_text(Movement::BackwardChar(1), Movement::BackwardChar(1));
 
                     render.schedule_update_search();
                 }
-                (KeyCode::LeftArrow, KeyModifiers::NONE) => {
+                (KeyCode::Delete, KeyModifiers::NONE) => {
+                    render
+                        .search_line
+                        .kill_text(Movement::ForwardChar(1), Movement::None);
+
+                    render.schedule_update_search();
+                }
+                (KeyCode::Backspace, KeyModifiers::ALT)
+                | (KeyCode::Char('W'), KeyModifiers::CTRL) => {
+                    render
+                        .search_line
+                        .kill_text(Movement::BackwardWord(1), Movement::BackwardWord(1));
+
+                    render.schedule_update_search();
+                }
+                (KeyCode::Backspace, KeyModifiers::SUPER) => {
+                    render
+                        .search_line
+                        .kill_text(Movement::StartOfLine, Movement::StartOfLine);
+
+                    render.schedule_update_search();
+                }
+                (KeyCode::Char('K'), KeyModifiers::CTRL) => {
+                    render
+                        .search_line
+                        .kill_text(Movement::EndOfLine, Movement::EndOfLine);
+
+                    render.schedule_update_search();
+                }
+                (KeyCode::Char('B'), KeyModifiers::CTRL)
+                | (KeyCode::ApplicationLeftArrow, KeyModifiers::NONE)
+                | (KeyCode::LeftArrow, KeyModifiers::NONE) => {
                     render.search_line.exec_movement(Movement::BackwardChar(1));
                 }
-                (KeyCode::RightArrow, KeyModifiers::NONE) => {
+                (KeyCode::Char('F'), KeyModifiers::CTRL)
+                | (KeyCode::ApplicationRightArrow, KeyModifiers::NONE)
+                | (KeyCode::RightArrow, KeyModifiers::NONE) => {
                     render.search_line.exec_movement(Movement::ForwardChar(1));
+                }
+                (KeyCode::Char('b'), KeyModifiers::CTRL)
+                | (KeyCode::ApplicationLeftArrow, KeyModifiers::ALT)
+                | (KeyCode::LeftArrow, KeyModifiers::ALT) => {
+                    render.search_line.exec_movement(Movement::BackwardWord(1));
+                }
+                (KeyCode::Char('f'), KeyModifiers::CTRL)
+                | (KeyCode::ApplicationRightArrow, KeyModifiers::ALT)
+                | (KeyCode::RightArrow, KeyModifiers::ALT) => {
+                    render.search_line.exec_movement(Movement::ForwardWord(1));
+                }
+                (KeyCode::Char('A'), KeyModifiers::CTRL) | (KeyCode::Home, KeyModifiers::NONE) => {
+                    render.search_line.exec_movement(Movement::StartOfLine);
+                }
+                (KeyCode::Char('E'), KeyModifiers::CTRL) | (KeyCode::End, KeyModifiers::NONE) => {
+                    render.search_line.exec_movement(Movement::EndOfLine);
                 }
                 _ => {}
             }
