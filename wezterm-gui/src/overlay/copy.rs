@@ -36,7 +36,6 @@ lazy_static::lazy_static! {
 }
 
 const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
-const SEARCH_CURSOR_PADDING: usize = 8;
 
 pub struct CopyOverlay {
     delegate: Arc<dyn Pane>,
@@ -67,7 +66,7 @@ struct CopyRenderable {
 
     /// The text that the user entered
     pattern: Pattern,
-    search_cursor: StableCursorPosition,
+    search_cursor_x: usize,
     /// The most recently queried set of matches
     results: Vec<SearchResult>,
     by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
@@ -137,12 +136,7 @@ impl CopyOverlay {
             params.pattern
         };
 
-        let search_cursor = StableCursorPosition {
-            x: SEARCH_CURSOR_PADDING + pattern.len(),
-            y: 0,
-            shape: termwiz::surface::CursorShape::SteadyBlock,
-            visibility: termwiz::surface::CursorVisibility::Visible,
-        };
+        let search_cursor_x = unicode_column_width(&pattern, None);
         let mut render = CopyRenderable {
             cursor,
             window,
@@ -158,7 +152,7 @@ impl CopyOverlay {
             last_bar_pos: None,
             tab_id,
             pattern,
-            search_cursor,
+            search_cursor_x,
             editing_search: params.editing_search,
             result_pos: None,
             selection_mode: SelectionMode::Cell,
@@ -170,7 +164,6 @@ impl CopyOverlay {
 
         let search_row = render.compute_search_row();
         render.dirty_results.add(search_row);
-        render.search_cursor.y = search_row;
         render.update_search();
 
         Ok(Arc::new(CopyOverlay {
@@ -641,7 +634,7 @@ impl CopyRenderable {
 
     fn clear_pattern(&mut self) {
         self.pattern.clear();
-        self.search_cursor.x = SEARCH_CURSOR_PADDING;
+        self.search_cursor_x = 0;
         self.update_search();
     }
 
@@ -1154,50 +1147,44 @@ impl Pane for CopyOverlay {
                 (KeyCode::Char(c), KeyModifiers::NONE)
                 | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                     // Type to add to the pattern
-                    if render.pattern.capacity() - render.pattern.len() == 0 {
-                        render.pattern.reserve(10);
-                    }
-
-                    let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
-                    if position == render.pattern.graphemes(true).count() {
+                    if render.search_cursor_x == unicode_column_width(&render.pattern, None) {
                         render.pattern.push(c);
                     } else {
-                        let (offset, _) =
-                            render.pattern.grapheme_indices(true).nth(position).unwrap();
+                        let (offset, _) = render
+                            .pattern
+                            .grapheme_indices(true)
+                            .nth(render.search_cursor_x)
+                            .unwrap();
                         render.pattern.insert(offset, c);
                     }
-                    render.search_cursor.x += 1;
+                    render.search_cursor_x += 1;
 
                     render.schedule_update_search();
                 }
                 (KeyCode::Backspace, KeyModifiers::NONE) => {
                     // Backspace to edit the pattern
-                    if render.pattern.len() > 0
-                        && render.search_cursor.x - SEARCH_CURSOR_PADDING > 0
-                    {
-                        let position = render.search_cursor.x - SEARCH_CURSOR_PADDING;
+                    if render.pattern.len() > 0 && render.search_cursor_x > 0 {
+                        let position = render.search_cursor_x;
                         let (offset, _) = render
                             .pattern
                             .grapheme_indices(true)
                             .nth(position - 1)
                             .unwrap();
                         render.pattern.remove(offset);
-                        if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
-                            render.search_cursor.x -= 1;
+                        if render.search_cursor_x > 0 {
+                            render.search_cursor_x -= 1;
                         }
                         render.schedule_update_search();
                     }
                 }
                 (KeyCode::LeftArrow, KeyModifiers::NONE) => {
-                    if render.search_cursor.x - SEARCH_CURSOR_PADDING > 0 {
-                        render.search_cursor.x -= 1;
+                    if render.search_cursor_x > 0 {
+                        render.search_cursor_x -= 1;
                     }
                 }
                 (KeyCode::RightArrow, KeyModifiers::NONE) => {
-                    if render.search_cursor.x - SEARCH_CURSOR_PADDING
-                        < render.pattern.graphemes(true).count()
-                    {
-                        render.search_cursor.x += 1;
+                    if render.search_cursor_x < unicode_column_width(&render.pattern, None) {
+                        render.search_cursor_x += 1;
                     }
                 }
                 _ => {}
@@ -1310,7 +1297,12 @@ impl Pane for CopyOverlay {
         let renderer = self.render.lock();
         if renderer.editing_search {
             // place in the search box
-            renderer.search_cursor
+            StableCursorPosition {
+                x: 8 + renderer.search_cursor_x,
+                y: renderer.compute_search_row(),
+                shape: termwiz::surface::CursorShape::SteadyBlock,
+                visibility: termwiz::surface::CursorVisibility::Visible,
+            }
         } else {
             renderer.cursor
         }
