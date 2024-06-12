@@ -1173,6 +1173,15 @@ impl Pane for CopyOverlay {
                         render.schedule_update_search();
                     }
                 }
+                (KeyCode::Delete, KeyModifiers::NONE) => {
+                    // Delete to edit the pattern
+                    if render.pattern.len() > 0 {
+                        let position = render.search_cursor_index;
+                        let new_pattern = delete_char_at(&mut render.pattern, position);
+                        render.pattern.set_string(new_pattern);
+                        render.schedule_update_search();
+                    }
+                }
                 (KeyCode::LeftArrow, KeyModifiers::NONE) => {
                     if render.search_cursor_index > 0 {
                         render.search_cursor_index -= 1;
