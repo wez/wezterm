@@ -542,7 +542,8 @@ impl<'term> LineEditor<'term> {
     /// You don't normally need to call this unless you are defining
     /// a custom editor operation on the line buffer contents.
     /// The cursor position is the byte index into the line UTF-8 bytes.
-    /// Panics: the cursor must be within the bounds of the provided line.
+    /// Panics: the cursor must be the first byte in a UTF-8 code point
+    /// sequence or the end of the provided line.
     pub fn set_line_and_cursor(&mut self, line: &str, cursor: usize) {
         self.line.set_line_and_cursor(line, cursor);
     }

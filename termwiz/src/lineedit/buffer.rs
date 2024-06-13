@@ -46,12 +46,15 @@ impl LineEditBuffer {
         self.cursor += text.len();
     }
 
+    /// The cursor position is the byte index into the line UTF-8 bytes.
+    /// Panics: the cursor must be the first byte in a UTF-8 code point
+    /// sequence or the end of the provided line.
     pub fn set_line_and_cursor(&mut self, line: &str, cursor: usize) {
         assert!(
-            cursor <= line.len(),
-            "cursor {} is outside the byte length of the new line of length {}",
+            line.is_char_boundary(cursor),
+            "cursor {} is not a char boundary of the new line {}",
             cursor,
-            line.len()
+            line
         );
         self.line = line.to_string();
         self.cursor = cursor;
