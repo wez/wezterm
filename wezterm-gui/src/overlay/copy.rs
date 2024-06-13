@@ -136,7 +136,7 @@ impl CopyOverlay {
         } else {
             params.pattern
         };
-        let search_line = LineEditBuffer::new(&pattern, unicode_column_width(&pattern, None));
+        let search_line = LineEditBuffer::new(&pattern, pattern.len());
 
         let mut render = CopyRenderable {
             cursor,
