@@ -162,7 +162,7 @@ impl CopyOverlay {
         render.dirty_results.add(search_row);
         render.update_search();
 
-        let shared_render: Arc<Mutex<CopyRenderable>> = Arc::new(Mutex::new(render));
+        let shared_render = Arc::new(Mutex::new(render));
         let writer = SearchOverlayPatternWriter {render: Arc::clone(&shared_render)};
 
         Ok(Arc::new(CopyOverlay {
