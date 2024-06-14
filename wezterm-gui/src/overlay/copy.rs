@@ -1208,14 +1208,12 @@ impl Pane for CopyOverlay {
                 | (KeyCode::RightArrow, KeyModifiers::NONE) => {
                     render.search_line.exec_movement(Movement::ForwardChar(1));
                 }
-                (KeyCode::Char('b'), KeyModifiers::CTRL)
-                | (KeyCode::ApplicationLeftArrow, KeyModifiers::ALT)
-                | (KeyCode::LeftArrow, KeyModifiers::ALT) => {
+                (KeyCode::ApplicationLeftArrow, KeyModifiers::CTRL)
+                | (KeyCode::LeftArrow, KeyModifiers::CTRL) => {
                     render.search_line.exec_movement(Movement::BackwardWord(1));
                 }
-                (KeyCode::Char('f'), KeyModifiers::CTRL)
-                | (KeyCode::ApplicationRightArrow, KeyModifiers::ALT)
-                | (KeyCode::RightArrow, KeyModifiers::ALT) => {
+                (KeyCode::ApplicationRightArrow, KeyModifiers::CTRL)
+                | (KeyCode::RightArrow, KeyModifiers::CTRL) => {
                     render.search_line.exec_movement(Movement::ForwardWord(1));
                 }
                 (KeyCode::Char('A'), KeyModifiers::CTRL) | (KeyCode::Home, KeyModifiers::NONE) => {
