@@ -182,7 +182,7 @@ impl<'term> LineEditor<'term> {
                 matching_line,
                 cursor,
                 ..
-            } => (matching_line, *cursor),
+            } => (matching_line.as_str(), *cursor),
             _ => (self.line.get_line(), self.line.get_cursor()),
         };
 
@@ -743,7 +743,7 @@ impl<'term> LineEditor<'term> {
                         self.line.set_line_and_cursor(&prior, prior.len());
                     }
                 } else if let Some(last) = host.history().last() {
-                    self.bottom_line = Some(self.line.get_line().clone());
+                    self.bottom_line = Some(self.line.get_line().to_string());
                     self.history_pos = Some(last);
                     let line = host
                         .history()
@@ -785,7 +785,7 @@ impl<'term> LineEditor<'term> {
                         let state = CompletionState {
                             candidates,
                             index: 0,
-                            original_line: self.line.get_line().clone(),
+                            original_line: self.line.get_line().to_string(),
                             original_cursor: self.line.get_cursor(),
                         };
 
@@ -826,14 +826,14 @@ impl<'term> LineEditor<'term> {
                 match self.state {
                     EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
-                    EditorState::Accepted => return Ok(Some(self.line.get_line().clone())),
+                    EditorState::Accepted => return Ok(Some(self.line.get_line().to_string())),
                     EditorState::Inactive => bail!("editor is inactive during read line!?"),
                 }
             } else {
                 self.render(host)?;
             }
         }
-        Ok(Some(self.line.get_line().clone()))
+        Ok(Some(self.line.get_line().to_string()))
     }
 }
 

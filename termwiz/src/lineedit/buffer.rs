@@ -25,7 +25,7 @@ impl LineEditBuffer {
         return buffer;
     }
 
-    pub fn get_line(&self) -> &String {
+    pub fn get_line(&self) -> &str {
         return &self.line;
     }
 

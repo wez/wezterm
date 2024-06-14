@@ -635,15 +635,12 @@ impl CopyRenderable {
     }
 
     fn get_pattern(&self) -> Pattern {
-        return match self.pattern_type {
-            PatternType::CaseSensitiveString => {
-                Pattern::CaseSensitiveString(self.search_line.get_line().to_owned())
-            }
-            PatternType::CaseInSensitiveString => {
-                Pattern::CaseInSensitiveString(self.search_line.get_line().to_owned())
-            }
-            PatternType::Regex => Pattern::Regex(self.search_line.get_line().to_owned()),
-        };
+        let pattern = self.search_line.get_line().to_string();
+        match self.pattern_type {
+            PatternType::CaseSensitiveString => Pattern::CaseSensitiveString(pattern),
+            PatternType::CaseInSensitiveString => Pattern::CaseInSensitiveString(pattern),
+            PatternType::Regex => Pattern::Regex(pattern),
+        }
     }
 
     fn clear_pattern(&mut self) {
