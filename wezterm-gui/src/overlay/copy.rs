@@ -1522,7 +1522,8 @@ pub struct SearchOverlayPatternWriter {
 impl std::io::Write for SearchOverlayPatternWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let mut render = self.render.lock();
-        render.pattern.push_str(std::str::from_utf8(buf).unwrap());
+        let s = std::str::from_utf8(buf).map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("invalid UTF-8: {err:#}")))?;
+        render.pattern.push_str(s);
         render.schedule_update_search();
         Ok(buf.len())
     }
