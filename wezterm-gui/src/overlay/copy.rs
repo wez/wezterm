@@ -1607,7 +1607,7 @@ impl std::io::Write for SearchOverlayPatternWriter {
         let s = std::str::from_utf8(buf).map_err(|err| {
             std::io::Error::new(std::io::ErrorKind::Other, format!("invalid UTF-8: {err:#}"))
         })?;
-        render.pattern.push_str(s);
+        render.search_line.insert_text(s);
         render.schedule_update_search();
         Ok(buf.len())
     }
