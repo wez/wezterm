@@ -77,6 +77,7 @@ As features stabilize some brief notes about them will accumulate here.
   #5515 #3807
 * Render invalidation issue when closing tabs other than the last tab. Thanks
   to @Mrreadiness! #5441 #5304
+* Search mode now accepts composed input from the IME. Thanks to @kenchou! #5564
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
