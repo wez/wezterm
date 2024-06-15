@@ -174,15 +174,7 @@ impl LineEditBuffer {
                 position
             }
             Movement::StartOfLine => 0,
-            Movement::EndOfLine => {
-                let mut cursor =
-                    GraphemeCursor::new(self.line.len().saturating_sub(1), self.line.len(), false);
-                if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                    pos
-                } else {
-                    self.cursor
-                }
-            }
+            Movement::EndOfLine => self.line.len(),
             Movement::None => self.cursor,
         }
     }
