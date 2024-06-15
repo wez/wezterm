@@ -13,7 +13,7 @@ use mux::pane::{
 use mux::renderable::*;
 use mux::tab::TabId;
 use ordered_float::NotNan;
-use parking_lot::{MappedMutexGuard, Mutex};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use rangeset::RangeSet;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -40,7 +40,8 @@ const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
 
 pub struct CopyOverlay {
     delegate: Arc<dyn Pane>,
-    render: Mutex<CopyRenderable>,
+    render: Arc<Mutex<CopyRenderable>>,
+    writer: Mutex<SearchOverlayPatternWriter>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -167,9 +168,15 @@ impl CopyOverlay {
         render.dirty_results.add(search_row);
         render.update_search();
 
+        let shared_render = Arc::new(Mutex::new(render));
+        let writer = SearchOverlayPatternWriter {
+            render: Arc::clone(&shared_render),
+        };
+
         Ok(Arc::new(CopyOverlay {
             delegate: Arc::clone(pane),
-            render: Mutex::new(render),
+            render: shared_render,
+            writer: Mutex::new(writer),
         }))
     }
 
@@ -1116,7 +1123,10 @@ impl Pane for CopyOverlay {
     }
 
     fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
-        self.delegate.writer()
+        MutexGuard::map(self.writer.lock(), |writer| {
+            let w: &mut dyn std::io::Write = writer;
+            w
+        })
     }
 
     fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
@@ -1584,6 +1594,26 @@ impl Pane for CopyOverlay {
 
     fn get_dimensions(&self) -> RenderableDimensions {
         self.delegate.get_dimensions()
+    }
+}
+
+pub struct SearchOverlayPatternWriter {
+    render: Arc<Mutex<CopyRenderable>>,
+}
+
+impl std::io::Write for SearchOverlayPatternWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut render = self.render.lock();
+        let s = std::str::from_utf8(buf).map_err(|err| {
+            std::io::Error::new(std::io::ErrorKind::Other, format!("invalid UTF-8: {err:#}"))
+        })?;
+        render.search_line.insert_text(s);
+        render.schedule_update_search();
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
