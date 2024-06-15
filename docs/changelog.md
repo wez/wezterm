@@ -46,6 +46,8 @@ As features stabilize some brief notes about them will accumulate here.
   ?988 #1647
 * [default_ssh_auth_sock](config/lua/config/default_ssh_auth_sock.md) option
   to manage `SSH_AUTH_SOCK`.
+* Search mode: now supports richer line editing. Thanks to @Mrreadiness and
+  @kenchou! #5416 #3087
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements

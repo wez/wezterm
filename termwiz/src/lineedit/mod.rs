@@ -43,12 +43,13 @@ use crate::surface::change::ChangeSequence;
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
 use crate::{bail, ensure, Result};
-use unicode_segmentation::GraphemeCursor;
 
 mod actions;
+mod buffer;
 mod history;
 mod host;
 pub use actions::{Action, Movement, RepeatCount};
+pub use buffer::LineEditBuffer;
 pub use history::*;
 pub use host::*;
 
@@ -71,10 +72,7 @@ pub use host::*;
 pub struct LineEditor<'term> {
     terminal: &'term mut dyn Terminal,
     prompt: String,
-    line: String,
-    /// byte index into the UTF-8 string data of the insertion
-    /// point.  This is NOT the number of graphemes!
-    cursor: usize,
+    line: LineEditBuffer,
 
     history_pos: Option<usize>,
     bottom_line: Option<String>,
@@ -155,8 +153,7 @@ impl<'term> LineEditor<'term> {
         Self {
             terminal,
             prompt: "> ".to_owned(),
-            line: String::new(),
-            cursor: 0,
+            line: LineEditBuffer::default(),
             history_pos: None,
             bottom_line: None,
             completion: None,
@@ -185,8 +182,8 @@ impl<'term> LineEditor<'term> {
                 matching_line,
                 cursor,
                 ..
-            } => (matching_line, *cursor),
-            _ => (&self.line, self.cursor),
+            } => (matching_line.as_str(), *cursor),
+            _ => (self.line.get_line(), self.line.get_cursor()),
         };
 
         let cursor_position_after_printing_prompt = changes.current_cursor_position();
@@ -258,7 +255,7 @@ impl<'term> LineEditor<'term> {
             // the text in the line editing area, but since the input
             // is drawn here, we render an `_` to indicate where the input
             // position really is.
-            changes.add(format!("\r\n{}: {}_", label, self.line));
+            changes.add(format!("\r\n{}: {}_", label, self.line.get_line()));
         }
 
         // Add some debugging status at the bottom
@@ -512,123 +509,9 @@ impl<'term> LineEditor<'term> {
         }
     }
 
-    /// Compute the cursor position after applying movement
-    fn eval_movement(&self, movement: Movement) -> usize {
-        match movement {
-            Movement::BackwardChar(rep) => {
-                let mut position = self.cursor;
-                for _ in 0..rep {
-                    let mut cursor = GraphemeCursor::new(position, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.prev_boundary(&self.line, 0) {
-                        position = pos;
-                    } else {
-                        break;
-                    }
-                }
-                position
-            }
-            Movement::BackwardWord(rep) => {
-                let char_indices: Vec<(usize, char)> = self.line.char_indices().collect();
-                if char_indices.is_empty() {
-                    return self.cursor;
-                }
-                let mut char_position = char_indices
-                    .iter()
-                    .position(|(idx, _)| *idx == self.cursor)
-                    .unwrap_or(char_indices.len() - 1);
-
-                for _ in 0..rep {
-                    if char_position == 0 {
-                        break;
-                    }
-
-                    let mut found = None;
-                    for prev in (0..char_position - 1).rev() {
-                        if char_indices[prev].1.is_whitespace() {
-                            found = Some(prev + 1);
-                            break;
-                        }
-                    }
-
-                    char_position = found.unwrap_or(0);
-                }
-                char_indices[char_position].0
-            }
-            Movement::ForwardWord(rep) => {
-                let char_indices: Vec<(usize, char)> = self.line.char_indices().collect();
-                if char_indices.is_empty() {
-                    return self.cursor;
-                }
-                let mut char_position = char_indices
-                    .iter()
-                    .position(|(idx, _)| *idx == self.cursor)
-                    .unwrap_or_else(|| char_indices.len());
-
-                for _ in 0..rep {
-                    // Skip any non-whitespace characters
-                    while char_position < char_indices.len()
-                        && !char_indices[char_position].1.is_whitespace()
-                    {
-                        char_position += 1;
-                    }
-
-                    // Skip any whitespace characters
-                    while char_position < char_indices.len()
-                        && char_indices[char_position].1.is_whitespace()
-                    {
-                        char_position += 1;
-                    }
-
-                    // We are now on the start of the next word
-                }
-                char_indices
-                    .get(char_position)
-                    .map(|(i, _)| *i)
-                    .unwrap_or_else(|| self.line.len())
-            }
-            Movement::ForwardChar(rep) => {
-                let mut position = self.cursor;
-                for _ in 0..rep {
-                    let mut cursor = GraphemeCursor::new(position, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                        position = pos;
-                    } else {
-                        break;
-                    }
-                }
-                position
-            }
-            Movement::StartOfLine => 0,
-            Movement::EndOfLine => {
-                let mut cursor =
-                    GraphemeCursor::new(self.line.len().saturating_sub(1), self.line.len(), false);
-                if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                    pos
-                } else {
-                    self.cursor
-                }
-            }
-            Movement::None => self.cursor,
-        }
-    }
-
     fn kill_text(&mut self, kill_movement: Movement, move_movement: Movement) {
         self.clear_completion();
-        let kill_pos = self.eval_movement(kill_movement);
-        let new_cursor = self.eval_movement(move_movement);
-
-        let (lower, upper) = if kill_pos < self.cursor {
-            (kill_pos, self.cursor)
-        } else {
-            (self.cursor, kill_pos)
-        };
-
-        self.line.replace_range(lower..upper, "");
-
-        // Clamp to the line length, otherwise a kill to end of line
-        // command will leave the cursor way off beyond the end of
-        // the line.
-        self.cursor = new_cursor.min(self.line.len());
+        self.line.kill_text(kill_movement, move_movement);
     }
 
     fn clear_completion(&mut self) {
@@ -642,8 +525,7 @@ impl<'term> LineEditor<'term> {
             ..
         } = &self.state
         {
-            self.line = matching_line.to_string();
-            self.cursor = *cursor;
+            self.line.set_line_and_cursor(matching_line, *cursor);
             self.state = EditorState::Editing;
         }
     }
@@ -653,23 +535,17 @@ impl<'term> LineEditor<'term> {
     /// a custom editor operation on the line buffer contents.
     /// The cursor position is the byte index into the line UTF-8 bytes.
     pub fn get_line_and_cursor(&mut self) -> (&str, usize) {
-        (&self.line, self.cursor)
+        (self.line.get_line(), self.line.get_cursor())
     }
 
     /// Sets the current line and cursor position.
     /// You don't normally need to call this unless you are defining
     /// a custom editor operation on the line buffer contents.
     /// The cursor position is the byte index into the line UTF-8 bytes.
-    /// Panics: the cursor must be within the bounds of the provided line.
+    /// Panics: the cursor must be the first byte in a UTF-8 code point
+    /// sequence or the end of the provided line.
     pub fn set_line_and_cursor(&mut self, line: &str, cursor: usize) {
-        assert!(
-            cursor < line.len(),
-            "cursor {} is outside the byte length of the new line of length {}",
-            cursor,
-            line.len()
-        );
-        self.line = line.to_string();
-        self.cursor = cursor;
+        self.line.set_line_and_cursor(line, cursor);
     }
 
     /// Call this after changing modifying the line buffer.
@@ -698,9 +574,9 @@ impl<'term> LineEditor<'term> {
             let last_matching_line;
             let last_cursor;
 
-            if let Some(result) = host
-                .history()
-                .search(history_pos, *style, *direction, &self.line)
+            if let Some(result) =
+                host.history()
+                    .search(history_pos, *style, *direction, self.line.get_line())
             {
                 self.history_pos.replace(result.idx);
                 last_matching_line = result.line.to_string();
@@ -733,7 +609,6 @@ impl<'term> LineEditor<'term> {
             // Not yet searching, so we start a new search
             // with an empty pattern
             self.line.clear();
-            self.cursor = 0;
             self.history_pos.take();
         }
 
@@ -752,9 +627,9 @@ impl<'term> LineEditor<'term> {
             },
         };
 
-        let search_result = host
-            .history()
-            .search(history_pos, style, direction, &self.line);
+        let search_result =
+            host.history()
+                .search(history_pos, style, direction, self.line.get_line());
 
         let last_matching_line;
         let last_cursor;
@@ -836,25 +711,20 @@ impl<'term> LineEditor<'term> {
             Action::Move(movement) => {
                 self.clear_completion();
                 self.cancel_search_state();
-                self.cursor = self.eval_movement(movement);
+                self.line.exec_movement(movement);
             }
 
             Action::InsertChar(rep, c) => {
                 self.clear_completion();
                 for _ in 0..rep {
-                    self.line.insert(self.cursor, c);
-                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                        self.cursor = pos;
-                    }
+                    self.line.insert_char(c);
                 }
                 self.reapply_search_pattern(host);
             }
             Action::InsertText(rep, text) => {
                 self.clear_completion();
                 for _ in 0..rep {
-                    self.line.insert_str(self.cursor, &text);
-                    self.cursor += text.len();
+                    self.line.insert_text(&text);
                 }
                 self.reapply_search_pattern(host);
             }
@@ -870,18 +740,16 @@ impl<'term> LineEditor<'term> {
                     let prior_idx = cur_pos.saturating_sub(1);
                     if let Some(prior) = host.history().get(prior_idx) {
                         self.history_pos = Some(prior_idx);
-                        self.line = prior.to_string();
-                        self.cursor = self.line.len();
+                        self.line.set_line_and_cursor(&prior, prior.len());
                     }
                 } else if let Some(last) = host.history().last() {
-                    self.bottom_line = Some(self.line.clone());
+                    self.bottom_line = Some(self.line.get_line().to_string());
                     self.history_pos = Some(last);
-                    self.line = host
+                    let line = host
                         .history()
                         .get(last)
-                        .expect("History::last and History::get to be consistent")
-                        .to_string();
-                    self.cursor = self.line.len();
+                        .expect("History::last and History::get to be consistent");
+                    self.line.set_line_and_cursor(&line, line.len())
                 }
             }
             Action::HistoryNext => {
@@ -892,14 +760,11 @@ impl<'term> LineEditor<'term> {
                     let next_idx = cur_pos.saturating_add(1);
                     if let Some(next) = host.history().get(next_idx) {
                         self.history_pos = Some(next_idx);
-                        self.line = next.to_string();
-                        self.cursor = self.line.len();
+                        self.line.set_line_and_cursor(&next, next.len());
                     } else if let Some(bottom) = self.bottom_line.take() {
-                        self.line = bottom;
-                        self.cursor = self.line.len();
+                        self.line.set_line_and_cursor(&bottom, bottom.len());
                     } else {
                         self.line.clear();
-                        self.cursor = 0;
                     }
                 }
             }
@@ -915,18 +780,17 @@ impl<'term> LineEditor<'term> {
                 self.cancel_search_state();
 
                 if self.completion.is_none() {
-                    let candidates = host.complete(&self.line, self.cursor);
+                    let candidates = host.complete(self.line.get_line(), self.line.get_cursor());
                     if !candidates.is_empty() {
                         let state = CompletionState {
                             candidates,
                             index: 0,
-                            original_line: self.line.clone(),
-                            original_cursor: self.cursor,
+                            original_line: self.line.get_line().to_string(),
+                            original_cursor: self.line.get_cursor(),
                         };
 
                         let (cursor, line) = state.current();
-                        self.cursor = cursor;
-                        self.line = line;
+                        self.line.set_line_and_cursor(&line, cursor);
 
                         // If there is only a single completion then don't
                         // leave us in a state where we just cycle on the
@@ -938,8 +802,7 @@ impl<'term> LineEditor<'term> {
                 } else if let Some(state) = self.completion.as_mut() {
                     state.next();
                     let (cursor, line) = state.current();
-                    self.cursor = cursor;
-                    self.line = line;
+                    self.line.set_line_and_cursor(&line, cursor);
                 }
             }
         }
@@ -949,7 +812,6 @@ impl<'term> LineEditor<'term> {
 
     fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
         self.line.clear();
-        self.cursor = 0;
         self.history_pos = None;
         self.bottom_line = None;
         self.clear_completion();
@@ -964,14 +826,14 @@ impl<'term> LineEditor<'term> {
                 match self.state {
                     EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
-                    EditorState::Accepted => return Ok(Some(self.line.clone())),
+                    EditorState::Accepted => return Ok(Some(self.line.get_line().to_string())),
                     EditorState::Inactive => bail!("editor is inactive during read line!?"),
                 }
             } else {
                 self.render(host)?;
             }
         }
-        Ok(Some(self.line.clone()))
+        Ok(Some(self.line.get_line().to_string()))
     }
 }
 
