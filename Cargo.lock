@@ -5212,6 +5212,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "phf",
+ "rstest",
  "serde",
  "sha2",
  "signal-hook",

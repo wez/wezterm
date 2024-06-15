@@ -179,3 +179,65 @@ impl LineEditBuffer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use super::*;
+    #[rstest]
+    #[case("Hello", 5, '!', "Hello!")]
+    #[case("你好", 6, '！', "你好！")]
+    #[case("你好世界", 6, '，', "你好，世界")]
+    fn test_insert_char(#[case] text: &str, #[case] cursor: usize, #[case] new_char: char, #[case] expect: &str) {
+        // test insert a char
+        let mut buffer = LineEditBuffer::new(text, cursor);
+        buffer.insert_char(new_char);
+        assert_eq!(buffer.get_line(), expect);
+        assert_eq!(buffer.get_cursor(), cursor + new_char.len_utf8());
+    }
+
+    #[rstest]
+    #[case("Hello", 5, ", world!", "Hello, world!")]
+    #[case("你好", 6, "，世界！", "你好，世界！")] // insert at end of line
+    #[case("和平", 0, "世界", "世界和平")]  // insert at start of line
+    #[case("你好世界", 6, "，", "你好，世界")]  // insert at middle of line
+    fn test_insert_unicode_text(#[case] text: &str, #[case] cursor: usize, #[case] new_text: &str, #[case] expect: &str) {
+        let mut buffer = LineEditBuffer::new(text, cursor);
+        buffer.insert_text(new_text);
+        assert_eq!(buffer.get_line(), expect);
+        assert_eq!(buffer.get_cursor(), cursor + new_text.len());
+    }
+
+    #[rstest]
+    #[case("Hello!", 6, Movement::BackwardChar(1), Movement::BackwardChar(1), "Hello", 5)]
+    #[case("你好！", 9, Movement::BackwardChar(1), Movement::BackwardChar(1), "你好", 6)]
+    fn test_kill_text_backward_char(#[case] text: &str,  #[case] cursor:usize, #[case] op: Movement, #[case] cursor_action: Movement, #[case] expect_line: &str, #[case] expect_cursor: usize) {
+        let mut buffer = LineEditBuffer::new(text, cursor);
+        buffer.kill_text(op, cursor_action);
+        assert_eq!(buffer.get_line(), expect_line);
+        assert_eq!(buffer.get_cursor(), expect_cursor);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut buffer = LineEditBuffer::new("Hello, world", 5);
+        buffer.clear();
+        assert_eq!(buffer.get_line(), "");
+        assert_eq!(buffer.get_cursor(), 0);
+    }
+
+    #[test]
+    fn test_exec_movement() {
+        let text = "😀Hello, world! 你好，世界！こんにちは、世界！";
+        let mut buffer = LineEditBuffer::new(text, text.len());
+        buffer.exec_movement(Movement::StartOfLine);
+        assert_eq!(buffer.get_cursor(), 0);
+        buffer.exec_movement(Movement::ForwardChar(1));
+        assert_eq!(buffer.get_cursor(), buffer.get_line().chars().next().unwrap().len_utf8());
+
+        buffer.exec_movement(Movement::EndOfLine);
+        assert_eq!(buffer.get_cursor(), buffer.get_line().len());
+        buffer.exec_movement(Movement::BackwardChar(1));
+        assert_eq!(buffer.get_cursor(), buffer.get_line().len() - (buffer.get_line().chars().last().unwrap().len_utf8()));
+    }
+}
