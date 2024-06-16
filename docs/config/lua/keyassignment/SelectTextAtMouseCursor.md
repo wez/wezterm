@@ -11,7 +11,7 @@ to take the surrounding semantic zone.
 
 In this example, the triple-left-click mouse action is set to
 automatically select the entire command output when clicking
-on any character withing that region:
+on any character within that region:
 
 ```lua
 config.mouse_bindings = {
