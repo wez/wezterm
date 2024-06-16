@@ -1,4 +1,4 @@
-use crate::win::psuedocon::HPCON;
+use crate::win::pseudocon::HPCON;
 use anyhow::{ensure, Error};
 use std::io::Error as IoError;
 use std::{mem, ptr};
