@@ -812,6 +812,15 @@ impl Mux {
         }
     }
 
+    fn remove_float_pane_internal(&self, pane_id: PaneId) {
+        log::debug!("removing float pane {}", pane_id);
+        if let Some(pane) = self.panes.write().remove(&pane_id).clone() {
+            log::debug!("killing float pane {}", pane_id);
+            pane.kill();
+            self.notify(MuxNotification::PaneRemoved(pane_id));
+        }
+    }
+
     fn remove_tab_internal(&self, tab_id: TabId) -> Option<Arc<Tab>> {
         log::debug!("remove_tab_internal tab {}", tab_id);
 
@@ -873,6 +882,11 @@ impl Mux {
 
     pub fn remove_pane(&self, pane_id: PaneId) {
         self.remove_pane_internal(pane_id);
+        self.prune_dead_windows();
+    }
+
+    pub fn remove_float_pane(&self, pane_id: PaneId) {
+        self.remove_float_pane_internal(pane_id);
         self.prune_dead_windows();
     }
 
@@ -1167,6 +1181,52 @@ impl Mux {
                 _ => None,
             }
         })
+    }
+
+    pub async fn float_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (_pane_domain_id, window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+        let domain = self
+            .resolve_spawn_tab_domain(Some(pane_id), &domain)
+            .context("resolve_spawn_tab_domain")?;
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(Some(window_id)).await?;
+        }
+
+        let current_pane = self
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let term_config = current_pane.get_config();
+
+        let pane = domain.add_float_pane(tab_id, pane_id, command_builder, command).await?;
+
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard
+
+        let dims = pane.get_dimensions();
+
+        let size = TerminalSize {
+            cols: dims.cols,
+            rows: dims.viewport_rows,
+            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_width: 0,
+            dpi: dims.dpi,
+        };
+
+        Ok((pane, size))
     }
 
     pub async fn split_pane(

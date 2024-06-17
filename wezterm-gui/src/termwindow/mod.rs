@@ -2591,6 +2591,12 @@ impl TermWindow {
                     }),
                 );
             }
+            FloatPane(spawn) => {
+                log::trace!("FloatPane {:?}", spawn);
+                self.spawn_command(
+                    spawn,
+                    SpawnWhere::Float);
+            }
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
@@ -3419,6 +3425,7 @@ impl TermWindow {
                 pixel_width: size.cols as usize * self.render_metrics.cell_size.width as usize,
                 pixel_height: size.rows as usize * self.render_metrics.cell_size.height as usize,
                 pane,
+                is_float: false
             }]
         } else {
             let mut panes = tab.iter_panes();

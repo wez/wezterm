@@ -45,6 +45,7 @@ struct TabInner {
     active: usize,
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
+    float_pane: Option<Arc<dyn Pane>>,
     recency: Recency,
 }
 
@@ -76,6 +77,7 @@ pub struct PositionedPane {
     pub pixel_height: usize,
     /// The pane instance
     pub pane: Arc<dyn Pane>,
+    pub is_float: bool,
 }
 
 impl std::fmt::Debug for PositionedPane {
@@ -733,6 +735,12 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
+    pub fn compute_float_size(
+        &self,
+    ) -> TerminalSize {
+        self.inner.lock().compute_float_size()
+    }
+
     /// Split the pane that has pane_index in the given direction and assign
     /// the right/bottom pane of the newly created split to the provided Pane
     /// instance.  Returns the resultant index of the newly inserted pane.
@@ -746,6 +754,17 @@ impl Tab {
         self.inner
             .lock()
             .split_and_insert(pane_index, request, pane)
+    }
+
+    pub fn insert_float(
+        &self,
+        pane_index: usize,
+        float_size: TerminalSize,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<usize> {
+        self.inner
+            .lock()
+            .add_float_pane(pane_index, float_size, pane)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -764,6 +783,7 @@ impl TabInner {
             zoomed: None,
             title: String::new(),
             recency: Recency::default(),
+            float_pane: None,
         }
     }
 
@@ -1017,6 +1037,7 @@ impl TabInner {
                     height: size.rows.into(),
                     pixel_height: size.pixel_height.into(),
                     pane: Arc::clone(zoomed),
+                    is_float: false
                 });
                 return panes;
             }
@@ -1026,6 +1047,29 @@ impl TabInner {
         let zoomed_id = self.zoomed.as_ref().map(|p| p.pane_id());
         let root_size = self.size;
         let mut cursor = self.pane.take().unwrap().cursor();
+
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            let top = (root_size.rows as f32 * 0.10).floor() as usize;
+            let left = (root_size.cols as f32 * 0.10).floor() as usize;
+            let cols = (root_size.cols as f32 * 0.80).floor() as usize;
+            let rows = (root_size.rows as f32 * 0.80).floor() as usize;
+            let pixel_width = (cols as f32 * root_size.pixel_width as f32 * 0.80).floor() as usize;
+            let pixel_height = (cols as f32 * root_size.pixel_height as f32 * 0.80).floor() as usize;
+
+            panes.push(PositionedPane {
+                index: 0,
+                is_active: true,
+                is_zoomed: zoomed_id == Some(float_pane.pane_id()),
+                left,
+                top,
+                width: cols,
+                height: rows,
+                pixel_width,
+                pixel_height,
+                pane: Arc::clone(float_pane),
+                is_float: true
+            });
+        }
 
         loop {
             if cursor.is_leaf() {
@@ -1063,6 +1107,7 @@ impl TabInner {
                     pixel_width: dims.pixel_width as _,
                     pixel_height: dims.pixel_height as _,
                     pane,
+                    is_float: false
                 });
             }
 
@@ -1074,6 +1119,7 @@ impl TabInner {
                 }
             }
         }
+
 
         panes
     }
@@ -1696,6 +1742,15 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
+        if let Some(float_pane) = &self.float_pane {
+            if float_pane.is_dead() {
+                let mux = Mux::get();
+                let pane_id = float_pane.pane_id();
+                self.float_pane = None;
+                mux.remove_float_pane(pane_id);
+            }
+        }
+
         if !dead_panes.is_empty() && kill {
             let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
             promise::spawn::spawn_into_main_thread(async move {
@@ -1861,6 +1916,23 @@ impl TabInner {
         None
     }
 
+    fn compute_float_size(
+        &mut self
+    ) -> TerminalSize {
+        let cell_dims = self.cell_dimensions();
+        let size = self.size;
+        let width = (size.cols as f32 * 0.80).floor() as usize;
+        let height = (size.rows as f32 * 0.80).floor() as usize;
+
+        TerminalSize {
+                    rows: height as _,
+                    cols: width as _,
+                    pixel_height: cell_dims.pixel_height * height,
+                    pixel_width: cell_dims.pixel_width * width,
+                    dpi: cell_dims.dpi,
+                }
+    }
+
     fn compute_split_size(
         &mut self,
         pane_index: usize,
@@ -1950,6 +2022,31 @@ impl TabInner {
                 },
             }
         })
+    }
+
+    fn add_float_pane(
+        &mut self,
+        pane_index: usize,
+        float_size: TerminalSize,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<usize> {
+        if self.zoomed.is_some() {
+            anyhow::bail!("cannot add float while zoomed");
+        }
+
+        if self.float_pane.is_some() {
+            anyhow::bail!("cannot add float while another float is active")
+        }
+
+        self.float_pane = Some(Arc::clone(&pane));
+        {
+            pane.resize(float_size)?;
+        }
+
+        log::debug!("split info after split: {:#?}", self.iter_splits());
+        log::debug!("pane info after split: {:#?}", self.iter_panes());
+
+        Ok(pane_index + 1)
     }
 
     fn split_and_insert(
