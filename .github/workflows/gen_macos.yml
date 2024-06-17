@@ -32,11 +32,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: "recursive"
-      - name: "Install Rust"
-        uses: dtolnay/rust-toolchain@stable
       - name: "Install Rust (ARM)"
         shell: bash
         run: "rustup target add aarch64-apple-darwin"
+      - name: "Install Rust (Intel)"
+        shell: bash
+        run: "rustup target add x86_64-apple-darwin"
       - name: "Compile with sccache"
         uses: mozilla-actions/sccache-action@v0.0.4
       - name: "Cache Rust Dependencies"

@@ -379,6 +379,17 @@ rustup default {toolchain}
 """,
                 ),
             ]
+        elif "macos" in self.name:
+            steps += [
+                RunStep(
+                    name="Install Rust (ARM)",
+                    run="rustup target add aarch64-apple-darwin",
+                ),
+                RunStep(
+                    name="Install Rust (Intel)",
+                    run="rustup target add x86_64-apple-darwin",
+                )
+            ]
         else:
             steps += [
                 ActionStep(
@@ -386,13 +397,6 @@ rustup default {toolchain}
                     action=f"dtolnay/rust-toolchain@{toolchain}",
                     params=params,
                 ),
-            ]
-        if "macos" in self.name:
-            steps += [
-                RunStep(
-                    name="Install Rust (ARM)",
-                    run="rustup target add aarch64-apple-darwin",
-                )
             ]
         if cache:
             steps += [
