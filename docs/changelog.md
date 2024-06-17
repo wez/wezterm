@@ -46,6 +46,8 @@ As features stabilize some brief notes about them will accumulate here.
   ?988 #1647
 * [default_ssh_auth_sock](config/lua/config/default_ssh_auth_sock.md) option
   to manage `SSH_AUTH_SOCK`.
+* Search mode: now supports richer line editing. Thanks to @Mrreadiness and
+  @kenchou! #5416 #3087
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
@@ -71,6 +73,11 @@ As features stabilize some brief notes about them will accumulate here.
   #3283
 * Wayland: hang when launched under ChromeOS Crostini. Thanks to @dberlin!
   #5393 #5397
+* macOS: Fixed notch avoidance padding in full screen mode. Thanks to @mbaird!
+  #5515 #3807
+* Render invalidation issue when closing tabs other than the last tab. Thanks
+  to @Mrreadiness! #5441 #5304
+* Search mode now accepts composed input from the IME. Thanks to @kenchou! #5564
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
