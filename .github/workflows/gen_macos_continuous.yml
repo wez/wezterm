@@ -21,7 +21,7 @@ on:
 
 jobs:
   build:
-    runs-on: "macos-11"
+    runs-on: "macos-latest"
     
     env:
       BUILD_REASON: "Schedule"

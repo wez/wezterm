@@ -1003,7 +1003,7 @@ TARGETS = [
     Target(container="debian:12", continuous_only=True),
     Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
-    Target(name="macos", os="macos-11"),
+    Target(name="macos", os="macos-latest"),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:38"),
     Target(container="fedora:39"),
