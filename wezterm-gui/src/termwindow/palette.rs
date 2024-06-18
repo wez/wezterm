@@ -92,6 +92,7 @@ fn build_commands(
     gui_window: GuiWin,
     pane: Option<MuxPane>,
     filter_copy_mode: bool,
+    is_float_active: bool
 ) -> Vec<ExpandedCommand> {
     let mut commands = CommandDef::actions_for_palette_and_menubar(&config::configuration());
 
@@ -134,6 +135,18 @@ fn build_commands(
     commands.retain(|cmd| {
         if filter_copy_mode {
             !matches!(cmd.action, KeyAssignment::CopyMode(_))
+        } else {
+            true
+        }
+    });
+
+    //is there a better way to do this?
+    commands.retain(|cmd| {
+        if is_float_active {
+            !matches!(cmd.action, KeyAssignment::PaneSelect(_))
+                && !matches!(cmd.action, KeyAssignment::SplitPane(_))
+                && !matches!(cmd.action, KeyAssignment::SplitHorizontal(_))
+                && !matches!(cmd.action, KeyAssignment::SplitVertical(_))
         } else {
             true
         }
@@ -233,7 +246,7 @@ impl CommandPalette {
             .get_active_pane_or_overlay()
             .map(|pane| MuxPane(pane.pane_id()));
 
-        let commands = build_commands(GuiWin::new(term_window), mux_pane, filter_copy_mode);
+        let commands = build_commands(GuiWin::new(term_window), mux_pane, filter_copy_mode, term_window.is_float_active());
 
         Self {
             element: RefCell::new(None),

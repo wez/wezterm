@@ -691,6 +691,10 @@ impl Tab {
         self.inner.lock().is_dead()
     }
 
+    pub fn is_float_active(&self) -> bool {
+        self.inner.lock().is_float_active()
+    }
+
     pub fn get_active_pane(&self) -> Option<Arc<dyn Pane>> {
         self.inner.lock().get_active_pane()
     }
@@ -1059,7 +1063,7 @@ impl TabInner {
             panes.push(PositionedPane {
                 index: 0,
                 is_active: true,
-                is_zoomed: zoomed_id == Some(float_pane.pane_id()),
+                is_zoomed: false,
                 left,
                 top,
                 width: cols,
@@ -1787,6 +1791,10 @@ impl TabInner {
         dead_count == panes.len()
     }
 
+    fn is_float_active(&self) -> bool {
+        return self.float_pane.is_some();
+    }
+
     fn get_active_pane(&mut self) -> Option<Arc<dyn Pane>> {
         if let Some(zoomed) = self.zoomed.as_ref() {
             return Some(Arc::clone(zoomed));
@@ -2041,10 +2049,8 @@ impl TabInner {
         self.float_pane = Some(Arc::clone(&pane));
         {
             pane.resize(float_size)?;
+            self.set_active_idx(0);
         }
-
-        log::debug!("split info after split: {:#?}", self.iter_splits());
-        log::debug!("pane info after split: {:#?}", self.iter_panes());
 
         Ok(pane_index + 1)
     }

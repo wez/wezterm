@@ -667,6 +667,11 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
+        //is there a better place to put this?
+        if self.is_float_active() {
+            return;
+        }
+
         for pos in self.get_panes_to_render() {
             if !is_already_captured
                 && row >= pos.top as i64

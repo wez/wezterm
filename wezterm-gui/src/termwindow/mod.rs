@@ -541,10 +541,6 @@ impl TermWindow {
         // force cursor to be repainted
         window.invalidate();
 
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            pane.focus_changed(focused);
-        }
-
         self.update_title();
         self.emit_window_event("window-focus-changed", None);
     }
@@ -3332,6 +3328,16 @@ impl TermWindow {
                 .map(|overlay| overlay.pane.clone())
                 .or_else(|| Some(pane))
         }
+    }
+
+    pub fn is_float_active(&self) -> bool {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return false,
+        };
+
+        return tab.is_float_active();
     }
 
     fn get_splits(&mut self) -> Vec<PositionedSplit> {
