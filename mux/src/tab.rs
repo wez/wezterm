@@ -1053,19 +1053,39 @@ impl TabInner {
         let mut cursor = self.pane.take().unwrap().cursor();
 
         if let Some(float_pane) = self.float_pane.as_ref() {
-            let top = (root_size.rows as f32 * 0.10).floor() as usize;
-            let left = (root_size.cols as f32 * 0.10).floor() as usize;
-            let cols = (root_size.cols as f32 * 0.80).floor() as usize;
-            let rows = (root_size.rows as f32 * 0.80).floor() as usize;
-            let pixel_width = (cols as f32 * root_size.pixel_width as f32 * 0.80).floor() as usize;
-            let pixel_height = (cols as f32 * root_size.pixel_height as f32 * 0.80).floor() as usize;
+            let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
+            let cell_height = root_size.pixel_height as f32 / root_size.rows as f32;
+            let h_context = config::DimensionContext {
+                dpi: root_size.dpi as f32,
+                pixel_max: root_size.pixel_width as f32,
+                pixel_cell: cell_width,
+            };
+
+            let v_context = config::DimensionContext {
+                dpi: root_size.dpi as f32,
+                pixel_max: root_size.pixel_height as f32,
+                pixel_cell: cell_height,
+            };
+
+            let float_padding = configuration().float_pane_padding;
+            let top = float_padding.top.evaluate_as_pixels(v_context) as usize;
+            let bottom_padding = float_padding.bottom.evaluate_as_pixels(v_context) as usize;
+            let left = float_padding.left.evaluate_as_pixels(h_context) as usize;
+            let right_padding = float_padding.right.evaluate_as_pixels(h_context) as usize;
+            let pixel_width = root_size.pixel_width - right_padding - left;
+            let pixel_height = root_size.pixel_height - bottom_padding - top;
+            let cols = (pixel_width as f32 / cell_width) as usize + 1;
+            let rows = (pixel_height as f32 / cell_height) as usize;
+
+            let left_cols = (left as f32 / cell_width) as usize;
+            let top_rows = (top as f32 / cell_height) as usize;
 
             panes.push(PositionedPane {
                 index: 0,
                 is_active: true,
                 is_zoomed: false,
-                left,
-                top,
+                left: left_cols,
+                top: top_rows,
                 width: cols,
                 height: rows,
                 pixel_width,

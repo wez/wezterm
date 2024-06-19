@@ -502,6 +502,7 @@ pdu! {
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
+    FloatPane: 63,
 }
 
 impl Pdu {
@@ -647,6 +648,14 @@ pub struct ListPanesResponse {
     pub tabs: Vec<PaneNode>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct FloatPane {
+    pub pane_id: PaneId,
+    pub command: Option<CommandBuilder>,
+    pub command_dir: Option<String>,
+    pub domain: config::keyassignment::SpawnTabDomain,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

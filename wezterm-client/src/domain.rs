@@ -2,7 +2,7 @@ use crate::client::Client;
 use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
-use codec::{ListPanesResponse, SpawnV2, SplitPane};
+use codec::{FloatPane, ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
@@ -922,6 +922,41 @@ impl Domain for ClientDomain {
 
         tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))
             .ok();
+
+        mux.add_pane(&pane)?;
+
+        Ok(pane)
+    }
+
+    async fn add_float_pane(
+        &self,
+        tab_id: TabId,
+        pane_id: PaneId,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let mux = Mux::get();
+
+        let result = inner
+            .client
+            .add_float_pane(FloatPane{
+                pane_id,
+                command,
+                command_dir,
+                domain: SpawnTabDomain::CurrentPaneDomain
+            }).await?;
+
+        let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
+            &inner,
+            result.tab_id,
+            result.pane_id,
+            result.size,
+            "wezterm",
+        ));
 
         mux.add_pane(&pane)?;
 

@@ -113,3 +113,46 @@ impl SplitPane {
         Ok(())
     }
 }
+
+#[derive(Debug, Parser, Clone)]
+pub struct FloatPane {
+    /// Specify the pane that should be split.
+    /// The default is to use the current pane based on the
+    /// environment variable WEZTERM_PANE.
+    #[arg(long)]
+    pane_id: Option<PaneId>,
+
+    /// Specify the current working directory for the initially
+    /// spawned program
+    #[arg(long, value_parser, value_hint=ValueHint::DirPath)]
+    cwd: Option<OsString>,
+
+    /// Instead of executing your shell, run PROG.
+    /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
+    /// as if it were a login shell.
+    #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
+    prog: Vec<OsString>,
+}
+
+impl FloatPane {
+    pub async fn run(self, client: Client) -> anyhow::Result<()> {
+        let pane_id = client.resolve_pane_id(self.pane_id).await?;
+        let spawned = client
+            .add_float_pane(codec::FloatPane {
+                pane_id,
+                domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                command: if self.prog.is_empty() {
+                    None
+                } else {
+                    let builder = CommandBuilder::from_argv(self.prog);
+                    Some(builder)
+                },
+                command_dir: resolve_relative_cwd(self.cwd)?
+            })
+            .await?;
+
+        log::debug!("{:?}", spawned);
+        println!("{}", spawned.pane_id);
+        Ok(())
+    }
+}

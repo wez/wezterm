@@ -515,6 +515,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_padding: WindowPadding,
 
+    #[dynamic(default)]
+    pub float_pane_padding: WindowPadding,
+
     /// Specifies the path to a background image attachment file.
     /// The file can be any image format that the rust `image`
     /// crate is able to identify and load.
