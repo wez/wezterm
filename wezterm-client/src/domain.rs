@@ -930,7 +930,7 @@ impl Domain for ClientDomain {
 
     async fn add_float_pane(
         &self,
-        tab_id: TabId,
+        _tab_id: TabId,
         pane_id: PaneId,
         command: Option<CommandBuilder>,
         command_dir: Option<String>
