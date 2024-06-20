@@ -1,7 +1,7 @@
 use crate::termwindow::render::TripleLayerQuadAllocator;
 use crate::termwindow::{UIItem, UIItemType};
 use mux::pane::Pane;
-use mux::tab::{PositionedSplit, SplitDirection};
+use mux::tab::{PositionedFloat, PositionedSplit, SplitDirection};
 use std::sync::Arc;
 
 impl crate::TermWindow {
@@ -75,6 +75,70 @@ impl crate::TermWindow {
                 item_type: UIItemType::Split(split.clone()),
             });
         }
+
+        Ok(())
+    }
+
+    pub fn paint_float(
+        &mut self,
+        pos: PositionedFloat,
+        layers: &mut TripleLayerQuadAllocator,
+    ) -> anyhow::Result<()> {
+        let foreground = self.palette().foreground;
+
+        let cell_height = self.render_metrics.cell_size.height;
+        let cell_width = self.render_metrics.cell_size.width;
+        let half_cell_height = cell_height as f32 / 2.0;
+        let half_cell_width = cell_width as f32 / 2.0;
+        let pos_y = (pos.top as f32 * self.render_metrics.cell_size.height as f32) - self.render_metrics.underline_height as f32 - half_cell_height;
+        let pos_x = (pos.left as f32 * self.render_metrics.cell_size.width as f32) - self.render_metrics.underline_height as f32 - half_cell_width;
+        let pixel_height = pos.size.pixel_height as f32 + self.render_metrics.underline_height as f32 + cell_height as f32;
+        let pixel_width = pos.size.pixel_width as f32 + self.render_metrics.underline_height as f32 + cell_width as f32;
+
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x,
+                pos_y,
+                self.render_metrics.underline_height as f32,
+                pixel_height as f32,
+            ),
+            foreground.to_linear(),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x,
+                pos_y,
+                pixel_width,
+                self.render_metrics.underline_height as f32,
+            ),
+            foreground.to_linear(),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x,
+                pos_y + pixel_height,
+                pixel_width,
+                self.render_metrics.underline_height as f32,
+            ),
+            foreground.to_linear(),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x + pixel_width,
+                pos_y,
+                self.render_metrics.underline_height as f32,
+                pixel_height as f32,
+            ),
+            foreground.to_linear(),
+        )?;
 
         Ok(())
     }

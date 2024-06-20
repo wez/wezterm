@@ -275,6 +275,13 @@ impl crate::TermWindow {
             }
         }
 
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            if self.is_float_active() {
+                let float = self.get_float_pos();
+                self.paint_float(float.unwrap(), &mut layers).context("paint_float")?;
+            }
+        }
+
         if self.show_tab_bar {
             self.paint_tab_bar(&mut layers).context("paint_tab_bar")?;
         }

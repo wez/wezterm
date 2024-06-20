@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 use url::Url;
-use wezterm_term::{StableRowIndex, TerminalSize};
+use wezterm_term::{Position, StableRowIndex, TerminalSize};
 
 pub type Tree = bintree::Tree<Arc<dyn Pane>, SplitDirectionAndSize>;
 pub type Cursor = bintree::Cursor<Arc<dyn Pane>, SplitDirectionAndSize>;
@@ -205,6 +205,17 @@ pub struct PositionedSplit {
     /// For Horizontal splits, how tall the split should be, for Vertical
     /// splits how wide it should be
     pub size: usize,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct PositionedFloat {
+    /// The offset from the top left corner of the containing tab to the top
+    /// left corner of this split, in cells.
+    pub left: usize,
+    /// The offset from the top left corner of the containing tab to the top
+    /// left corner of this split, in cells.
+    pub top: usize,
+    pub size: TerminalSize
 }
 
 fn is_pane(pane: &Arc<dyn Pane>, other: &Option<&Arc<dyn Pane>>) -> bool {
@@ -739,10 +750,10 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
-    pub fn compute_float_size(
+    pub fn get_float_pos(
         &self,
-    ) -> TerminalSize {
-        self.inner.lock().compute_float_size()
+    ) -> PositionedFloat {
+        self.inner.lock().get_float_pos()
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -1053,23 +1064,18 @@ impl TabInner {
         let mut cursor = self.pane.take().unwrap().cursor();
 
         if let Some(float_pane) = self.float_pane.as_ref() {
-            let top = (root_size.rows as f32 * 0.10).floor() as usize;
-            let left = (root_size.cols as f32 * 0.10).floor() as usize;
-            let cols = (root_size.cols as f32 * 0.80).floor() as usize;
-            let rows = (root_size.rows as f32 * 0.80).floor() as usize;
-            let pixel_width = (cols as f32 * root_size.pixel_width as f32 * 0.80).floor() as usize;
-            let pixel_height = (cols as f32 * root_size.pixel_height as f32 * 0.80).floor() as usize;
+            let float_pos = self.get_float_pos();
 
             panes.push(PositionedPane {
                 index: 0,
                 is_active: true,
                 is_zoomed: false,
-                left,
-                top,
-                width: cols,
-                height: rows,
-                pixel_width,
-                pixel_height,
+                left: float_pos.left,
+                top: float_pos.top,
+                width: float_pos.size.cols,
+                height: float_pos.size.rows,
+                pixel_width: float_pos.size.pixel_width,
+                pixel_height: float_pos.size.pixel_height,
                 pane: Arc::clone(float_pane),
                 is_float: true
             });
@@ -1924,21 +1930,31 @@ impl TabInner {
         None
     }
 
-    fn compute_float_size(
-        &mut self
-    ) -> TerminalSize {
-        let cell_dims = self.cell_dimensions();
-        let size = self.size;
-        let width = (size.cols as f32 * 0.80).floor() as usize;
-        let height = (size.rows as f32 * 0.80).floor() as usize;
+    fn get_float_pos(&self) -> PositionedFloat {
+        let root_size = self.size;
+        let padding_percent = 0.10;
+        let content_percent = 1.0 - (padding_percent * 2.0);
+        let cell_width = root_size.pixel_width / root_size.cols;
+        let cell_height = root_size.pixel_height / root_size.rows;
+        let width = (root_size.cols as f32 * content_percent) as usize;
+        let height = (root_size.rows as f32 * content_percent) as usize;
 
-        TerminalSize {
-                    rows: height as _,
-                    cols: width as _,
-                    pixel_height: cell_dims.pixel_height * height,
-                    pixel_width: cell_dims.pixel_width * width,
-                    dpi: cell_dims.dpi,
-                }
+        let top = (root_size.rows as f32 * padding_percent) as usize;
+        let left = (root_size.cols as f32 * padding_percent) as usize + 2;
+
+        let size = TerminalSize{
+            rows: height,
+            cols: width,
+            pixel_width: cell_width * width,
+            pixel_height: cell_height * height,
+            dpi: root_size.dpi,
+        };
+
+        PositionedFloat{
+            left,
+            top,
+            size
+        }
     }
 
     fn compute_split_size(

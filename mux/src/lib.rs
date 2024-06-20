@@ -1,7 +1,7 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
 use crate::ssh_agent::AgentProxy;
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{PositionedPane, SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;

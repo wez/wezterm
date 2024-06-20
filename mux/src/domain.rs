@@ -93,9 +93,9 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("invalid pane id {}", pane_id),
         };
 
-        let float_size = tab.compute_float_size();
-        let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
-        tab.insert_float(pane_index, float_size, Arc::clone(&pane))?;
+        let float_pos = tab.get_float_pos();
+        let pane = self.spawn_pane(float_pos.size, command_builder, command_dir) .await?;
+        tab.insert_float(pane_index, float_pos.size, Arc::clone(&pane))?;
         Ok(pane)
     }
 
