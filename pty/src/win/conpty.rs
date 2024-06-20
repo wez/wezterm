@@ -5,6 +5,7 @@ use anyhow::Error;
 use filedescriptor::{FileDescriptor, Pipe};
 use std::sync::{Arc, Mutex};
 use winapi::um::wincon::COORD;
+use winapi::um::winnt::HANDLE;
 
 #[derive(Default)]
 pub struct ConPtySystem {}
@@ -109,9 +110,9 @@ impl MasterPty for ConPtyMasterPty {
 }
 
 impl SlavePty for ConPtySlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
+    fn spawn_command(&self, cmd: CommandBuilder, token: Option<HANDLE>) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         let inner = self.inner.lock().unwrap();
-        let child = inner.con.spawn_command(cmd)?;
+        let child = inner.con.spawn_command(cmd, token)?;
         Ok(Box::new(child))
     }
 }
