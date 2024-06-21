@@ -84,16 +84,17 @@ impl crate::TermWindow {
         pos: PositionedFloat,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
+        let (padding_left, padding_top) = self.padding_left_top();
         let foreground = self.palette().foreground;
 
         let cell_height = self.render_metrics.cell_size.height;
         let cell_width = self.render_metrics.cell_size.width;
         let half_cell_height = cell_height as f32 / 2.0;
         let half_cell_width = cell_width as f32 / 2.0;
-        let pos_y = (pos.top as f32 * self.render_metrics.cell_size.height as f32) - self.render_metrics.underline_height as f32 - half_cell_height;
-        let pos_x = (pos.left as f32 * self.render_metrics.cell_size.width as f32) - self.render_metrics.underline_height as f32 - half_cell_width;
-        let pixel_height = pos.size.pixel_height as f32 + self.render_metrics.underline_height as f32 + cell_height as f32;
-        let pixel_width = pos.size.pixel_width as f32 + self.render_metrics.underline_height as f32 + cell_width as f32;
+        let pos_y = (pos.top as f32 * self.render_metrics.cell_size.height as f32) - self.render_metrics.underline_height as f32 - half_cell_height + padding_top;
+        let pos_x = (pos.left as f32 * self.render_metrics.cell_size.width as f32) - self.render_metrics.underline_height as f32 - half_cell_width + padding_left;
+        let pixel_height = (pos.size.rows as f32 * cell_height as f32) + self.render_metrics.underline_height as f32 + cell_height as f32;
+        let pixel_width = (pos.size.cols as f32 * cell_width as f32) + self.render_metrics.underline_height as f32 + cell_width as f32;
 
         self.filled_rectangle(
             layers,

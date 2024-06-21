@@ -1932,27 +1932,42 @@ impl TabInner {
 
     fn get_float_pos(&self) -> PositionedFloat {
         let root_size = self.size;
-        let padding_percent = 0.10;
-        let content_percent = 1.0 - (padding_percent * 2.0);
-        let cell_width = root_size.pixel_width / root_size.cols;
-        let cell_height = root_size.pixel_height / root_size.rows;
-        let width = (root_size.cols as f32 * content_percent) as usize;
-        let height = (root_size.rows as f32 * content_percent) as usize;
 
-        let top = (root_size.rows as f32 * padding_percent) as usize;
-        let left = (root_size.cols as f32 * padding_percent) as usize + 2;
+        let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
+        let cell_height = root_size.pixel_height as f32 / root_size.rows as f32;
+        let h_context = config::DimensionContext {
+            dpi: root_size.dpi as f32,
+            pixel_max: root_size.pixel_width as f32,
+            pixel_cell: cell_width,
+        };
+
+        let v_context = config::DimensionContext {
+            dpi: root_size.dpi as f32,
+            pixel_max: root_size.pixel_height as f32,
+            pixel_cell: cell_height,
+        };
+
+        let float_padding = configuration().float_pane_padding;
+        let top_padding_pixels = float_padding.top.evaluate_as_pixels(v_context) as usize;
+        let bottom_padding_pixels = float_padding.bottom.evaluate_as_pixels(v_context) as usize;
+        let left_padding_pixels = float_padding.left.evaluate_as_pixels(h_context) as usize;
+        let right_padding_pixels = float_padding.right.evaluate_as_pixels(h_context) as usize;
+        let pixel_width = root_size.pixel_width - right_padding_pixels - left_padding_pixels;
+        let pixel_height = root_size.pixel_height - bottom_padding_pixels - top_padding_pixels;
+        let cols = (pixel_width as f32 / cell_width) as usize;
+        let rows = (pixel_height as f32 / cell_height) as usize;
 
         let size = TerminalSize{
-            rows: height,
-            cols: width,
-            pixel_width: cell_width * width,
-            pixel_height: cell_height * height,
+            rows,
+            cols,
+            pixel_width,
+            pixel_height,
             dpi: root_size.dpi,
         };
 
         PositionedFloat{
-            left,
-            top,
+            left: (left_padding_pixels as f32 / cell_width).ceil() as usize,
+            top: (top_padding_pixels as f32 / cell_height).ceil() as usize,
             size
         }
     }
