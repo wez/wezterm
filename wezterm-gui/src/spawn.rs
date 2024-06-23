@@ -91,6 +91,10 @@ pub async fn spawn_command_internal(
                 None => anyhow::bail!("no src window when splitting a pane?"),
             };
             if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
+                if tab.is_float_active() {
+                    bail!("cannot open split when float is active");
+                }
+
                 let pane = tab
                     .get_active_pane()
                     .ok_or_else(|| anyhow!("tab to have a pane"))?;
@@ -120,6 +124,9 @@ pub async fn spawn_command_internal(
                 None => anyhow::bail!("no src window when float a pane?"),
             };
             if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
+                if tab.is_float_active() {
+                    bail!("cannot open split when float is active");
+                }
                 let pane = tab
                     .get_active_pane()
                     .ok_or_else(|| anyhow!("tab to have a pane"))?;

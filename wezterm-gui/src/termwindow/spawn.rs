@@ -5,15 +5,6 @@ use std::sync::Arc;
 
 impl super::TermWindow {
     pub fn spawn_command(&self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
-        if self.is_float_active() {
-            match spawn_where{
-                SpawnWhere::SplitPane(_) => {
-                    return;
-                }
-                _ => {}
-            }
-        }
-
         let size = if spawn_where == SpawnWhere::NewWindow {
             self.config.initial_size(
                 self.dimensions.dpi as u32,
