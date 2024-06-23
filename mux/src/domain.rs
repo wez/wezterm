@@ -74,7 +74,7 @@ pub trait Domain: Downcast + Send + Sync {
     async fn add_float_pane(
         &self,
         tab: TabId,
-        pane_id: PaneId,
+        _pane_id: PaneId,
         command_builder: Option<CommandBuilder>,
         command_dir: Option<String>
     ) -> anyhow::Result<Arc<dyn Pane>> {
@@ -84,18 +84,9 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let pane_index = match tab
-            .iter_panes_ignoring_zoom()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let float_pos = tab.get_float_pos();
-        let pane = self.spawn_pane(float_pos.size, command_builder, command_dir) .await?;
-        tab.insert_float(pane_index, float_pos.size, Arc::clone(&pane))?;
+        let float_size = tab.get_float_size();
+        let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
+        tab.insert_float(float_size, Arc::clone(&pane))?;
         Ok(pane)
     }
 

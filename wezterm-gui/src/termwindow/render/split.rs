@@ -1,7 +1,7 @@
 use crate::termwindow::render::TripleLayerQuadAllocator;
 use crate::termwindow::{UIItem, UIItemType};
 use mux::pane::Pane;
-use mux::tab::{PositionedFloat, PositionedSplit, SplitDirection};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use std::sync::Arc;
 
 impl crate::TermWindow {
@@ -81,7 +81,7 @@ impl crate::TermWindow {
 
     pub fn paint_float_border(
         &mut self,
-        pos: PositionedFloat,
+        pos: PositionedPane,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         let (padding_left, padding_top) = self.padding_left_top();
@@ -93,8 +93,8 @@ impl crate::TermWindow {
         let half_cell_width = cell_width as f32 / 2.0;
         let pos_y = (pos.top as f32 * self.render_metrics.cell_size.height as f32) - self.render_metrics.underline_height as f32 - half_cell_height + padding_top;
         let pos_x = (pos.left as f32 * self.render_metrics.cell_size.width as f32) - self.render_metrics.underline_height as f32 - half_cell_width + padding_left;
-        let pixel_height = (pos.size.rows as f32 * cell_height as f32) + self.render_metrics.underline_height as f32 + cell_height as f32;
-        let pixel_width = (pos.size.cols as f32 * cell_width as f32) + self.render_metrics.underline_height as f32 + cell_width as f32;
+        let pixel_height = pos.pixel_height as f32 + self.render_metrics.underline_height as f32 + cell_height as f32;
+        let pixel_width = pos.pixel_width as f32 + self.render_metrics.underline_height as f32 + cell_width as f32;
 
         self.filled_rectangle(
             layers,
