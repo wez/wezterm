@@ -590,6 +590,10 @@ impl Tab {
         self.inner.lock().iter_panes()
     }
 
+    pub fn get_float_pane(&self) -> Option<PositionedPane> {
+        self.inner.lock().get_float_pane()
+    }
+
     pub fn iter_panes_ignoring_zoom(&self) -> Vec<PositionedPane> {
         self.inner.lock().iter_panes_ignoring_zoom()
     }
@@ -966,6 +970,28 @@ impl TabInner {
         self.iter_panes_impl(true)
     }
 
+    fn get_float_pane(&self) -> Option<PositionedPane> {
+        let float_pos = self.get_float_pos();
+
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            Some(PositionedPane {
+                index: 0,
+                is_active: true,
+                is_zoomed: false,
+                left: float_pos.left,
+                top: float_pos.top,
+                width: float_pos.size.cols,
+                height: float_pos.size.rows,
+                pixel_width: float_pos.size.pixel_width,
+                pixel_height: float_pos.size.pixel_height,
+                pane: Arc::clone(float_pane),
+                is_float: true
+            })
+        } else {
+            None
+        }
+    }
+
     /// Like iter_panes, except that it will include all panes, regardless of
     /// whether one of them is currently zoomed.
     fn iter_panes_ignoring_zoom(&mut self) -> Vec<PositionedPane> {
@@ -1062,24 +1088,6 @@ impl TabInner {
         let zoomed_id = self.zoomed.as_ref().map(|p| p.pane_id());
         let root_size = self.size;
         let mut cursor = self.pane.take().unwrap().cursor();
-
-        if let Some(float_pane) = self.float_pane.as_ref() {
-            let float_pos = self.get_float_pos();
-
-            panes.push(PositionedPane {
-                index: 0,
-                is_active: true,
-                is_zoomed: false,
-                left: float_pos.left,
-                top: float_pos.top,
-                width: float_pos.size.cols,
-                height: float_pos.size.rows,
-                pixel_width: float_pos.size.pixel_width,
-                pixel_height: float_pos.size.pixel_height,
-                pane: Arc::clone(float_pane),
-                is_float: true
-            });
-        }
 
         loop {
             if cursor.is_leaf() {
@@ -1804,6 +1812,10 @@ impl TabInner {
     fn get_active_pane(&mut self) -> Option<Arc<dyn Pane>> {
         if let Some(zoomed) = self.zoomed.as_ref() {
             return Some(Arc::clone(zoomed));
+        }
+
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            return Some(Arc::clone(float_pane));
         }
 
         self.iter_panes_ignoring_zoom()

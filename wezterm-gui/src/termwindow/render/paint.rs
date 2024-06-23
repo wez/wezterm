@@ -260,11 +260,14 @@ impl crate::TermWindow {
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            if pos.is_float {
-                self.paint_pane(&pos, &mut float_layers).context("paint_pane")?;
-            } else {
-                self.paint_pane(&pos, &mut layers).context("paint_pane")?;
-            }
+            self.paint_pane(&pos, &mut layers).context("paint_pane")?;
+        }
+
+        if let Some(float_pane) = self.get_float_pane_to_render() {
+            float_pane.pane.advise_focus();
+            self.paint_pane(&float_pane, &mut float_layers).context("paint_pane")?;
+            let float = self.get_float_pos();
+            self.paint_float_border(float.unwrap(), &mut layers).context("paint_float")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
@@ -272,13 +275,6 @@ impl crate::TermWindow {
             for split in &splits {
                 self.paint_split(&mut layers, split, &pane)
                     .context("paint_split")?;
-            }
-        }
-
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            if self.is_float_active() {
-                let float = self.get_float_pos();
-                self.paint_float(float.unwrap(), &mut layers).context("paint_float")?;
             }
         }
 

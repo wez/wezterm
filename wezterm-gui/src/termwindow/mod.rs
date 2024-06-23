@@ -3353,6 +3353,22 @@ impl TermWindow {
         }
     }
 
+    fn get_float_pane(&mut self) -> Option<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return None,
+        };
+
+        let tab_id = tab.tab_id();
+
+        if self.tab_state(tab_id).overlay.is_some() {
+            None
+        } else {
+            self.get_float_pane()
+        }
+    }
+
     fn get_float_pos(&mut self) -> Option<PositionedFloat> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -3460,6 +3476,16 @@ impl TermWindow {
         };
 
         self.get_pos_panes_for_tab(&tab)
+    }
+
+    fn get_float_pane_to_render(&self) -> Option<PositionedPane> {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return None,
+        };
+
+        tab.get_float_pane()
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.

@@ -79,7 +79,7 @@ impl crate::TermWindow {
         Ok(())
     }
 
-    pub fn paint_float(
+    pub fn paint_float_border(
         &mut self,
         pos: PositionedFloat,
         layers: &mut TripleLayerQuadAllocator,
