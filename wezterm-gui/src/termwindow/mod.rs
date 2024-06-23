@@ -44,7 +44,7 @@ use mux::pane::{
     CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
 };
 use mux::renderable::RenderableDimensions;
-use mux::tab::{PositionedFloat, PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab, TabId};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use mux_lua::MuxPane;
@@ -3351,33 +3351,6 @@ impl TermWindow {
         } else {
             tab.iter_splits()
         }
-    }
-
-    fn get_float_pane(&mut self) -> Option<Arc<dyn Pane>> {
-        let mux = Mux::get();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-            Some(tab) => tab,
-            None => return None,
-        };
-
-        let tab_id = tab.tab_id();
-
-        if self.tab_state(tab_id).overlay.is_some() {
-            None
-        } else {
-            self.get_float_pane()
-        }
-    }
-
-    fn get_float_pos(&mut self) -> Option<PositionedFloat> {
-        let mux = Mux::get();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-            Some(tab) => tab,
-            None => return None,
-        };
-
-        let float_pos = tab.get_float_pos();
-        Some(float_pos)
     }
 
     fn pos_pane_to_pane_info(pos: &PositionedPane) -> PaneInformation {

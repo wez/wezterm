@@ -207,17 +207,6 @@ pub struct PositionedSplit {
     pub size: usize,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct PositionedFloat {
-    /// The offset from the top left corner of the containing tab to the top
-    /// left corner of this split, in cells.
-    pub left: usize,
-    /// The offset from the top left corner of the containing tab to the top
-    /// left corner of this split, in cells.
-    pub top: usize,
-    pub size: TerminalSize
-}
-
 fn is_pane(pane: &Arc<dyn Pane>, other: &Option<&Arc<dyn Pane>>) -> bool {
     if let Some(other) = other {
         other.pane_id() == pane.pane_id()
@@ -754,10 +743,10 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
-    pub fn get_float_pos(
+    pub fn get_float_size(
         &self,
-    ) -> PositionedFloat {
-        self.inner.lock().get_float_pos()
+    ) -> TerminalSize {
+        self.inner.lock().get_float_size()
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -777,13 +766,12 @@ impl Tab {
 
     pub fn insert_float(
         &self,
-        pane_index: usize,
         float_size: TerminalSize,
         pane: Arc<dyn Pane>,
-    ) -> anyhow::Result<usize> {
+    ) -> anyhow::Result<()> {
         self.inner
             .lock()
-            .add_float_pane(pane_index, float_size, pane)
+            .add_float_pane(float_size, pane)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -971,19 +959,25 @@ impl TabInner {
     }
 
     fn get_float_pane(&self) -> Option<PositionedPane> {
-        let float_pos = self.get_float_pos();
-
         if let Some(float_pane) = self.float_pane.as_ref() {
+            let root_size = self.size;
+            let size = self.get_float_size();
+
+            let cell_height = root_size.pixel_height / root_size.rows;
+            let cell_width = root_size.pixel_width / root_size.cols;
+            let left = ((root_size.pixel_width - size.pixel_width) / 2) / cell_width;
+            let top = (root_size.pixel_height - size.pixel_height) / 2 / cell_height;
+
             Some(PositionedPane {
                 index: 0,
                 is_active: true,
                 is_zoomed: false,
-                left: float_pos.left,
-                top: float_pos.top,
-                width: float_pos.size.cols,
-                height: float_pos.size.rows,
-                pixel_width: float_pos.size.pixel_width,
-                pixel_height: float_pos.size.pixel_height,
+                left,
+                top,
+                width: size.cols,
+                height: size.rows,
+                pixel_width: size.pixel_width,
+                pixel_height: size.pixel_height,
                 pane: Arc::clone(float_pane),
                 is_float: true
             })
@@ -1942,7 +1936,7 @@ impl TabInner {
         None
     }
 
-    fn get_float_pos(&self) -> PositionedFloat {
+    fn get_float_size(&self) -> TerminalSize {
         let root_size = self.size;
 
         let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
@@ -1969,18 +1963,12 @@ impl TabInner {
         let cols = (pixel_width as f32 / cell_width) as usize;
         let rows = (pixel_height as f32 / cell_height) as usize;
 
-        let size = TerminalSize{
+        TerminalSize{
             rows,
             cols,
             pixel_width,
             pixel_height,
             dpi: root_size.dpi,
-        };
-
-        PositionedFloat{
-            left: (left_padding_pixels as f32 / cell_width).ceil() as usize,
-            top: (top_padding_pixels as f32 / cell_height).ceil() as usize,
-            size
         }
     }
 
@@ -2077,10 +2065,9 @@ impl TabInner {
 
     fn add_float_pane(
         &mut self,
-        pane_index: usize,
         float_size: TerminalSize,
         pane: Arc<dyn Pane>,
-    ) -> anyhow::Result<usize> {
+    ) -> anyhow::Result<()> {
         if self.zoomed.is_some() {
             anyhow::bail!("cannot add float while zoomed");
         }
@@ -2092,10 +2079,9 @@ impl TabInner {
         self.float_pane = Some(Arc::clone(&pane));
         {
             pane.resize(float_size)?;
-            self.set_active_idx(0);
         }
 
-        Ok(pane_index + 1)
+        Ok(())
     }
 
     fn split_and_insert(

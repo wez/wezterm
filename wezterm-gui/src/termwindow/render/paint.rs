@@ -184,7 +184,6 @@ impl crate::TermWindow {
         let float_layer = gl_state
             .layer_for_zindex(2)
             .context("layer_for_zindex(2)")?;
-        let mut float_layers = float_layer.quad_allocator();
 
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map").record(start.elapsed());
@@ -264,10 +263,10 @@ impl crate::TermWindow {
         }
 
         if let Some(float_pane) = self.get_float_pane_to_render() {
-            float_pane.pane.advise_focus();
+            let mut float_layers = float_layer.quad_allocator();
+
             self.paint_pane(&float_pane, &mut float_layers).context("paint_pane")?;
-            let float = self.get_float_pos();
-            self.paint_float_border(float.unwrap(), &mut layers).context("paint_float")?;
+            self.paint_float_border(float_pane, &mut float_layers).context("paint_float_border")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
