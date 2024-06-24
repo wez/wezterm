@@ -12,7 +12,7 @@ color-funcs = { path = "../lua-api-crates/color-funcs" }
 config = { path = "../config" }
 env_logger = "0.11"
 futures = "0.3"
-lazy_static = "1.4"
+lazy_static = "1.5"
 libflate = "2"
 log = "0.4"
 reqwest = "0.12"

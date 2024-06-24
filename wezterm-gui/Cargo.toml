@@ -36,9 +36,9 @@ cc = "1.0"
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.3"
-bytemuck = { version="1.4", features=["derive"]}
+bytemuck = { version="1.16", features=["derive"]}
 chrono = {version="0.4", default-features=false}
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 codec = { path = "../codec" }
 colorgrad = "0.6"
 config = { path = "../config" }
@@ -57,7 +57,7 @@ fuzzy-matcher = "0.3"
 hdrhistogram = "7.1"
 http_req = "0.10"
 image = "0.25"
-lazy_static = "1.4"
+lazy_static = "1.5"
 libc = "0.2"
 lfucache = { path = "../lfucache" }
 log = "0.4"
