@@ -136,7 +136,7 @@ class CacheStep(ActionStep):
 
 class SccacheStep(ActionStep):
     def __init__(self, name):
-        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.4")
+        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.5")
 
 
 class CheckoutStep(ActionStep):
