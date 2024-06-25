@@ -715,6 +715,9 @@ pub struct Config {
     #[dynamic(default)]
     pub native_macos_fullscreen_mode: bool,
 
+    #[dynamic(default)]
+    pub macos_fullscreen_avoid_notch: bool,
+
     #[dynamic(default = "default_word_boundary")]
     pub selection_word_boundary: String,
 
