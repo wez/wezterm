@@ -9,6 +9,56 @@ tags:
 `new_tab_left`, `new_tab_right`, `new_tab_hover_left`, `new_tab_hover_right`
 have been removed and replaced by the more flexible `new_tab` and `new_tab_hover` elements.
 
+If you're migration from a previous version, this example shows and equivalent
+definition of the tab bar.
+
+![Demonstrating setting the styling of the tab bar as it was done in older versions](../../../screenshots/wezterm-tab-edge-styled.png)
+
+```lua
+local wezterm = require 'wezterm'
+
+local config = wezterm.config_builder()
+
+config.use_fancy_tab_bar = false
+
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
+  -- The filled in variant of the < symbol
+  local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
+
+  -- The filled in variant of the > symbol
+  local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
+  local title = tab.active_pane.title
+  if tab.tab_title and #tab.tab_title > 0 then
+    title = tab.tab_title
+  end
+  if tab.is_active then
+    return {
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#2b2042" } },
+      { Text = SOLID_LEFT_ARROW },
+      { Background = { Color = "#2b2042" } },
+      { Foreground = { Color = "#A9A6AC" } },
+      { Text = (tab.tab_index + 1) .. ": " .. title .. " " },
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#2b2042" } },
+      { Text = SOLID_RIGHT_ARROW },
+    }
+  else
+    return {
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#1b1032" } },
+      { Text = SOLID_LEFT_ARROW },
+      { Background = { Color = "#1b1032" } },
+      { Foreground = { Color = "#66646C" } },
+      { Text = (tab.tab_index + 1) .. ": " .. title .. " " },
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#1b1032" } },
+      { Text = SOLID_RIGHT_ARROW },
+    }
+  end
+end)
+```
+
 {{since('20210502-154244-3f7122cb')}}
 
 `active_tab_left`, `active_tab_right`, `inactive_tab_left`,
