@@ -16,7 +16,7 @@ use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_v3::{
 };
 use wezterm_input_types::{KeyCode, KeyEvent, KeyboardLedStatus, Modifiers};
 
-use crate::{DeadKeyStatus, WindowEvent};
+use crate::{Composing, DeadKeyStatus, WindowEvent};
 
 use super::state::WaylandState;
 
@@ -190,7 +190,7 @@ impl Dispatch<ZwpTextInputV3, TextInputData, WaylandState> for TextInputState {
                     }));
                 }
                 let status = if let Some(text) = pending_state.pre_edit.take() {
-                    DeadKeyStatus::Composing(text)
+                    DeadKeyStatus::Composing(Composing { text, attr: None })
                 } else {
                     DeadKeyStatus::None
                 };

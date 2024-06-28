@@ -232,7 +232,7 @@ impl UserData for GuiWin {
                 .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                     tx.try_send(match term_window.composition_status() {
                         DeadKeyStatus::None => None,
-                        DeadKeyStatus::Composing(s) => Some(s.clone()),
+                        DeadKeyStatus::Composing(composing) => Some(composing.text.clone()),
                     })
                     .ok();
                 })));
