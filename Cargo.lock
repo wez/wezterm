@@ -6454,6 +6454,7 @@ dependencies = [
  "predicates",
  "regex",
  "rstest",
+ "scopeguard",
  "shell-words",
  "smol",
  "socket2",
