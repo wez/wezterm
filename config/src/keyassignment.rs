@@ -641,7 +641,7 @@ impl Default for SplitSize {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, FromDynamic, ToDynamic)]
 pub enum RotationDirection {
     Clockwise,
     CounterClockwise,
