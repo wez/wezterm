@@ -38,7 +38,7 @@ anyhow = "1.0"
 bitflags = "1.3"
 bytemuck = { version="1.4", features=["derive"]}
 chrono = {version="0.4", default-features=false}
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 codec = { path = "../codec" }
 colorgrad = "0.6"
 config = { path = "../config" }
@@ -55,7 +55,7 @@ frecency = { path = "../frecency" }
 futures = "0.3"
 fuzzy-matcher = "0.3"
 hdrhistogram = "7.1"
-http_req = "0.10"
+http_req = "0.11"
 image = "0.25"
 lazy_static = "1.4"
 libc = "0.2"
@@ -67,7 +67,7 @@ mlua = {version="0.9", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 once_cell = "1.8"
-ordered-float = "4.1"
+ordered-float = "4.2"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
