@@ -1445,6 +1445,23 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("md_content_copy"),
         },
+        FloatPane(SpawnCommand {
+                          domain: SpawnTabDomain::CurrentPaneDomain,
+                          ..
+                      }) => CommandDef {
+            brief: label_string(action, "Create a float pane".to_string()).into(),
+            doc: "Create a float pane"
+                .into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "p".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+            icon: Some("cod_split_vertical"),
+        },
         SplitVertical(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..
@@ -1495,6 +1512,15 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             brief: label_string(action, "Split Vertically (Top/Bottom)".to_string()).into(),
             doc: "Split the current pane veritically into two panes, by spawning \
             the default program into the bottom"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &[],
+            icon: Some("cod_split_vertical"),
+        },
+        FloatPane(_) => CommandDef {
+            brief: label_string(action, "Create a float pane".to_string()).into(),
+            doc: "Create a float pane"
                 .into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
@@ -2025,6 +2051,10 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Shell
         SpawnTab(SpawnTabDomain::CurrentPaneDomain),
         SpawnWindow,
+        FloatPane(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..Default::default()
+        }),
         SplitVertical(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 use url::Url;
-use wezterm_term::{StableRowIndex, TerminalSize};
+use wezterm_term::{Position, StableRowIndex, TerminalSize};
 
 pub type Tree = bintree::Tree<Arc<dyn Pane>, SplitDirectionAndSize>;
 pub type Cursor = bintree::Cursor<Arc<dyn Pane>, SplitDirectionAndSize>;
@@ -45,6 +45,7 @@ struct TabInner {
     active: usize,
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
+    float_pane: Option<Arc<dyn Pane>>,
     recency: Recency,
 }
 
@@ -76,6 +77,7 @@ pub struct PositionedPane {
     pub pixel_height: usize,
     /// The pane instance
     pub pane: Arc<dyn Pane>,
+    pub is_float: bool,
 }
 
 impl std::fmt::Debug for PositionedPane {
@@ -577,6 +579,10 @@ impl Tab {
         self.inner.lock().iter_panes()
     }
 
+    pub fn get_float_pane(&self) -> Option<PositionedPane> {
+        self.inner.lock().get_float_pane()
+    }
+
     pub fn iter_panes_ignoring_zoom(&self) -> Vec<PositionedPane> {
         self.inner.lock().iter_panes_ignoring_zoom()
     }
@@ -689,6 +695,10 @@ impl Tab {
         self.inner.lock().is_dead()
     }
 
+    pub fn is_float_active(&self) -> bool {
+        self.inner.lock().is_float_active()
+    }
+
     pub fn get_active_pane(&self) -> Option<Arc<dyn Pane>> {
         self.inner.lock().get_active_pane()
     }
@@ -733,6 +743,12 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
+    pub fn get_float_size(
+        &self,
+    ) -> TerminalSize {
+        self.inner.lock().get_float_size()
+    }
+
     /// Split the pane that has pane_index in the given direction and assign
     /// the right/bottom pane of the newly created split to the provided Pane
     /// instance.  Returns the resultant index of the newly inserted pane.
@@ -746,6 +762,16 @@ impl Tab {
         self.inner
             .lock()
             .split_and_insert(pane_index, request, pane)
+    }
+
+    pub fn insert_float(
+        &self,
+        float_size: TerminalSize,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<()> {
+        self.inner
+            .lock()
+            .add_float_pane(float_size, pane)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -764,6 +790,7 @@ impl TabInner {
             zoomed: None,
             title: String::new(),
             recency: Recency::default(),
+            float_pane: None,
         }
     }
 
@@ -931,6 +958,34 @@ impl TabInner {
         self.iter_panes_impl(true)
     }
 
+    fn get_float_pane(&self) -> Option<PositionedPane> {
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            let root_size = self.size;
+            let size = self.get_float_size();
+
+            let cell_height = root_size.pixel_height / root_size.rows;
+            let cell_width = root_size.pixel_width / root_size.cols;
+            let left = ((root_size.pixel_width - size.pixel_width) / 2) / cell_width;
+            let top = (root_size.pixel_height - size.pixel_height) / 2 / cell_height;
+
+            Some(PositionedPane {
+                index: 0,
+                is_active: true,
+                is_zoomed: false,
+                left,
+                top,
+                width: size.cols,
+                height: size.rows,
+                pixel_width: size.pixel_width,
+                pixel_height: size.pixel_height,
+                pane: Arc::clone(float_pane),
+                is_float: true
+            })
+        } else {
+            None
+        }
+    }
+
     /// Like iter_panes, except that it will include all panes, regardless of
     /// whether one of them is currently zoomed.
     fn iter_panes_ignoring_zoom(&mut self) -> Vec<PositionedPane> {
@@ -1017,6 +1072,7 @@ impl TabInner {
                     height: size.rows.into(),
                     pixel_height: size.pixel_height.into(),
                     pane: Arc::clone(zoomed),
+                    is_float: false
                 });
                 return panes;
             }
@@ -1063,6 +1119,7 @@ impl TabInner {
                     pixel_width: dims.pixel_width as _,
                     pixel_height: dims.pixel_height as _,
                     pane,
+                    is_float: false
                 });
             }
 
@@ -1074,6 +1131,7 @@ impl TabInner {
                 }
             }
         }
+
 
         panes
     }
@@ -1696,6 +1754,15 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
+        if let Some(float_pane) = &self.float_pane {
+            if float_pane.is_dead() {
+                let mux = Mux::get();
+                let pane_id = float_pane.pane_id();
+                self.float_pane = None;
+                mux.remove_float_pane(pane_id);
+            }
+        }
+
         if !dead_panes.is_empty() && kill {
             let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
             promise::spawn::spawn_into_main_thread(async move {
@@ -1732,9 +1799,17 @@ impl TabInner {
         dead_count == panes.len()
     }
 
+    fn is_float_active(&self) -> bool {
+        return self.float_pane.is_some();
+    }
+
     fn get_active_pane(&mut self) -> Option<Arc<dyn Pane>> {
         if let Some(zoomed) = self.zoomed.as_ref() {
             return Some(Arc::clone(zoomed));
+        }
+
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            return Some(Arc::clone(float_pane));
         }
 
         self.iter_panes_ignoring_zoom()
@@ -1861,6 +1936,42 @@ impl TabInner {
         None
     }
 
+    fn get_float_size(&self) -> TerminalSize {
+        let root_size = self.size;
+
+        let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
+        let cell_height = root_size.pixel_height as f32 / root_size.rows as f32;
+        let h_context = config::DimensionContext {
+            dpi: root_size.dpi as f32,
+            pixel_max: root_size.pixel_width as f32,
+            pixel_cell: cell_width,
+        };
+
+        let v_context = config::DimensionContext {
+            dpi: root_size.dpi as f32,
+            pixel_max: root_size.pixel_height as f32,
+            pixel_cell: cell_height,
+        };
+
+        let float_padding = configuration().float_pane_padding;
+        let top_padding_pixels = float_padding.top.evaluate_as_pixels(v_context) as usize;
+        let bottom_padding_pixels = float_padding.bottom.evaluate_as_pixels(v_context) as usize;
+        let left_padding_pixels = float_padding.left.evaluate_as_pixels(h_context) as usize;
+        let right_padding_pixels = float_padding.right.evaluate_as_pixels(h_context) as usize;
+        let pixel_width = root_size.pixel_width - right_padding_pixels - left_padding_pixels;
+        let pixel_height = root_size.pixel_height - bottom_padding_pixels - top_padding_pixels;
+        let cols = (pixel_width as f32 / cell_width) as usize;
+        let rows = (pixel_height as f32 / cell_height) as usize;
+
+        TerminalSize{
+            rows,
+            cols,
+            pixel_width,
+            pixel_height,
+            dpi: root_size.dpi,
+        }
+    }
+
     fn compute_split_size(
         &mut self,
         pane_index: usize,
@@ -1950,6 +2061,27 @@ impl TabInner {
                 },
             }
         })
+    }
+
+    fn add_float_pane(
+        &mut self,
+        float_size: TerminalSize,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<()> {
+        if self.zoomed.is_some() {
+            anyhow::bail!("cannot add float while zoomed");
+        }
+
+        if self.float_pane.is_some() {
+            anyhow::bail!("cannot add float while another float is active")
+        }
+
+        self.float_pane = Some(Arc::clone(&pane));
+        {
+            pane.resize(float_size)?;
+        }
+
+        Ok(())
     }
 
     fn split_and_insert(

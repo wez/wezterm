@@ -44,10 +44,7 @@ use mux::pane::{
     CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
 };
 use mux::renderable::RenderableDimensions;
-use mux::tab::{
-    PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
-    TabId,
-};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use mux_lua::MuxPane;
@@ -540,10 +537,6 @@ impl TermWindow {
 
         // force cursor to be repainted
         window.invalidate();
-
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            pane.focus_changed(focused);
-        }
 
         self.update_title();
         self.emit_window_event("window-focus-changed", None);
@@ -2591,6 +2584,12 @@ impl TermWindow {
                     }),
                 );
             }
+            FloatPane(spawn) => {
+                log::trace!("FloatPane {:?}", spawn);
+                self.spawn_command(
+                    spawn,
+                    SpawnWhere::Float);
+            }
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
@@ -3328,6 +3327,16 @@ impl TermWindow {
         }
     }
 
+    pub fn is_float_active(&self) -> bool {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return false,
+        };
+
+        return tab.is_float_active();
+    }
+
     fn get_splits(&mut self) -> Vec<PositionedSplit> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -3419,6 +3428,7 @@ impl TermWindow {
                 pixel_width: size.cols as usize * self.render_metrics.cell_size.width as usize,
                 pixel_height: size.rows as usize * self.render_metrics.cell_size.height as usize,
                 pane,
+                is_float: false
             }]
         } else {
             let mut panes = tab.iter_panes();
@@ -3439,6 +3449,16 @@ impl TermWindow {
         };
 
         self.get_pos_panes_for_tab(&tab)
+    }
+
+    fn get_float_pane_to_render(&self) -> Option<PositionedPane> {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return None,
+        };
+
+        tab.get_float_pane()
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.

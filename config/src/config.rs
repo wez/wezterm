@@ -515,6 +515,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_padding: WindowPadding,
 
+    #[dynamic(default = "default_float_pane_padding")]
+    pub float_pane_padding: WindowPadding,
+
     /// Specifies the path to a background image attachment file.
     /// The file can be any image format that the rust `image`
     /// crate is able to identify and load.
@@ -1571,6 +1574,15 @@ fn default_pane_select_font_size() -> f64 {
 fn default_integrated_title_buttons() -> Vec<IntegratedTitleButton> {
     use IntegratedTitleButton::*;
     vec![Hide, Maximize, Close]
+}
+
+fn default_float_pane_padding() -> WindowPadding {
+    WindowPadding{
+        left: Dimension::Percent(0.20),
+        top: Dimension::Percent(0.20),
+        right: Dimension::Percent(0.20),
+        bottom: Dimension::Percent(0.20),
+    }
 }
 
 fn default_char_select_font_size() -> f64 {

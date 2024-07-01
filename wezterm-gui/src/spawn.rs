@@ -15,6 +15,7 @@ pub enum SpawnWhere {
     NewWindow,
     NewTab,
     SplitPane(SplitRequest),
+    Float,
 }
 
 pub fn spawn_command_impl(
@@ -90,6 +91,10 @@ pub async fn spawn_command_internal(
                 None => anyhow::bail!("no src window when splitting a pane?"),
             };
             if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
+                if tab.is_float_active() {
+                    bail!("cannot open split when float is active");
+                }
+
                 let pane = tab
                     .get_active_pane()
                     .ok_or_else(|| anyhow!("tab to have a pane"))?;
@@ -111,6 +116,34 @@ pub async fn spawn_command_internal(
                 pane.set_config(term_config);
             } else {
                 bail!("there is no active tab while splitting pane!?");
+            }
+        }
+        SpawnWhere::Float => {
+            let src_window_id = match src_window_id {
+                Some(id) => id,
+                None => anyhow::bail!("no src window when float a pane?"),
+            };
+            if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
+                if tab.is_float_active() {
+                    bail!("cannot open split when float is active");
+                }
+                let pane = tab
+                    .get_active_pane()
+                    .ok_or_else(|| anyhow!("tab to have a pane"))?;
+
+                log::trace!("doing float_pane");
+                let (pane, _size) = mux
+                    .float_pane(
+                        pane.pane_id(),
+                        cmd_builder,
+                        cwd,
+                        spawn.domain,
+                    )
+                    .await
+                    .context("float_pane")?;
+                pane.set_config(term_config);
+            } else {
+                bail!("there is no active tab while floating pane!?");
             }
         }
         _ => {
