@@ -68,6 +68,7 @@ impl std::fmt::Debug for CellAttributes {
             .field("wrapped", &self.wrapped())
             .field("overline", &self.overline())
             .field("semantic_type", &self.semantic_type())
+            .field("edited", &self.edited())
             .field("foreground", &self.foreground)
             .field("background", &self.background)
             .field("fat", &self.fat)
@@ -109,9 +110,10 @@ impl FatAttributes {
 /// The second form is for an integer value that occupies a range
 /// of bits.  The $bitmask and $bitshift parameters define how
 /// to transform from the stored bit value to the consumable
-/// value.
+/// value.  The $set_edited_flag parameter defines whether
+/// we set the edited flag when the attribute is set.
 macro_rules! bitfield {
-    ($getter:ident, $setter:ident, $bitnum:expr) => {
+    ($getter:ident, $setter:ident, $bitnum:expr, $set_edited_flag:expr) => {
         #[inline]
         pub fn $getter(&self) -> bool {
             (self.attributes & (1 << $bitnum)) == (1 << $bitnum)
@@ -121,11 +123,14 @@ macro_rules! bitfield {
         pub fn $setter(&mut self, value: bool) -> &mut Self {
             let attr_value = if value { 1 << $bitnum } else { 0 };
             self.attributes = (self.attributes & !(1 << $bitnum)) | attr_value;
+            if $set_edited_flag {
+                self.set_edited(true);
+            }
             self
         }
     };
 
-    ($getter:ident, $setter:ident, $bitmask:expr, $bitshift:expr) => {
+    ($getter:ident, $setter:ident, $bitmask:expr, $bitshift:expr, $set_edited_flag:expr) => {
         #[inline]
         pub fn $getter(&self) -> u32 {
             (self.attributes >> $bitshift) & $bitmask
@@ -136,11 +141,14 @@ macro_rules! bitfield {
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
+            if $set_edited_flag {
+                self.set_edited(true);
+            }
             self
         }
     };
 
-    ($getter:ident, $setter:ident, $enum:ident, $bitmask:expr, $bitshift:expr) => {
+    ($getter:ident, $setter:ident, $enum:ident, $bitmask:expr, $bitshift:expr, $set_edited_flag:expr) => {
         #[inline]
         pub fn $getter(&self) -> $enum {
             unsafe { mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u8) }
@@ -152,6 +160,9 @@ macro_rules! bitfield {
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
+            if $set_edited_flag {
+                self.set_edited(true);
+            }
             self
         }
     };
@@ -265,21 +276,31 @@ impl Default for CellAttributes {
 }
 
 impl CellAttributes {
-    bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
-    bitfield!(underline, set_underline, Underline, 0b111, 2);
-    bitfield!(blink, set_blink, Blink, 0b11, 5);
-    bitfield!(italic, set_italic, 7);
-    bitfield!(reverse, set_reverse, 8);
-    bitfield!(strikethrough, set_strikethrough, 9);
-    bitfield!(invisible, set_invisible, 10);
-    bitfield!(wrapped, set_wrapped, 11);
-    bitfield!(overline, set_overline, 12);
-    bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13);
-    bitfield!(vertical_align, set_vertical_align, VerticalAlign, 0b11, 15);
+    bitfield!(intensity, set_intensity, Intensity, 0b11, 0, true);
+    bitfield!(underline, set_underline, Underline, 0b111, 2, true);
+    bitfield!(blink, set_blink, Blink, 0b11, 5, true);
+    bitfield!(italic, set_italic, 7, true);
+    bitfield!(reverse, set_reverse, 8, true);
+    bitfield!(strikethrough, set_strikethrough, 9, true);
+    bitfield!(invisible, set_invisible, 10, true);
+    bitfield!(wrapped, set_wrapped, 11, false);
+    bitfield!(overline, set_overline, 12, true);
+    bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13, false);
+    bitfield!(vertical_align, set_vertical_align, VerticalAlign, 0b11, 15, true);
+    bitfield!(edited, set_edited, 17, false);
 
     pub const fn blank() -> Self {
         Self {
             attributes: 0,
+            foreground: SmallColor::Default,
+            background: SmallColor::Default,
+            fat: None,
+        }
+    }
+
+    pub const fn new_edited() -> Self {
+        Self {
+            attributes: 1 << 17,
             foreground: SmallColor::Default,
             background: SmallColor::Default,
             fat: None,
@@ -327,6 +348,7 @@ impl CellAttributes {
             }
         }
 
+        self.set_edited(true);
         self
     }
 
@@ -363,6 +385,7 @@ impl CellAttributes {
             }
         }
 
+        self.set_edited(true);
         self
     }
 
@@ -419,6 +442,7 @@ impl CellAttributes {
     pub fn set_image(&mut self, image: Box<ImageCell>) -> &mut Self {
         self.allocate_fat_attributes();
         self.fat.as_mut().unwrap().image = vec![image];
+        self.set_edited(true);
         self
     }
 
@@ -451,6 +475,7 @@ impl CellAttributes {
         {
             Ok(idx) | Err(idx) => fat.image.insert(idx, image),
         }
+        self.set_edited(true);
         self
     }
 
@@ -459,6 +484,7 @@ impl CellAttributes {
         underline_color: C,
     ) -> &mut Self {
         let underline_color = underline_color.into();
+        self.set_edited(true);
         if underline_color == ColorAttribute::Default && self.fat.is_none() {
             self
         } else {
@@ -508,6 +534,7 @@ impl CellAttributes {
         res.set_underline(Underline::None);
         res.set_overline(false);
         res.set_strikethrough(false);
+        res.set_edited(false);
         res
     }
 
@@ -567,6 +594,7 @@ impl CellAttributes {
                 self.set_hyperlink(value.clone());
             }
         }
+        self.set_edited(true);
     }
 }
 
