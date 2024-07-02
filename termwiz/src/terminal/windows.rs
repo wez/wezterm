@@ -27,7 +27,7 @@ use winapi::um::wincon::{
 use winapi::um::winnls::CP_UTF8;
 
 use crate::caps::Capabilities;
-use crate::input::{InputEvent, InputParser};
+use crate::input::{InputEvent, InputParser, KeyboardEncoding};
 use crate::render::terminfo::TerminfoRenderer;
 use crate::render::windows::WindowsConsoleRenderer;
 use crate::render::RenderTty;
@@ -855,6 +855,15 @@ impl Terminal for WindowsTerminal {
     fn waker(&self) -> WindowsTerminalWaker {
         WindowsTerminalWaker {
             handle: self.waker_handle.clone(),
+        }
+    }
+
+    fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
+        match encoding {
+            KeyboardEncoding::Win32 => Ok(()),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported keyboard encoding {encoding:?} for Windows terminal"
+            ))?,
         }
     }
 }
