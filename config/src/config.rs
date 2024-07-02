@@ -20,13 +20,7 @@ use crate::tls::{TlsDomainClient, TlsDomainServer};
 use crate::units::Dimension;
 use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
-use crate::{
-    default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, default_win32_acrylic_accent_color, GpuInfo, IntegratedTitleButtonColor,
-    KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop,
-    WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
-    HOME_DIR,
-};
+use crate::{default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64, default_true, default_win32_acrylic_accent_color, GpuInfo, IntegratedTitleButtonColor, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop, WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR, FloatBorderConfig};
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
 use mlua::FromLua;
@@ -141,6 +135,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
+
+    #[dynamic(default)]
+    pub float_pane_border: FloatBorderConfig,
 
     #[dynamic(default = "default_char_select_font_size")]
     pub char_select_font_size: f64,

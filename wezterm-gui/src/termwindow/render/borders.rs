@@ -1,7 +1,7 @@
 use crate::quad::TripleLayerQuadAllocator;
 use crate::utilsprites::RenderMetrics;
 use ::window::ULength;
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext, FloatBorderConfig};
 
 impl crate::TermWindow {
     pub fn paint_window_borders(
@@ -135,6 +135,72 @@ impl crate::TermWindow {
         );
 
         border
+    }
+
+    pub fn get_os_border_impl2(
+        os_parameters: &Option<window::parameters::Parameters>,
+        config: &ConfigHandle,
+        dimensions: &crate::Dimensions,
+        render_metrics: &RenderMetrics,
+        border_config: &FloatBorderConfig
+    ) -> window::parameters::Border {
+        let mut border = os_parameters
+            .as_ref()
+            .and_then(|p| p.border_dimensions.clone())
+            .unwrap_or_default();
+
+        border.left += ULength::new(
+            border_config
+                .left_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.right += ULength::new(
+            border_config
+                .right_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.top += ULength::new(
+            border_config
+                .top_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+        border.bottom += ULength::new(
+            border_config
+                .bottom_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+
+        border
+    }
+
+    pub fn get_float_border(&self) -> window::parameters::Border {
+        Self::get_os_border_impl2(
+            &self.os_parameters,
+            &self.config,
+            &self.dimensions,
+            &self.render_metrics,
+            &self.config.float_pane_border
+        )
     }
 
     pub fn get_os_border(&self) -> window::parameters::Border {
