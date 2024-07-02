@@ -172,7 +172,7 @@ impl smol::io::AsyncRead for File {
             Poll::Ready(Err(x)) => Poll::Ready(Err(x)),
             Poll::Ready(Ok(data)) => {
                 let n = data.len();
-                (&mut buf[..n]).copy_from_slice(&data[..n]);
+                (buf[..n]).copy_from_slice(&data[..n]);
                 Poll::Ready(Ok(n))
             }
         }

@@ -220,7 +220,7 @@ fn parse_exe_and_argv_sysctl(buf: Vec<u8>) -> Option<(PathBuf, Vec<String>)> {
     fn consume_cstr(ptr: &mut &[u8]) -> Option<String> {
         // Parse to the end of a null terminated string
         let nul = ptr.iter().position(|&c| c == 0)?;
-        let s = String::from_utf8_lossy(&ptr[0..nul]).to_owned().to_string();
+        let s = String::from_utf8_lossy(&ptr[0..nul]).to_string();
         *ptr = ptr.get(nul + 1..)?;
 
         // Find the position of the first non null byte. `.position()`

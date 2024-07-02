@@ -16,13 +16,13 @@ thread_local! {
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum Error {
-    #[error("`{}` is not a valid {} variant. {}", .variant_name, .type_name, Self::possible_matches(.variant_name, &.possible))]
+    #[error("`{}` is not a valid {} variant. {}", .variant_name, .type_name, Self::possible_matches(.variant_name, possible))]
     InvalidVariantForType {
         variant_name: String,
         type_name: &'static str,
         possible: &'static [&'static str],
     },
-    #[error("`{}` is not a valid {} field. {}", .field_name, .type_name, Self::possible_matches(.field_name, &.possible))]
+    #[error("`{}` is not a valid {} field. {}", .field_name, .type_name, Self::possible_matches(.field_name, possible))]
     UnknownFieldForStruct {
         field_name: String,
         type_name: &'static str,
@@ -201,7 +201,7 @@ impl Error {
         }
 
         if options.unknown_fields == UnknownFieldAction::Deny {
-            for err in errors {
+            if let Some(err) = errors.into_iter().next() {
                 return Err(err);
             }
         }

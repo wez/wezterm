@@ -30,7 +30,7 @@ fn main() {
             }
 
             if let Ok(output) = std::process::Command::new("git")
-                .args(&[
+                .args([
                     "-c",
                     "core.abbrev=8",
                     "show",

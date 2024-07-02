@@ -2,6 +2,7 @@ use csscolorparser::Color;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
@@ -407,14 +408,6 @@ impl SrgbaTuple {
         )
     }
 
-    pub fn to_string(self) -> String {
-        if self.3 == 1.0 {
-            self.to_rgb_string()
-        } else {
-            self.to_rgba_string()
-        }
-    }
-
     /// Returns a string of the form `#RRGGBB`
     pub fn to_rgb_string(self) -> String {
         format!(
@@ -551,6 +544,16 @@ impl SrgbaTuple {
     }
 }
 
+impl Display for SrgbaTuple {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.3 == 1.0 {
+            write!(f, "{}", self.to_rgb_string())
+        } else {
+            write!(f, "{}", self.to_rgba_string())
+        }
+    }
+}
+
 /// Convert an RGB color space hue angle to an RYB colorspace hue angle
 /// <https://github.com/TNMEM/Material-Design-Color-Picker/blob/1afe330c67d9db4deef7031d601324b538b43b09/rybcolor.js#L33>
 fn rgb_hue_to_ryb_hue(hue: f64) -> f64 {
@@ -631,7 +634,7 @@ fn x_parse_color_component(value: &str) -> Result<f32, ()> {
 
     for c in value.chars() {
         num_digits += 1;
-        component = component << 4;
+        component <<= 4;
 
         let nybble = match c.to_digit(16) {
             Some(v) => v as u16,
@@ -659,7 +662,7 @@ impl FromStr for SrgbaTuple {
         if !s.is_ascii() {
             return Err(());
         }
-        if s.len() > 0 && s.as_bytes()[0] == b'#' {
+        if !s.is_empty() && s.as_bytes()[0] == b'#' {
             // Probably `#RGB`
 
             let digits = (s.len() - 1) / 3;
@@ -679,7 +682,7 @@ impl FromStr for SrgbaTuple {
                     let mut component = 0u16;
 
                     for _ in 0..digits {
-                        component = component << 4;
+                        component <<= 4;
 
                         let nybble = match chars.next().unwrap().to_digit(16) {
                             Some(v) => v as u16,
@@ -730,7 +733,7 @@ impl FromStr for SrgbaTuple {
                         Ok(v / 100.)
                     } else {
                         let v: f32 = s.parse().map_err(|_| ())?;
-                        if v > 255.0 || v < 0. {
+                        if !(0. ..=255.0).contains(&v) {
                             Err(())
                         } else {
                             Ok(v / 255.)
@@ -746,8 +749,8 @@ impl FromStr for SrgbaTuple {
             } else {
                 Err(())
             }
-        } else if s.starts_with("hsl:") {
-            let fields: Vec<_> = s[4..].split_ascii_whitespace().collect();
+        } else if let Some(stripped) = s.strip_prefix("hsl:") {
+            let fields: Vec<_> = stripped.split_ascii_whitespace().collect();
             if fields.len() == 3 {
                 // Expected to be degrees in range 0-360, but we allow for negative and wrapping
                 let h: i32 = fields[0].parse().map_err(|_| ())?;

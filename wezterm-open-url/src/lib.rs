@@ -46,11 +46,7 @@ pub fn open_with(url: &str, app: &str) {
         let mut cmd = std::process::Command::new(args[0]);
         cmd.args(&args[1..]);
 
-        if let Ok(status) = cmd.status() {
-            if status.success() {
-                return;
-            }
-        }
+        let _ = cmd.status();
     });
 }
 

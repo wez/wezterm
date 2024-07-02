@@ -44,6 +44,12 @@ impl UmaskSaver {
     }
 }
 
+impl Default for UmaskSaver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for UmaskSaver {
     fn drop(&mut self) {
         #[cfg(unix)]

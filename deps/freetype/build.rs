@@ -230,7 +230,7 @@ fn freetype() {
 
 fn git_submodule_update() {
     let _ = std::process::Command::new("git")
-        .args(&["submodule", "update", "--init"])
+        .args(["submodule", "update", "--init"])
         .status();
 }
 

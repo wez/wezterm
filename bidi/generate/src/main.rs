@@ -19,7 +19,7 @@ fn gen_class() -> anyhow::Result<()> {
     impl Entry {
         fn parse(line: &str) -> anyhow::Result<Option<Self>> {
             let line = line.trim();
-            if line.starts_with("#") || line.is_empty() {
+            if line.starts_with('#') || line.is_empty() {
                 return Ok(None);
             }
             let fields: Vec<&str> = line.split(';').collect();
@@ -152,7 +152,7 @@ fn gen_brackets() -> anyhow::Result<()> {
     impl Entry {
         fn parse(line: &str) -> anyhow::Result<Option<Self>> {
             let line = line.trim();
-            if line.starts_with("#") || line.is_empty() {
+            if line.starts_with('#') || line.is_empty() {
                 return Ok(None);
             }
             let fields: Vec<&str> = line.split(';').collect();

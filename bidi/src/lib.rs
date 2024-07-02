@@ -94,7 +94,7 @@ pub struct BidiRun {
 }
 
 impl BidiRun {
-    pub fn indices<'a>(&'a self) -> impl Iterator<Item = usize> + 'a {
+    pub fn indices(&self) -> impl Iterator<Item = usize> + '_ {
         struct Iter<'a> {
             range: Range<usize>,
             removed_by_x9: &'a [usize],
@@ -206,7 +206,7 @@ impl BidiContext {
 
     /// Produces a sequence of `BidiRun` structs that represent runs of
     /// text and their direction (and level) across the entire paragraph.
-    pub fn runs<'a>(&'a self) -> impl Iterator<Item = BidiRun> + 'a {
+    pub fn runs(&self) -> impl Iterator<Item = BidiRun> + '_ {
         RunIter {
             pos: 0,
             levels: Cow::Borrowed(&self.levels),
@@ -357,7 +357,7 @@ impl BidiContext {
 
         // Initial visual order
         let mut visual = vec![];
-        for i in 0..levels.len() {
+        for (i, _) in levels.iter().enumerate() {
             if levels[i].removed_by_x9() {
                 visual.push(DELETED);
             } else {
@@ -843,7 +843,7 @@ impl BidiContext {
                 // of the substring in this isolating run sequence
                 // enclosed by those brackets (inclusive
                 // of the brackets). Resolve that individual pair.
-                self.resolve_one_pair(pair, &iso_run);
+                self.resolve_one_pair(pair, iso_run);
             }
         }
     }
@@ -997,7 +997,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             } else {
                 // No strong type matching the oppositedirection was found either
                 // before or after these brackets in this text chain. Resolve the
@@ -1010,7 +1009,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             }
         } else {
             // No strong type was found between the brackets. Leave
@@ -1262,7 +1260,7 @@ impl BidiContext {
             line_range: Range<usize>,
             base_level: Level,
             orig_char_types: &[BidiClass],
-            levels: &mut Vec<Level>,
+            levels: &mut [Level],
         ) {
             for i in line_range.rev() {
                 if orig_char_types[i] == BidiClass::WhiteSpace
@@ -1458,12 +1456,8 @@ impl BidiContext {
                         // Do nothing
                     } else if overflow_embedding > 0 {
                         overflow_embedding -= 1;
-                    } else {
-                        if !stack.isolate_status() {
-                            if stack.depth() >= 2 {
-                                stack.pop();
-                            }
-                        }
+                    } else if !stack.isolate_status() && stack.depth() >= 2 {
+                        stack.pop();
                     }
                 }
                 BidiClass::BoundaryNeutral => {}
@@ -1709,22 +1703,22 @@ impl BidiContext {
 
 impl BidiClass {
     pub fn is_iso_init(self) -> bool {
-        match self {
+        matches!(
+            self,
             BidiClass::RightToLeftIsolate
-            | BidiClass::LeftToRightIsolate
-            | BidiClass::FirstStrongIsolate => true,
-            _ => false,
-        }
+                | BidiClass::LeftToRightIsolate
+                | BidiClass::FirstStrongIsolate
+        )
     }
 
     pub fn is_iso_control(self) -> bool {
-        match self {
+        matches!(
+            self,
             BidiClass::RightToLeftIsolate
-            | BidiClass::LeftToRightIsolate
-            | BidiClass::PopDirectionalIsolate
-            | BidiClass::FirstStrongIsolate => true,
-            _ => false,
-        }
+                | BidiClass::LeftToRightIsolate
+                | BidiClass::PopDirectionalIsolate
+                | BidiClass::FirstStrongIsolate
+        )
     }
 
     pub fn is_neutral(self) -> bool {

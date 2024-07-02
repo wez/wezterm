@@ -223,6 +223,12 @@ impl SimpleExecutor {
     }
 }
 
+impl Default for SimpleExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct ScopedExecutor {}
 
 impl ScopedExecutor {
@@ -240,6 +246,12 @@ impl ScopedExecutor {
             .expect("SCOPED_EXECUTOR to be alive as long as ScopedExecutor")
             .run(future)
             .await
+    }
+}
+
+impl Default for ScopedExecutor {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
