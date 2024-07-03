@@ -1235,6 +1235,10 @@ impl TabInner {
 
             // And then resize the individual panes to match
             apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
+            if let Some(float_pane) = &self.float_pane {
+                let float_size = self.get_float_size();
+                float_pane.resize(float_size);
+            }
         }
 
         Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
