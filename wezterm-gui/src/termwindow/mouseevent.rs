@@ -667,12 +667,18 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
-        //is there a better place to put this?
-        if self.is_float_active() {
-            return;
-        }
+        let panes = if let Some(float_pane) = self.get_float_pane_to_render() {
+            if position.column >= float_pane.left && position.column <= float_pane.left + float_pane.width
+                && position.row as usize >= float_pane.top && position.row as usize <= float_pane.top + float_pane.height {
+                vec![float_pane]
+            } else {
+                return
+            }
+        } else {
+            self.get_panes_to_render()
+        };
 
-        for pos in self.get_panes_to_render() {
+        for pos in panes {
             if !is_already_captured
                 && row >= pos.top as i64
                 && row <= (pos.top + pos.height) as i64
