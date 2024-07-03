@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 use url::Url;
-use wezterm_term::{Position, StableRowIndex, TerminalSize};
+use wezterm_term::{StableRowIndex, TerminalSize};
 
 pub type Tree = bintree::Tree<Arc<dyn Pane>, SplitDirectionAndSize>;
 pub type Cursor = bintree::Cursor<Arc<dyn Pane>, SplitDirectionAndSize>;
@@ -1078,6 +1078,10 @@ impl TabInner {
             }
         }
 
+        if let Some(float_pane) = self.get_float_pane() {
+            panes.push(float_pane);
+        }
+
         let active_idx = self.active;
         let zoomed_id = self.zoomed.as_ref().map(|p| p.pane_id());
         let root_size = self.size;
@@ -1200,6 +1204,11 @@ impl TabInner {
             return;
         }
 
+        if let Some(float_pane) = &self.float_pane {
+            let float_size = self.get_float_size();
+            float_pane.resize(float_size).ok();
+        }
+
         if let Some(zoomed) = &self.zoomed {
             self.size = size;
             zoomed.resize(size).ok();
@@ -1235,10 +1244,6 @@ impl TabInner {
 
             // And then resize the individual panes to match
             apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
-            if let Some(float_pane) = &self.float_pane {
-                let float_size = self.get_float_size();
-                float_pane.resize(float_size);
-            }
         }
 
         Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));

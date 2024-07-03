@@ -96,7 +96,7 @@ impl crate::TermWindow {
         let window_is_transparent =
             !self.window_background.is_empty() || config.window_background_opacity != 1.0;
 
-        let mut default_bg = palette
+        let default_bg = palette
             .resolve_bg(ColorAttribute::Default)
             .to_linear()
             .mul_alpha(if window_is_transparent {
@@ -159,11 +159,10 @@ impl crate::TermWindow {
                     layers,
                     0,
                     background_rect,
-                    default_bg,
-                    //palette
-                    //    .foreground
-                    //    .to_linear()
-                    //    .mul_alpha(config.window_background_opacity),
+                    palette
+                        .background
+                        .to_linear()
+                        .mul_alpha(config.window_background_opacity),
                 )
                 .context("filled_rectangle")?;
             quad.set_hsv(if pos.is_active {
