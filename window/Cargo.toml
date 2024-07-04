@@ -81,8 +81,8 @@ xcb-imdkit = { version="0.3", git="https://github.com/wez/xcb-imdkit-rs.git", re
 zbus = "4.2"
 zvariant = "4.0"
 
-smithay-client-toolkit = {version = "0.18", default-features=false, optional=true}
-wayland-protocols = {version="0.31", optional=true}
+smithay-client-toolkit = {version = "0.19", default-features=false, optional=true}
+wayland-protocols = {version="0.32", optional=true}
 wayland-client = {version="0.31", optional=true}
 wayland-egl = {version="0.32", optional=true}
 

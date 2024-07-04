@@ -4,6 +4,7 @@ use smithay_client_toolkit::data_device_manager::data_source::DataSourceHandler;
 use smithay_client_toolkit::data_device_manager::WritePipe;
 use smithay_client_toolkit::reexports::client::protocol::wl_data_device::WlDataDevice;
 use wayland_client::protocol::wl_data_device_manager::DndAction;
+use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::Proxy;
 
 use crate::wayland::drag_and_drop::SurfaceAndOffer;
@@ -23,6 +24,9 @@ impl DataDeviceHandler for WaylandState {
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
         data_device: &WlDataDevice,
+        _x: f64,
+        _y: f64,
+        _surface: &WlSurface,
     ) {
         let data = match self.data_device {
             Some(ref dv) if dv.inner() == data_device => dv.data(),
@@ -86,6 +90,8 @@ impl DataDeviceHandler for WaylandState {
         _conn: &wayland_client::Connection,
         _qh: &wayland_client::QueueHandle<Self>,
         _data_device: &WlDataDevice,
+        _x: f64,
+        _y: f64,
     ) {
     }
 
