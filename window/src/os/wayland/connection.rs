@@ -9,7 +9,7 @@ use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Token};
 use wayland_client::backend::WaylandError;
 use wayland_client::globals::registry_queue_init;
-use wayland_client::{Connection as WConnection, EventQueue};
+use wayland_client::{Connection as WConnection, EventQueue, QueueHandle};
 
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::SPAWN_QUEUE;
@@ -25,6 +25,7 @@ pub struct WaylandConnection {
     pub(super) connection: WConnection,
     pub(super) event_queue: RefCell<EventQueue<WaylandState>>,
     pub(super) wayland_state: RefCell<WaylandState>,
+    queue_handle: QueueHandle<WaylandState>,
 }
 
 impl WaylandConnection {
@@ -41,6 +42,7 @@ impl WaylandConnection {
             gl_connection: RefCell::new(None),
             event_queue: RefCell::new(event_queue),
             wayland_state: RefCell::new(wayland_state),
+            queue_handle: qh,
         };
 
         Ok(wayland_connection)
@@ -154,6 +156,11 @@ impl WaylandConnection {
         .detach();
 
         future
+    }
+
+    pub(super) fn queue_handle() -> QueueHandle<WaylandState> {
+        let conn = Connection::get().unwrap().wayland();
+        conn.queue_handle.clone()
     }
 }
 
