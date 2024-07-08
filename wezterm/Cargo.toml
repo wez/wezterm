@@ -10,8 +10,8 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 chrono = {version="0.4", default-features=false}
-clap = {version="4.0", features=["derive", "wrap_help"]}
-clap_complete = "4.4"
+clap = {version="4.5", features=["derive", "wrap_help"]}
+clap_complete = "4.5"
 clap_complete_fig = "4.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
