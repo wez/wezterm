@@ -1899,12 +1899,12 @@ dependencies = [
 
 [[package]]
 name = "gethostname"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0176e0459c2e4a1fe232f984bca6890e681076abb9934f6cea7c326f3fc47818"
+checksum = "dc3655aa6818d65bc620d6911f05aa7b6aeb596291e1e9f79e52df85583d1e30"
 dependencies = [
- "libc",
- "windows-targets 0.48.5",
+ "rustix 0.38.34",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -2283,9 +2283,9 @@ dependencies = [
 
 [[package]]
 name = "http_req"
-version = "0.10.3"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d9a9b34d2d0a2440774af1b1c09b045fe82ccdc4f4f37d089fbc4cc8a03104e"
+checksum = "cd68fe813419e7fd8982607f1b39e2a393226a98cf4cc905e716ba328e2a488f"
 dependencies = [
  "native-tls",
  "unicase",
