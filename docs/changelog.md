@@ -48,6 +48,8 @@ As features stabilize some brief notes about them will accumulate here.
   to manage `SSH_AUTH_SOCK`.
 * Search mode: now supports richer line editing. Thanks to @Mrreadiness and
   @kenchou! #5416 #3087
+* [show_close_tab_button_in_tabs](config/lua/config/show_close_tab_button_in_tabs.md)
+  option for the fancy tab bar. Thanks to @zummenix! #3818
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
