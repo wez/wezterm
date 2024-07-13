@@ -434,7 +434,10 @@ impl std::ops::DerefMut for SessionWithSshd {
 pub async fn session(#[default(Config::new())] mut config: Config, sshd: Sshd) -> SessionWithSshd {
     let port = sshd.port;
 
-    config.add_default_config_files();
+    // Do not add the default config files; they take the config of the
+    // user that is running the tests which can vary wildly and have
+    // inappropriate configuration that disrupts the tests.
+    // NO: config.add_default_config_files();
 
     // Load our config to point to ourselves, using current sshd instance's port,
     // generated identity file, and host file
