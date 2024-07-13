@@ -24,7 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 * Wayland: currently being reimplemented, it maybe more unstable than usual.
   Please file GH issues for any problems you see.
-  Many thanks to @tzx! #4777
+  Many thanks to @tzx and @tmccombs! #4777 #5781
 * [show_update_window](config/lua/config/show_update_window.md) has been
   deprecated; it no longer has any effect and will be removed in a future
   release.
