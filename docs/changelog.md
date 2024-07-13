@@ -83,7 +83,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
-* Bundled harfbuzz to 8.4.0
+* Bundled harfbuzz to 9.0.0
 * image crate to 0.25, which means that JPEG images are now decoded via
   [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
   handling of non-conforming jpeg images. #5365
