@@ -1314,6 +1314,24 @@ impl CompositorHandler for WaylandState {
     ) {
         // TODO: do we need to do anything here?
     }
+
+    fn surface_enter(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _output: &wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
+
+    fn surface_leave(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _output: &wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
 }
 
 impl WindowHandler for WaylandState {
