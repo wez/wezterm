@@ -1188,7 +1188,7 @@ impl Mux {
         // TODO: disambiguate with TabId
         pane_id: PaneId,
         command_builder: Option<CommandBuilder>,
-        command: Option<String>,
+        command_dir: Option<String>,
         domain: config::keyassignment::SpawnTabDomain,
     ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
         let (_pane_domain_id, window_id, tab_id) = self
@@ -1208,7 +1208,18 @@ impl Mux {
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
         let term_config = current_pane.get_config();
 
-        let pane = domain.add_float_pane(tab_id, pane_id, command_builder, command).await?;
+        let command_dir = if !command_dir.is_some() {
+            self.resolve_cwd(
+                command_dir,
+                Some(Arc::clone(&current_pane)),
+                domain.domain_id(),
+                CachePolicy::FetchImmediate,
+            )
+        } else {
+            command_dir
+        };
+
+        let pane = domain.add_float_pane(tab_id, pane_id, command_builder, command_dir).await?;
 
         if let Some(config) = term_config {
             pane.set_config(config);
