@@ -2509,6 +2509,21 @@ impl TermWindow {
             result => return Ok(result),
         }
 
+        if self.is_float_active() {
+            match assignment {
+                ActivatePaneByIndex(..) |
+                ActivatePaneDirection(..) |
+                SplitPane(..) |
+                SplitVertical(..) |
+                SplitHorizontal(..) |
+                SpawnTab(..) |
+                PaneSelect(..) => {
+                    return Ok(PerformAssignmentResult::Handled);
+                },
+                _ => {}
+            }
+        }
+
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
