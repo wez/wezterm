@@ -53,7 +53,6 @@ filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 frecency = { path = "../frecency" }
 futures = "0.3"
-fuzzy-matcher = "0.3"
 nucleo-matcher = "0.3"
 hdrhistogram = "7.1"
 http_req = "0.11"

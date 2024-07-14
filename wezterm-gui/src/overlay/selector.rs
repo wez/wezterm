@@ -1,10 +1,12 @@
 use super::quickselect;
 use crate::scripting::guiwin::GuiWin;
 use config::keyassignment::{InputSelector, InputSelectorEntry, KeyAssignment};
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use mux::termwiztermtab::TermWizTerminal;
 use mux_lua::MuxPane;
+use nucleo_matcher::pattern::Pattern;
+use nucleo_matcher::{Matcher, Utf32Str};
+use rayon::prelude::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
@@ -14,6 +16,25 @@ use termwiz::terminal::Terminal;
 use termwiz_funcs::truncate_right;
 
 const ROW_OVERHEAD: usize = 3;
+
+thread_local! {
+    pub static MATCHER: RefCell<Matcher> = RefCell::new(Matcher::new(nucleo_matcher::Config::DEFAULT));
+}
+
+pub fn matcher_score(pattern: &Pattern, s: &str) -> Option<u32> {
+    MATCHER.with_borrow_mut(|matcher| {
+        let mut buf = vec![];
+        pattern.score(Utf32Str::new(s, &mut buf), matcher)
+    })
+}
+
+pub fn matcher_pattern(s: &str) -> Pattern {
+    nucleo_matcher::pattern::Pattern::parse(
+        s,
+        nucleo_matcher::pattern::CaseMatching::Ignore,
+        nucleo_matcher::pattern::Normalization::Smart,
+    )
+}
 
 struct SelectorState {
     active_idx: usize,
@@ -40,20 +61,20 @@ impl SelectorState {
 
         self.filtered_entries.clear();
 
-        let matcher = SkimMatcherV2::default();
-
         struct MatchResult {
             row_idx: usize,
-            score: i64,
+            score: u32,
         }
+
+        let pattern = matcher_pattern(&self.filter_term);
 
         let mut scores: Vec<MatchResult> = self
             .args
             .choices
-            .iter()
+            .par_iter()
             .enumerate()
             .filter_map(|(row_idx, entry)| {
-                let score = matcher.fuzzy_match(&entry.label, &self.filter_term)?;
+                let score = matcher_score(&pattern, &entry.label)?;
                 Some(MatchResult { row_idx, score })
             })
             .collect();

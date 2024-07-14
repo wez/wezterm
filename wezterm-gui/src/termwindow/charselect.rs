@@ -1,3 +1,4 @@
+use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::box_model::*;
 use crate::termwindow::modal::Modal;
 use crate::termwindow::render::corners::{
@@ -13,7 +14,6 @@ use config::keyassignment::{
 use config::Dimension;
 use emojis::{Emoji, Group};
 use frecency::Frecency;
-use nucleo_matcher::{Matcher, Utf32Str};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
@@ -271,11 +271,7 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
             .map(|(idx, _a)| idx)
             .collect()
     } else {
-        let pattern = nucleo_matcher::pattern::Pattern::parse(
-            selection,
-            nucleo_matcher::pattern::CaseMatching::Ignore,
-            nucleo_matcher::pattern::Normalization::Smart,
-        );
+        let pattern = matcher_pattern(selection);
 
         let numeric_selection = if selection.chars().all(|c| c.is_ascii_hexdigit()) {
             // Make this uppercase so that eg: `e1` matches `U+E1` rather
@@ -293,18 +289,10 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
             .par_iter()
             .enumerate()
             .filter_map(|(row_idx, entry)| {
-                thread_local! {
-                    static MATCHER: RefCell<Matcher> = RefCell::new(Matcher::new(nucleo_matcher::Config::DEFAULT));
-                }
-
                 let glyph = entry.glyph();
 
-                let alias_result = MATCHER.with_borrow_mut(|matcher| {
-                    let mut buf = vec![];
-                    pattern
-                        .score(Utf32Str::new(&entry.name, &mut buf), matcher)
-                        .map(|score| MatchResult::new(row_idx, score , selection, aliases))
-                });
+                let alias_result = matcher_score(&pattern, &entry.name)
+                    .map(|score| MatchResult::new(row_idx, score, selection, aliases));
 
                 match &numeric_selection {
                     Some(sel) => {
@@ -318,11 +306,8 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
                                 },
                             ))
                         } else {
-                            let number_result = MATCHER.with_borrow_mut(|matcher| {
-                                let mut buf = vec![];
-                                pattern
-                                    .score(Utf32Str::new(&codepoints, &mut buf), matcher)
-                                    .map(|score| MatchResult::new(row_idx, score , selection, aliases))});
+                            let number_result = matcher_score(&pattern, &codepoints)
+                                .map(|score| MatchResult::new(row_idx, score, selection, aliases));
 
                             match (alias_result, number_result) {
                                 (
