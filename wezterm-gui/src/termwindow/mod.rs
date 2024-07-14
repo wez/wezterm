@@ -283,7 +283,7 @@ impl UserData for PaneInformation {
         fields.add_field_method_get("width", |_, this| Ok(this.width));
         fields.add_field_method_get("height", |_, this| Ok(this.height));
         fields.add_field_method_get("pixel_width", |_, this| Ok(this.pixel_width));
-        fields.add_field_method_get("pixel_height", |_, this| Ok(this.pixel_width));
+        fields.add_field_method_get("pixel_height", |_, this| Ok(this.pixel_height));
         fields.add_field_method_get("title", |_, this| Ok(this.title.clone()));
         fields.add_field_method_get("user_vars", |_, this| Ok(this.user_vars.clone()));
         fields.add_field_method_get("foreground_process_name", |_, this| {
