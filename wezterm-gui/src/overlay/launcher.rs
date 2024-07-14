@@ -38,6 +38,7 @@ struct Entry {
 pub struct LauncherTabEntry {
     pub title: String,
     pub tab_id: TabId,
+    #[allow(unused)]
     pub tab_idx: usize,
     pub pane_count: Option<usize>,
 }
