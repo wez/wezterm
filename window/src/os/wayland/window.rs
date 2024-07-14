@@ -6,6 +6,7 @@ use std::io::Read;
 use std::num::NonZeroU32;
 use std::os::fd::AsRawFd;
 use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -16,8 +17,8 @@ use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
 use raw_window_handle::{
-    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
-    WaylandDisplayHandle, WaylandWindowHandle,
+    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawWindowHandle,
+    WaylandWindowHandle, WindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
 use smithay_client_toolkit::data_device_manager::ReadPipe;
@@ -1377,26 +1378,35 @@ impl SurfaceDataExt for SurfaceUserData {
     }
 }
 
-unsafe impl HasRawWindowHandle for WaylandWindowInner {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let mut handle = WaylandWindowHandle::empty();
-        let surface = self.surface();
-        handle.surface = surface.id().as_ptr() as *mut _;
-        RawWindowHandle::Wayland(handle)
-    }
-}
-
-unsafe impl HasRawDisplayHandle for WaylandWindow {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        let mut handle = WaylandDisplayHandle::empty();
+impl HasDisplayHandle for WaylandWindowInner {
+    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
         let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.backend().display_ptr() as *mut _;
-        RawDisplayHandle::Wayland(handle)
+        let backend = conn.connection.backend();
+        let handle = backend.display_handle()?;
+        Ok(unsafe { DisplayHandle::borrow_raw(handle.as_raw()) })
     }
 }
 
-unsafe impl HasRawWindowHandle for WaylandWindow {
-    fn raw_window_handle(&self) -> RawWindowHandle {
+impl HasWindowHandle for WaylandWindowInner {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+        let handle = WaylandWindowHandle::new(
+            NonNull::new(self.surface().id().as_ptr() as _).expect("non-null"),
+        );
+        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::Wayland(handle))) }
+    }
+}
+
+impl HasDisplayHandle for WaylandWindow {
+    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let backend = conn.connection.backend();
+        let handle = backend.display_handle()?;
+        Ok(unsafe { DisplayHandle::borrow_raw(handle.as_raw()) })
+    }
+}
+
+impl HasWindowHandle for WaylandWindow {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
         let conn = Connection::get().expect("raw_window_handle only callable on main thread");
         let handle = conn
             .wayland()
@@ -1404,6 +1414,7 @@ unsafe impl HasRawWindowHandle for WaylandWindow {
             .expect("window handle invalid!?");
 
         let inner = handle.borrow();
-        inner.raw_window_handle()
+        let handle = inner.window_handle()?;
+        unsafe { Ok(WindowHandle::borrow_raw(handle.as_raw())) }
     }
 }
