@@ -82,7 +82,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Search mode now accepts composed input from the IME. Thanks to @kenchou! #5564
 * Quick select mode will now accept unix paths with `//` in them. #5763
 * blob leases (for image rendering) could be removed by temporary directory
-  cleaners, resulting in issues with rendering. #5422
+  cleaners, resulting in issues with rendering. We no longer store these
+  in a pure temporary directory; they live in a cache dir, and if someone
+  does remove or truncate these files, we now convert that error case
+  into blank frame(s). #5422
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg

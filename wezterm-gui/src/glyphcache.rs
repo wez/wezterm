@@ -20,6 +20,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Seek;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
@@ -30,6 +31,20 @@ use wezterm_blob_leases::{BlobLease, BlobManager, BoxedReader};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
 use wezterm_term::Underline;
+
+static FRAME_ERROR_REPORTED: AtomicBool = AtomicBool::new(false);
+
+/// We only want to report a frame error once at error level, because
+/// if it is triggering it is likely in a animated image and will continue
+/// to trigger multiple times per second as the frames are cycled.
+fn report_frame_error<S: Into<String>>(message: S) {
+    if FRAME_ERROR_REPORTED.load(Ordering::Relaxed) {
+        log::debug!("{}", message.into());
+    } else {
+        log::error!("{}", message.into());
+        FRAME_ERROR_REPORTED.store(true, Ordering::Relaxed);
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoadState {
@@ -1025,14 +1040,35 @@ impl GlyphCache {
                     return Ok((sprite.clone(), next, frames.load_state));
                 }
 
+                let expected_byte_size =
+                    frames.current_frame.width * frames.current_frame.height * 4;
+
+                let frame_data = match frames.current_frame.lease.get_data() {
+                    Ok(data) => {
+                        // If the size isn't right, ignore this frame and replace
+                        // it with a blank one instead. This might happen if
+                        // some process is truncating the files, or perhaps if
+                        // the disk is full.
+                        // We need to check for this because the consequence of
+                        // a mismatched size is a panic in a layer where we
+                        // cannot handle the error case.
+                        if data.len() != expected_byte_size {
+                            report_frame_error(format!("frame data is corrupted: expected size {expected_byte_size} but have {}", data.len()));
+                            vec![0u8; expected_byte_size]
+                        } else {
+                            data
+                        }
+                    }
+                    Err(err) => {
+                        report_frame_error(format!("frame data error: {err:#}"));
+                        vec![0u8; expected_byte_size]
+                    }
+                };
+
                 let frame = Image::from_raw(
                     frames.current_frame.width,
                     frames.current_frame.height,
-                    frames
-                        .current_frame
-                        .lease
-                        .get_data()
-                        .context("frames.current_frame.lease.get_data")?,
+                    frame_data,
                 );
                 let sprite = atlas.allocate_with_padding(&frame, padding, scale_down)?;
 
