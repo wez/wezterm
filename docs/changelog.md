@@ -34,6 +34,8 @@ As features stabilize some brief notes about them will accumulate here.
   drawing glyphs. See
   [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more
   details. Thanks to @stribor14! #5051 #5169
+* Switched to the [nucleo](https://github.com/helix-editor/nucleo) fuzzy
+  matcher for `CharSelect`. #5532
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
