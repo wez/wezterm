@@ -4,7 +4,7 @@ use crate::{BlobStorage, BoxedReader, BufSeekRead, ContentId, Error, LeaseId};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tempfile::TempDir;
 
@@ -19,6 +19,19 @@ impl SimpleTempDir {
             .prefix("wezterm-blob-lease-")
             .rand_bytes(8)
             .tempdir()?;
+        Ok(Self {
+            root,
+            refs: Mutex::new(HashMap::new()),
+        })
+    }
+
+    pub fn new_in<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let path = path.as_ref();
+        std::fs::create_dir_all(path)?;
+        let root = tempfile::Builder::new()
+            .prefix("wezterm-blob-lease-")
+            .rand_bytes(8)
+            .tempdir_in(path)?;
         Ok(Self {
             root,
             refs: Mutex::new(HashMap::new()),
