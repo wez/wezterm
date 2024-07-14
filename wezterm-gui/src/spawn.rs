@@ -110,6 +110,7 @@ pub async fn spawn_command_internal(
                     .await
                     .context("split_pane")?;
                 pane.set_config(term_config);
+
             } else {
                 bail!("there is no active tab while splitting pane!?");
             }

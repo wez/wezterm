@@ -8,7 +8,7 @@ use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use mux::pane::{Pane, PaneId};
-use mux::tab::{SplitRequest, Tab, TabId};
+use mux::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::CommandBuilder;
@@ -785,6 +785,38 @@ impl Domain for ClientDomain {
         _command_dir: Option<String>,
     ) -> anyhow::Result<Arc<dyn Pane>> {
         anyhow::bail!("spawn_pane not implemented for ClientDomain")
+    }
+
+    /// Forward the request to the remote; we need to translate the local ids
+    /// to those that match the remote for the request, resync the changed
+    /// structure, and then translate the results back to local
+    async fn move_floating_pane_to_split(
+        &self,
+        pane_id: PaneId,
+        split_direction: SplitDirection,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        let result = inner
+            .client
+            .move_floating_pane_to_split(codec::MoveFloatPaneToSplit {
+                pane_id: pane.remote_pane_id,
+                split_direction,
+            })
+            .await?;
+
+        self.resync().await?;
+
+        Ok(local_pane)
     }
 
     /// Forward the request to the remote; we need to translate the local ids

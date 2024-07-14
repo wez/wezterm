@@ -617,6 +617,8 @@ pub enum KeyAssignment {
     ActivateWindowRelativeNoWrap(isize),
     PromptInputLine(PromptInputLine),
     InputSelector(InputSelector),
+    MoveFloatToHorizontalSplit(SpawnCommand),
+    MoveFloatToVerticalSplit(SpawnCommand)
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

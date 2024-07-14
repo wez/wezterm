@@ -1,7 +1,7 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
 use crate::ssh_agent::AgentProxy;
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
@@ -1232,6 +1232,42 @@ impl Mux {
         }
 
         // FIXME: clipboard
+
+        let dims = pane.get_dimensions();
+
+        let size = TerminalSize {
+            cols: dims.cols,
+            rows: dims.viewport_rows,
+            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_width: 0,
+            dpi: dims.dpi,
+        };
+
+        Ok((pane, size))
+    }
+
+    pub async fn move_floating_pane_to_split(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        direction: SplitDirection,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (pane_domain_id, window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+        let domain = self
+            .get_domain(pane_domain_id)
+            //TODO::Update this
+            .context("resolve_spawn_tab_domain")?;
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(Some(window_id)).await?;
+        }
+
+        let pane = domain.move_floating_pane_to_split(tab_id, direction).await?;
+
+        //// FIXME: clipboard
 
         let dims = pane.get_dimensions();
 

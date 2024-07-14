@@ -2528,8 +2528,6 @@ impl TermWindow {
                 ActivatePaneByIndex(..) |
                 ActivatePaneDirection(..) |
                 SplitPane(..) |
-                SplitVertical(..) |
-                SplitHorizontal(..) |
                 SpawnTab(..) |
                 PaneSelect(..) => {
                     return Ok(PerformAssignmentResult::Handled);
@@ -3116,6 +3114,46 @@ impl TermWindow {
             }
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
+            MoveFloatToHorizontalSplit (spawn) => {
+                if !self.is_float_active() {
+                    return Ok(PerformAssignmentResult::Handled);
+                }
+
+                let domain = spawn.domain.clone();
+                let mux_window_id = self.mux_window_id;
+                promise::spawn::spawn(async move {
+                    let mux = Mux::get();
+                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                        Some(tab) => tab,
+                        None => anyhow::bail!("no active tab!?"),
+                    };
+                    let pane = tab
+                        .get_active_pane()
+                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
+                    mux.move_floating_pane_to_split(pane.pane_id(), SplitDirection::Horizontal).await?;
+                    Result::<(), anyhow::Error>::Ok(())
+                }).detach();
+            }
+            MoveFloatToVerticalSplit(spawn) => {
+                if !self.is_float_active() {
+                    return Ok(PerformAssignmentResult::Handled);
+                }
+
+                let domain = spawn.domain.clone();
+                let mux_window_id = self.mux_window_id;
+                promise::spawn::spawn(async move {
+                    let mux = Mux::get();
+                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                        Some(tab) => tab,
+                        None => anyhow::bail!("no active tab!?"),
+                    };
+                    let pane = tab
+                        .get_active_pane()
+                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
+                    mux.move_floating_pane_to_split(pane.pane_id(), SplitDirection::Vertical).await?;
+                    Result::<(), anyhow::Error>::Ok(())
+                }).detach();
+            }
         };
         Ok(PerformAssignmentResult::Handled)
     }

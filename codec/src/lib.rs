@@ -16,7 +16,7 @@ use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitRequest, Tab, TabId};
+use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
@@ -503,7 +503,8 @@ pdu! {
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
     FloatPane: 63,
-    FloatPaneVisibilityChanged: 64
+    FloatPaneVisibilityChanged: 64,
+    MoveFloatPaneToSplit: 65,
 }
 
 impl Pdu {
@@ -675,6 +676,12 @@ pub struct SplitPane {
     /// Instead of spawning a command, move the specified
     /// pane into the new split target
     pub move_pane_id: Option<PaneId>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MoveFloatPaneToSplit {
+    pub pane_id: PaneId,
+    pub split_direction: SplitDirection,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

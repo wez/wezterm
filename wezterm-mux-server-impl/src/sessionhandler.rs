@@ -3,10 +3,10 @@ use anyhow::{anyhow, Context};
 use codec::*;
 use config::TermConfig;
 use mux::client::ClientId;
-use mux::domain::SplitSource;
+use mux::domain::{DomainId, SplitSource};
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, TabId};
+use mux::tab::{PaneNode, SplitDirection, TabId};
 use mux::{Mux, MuxNotification};
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
@@ -729,7 +729,15 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     schedule_float_pane(float, send_response, client_id);
                 })
-                    .detach();
+                .detach();
+            }
+
+            Pdu::MoveFloatPaneToSplit(request) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    schedule_move_floating_pane_to_split(request.pane_id, request.split_direction, client_id, send_response);
+                })
+                .detach();
             }
 
             Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged{ tab_id, visible }) => {
@@ -1121,6 +1129,29 @@ async fn float_pane(float_pane: FloatPane, client_id: Option<Arc<ClientId>>) -> 
         window_id,
         size,
     }))
+}
+
+fn schedule_move_floating_pane_to_split<SND>(
+    pane_id: PaneId,
+    split_direction: SplitDirection,
+    client_id: Option<Arc<ClientId>>,
+    send_response: SND)
+where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(move_floating_pane_to_split(pane_id, split_direction, client_id).await) })
+        .detach();
+}
+
+async fn move_floating_pane_to_split(pane_id: PaneId, split_direction: SplitDirection, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
+    let mux = Mux::get();
+    let _identity = mux.with_identity(client_id);
+
+    let (pane, size) = mux
+        .move_floating_pane_to_split(pane_id, split_direction)
+        .await?;
+
+    Ok::<Pdu, anyhow::Error>(Pdu::UnitResponse(UnitResponse{}))
 }
 
 async fn domain_spawn_v2(spawn: SpawnV2, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {

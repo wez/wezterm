@@ -7,7 +7,7 @@
 
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Context, Error};
@@ -87,6 +87,41 @@ pub trait Domain: Downcast + Send + Sync {
         let float_size = tab.compute_float_size();
         let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
         tab.insert_float(float_size, Arc::clone(&pane))?;
+        Ok(pane)
+    }
+
+    async fn move_floating_pane_to_split(
+        &self,
+        tab: TabId,
+        direction: SplitDirection,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let pane = tab.get_float_pane().unwrap().pane;
+        tab.clear_float_pane();
+        let pane_id = tab.get_active_pane().unwrap().pane_id();
+
+        let pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_request = SplitRequest {
+            direction,
+            target_is_second: true,
+            top_level: false,
+            size: Default::default(),
+        };
+
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
         Ok(pane)
     }
 
