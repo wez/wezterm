@@ -144,9 +144,7 @@ impl crate::TermWindow {
             let params = LineToElementParams {
                 config: params.config,
                 line: params.line,
-                cursor: params.cursor,
                 palette: params.palette,
-                stable_line_idx: params.stable_line_idx.unwrap_or(0),
                 window_is_transparent: params.window_is_transparent,
                 reverse_video: params.dims.reverse_video,
                 shape_key: &params.shape_key,
@@ -870,8 +868,6 @@ impl crate::TermWindow {
                 .sum();
 
             shaped.push(LineToElementShape {
-                attrs: style_params.attrs.clone(),
-                style: style_params.style.clone(),
                 underline_tex_rect: style_params.underline_tex_rect,
                 bg_color: style_params.bg_color,
                 fg_color: style_params.fg_color,

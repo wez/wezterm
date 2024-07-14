@@ -14,7 +14,6 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::PaneId;
-use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
@@ -37,8 +36,6 @@ struct Entry {
 
 pub struct LauncherTabEntry {
     pub title: String,
-    pub tab_id: TabId,
-    #[allow(unused)]
     pub tab_idx: usize,
     pub pane_count: Option<usize>,
 }
@@ -103,7 +100,6 @@ impl LauncherArgs {
                     };
                     LauncherTabEntry {
                         title,
-                        tab_id: tab.tab_id(),
                         tab_idx,
                         pane_count: tab.count_panes(),
                     }

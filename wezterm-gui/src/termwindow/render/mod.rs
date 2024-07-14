@@ -72,8 +72,6 @@ pub struct LineQuadCacheKey {
 }
 
 pub struct LineQuadCacheValue {
-    /// For resolving hash collisions
-    pub line: Line,
     pub expires: Option<Instant>,
     pub layers: HeapQuadAllocator,
     // Only set if the line contains any hyperlinks, so
@@ -86,9 +84,7 @@ pub struct LineToElementParams<'a> {
     pub line: &'a Line,
     pub config: &'a ConfigHandle,
     pub palette: &'a ColorPalette,
-    pub stable_line_idx: StableRowIndex,
     pub window_is_transparent: bool,
-    pub cursor: &'a StableCursorPosition,
     pub reverse_video: bool,
     pub shape_key: &'a Option<LineToEleShapeCacheKey>,
 }
@@ -110,8 +106,6 @@ pub struct LineToElementShapeItem {
 }
 
 pub struct LineToElementShape {
-    pub attrs: CellAttributes,
-    pub style: TextStyle,
     pub underline_tex_rect: TextureRect,
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
