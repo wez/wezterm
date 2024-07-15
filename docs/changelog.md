@@ -93,6 +93,8 @@ As features stabilize some brief notes about them will accumulate here.
   `pixel_height`.
 * ssh: we now explicitly kill and reap the `ProxyCommand` associated
   with an ssh session. Thanks to @daaku! #5494 #5479
+* `default_ssh_domains()` didn't use the default local echo threshold
+  for ssh domains. #5547
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
