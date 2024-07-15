@@ -88,7 +88,7 @@ As features stabilize some brief notes about them will accumulate here.
   cleaners, resulting in issues with rendering. We no longer store these
   in a pure temporary directory; they live in a cache dir, and if someone
   does remove or truncate these files, we now convert that error case
-  into blank frame(s). #5422
+  into blank frame(s). #5422 #4657
 * PaneInformation object returned `pixel_width` when asked to return the
   `pixel_height`.
 
