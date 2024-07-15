@@ -26,28 +26,33 @@ export PATH
 
 WezTerm is available for [brew](https://brew.sh/) users:
 
-```console
-$ brew install --cask wezterm
+```zsh
+$ brew install wezterm
 ```
+
+> Homebrew automatically determines whether you're installing a formula or a cask, so the `--cask` option is unnecessary for WezTerm.
 
 If you'd like to use a nightly build:
 
-```console
-$ brew tap homebrew/cask-versions
-$ brew install --cask wezterm-nightly
+```zsh
+$ brew install wezterm@nightly
 ```
+
+> For users who have previously used the cask named `wezterm-nightly`, homebrew has started issuing warnings: `Warning: Cask homebrew/cask-versions/wezterm-nightly was renamed to wezterm@nightly`. We recommend that you use `brew uninstall wezterm-nightly` to uninstall the previously installed version, and then reinstall the new version using the command above.
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
-```console
-$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
+```zsh
+$ brew upgrade wezterm@nightly --no-quarantine --greedy-latest
 ```
+
+> The `--greedy-latest` option in Homebrew forces the latest version of a formula to be installed, even if a version satisfying the formula's requirements is already installed. This can be useful when you want to ensure you have the most up-to-date version of a package, regardless of whether an older version meets the current dependency requirements.
 
 ## MacPorts
 
 WezTerm is also available via [MacPorts](https://ports.macports.org/port/wezterm/summary):
 
-```console
+```zsh
 $ sudo port selfupdate
 $ sudo port install wezterm
 ```
