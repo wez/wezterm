@@ -95,6 +95,9 @@ As features stabilize some brief notes about them will accumulate here.
   with an ssh session. Thanks to @daaku! #5494 #5479
 * `default_ssh_domains()` didn't use the default local echo threshold
   for ssh domains. #5547
+* multiplexer: internal PKI certificate now supplements its list of
+  "Subject Alternative Names" with the list of canonical hostnames returned
+  for the local system via `getaddrinfo`. #5543
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
