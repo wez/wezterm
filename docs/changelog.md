@@ -100,9 +100,11 @@ As features stabilize some brief notes about them will accumulate here.
 * image crate to 0.25, which means that JPEG images are now decoded via
   [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
   handling of non-conforming jpeg images. #5365
-* Color schemes:
+* Color schemes: [Astrodark (Gogh)](colorschemes/a/index.md#astrodark-gogh),
   [Blue Dolphin (Gogh)](colorschemes/b/index.md#blue-dolphin-gogh),
+  [Breadog (Gogh)](colorschemes/b/index.md#breadog-gogh),
   [Butrin (Gogh)](colorschemes/b/index.md#butrin-gogh),
+  [City Lights (Gogh)](colorschemes/c/index.md#city-lights-gogh),
   [CutiePro](colorschemes/c/index.md#cutiepro),
   [Ef-Dream](colorschemes/e/index.md#ef-dream),
   [Ef-Reverie](colorschemes/e/index.md#ef-reverie),
@@ -114,7 +116,9 @@ As features stabilize some brief notes about them will accumulate here.
   [Everforest Light Medium (Gogh)](colorschemes/e/index.md#everforest-light-medium-gogh),
   [Everforest Light Soft (Gogh)](colorschemes/e/index.md#everforest-light-soft-gogh),
   [Github Light (Gogh)](colorschemes/g/index.md#github-light-gogh),
+  [Iceberg (Gogh)](colorschemes/i/index.md#iceberg-gogh),
   [Kanagawa Dragon (Gogh)](colorschemes/k/index.md#kanagawa-dragon-gogh),
+  [kurokula](colorschemes/k/index.md#kurokula),
   [Mellifluous](colorschemes/m/index.md#mellifluous),
   [Miramare (Gogh)](colorschemes/m/index.md#miramare-gogh),
   [Modus Operandi (Gogh)](colorschemes/m/index.md#modus-operandi-gogh),
@@ -123,12 +127,15 @@ As features stabilize some brief notes about them will accumulate here.
   [Modus Vivendi Tinted (Gogh)](colorschemes/m/index.md#modus-vivendi-tinted-gogh),
   [NvimDark](colorschemes/n/index.md#nvimdark),
   [NvimLight](colorschemes/n/index.md#nvimlight),
+  [Paper (Gogh)](colorschemes/p/index.md#paper-gogh),
   [Quiet (Gogh)](colorschemes/q/index.md#quiet-gogh),
   [Selenized Black (Gogh)](colorschemes/s/index.md#selenized-black-gogh),
   [Selenized White (Gogh)](colorschemes/s/index.md#selenized-white-gogh),
   [Seoul256 (Gogh)](colorschemes/s/index.md#seoul256-gogh),
   [Seoul256 Light (Gogh)](colorschemes/s/index.md#seoul256-light-gogh),
-  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh)
+  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh),
+  [Sugarplum](colorschemes/s/index.md#sugarplum),
+  [Vesper](colorschemes/v/index.md#vesper)
 
 ### 20240203-110809-5046fc22
 
