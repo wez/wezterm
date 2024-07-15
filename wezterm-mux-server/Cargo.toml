@@ -32,4 +32,4 @@ winapi = { version = "0.3", features = [ "winuser" ]}
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.7"
-cc = "1.0"
+cc = "1.1"
