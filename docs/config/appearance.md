@@ -481,7 +481,7 @@ config.window_background_image_hsb = {
 }
 ```
 
-See [Styling Inactive Panes](#style-inactive-panes) for more information
+See [Styling Inactive Panes](#styling-inactive-panes) for more information
 on hue, saturation, brigthness transformations.
 
 If you'd like to have control over scaling, tiling/repeating, scrolling
