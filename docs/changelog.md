@@ -91,6 +91,8 @@ As features stabilize some brief notes about them will accumulate here.
   into blank frame(s). #5422 #4657
 * PaneInformation object returned `pixel_width` when asked to return the
   `pixel_height`.
+* ssh: we now explicitly kill and reap the `ProxyCommand` associated
+  with an ssh session. Thanks to @daaku! #5494 #5479
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
