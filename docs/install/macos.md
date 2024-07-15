@@ -33,15 +33,29 @@ $ brew install --cask wezterm
 If you'd like to use a nightly build:
 
 ```console
-$ brew tap homebrew/cask-versions
-$ brew install --cask wezterm-nightly
+$ brew install --cask wezterm@nightly
 ```
+
+!!! note
+    For users who have previously used the cask named `wezterm-nightly`,
+    homebrew has started issuing warnings: `Warning: Cask
+    homebrew/cask-versions/wezterm-nightly was renamed to wezterm@nightly`. We
+    recommend that you use `brew uninstall wezterm-nightly` to uninstall the
+    previously installed version, and then reinstall the new version using the
+    command above.
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```console
-$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
+$ brew upgrade --cask wezterm@nightly --no-quarantine --greedy-latest
 ```
+
+!!! note
+    The `--greedy-latest` option in Homebrew forces the latest version of a
+    formula to be installed, even if a version satisfying the formula's
+    requirements is already installed. This can be useful when you want to
+    ensure you have the most up-to-date version of a package, regardless of
+    whether an older version meets the current dependency requirements.
 
 ## MacPorts
 
