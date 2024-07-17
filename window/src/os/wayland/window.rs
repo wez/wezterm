@@ -272,6 +272,10 @@ impl WaylandWindow {
             window: Some(window),
             window_frame,
             dimensions,
+            outer_size: (
+                dimensions.pixel_width as u32,
+                dimensions.pixel_height as u32,
+            ),
             resize_increments: None,
             window_state: WindowState::default(),
             last_mouse_coords: Point::new(0, 0),
@@ -515,6 +519,8 @@ pub struct WaylandWindowInner {
     window: Option<XdgWindow>,
     pub(super) window_frame: FallbackFrame<WaylandState>,
     dimensions: Dimensions,
+    /// The size of the window, including decorations, according to the last configure event.
+    outer_size: (u32, u32),
     resize_increments: Option<ResizeIncrement>,
     window_state: WindowState,
     last_mouse_coords: Point,
@@ -808,6 +814,7 @@ impl WaylandWindowInner {
                 pixel_height: pixel_height.try_into().unwrap(),
                 dpi,
             };
+            self.outer_size = (w, h);
 
             // Only trigger a resize if the new dimensions are different;
             // this makes things more efficient and a little more smooth
@@ -1272,9 +1279,17 @@ impl WindowHandler for WaylandState {
             .window_frame
             .update_wm_capabilities(configure.capabilities);
 
-        // TODO: should we resize if only one of width or height is specified?
-        if let (Some(w), Some(h)) = configure.new_size {
-            window_inner.update_size(w.get(), h.get(), qh);
+        match configure.new_size {
+            (Some(w), Some(h)) => window_inner.update_size(w.get(), h.get(), qh),
+            (Some(w), None) => {
+                let h = window_inner.outer_size.1;
+                window_inner.update_size(w.get(), h, qh)
+            }
+            (None, Some(h)) => {
+                let w = window_inner.outer_size.0;
+                window_inner.update_size(w, h.get(), qh)
+            }
+            _ => {}
         }
 
         if let Some(notify) = window_inner.pending_first_configure.take() {
