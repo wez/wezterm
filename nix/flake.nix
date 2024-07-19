@@ -156,6 +156,8 @@
               tic -x -o $out/share/terminfo ${src}/termwiz/data/wezterm.terminfo
             '';
         };
+
+        meta.mainProgram = "wezterm";
       };
 
       devShell = pkgs.mkShell {
