@@ -37,6 +37,12 @@ As features stabilize some brief notes about them will accumulate here.
 * Switched to the [nucleo](https://github.com/helix-editor/nucleo) fuzzy
   matcher which produces matches that more closely match the popular `fzf`
   program. #5532
+* The Copy Mode `Close` action no longer implicitly scrolls to the bottom.
+  This is to facilitate having a key assignment that closes copy mode without
+  adjusting the viewport position. You can compose multiple actions together using
+  `Multiple` if you wish; the default key assignments in Copy Mode use this technique
+  so that the effective behavior of the defaults remains unchanged.
+  Thanks to @LeszekSwirski! #4924 #3502
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
