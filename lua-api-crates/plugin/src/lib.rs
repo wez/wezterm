@@ -10,7 +10,6 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[derive(FromDynamic, ToDynamic, Debug)]
 struct RepoSpec {
-    alias: Option<String>,
     url: String,
     component: String,
     plugin_dir: PathBuf,
@@ -60,20 +59,18 @@ impl RepoSpec {
         let plugin_dir = RepoSpec::plugins_dir().join(&component);
 
         Ok(Self {
-            alias: None,
             url,
             component,
             plugin_dir,
         })
     }
 
-    fn add_alias(&mut self, alias: String) -> anyhow::Result<()> {
-        if !alias.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+    fn add_alias(&mut self, alias: &str) -> anyhow::Result<()> {
+        if alias != compute_repo_dir(alias) {
             anyhow::bail!("Invalid alias: {alias}");
         }
-        self.plugin_dir = RepoSpec::plugins_dir().join("aliases").join(&alias);
-        self.alias = Some(alias);
 
+        self.component = alias.to_string();
         Ok(())
     }
 
@@ -93,7 +90,6 @@ impl RepoSpec {
         if let Some(url) = url {
             let url = url.to_string();
             return Ok(Self {
-                alias: None,
                 component,
                 url,
                 plugin_dir,
@@ -107,11 +103,7 @@ impl RepoSpec {
     }
 
     fn checkout_path(&self) -> PathBuf {
-        if let Some(alias) = &self.alias {
-            Self::plugins_dir().join("aliases").join(alias)
-        } else {
-            Self::plugins_dir().join(&self.component)
-        }
+        Self::plugins_dir().join(&self.component)
     }
 
     fn is_checked_out(&self) -> bool {
@@ -169,14 +161,8 @@ impl RepoSpec {
     }
 
     fn check_out(&self) -> anyhow::Result<()> {
-        let mut plugins_dir = Self::plugins_dir();
-        if let Some(_) = self.alias {
-            plugins_dir = plugins_dir.join("aliases");
-
-        }
+        let plugins_dir = Self::plugins_dir();
         std::fs::create_dir_all(&plugins_dir)?;
-
-
         let target_dir = TempDir::new_in(&plugins_dir)?;
         log::debug!("Cloning {} into temporary dir {target_dir:?}", self.url);
         Repository::clone_recurse(&self.url, target_dir.path())?;
@@ -227,7 +213,7 @@ fn require_plugin(lua: &Lua, url: String) -> anyhow::Result<Value> {
 
 fn require_plugin_with_alias(lua: &Lua, url: String, alias: String) -> anyhow::Result<Value> {
     let mut spec = RepoSpec::parse(url)?;
-    spec.add_alias(alias.clone())?;
+    spec.add_alias(&alias)?;
 
     if !spec.is_checked_out() {
         spec.check_out()?;
@@ -272,9 +258,15 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    plugin_mod.set("require_with_alias",
+    plugin_mod.set("require_as_alias",
         lua.create_function(|lua: &Lua, (repo_spec, alias): (String, String)| {
             require_plugin_with_alias(lua, repo_spec, alias).map_err(|e| mlua::Error::external(format!("{e:#}")))
+        })?,
+    )?;
+
+    plugin_mod.set("plugin_dir",
+        lua.create_function(|lua: &Lua, _: ()| {
+            to_lua(lua, RepoSpec::plugins_dir())
         })?,
     )?;
 
