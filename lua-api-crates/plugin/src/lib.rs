@@ -258,16 +258,17 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    plugin_mod.set("require_as_alias",
+    plugin_mod.set(
+        "require_as_alias",
         lua.create_function(|lua: &Lua, (repo_spec, alias): (String, String)| {
-            require_plugin_with_alias(lua, repo_spec, alias).map_err(|e| mlua::Error::external(format!("{e:#}")))
+            require_plugin_with_alias(lua, repo_spec, alias)
+                .map_err(|e| mlua::Error::external(format!("{e:#}")))
         })?,
     )?;
 
-    plugin_mod.set("plugin_dir",
-        lua.create_function(|lua: &Lua, _: ()| {
-            to_lua(lua, RepoSpec::plugins_dir())
-        })?,
+    plugin_mod.set(
+        "plugin_dir",
+        lua.create_function(|lua: &Lua, _: ()| to_lua(lua, RepoSpec::plugins_dir()))?,
     )?;
 
     plugin_mod.set(
