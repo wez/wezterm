@@ -2,7 +2,7 @@
 
 {{since('???')}}
 
-Takes a `url` string and a `alias` string as argument.
+Takes a `url` string and a `alias` string as argument. The alias cannot contain `\`, `/`, `:` or `,`.
 
 It will make a sub directory with the name of the alias in the plugins sub directory and then clone the git repository from the url into this directory.
 
