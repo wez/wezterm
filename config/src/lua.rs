@@ -223,18 +223,20 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         let mut path_array: Vec<String> = package_path.split(";").map(|s| s.to_owned()).collect();
 
         fn prefix_path(array: &mut Vec<String>, path: &Path) {
-            array.insert(0, format!("{}/?.lua", path.display()));
-            array.insert(1, format!("{}/?/init.lua", path.display()));
+            array.push(format!("{}/?.lua", path.display()));
+            array.push(format!("{}/?/init.lua", path.display()));
         }
 
         prefix_path(&mut path_array, &crate::HOME_DIR.join(".wezterm"));
         for dir in crate::CONFIG_DIRS.iter() {
             prefix_path(&mut path_array, dir);
         }
-        path_array.insert(
-            2,
-            format!("{}/plugins/?/plugin/init.lua", crate::DATA_DIR.display()),
-        );
+        path_array.push(format!(
+            "{}/plugins/?/plugin/init.lua",
+            crate::DATA_DIR.display()
+        ));
+
+        prefix_path(&mut path_array, &crate::DATA_DIR.join("plugins"));
 
         if let Ok(exe) = std::env::current_exe() {
             if let Some(path) = exe.parent() {
