@@ -879,42 +879,44 @@ impl WindowOps for Window {
             _ => false,
         };
 
-        let border_dimensions =
-            if window_state.contains(WindowState::FULL_SCREEN) && !native_full_screen {
-                let main_screen = unsafe { NSScreen::mainScreen(nil) };
-                let has_safe_area_insets: BOOL =
-                    unsafe { msg_send![main_screen, respondsToSelector: sel!(safeAreaInsets)] };
-                if has_safe_area_insets == YES {
-                    #[derive(Debug)]
-                    struct NSEdgeInsets {
-                        top: CGFloat,
-                        left: CGFloat,
-                        bottom: CGFloat,
-                        right: CGFloat,
-                    }
-                    let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
-                    log::trace!("{:?}", insets);
-
-                    let scale = unsafe {
-                        let frame = NSScreen::frame(main_screen);
-                        let backing_frame = NSScreen::convertRectToBacking_(main_screen, frame);
-                        backing_frame.size.height / frame.size.height
-                    };
-
-                    let top = (insets.top.ceil() * scale) as usize;
-                    Some(Border {
-                        top: ULength::new(top),
-                        left: ULength::new(insets.left.ceil() as usize),
-                        right: ULength::new(insets.right.ceil() as usize),
-                        bottom: ULength::new(insets.bottom.ceil() as usize),
-                        color: crate::color::LinearRgba::with_components(0., 0., 0., 1.),
-                    })
-                } else {
-                    None
+        let border_dimensions = if window_state.contains(WindowState::FULL_SCREEN)
+            && !native_full_screen
+            && !_config.macos_fullscreen_extend_behind_notch
+        {
+            let main_screen = unsafe { NSScreen::mainScreen(nil) };
+            let has_safe_area_insets: BOOL =
+                unsafe { msg_send![main_screen, respondsToSelector: sel!(safeAreaInsets)] };
+            if has_safe_area_insets == YES {
+                #[derive(Debug)]
+                struct NSEdgeInsets {
+                    top: CGFloat,
+                    left: CGFloat,
+                    bottom: CGFloat,
+                    right: CGFloat,
                 }
+                let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
+                log::trace!("{:?}", insets);
+
+                let scale = unsafe {
+                    let frame = NSScreen::frame(main_screen);
+                    let backing_frame = NSScreen::convertRectToBacking_(main_screen, frame);
+                    backing_frame.size.height / frame.size.height
+                };
+
+                let top = (insets.top.ceil() * scale) as usize;
+                Some(Border {
+                    top: ULength::new(top),
+                    left: ULength::new(insets.left.ceil() as usize),
+                    right: ULength::new(insets.right.ceil() as usize),
+                    bottom: ULength::new(insets.bottom.ceil() as usize),
+                    color: crate::color::LinearRgba::with_components(0., 0., 0., 1.),
+                })
             } else {
                 None
-            };
+            }
+        } else {
+            None
+        };
 
         Ok(Some(Parameters {
             title_bar: TitleBar {
