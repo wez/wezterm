@@ -104,6 +104,8 @@ As features stabilize some brief notes about them will accumulate here.
 * multiplexer: internal PKI certificate now supplements its list of
   "Subject Alternative Names" with the list of canonical hostnames returned
   for the local system via `getaddrinfo`. #5543
+* DECSLRM incorrectly clamped the left margin based on the terminal height
+  instead of the terminal width. Thanks to @j4james and @tmccombs! #5871 #5750
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
