@@ -180,17 +180,26 @@ impl PaneSelector {
                     }
                 }
                 PaneSelectMode::SwapWithActiveKeepFocus | PaneSelectMode::SwapWithActive => {
-                    tab.swap_active_with_index(
-                        pane_index,
-                        self.mode == PaneSelectMode::SwapWithActiveKeepFocus,
-                    );
+                    if let Some(active_pane) = tab.get_active_pane() {
+                        let active_pane_id = active_pane.pane_id();
+                        let keep_focus = self.mode == PaneSelectMode::SwapWithActiveKeepFocus;
+                        promise::spawn::spawn(async move {
+                            if let Err(err) = mux
+                                .swap_active_pane_with_index(active_pane_id, pane_index, keep_focus)
+                                .await
+                            {
+                                log::error!("failed to swap_active_pane_with_index: {err:#}");
+                            }
+                        })
+                        .detach();
+                    }
                 }
                 PaneSelectMode::MoveToNewWindow => {
                     if let Some(pos) = panes.iter().find(|p| p.index == pane_index) {
                         let pane_id = pos.pane.pane_id();
                         promise::spawn::spawn(async move {
                             if let Err(err) = mux.move_pane_to_new_tab(pane_id, None, None).await {
-                                log::error!("failed to move_pane_to_new_tab: {err:#}");
+                                log::error!("failed to move_pane_to_new_window: {err:#}");
                             }
                         })
                         .detach();

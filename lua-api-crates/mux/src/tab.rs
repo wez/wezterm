@@ -1,4 +1,4 @@
-use config::keyassignment::PaneDirection;
+use config::keyassignment::{PaneDirection, RotationDirection};
 
 use super::*;
 use luahelper::mlua::Value;
@@ -113,14 +113,34 @@ impl UserData for MuxTab {
         methods.add_method("rotate_counter_clockwise", |_, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
-            tab.rotate_counter_clockwise();
+
+            let tab_id = tab.tab_id();
+            let direction = RotationDirection::CounterClockwise;
+            promise::spawn::spawn(async move {
+                let mux = Mux::get();
+                if let Err(err) = mux.rotate_panes(tab_id, direction).await {
+                    log::error!("Unable to rotate panes: {:#}", err);
+                }
+            })
+            .detach();
+
             Ok(())
         });
 
         methods.add_method("rotate_clockwise", |_, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
-            tab.rotate_counter_clockwise();
+
+            let tab_id = tab.tab_id();
+            let direction = RotationDirection::CounterClockwise;
+            promise::spawn::spawn(async move {
+                let mux = Mux::get();
+                if let Err(err) = mux.rotate_panes(tab_id, direction).await {
+                    log::error!("Unable to rotate panes: {:#}", err);
+                }
+            })
+            .detach();
+
             Ok(())
         });
 
