@@ -297,7 +297,7 @@ pub(crate) struct ImageInfo {
 }
 
 pub(crate) fn dimensions(data: &[u8]) -> anyhow::Result<ImageInfo> {
-    let reader = image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+    let reader = image::ImageReader::new(std::io::Cursor::new(data)).with_guessed_format()?;
     let format = reader
         .format()
         .ok_or_else(|| anyhow::anyhow!("unknown format!?"))?;

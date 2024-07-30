@@ -9,9 +9,8 @@ use ::window::{Point, Rect};
 use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
-use image::io::Limits;
 use image::{
-    AnimationDecoder, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat, ImageResult,
+    AnimationDecoder, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat, ImageResult, Limits,
 };
 use lfucache::LfuCache;
 use once_cell::sync::Lazy;
@@ -239,7 +238,7 @@ impl FrameDecoder {
         let (tx, rx) = sync_channel(2);
 
         let buf_reader = lease.get_reader().context("lease.get_reader()")?;
-        let reader = image::io::Reader::new(buf_reader)
+        let reader = image::ImageReader::new(buf_reader)
             .with_guessed_format()
             .context("guess format from lease")?;
         let format = reader
@@ -261,7 +260,7 @@ impl FrameDecoder {
     }
 
     fn run_decoder_thread(
-        reader: image::io::Reader<BoxedReader>,
+        reader: image::ImageReader<BoxedReader>,
         format: ImageFormat,
         tx: SyncSender<DecodedFrame>,
     ) -> anyhow::Result<()> {

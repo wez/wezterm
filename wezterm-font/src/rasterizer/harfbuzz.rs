@@ -243,7 +243,7 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                 extents,
             } => {
                 let image_surface = if format == IS_PNG {
-                    let decoded = image::io::Reader::new(std::io::Cursor::new(image.as_slice()))
+                    let decoded = image::ImageReader::new(std::io::Cursor::new(image.as_slice()))
                         .with_guessed_format()?
                         .decode()?;
 

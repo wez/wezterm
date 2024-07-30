@@ -344,7 +344,7 @@ impl ImageDataType {
     pub fn dimensions(&self) -> Result<(u32, u32), InternalError> {
         fn dimensions_for_data(data: &[u8]) -> image::ImageResult<(u32, u32)> {
             let reader =
-                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+                image::ImageReader::new(std::io::Cursor::new(data)).with_guessed_format()?;
             let (width, height) = reader.into_dimensions()?;
 
             Ok((width, height))

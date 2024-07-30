@@ -200,7 +200,7 @@ pub fn extract_colors_from_image<'lua>(
     }
 
     log::trace!("loading image {file_name}");
-    let im = image::io::Reader::open(&file_name)
+    let im = image::ImageReader::open(&file_name)
         .map_err(|err| mlua::Error::external(format!("{err:#} while loading {file_name}")))?
         .decode()
         .map_err(|err| {
