@@ -6756,6 +6756,7 @@ dependencies = [
  "promise",
  "raw-window-handle",
  "resize",
+ "scopeguard",
  "serde",
  "shared_library",
  "shlex",
