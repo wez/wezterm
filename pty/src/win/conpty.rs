@@ -1,5 +1,5 @@
 use crate::cmdbuilder::CommandBuilder;
-use crate::win::psuedocon::PsuedoCon;
+use crate::win::pseudocon::PseudoCon;
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
 use anyhow::Error;
 use filedescriptor::{FileDescriptor, Pipe};
@@ -14,7 +14,7 @@ impl PtySystem for ConPtySystem {
         let stdin = Pipe::new()?;
         let stdout = Pipe::new()?;
 
-        let con = PsuedoCon::new(
+        let con = PseudoCon::new(
             COORD {
                 X: size.cols as i16,
                 Y: size.rows as i16,
@@ -44,7 +44,7 @@ impl PtySystem for ConPtySystem {
 }
 
 struct Inner {
-    con: PsuedoCon,
+    con: PseudoCon,
     readable: FileDescriptor,
     writable: Option<FileDescriptor>,
     size: PtySize,
