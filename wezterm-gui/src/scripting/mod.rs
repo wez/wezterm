@@ -88,6 +88,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
             });
             let gpus: Vec<GpuInfo> = instance
                 .enumerate_adapters(backends)
+                .into_iter()
                 .map(|adapter| {
                     let info = adapter.get_info();
                     crate::termwindow::webgpu::adapter_info_to_gpu_info(info)
