@@ -2,10 +2,10 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::parameters::{self, Parameters};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ScreenRect, ULength, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Appearance, Clipboard, Composing, ComposingAttribute, DeadKeyStatus, Dimensions, Handled,
+    KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    MousePress, Point, RawKeyEvent, Rect, RequestedWindowGeometry, ResolvedGeometry, ScreenPoint,
+    ScreenRect, ULength, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -53,6 +53,8 @@ use winreg::RegKey;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
+const GCS_COMPATTR: DWORD = 0x10;
+const ATTR_TARGET_CONVERTED: u8 = 0x1;
 const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
 
 #[allow(non_snake_case)]
@@ -2022,25 +2024,27 @@ impl ImmContext {
         }
     }
 
-    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
-        // This returns a size in bytes even though it is for a buffer of u16!
-        let byte_size =
-            unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
-        if byte_size > 0 {
-            let word_size = byte_size as usize / 2;
-            let mut wide_buf = vec![0u16; word_size];
-            unsafe {
-                ImmGetCompositionStringW(
-                    self.imc,
-                    which,
-                    wide_buf.as_mut_ptr() as *mut _,
-                    byte_size as u32,
-                )
-            };
-            OsString::from_wide(&wide_buf).into_string()
+    /// Get Vec<u16> or Vec<u8> corresponding to a IME composition string value
+    pub fn get_raw<T: Clone>(&self, which: DWORD) -> Result<Vec<T>, i32> {
+        let size = unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
+        if size < 0 {
+            Err(size)
+        } else if size == 0 {
+            Ok(vec![])
         } else {
-            Ok(String::new())
+            let mut buf: Vec<T>;
+            let len = size as usize / std::mem::size_of::<T>();
+            buf = Vec::<T>::with_capacity(len);
+            unsafe {
+                buf.set_len(len);
+                ImmGetCompositionStringW(self.imc, which, buf.as_mut_ptr() as *mut _, size as u32);
+            }
+            Ok(buf)
         }
+    }
+
+    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
+        OsString::from_wide(&self.get_raw(which).unwrap_or_default()[..]).into_string()
     }
 }
 
@@ -2119,12 +2123,27 @@ unsafe fn ime_composition(
     if lparam & GCS_RESULTSTR == 0 {
         // No finished result; continue with the default
         // processing
-        if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
-            inner
-                .events
-                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
-                    composing,
-                )));
+        if let Ok(compstr) = imc.get_raw::<u16>(GCS_COMPSTR) {
+            if let Ok(text) = OsString::from_wide(&compstr[..]).into_string() {
+                let attr = imc.get_raw::<u8>(GCS_COMPATTR).ok().map(|compattr| {
+                    text.chars()
+                        .scan(0, |i, c| (Some(*i), *i += c.len_utf16()).0)
+                        .take_while(|&i| i < compattr.len())
+                        .map(|i| {
+                            let mut attr = ComposingAttribute::NONE;
+                            if compattr[i] & ATTR_TARGET_CONVERTED != 0 {
+                                attr |= ComposingAttribute::SELECTED;
+                            }
+                            attr
+                        })
+                        .collect()
+                });
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
+                        Composing { text, attr },
+                    )))
+            }
         }
         // We will show the composing string ourselves.
         // Suppress the default composition display.
@@ -2744,7 +2763,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 if inner.config.use_dead_keys {
                     inner.dead_pending.replace((modifiers, vk));
                     inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                        DeadKeyStatus::Composing(c.to_string()),
+                        DeadKeyStatus::Composing(Composing {
+                            text: c.to_string(),
+                            attr: None,
+                        }),
                     ));
                     return Some(0);
                 }
