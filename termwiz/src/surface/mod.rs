@@ -459,7 +459,9 @@ impl Surface {
                 self.xpos = 0;
             }
 
-            let cell = Cell::new_grapheme(g, self.attributes.clone(), None);
+            let mut cell_attr = self.attributes.clone();
+            cell_attr.set_edited(true);
+            let cell = Cell::new_grapheme(g, cell_attr, None);
             // the max(1) here is to ensure that we advance to the next cell
             // position for zero-width graphemes.  We want to make sure that
             // they occupy a cell so that we can re-emit them when we output them.
