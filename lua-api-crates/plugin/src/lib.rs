@@ -35,6 +35,9 @@ fn compute_repo_dir(url: &str) -> String {
             c => dir.push_str(&format!("u{}", c as u32)),
         }
     }
+    if dir.ends_with("sZs") {
+        dir.truncate(dir.len() - 3);
+    }
     dir
 }
 
