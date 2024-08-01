@@ -1,4 +1,4 @@
-use termwiz::caps::Capabilities;
+use termwiz::caps::{Capabilities, ProbeHints};
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use termwiz::terminal::{new_terminal, Terminal};
 use termwiz::Error;
@@ -9,7 +9,8 @@ const CTRL_C: KeyEvent = KeyEvent {
 };
 
 fn main() -> Result<(), Error> {
-    let caps = Capabilities::new_from_env()?;
+    let caps =
+        Capabilities::new_with_hints(ProbeHints::new_from_env().probe_for_enhanced_keyboard(true))?;
     let mut terminal = new_terminal(caps)?;
     terminal.set_raw_mode()?;
 
