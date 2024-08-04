@@ -452,6 +452,17 @@ impl WindowOps for WaylandWindow {
             Ok(())
         });
     }
+
+    fn toggle_fullscreen(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            if inner.window_state.contains(WindowState::FULL_SCREEN) {
+                inner.window.as_ref().unwrap().unset_fullscreen();
+            } else {
+                inner.window.as_ref().unwrap().set_fullscreen(None);
+            }
+            Ok(())
+        });
+    }
 }
 #[derive(Default, Clone, Debug)]
 pub(crate) struct PendingEvent {
