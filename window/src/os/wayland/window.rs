@@ -356,7 +356,10 @@ impl WindowOps for WaylandWindow {
     }
 
     fn hide(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.window.as_ref().unwrap().set_minimized();
+            Ok(())
+        });
     }
 
     fn close(&self) {
@@ -446,6 +449,17 @@ impl WindowOps for WaylandWindow {
                 .lock()
                 .unwrap()
                 .set_clipboard_data(clipboard, text);
+            Ok(())
+        });
+    }
+
+    fn toggle_fullscreen(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            if inner.window_state.contains(WindowState::FULL_SCREEN) {
+                inner.window.as_ref().unwrap().unset_fullscreen();
+            } else {
+                inner.window.as_ref().unwrap().set_fullscreen(None);
+            }
             Ok(())
         });
     }
@@ -1206,6 +1220,7 @@ impl WaylandState {
             .window_by_id(window_id)
             .expect("Inner Window should exist");
 
+        let is_frame_hidden = window_inner.borrow().window_frame.is_hidden();
         let p = window_inner.borrow().pending_event.clone();
         let mut pending_event = p.lock().unwrap();
 
@@ -1238,15 +1253,22 @@ impl WaylandState {
                 if configure.state.contains(SCTKWindowState::FULLSCREEN) {
                     state |= WindowState::FULL_SCREEN;
                 }
-                let fs_bits = SCTKWindowState::MAXIMIZED
-                    | SCTKWindowState::TILED_LEFT
-                    | SCTKWindowState::TILED_RIGHT
-                    | SCTKWindowState::TILED_TOP
-                    | SCTKWindowState::TILED_BOTTOM;
-                if !((configure.state & fs_bits).is_empty()) {
+                if configure.state.contains(SCTKWindowState::MAXIMIZED) {
                     state |= WindowState::MAXIMIZED;
                 }
 
+                // For MAXIMIZED and FULL_SCREEN window configure contains Windowed size.
+                // Replacing it with Wayland suggested bounds.
+                if state.intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN) {
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w, h));
+                    }
+                } else if configure.state.contains(SCTKWindowState::TILED_TOP | SCTKWindowState::TILED_BOTTOM) && is_frame_hidden {
+                    // Tiled window without borders will take exactly half of the screen.
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w / 2, h));
+                    }
+                }
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
                     pending_event.window_state,
