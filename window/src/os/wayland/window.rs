@@ -359,7 +359,10 @@ impl WindowOps for WaylandWindow {
     }
 
     fn hide(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.window.as_ref().unwrap().set_minimized();
+            Ok(())
+        });
     }
 
     fn close(&self) {
@@ -449,6 +452,17 @@ impl WindowOps for WaylandWindow {
                 .lock()
                 .unwrap()
                 .set_clipboard_data(clipboard, text);
+            Ok(())
+        });
+    }
+
+    fn toggle_fullscreen(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            if inner.window_state.contains(WindowState::FULL_SCREEN) {
+                inner.window.as_ref().unwrap().unset_fullscreen();
+            } else {
+                inner.window.as_ref().unwrap().set_fullscreen(None);
+            }
             Ok(())
         });
     }
