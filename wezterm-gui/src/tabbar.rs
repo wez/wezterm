@@ -110,6 +110,7 @@ fn compute_tab_title(
     config: &ConfigHandle,
     hover: bool,
     tab_max_width: usize,
+    tab_min_width: usize
 ) -> TitleText {
     let title = call_format_tab_title(tab, tab_info, pane_info, config, hover, tab_max_width);
 
@@ -141,10 +142,8 @@ fn compute_tab_title(
                 // easier to click on tab titles, but we'll still go below
                 // this if there are too many tabs to fit the window at
                 // this width.
-                if !config.use_fancy_tab_bar {
-                    while unicode_column_width(&title, None) < 5 {
-                        title.push(' ');
-                    }
+                while unicode_column_width(&title, None) < tab_min_width {
+                    title.push(' ');
                 }
                 title
             } else {
@@ -338,6 +337,7 @@ impl TabBarState {
                         config,
                         false,
                         config.tab_max_width,
+                        config.tab_min_width,
                     )
                 })
                 .collect()
@@ -413,6 +413,7 @@ impl TabBarState {
                 config,
                 hover,
                 tab_title_len,
+                config.tab_min_width,
             );
 
             let cell_attrs = if active {
