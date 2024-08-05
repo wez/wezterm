@@ -359,7 +359,10 @@ impl WindowOps for WaylandWindow {
     }
 
     fn hide(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.window.as_ref().unwrap().set_minimized();
+            Ok(())
+        });
     }
 
     fn close(&self) {
