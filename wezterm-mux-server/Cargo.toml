@@ -11,7 +11,7 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 libc = "0.2"
