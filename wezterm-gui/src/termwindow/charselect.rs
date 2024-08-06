@@ -1,3 +1,4 @@
+use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::box_model::*;
 use crate::termwindow::modal::Modal;
 use crate::termwindow::render::corners::{
@@ -13,8 +14,6 @@ use config::keyassignment::{
 use config::Dimension;
 use emojis::{Emoji, Group};
 use frecency::Frecency;
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
@@ -244,18 +243,18 @@ fn build_aliases() -> Vec<Alias> {
 #[derive(Debug, Copy, Clone)]
 struct MatchResult {
     row_idx: usize,
-    score: i64,
+    score: u32,
 }
 
 impl MatchResult {
-    fn new(row_idx: usize, score: i64, selection: &str, aliases: &[Alias]) -> Self {
+    fn new(row_idx: usize, score: u32, selection: &str, aliases: &[Alias]) -> Self {
         Self {
             row_idx,
             score: if aliases[row_idx].name == selection {
                 // Pump up the score for an exact match, otherwise
                 // the order may be undesirable if there are a lot
                 // of candidates with the same score
-                i64::max_value()
+                u32::max_value()
             } else {
                 score
             },
@@ -272,7 +271,7 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
             .map(|(idx, _a)| idx)
             .collect()
     } else {
-        let matcher = SkimMatcherV2::default();
+        let pattern = matcher_pattern(selection);
 
         let numeric_selection = if selection.chars().all(|c| c.is_ascii_hexdigit()) {
             // Make this uppercase so that eg: `e1` matches `U+E1` rather
@@ -285,14 +284,16 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
             None
         };
         let start = std::time::Instant::now();
+
         let all_matches: Vec<(String, MatchResult)> = aliases
             .par_iter()
             .enumerate()
             .filter_map(|(row_idx, entry)| {
                 let glyph = entry.glyph();
-                let alias_result = matcher
-                    .fuzzy_match(&entry.name, selection)
+
+                let alias_result = matcher_score(&pattern, &entry.name)
                     .map(|score| MatchResult::new(row_idx, score, selection, aliases));
+
                 match &numeric_selection {
                     Some(sel) => {
                         let codepoints = entry.codepoints();
@@ -301,13 +302,12 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
                                 glyph,
                                 MatchResult {
                                     row_idx,
-                                    score: i64::max_value(),
+                                    score: u32::max_value(),
                                 },
                             ))
                         } else {
-                            let number_result = matcher
-                                .fuzzy_match(&codepoints, &sel)
-                                .map(|score| MatchResult::new(row_idx, score, sel, aliases));
+                            let number_result = matcher_score(&pattern, &codepoints)
+                                .map(|score| MatchResult::new(row_idx, score, selection, aliases));
 
                             match (alias_result, number_result) {
                                 (

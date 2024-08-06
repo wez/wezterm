@@ -19,7 +19,7 @@ have been removed and replaced by the more flexible
 {{since('20210314-114017-04b7cedd')}}
 
 This config option allows styling the elements that appear in the tab bar.
-This configuration supplements the [tab bar color](../../appearance.md#tab-bar-appearance--colors)
+This configuration supplements the [tab bar color](../../appearance.md#tab-bar-appearance-colors)
 options.
 
 Styling in this context refers to how the edges of the tabs and the new tab button are rendered.

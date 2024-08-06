@@ -223,7 +223,7 @@ builting color scheme.
 
 If you'd like to factor your color schemes out into separate files, you
 can create a file with a `[colors]` section; take a look at [one of
-the available color schemes for an example](https://github.com/wez/wezterm/config/src/scheme_data.rs).
+the available color schemes for an example](https://github.com/wez/wezterm/tree/main/config/src/scheme_data.rs).
 
 It is recommended that you place your custom scheme in a directory
 named `$HOME/.config/wezterm/colors` if you're on a POSIX system.
@@ -481,7 +481,7 @@ config.window_background_image_hsb = {
 }
 ```
 
-See [Styling Inactive Panes](#style-inactive-panes) for more information
+See [Styling Inactive Panes](#styling-inactive-panes) for more information
 on hue, saturation, brigthness transformations.
 
 If you'd like to have control over scaling, tiling/repeating, scrolling

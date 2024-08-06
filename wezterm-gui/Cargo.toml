@@ -53,16 +53,16 @@ filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 frecency = { path = "../frecency" }
 futures = "0.3"
-fuzzy-matcher = "0.3"
+nucleo-matcher = "0.3"
 hdrhistogram = "7.1"
-http_req = "0.10"
+http_req = "0.11"
 image = "0.25"
 lazy_static = "1.4"
 libc = "0.2"
 lfucache = { path = "../lfucache" }
 log = "0.4"
 luahelper = { path = "../luahelper" }
-metrics = "0.22"
+metrics = "0.23"
 mlua = {version="0.9", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }

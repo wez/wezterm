@@ -13,9 +13,11 @@ async_ossl = { path = "../async_ossl" }
 async-io = "2.3"
 codec = { path = "../codec" }
 config = { path = "../config" }
+dns-lookup = "2.0"
 futures = "0.3"
 hostname = "0.4"
 lazy_static = "1.4"
+libc = "0.2"
 log = "0.4"
 mux = { path = "../mux" }
 portable-pty = { path = "../pty", features = ["serde_support"]}

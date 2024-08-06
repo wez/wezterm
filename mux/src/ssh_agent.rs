@@ -127,8 +127,10 @@ impl AgentProxy {
             std::thread::sleep(std::time::Duration::from_millis(100));
             while receiver.try_recv().is_ok() {}
 
-            if let Some(agent) = &Mux::get().agent {
-                agent.update_now();
+            if let Some(mux) = Mux::try_get() {
+                if let Some(agent) = &mux.agent {
+                    agent.update_now();
+                }
             }
         }
     }

@@ -115,7 +115,6 @@ suse_deps() {
   if [ "${CI}" == "yes" ] ; then
     RESOLVE="--allow-downgrade"
   fi
-  $ZYPPER install $RESOLVE -yl 'perl-FindBin' 'perl-File-Compare' || true
   $ZYPPER install $RESOLVE -yl \
     'make' \
     'gcc' \

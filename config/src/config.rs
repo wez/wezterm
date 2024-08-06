@@ -469,6 +469,9 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub show_new_tab_button_in_tab_bar: bool,
 
+    #[dynamic(default = "default_true")]
+    pub show_close_tab_button_in_tabs: bool,
+
     /// If true, show_tab_index_in_tab_bar uses a zero-based index.
     /// The default is false and the tab shows a one-based index.
     #[dynamic(default)]
@@ -1671,6 +1674,14 @@ fn default_term() -> String {
 
 fn default_font_size() -> f64 {
     12.0
+}
+
+pub(crate) fn compute_cache_dir() -> anyhow::Result<PathBuf> {
+    if let Some(runtime) = dirs_next::cache_dir() {
+        return Ok(runtime.join("wezterm"));
+    }
+
+    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
 }
 
 pub(crate) fn compute_data_dir() -> anyhow::Result<PathBuf> {
