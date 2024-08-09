@@ -1460,7 +1460,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             )],
             args: &[ArgType::ActivePane],
             menubar: &["Shell"],
-            icon: Some("cod_split_vertical"),
+            icon: Some("cod_primitive_square"),
         },
         SplitVertical(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
@@ -1525,7 +1525,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             keys: vec![],
             args: &[ArgType::ActivePane],
             menubar: &[],
-            icon: Some("cod_split_vertical"),
+            icon: Some("cod_primitive_square"),
         },
         AdjustPaneSize(PaneDirection::Left, amount) => CommandDef {
             brief: format!("Resize Pane {amount} cell(s) to the Left").into(),
