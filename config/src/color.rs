@@ -598,6 +598,23 @@ pub struct WindowFrameConfig {
     pub border_bottom_color: Option<RgbaColor>,
 }
 
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub struct FloatBorderConfig {
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub left_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub right_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub top_height: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub bottom_height: Dimension,
+
+    pub left_color: Option<RgbaColor>,
+    pub right_color: Option<RgbaColor>,
+    pub top_color: Option<RgbaColor>,
+    pub bottom_color: Option<RgbaColor>,
+}
+
 const fn default_zero_pixel() -> Dimension {
     Dimension::Pixels(0.)
 }
@@ -625,6 +642,21 @@ impl Default for WindowFrameConfig {
             border_right_color: None,
             border_top_color: None,
             border_bottom_color: None,
+        }
+    }
+}
+
+impl Default for FloatBorderConfig {
+    fn default() -> Self {
+        Self {
+            left_width: default_zero_pixel(),
+            right_width: default_zero_pixel(),
+            top_height: default_zero_pixel(),
+            bottom_height: default_zero_pixel(),
+            left_color: None,
+            right_color: None,
+            top_color: None,
+            bottom_color: None,
         }
     }
 }
