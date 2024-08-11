@@ -1267,6 +1267,13 @@ impl WaylandState {
                     state |= WindowState::MAXIMIZED;
                 }
 
+                // For MAXIMIZED and FULL_SCREEN window configure contains Windowed size.
+                // Replacing it with Wayland suggested bounds.
+                if state.contains(WindowState::MAXIMIZED) || state.contains(WindowState::FULL_SCREEN) {
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w, h));
+                    }
+                }
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
                     pending_event.window_state,
