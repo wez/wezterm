@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
   `Multiple` if you wish; the default key assignments in Copy Mode use this technique
   so that the effective behavior of the defaults remains unchanged.
   Thanks to @LeszekSwirski! #4924 #3502
+* Improved startup performance on X11. Thanks to @blukai! #5923 #5802
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
