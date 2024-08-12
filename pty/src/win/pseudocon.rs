@@ -24,7 +24,7 @@ use winapi::um::winnt::HANDLE;
 
 pub type HPCON = HANDLE;
 
-pub const PSUEDOCONSOLE_INHERIT_CURSOR: DWORD = 0x1;
+pub const PSEUDOCONSOLE_INHERIT_CURSOR: DWORD = 0x1;
 pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
 pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
 #[allow(dead_code)]
@@ -84,7 +84,7 @@ impl PsuedoCon {
                 size,
                 input.as_raw_handle() as _,
                 output.as_raw_handle() as _,
-                PSUEDOCONSOLE_INHERIT_CURSOR
+                PSEUDOCONSOLE_INHERIT_CURSOR
                     | PSEUDOCONSOLE_RESIZE_QUIRK
                     | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
@@ -92,7 +92,7 @@ impl PsuedoCon {
         };
         ensure!(
             result == S_OK,
-            "failed to create psuedo console: HRESULT {}",
+            "failed to create pseudo console: HRESULT {}",
             result
         );
         Ok(Self { con })

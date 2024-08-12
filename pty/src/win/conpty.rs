@@ -1,5 +1,5 @@
 use crate::cmdbuilder::CommandBuilder;
-use crate::win::psuedocon::PsuedoCon;
+use crate::win::pseudocon::PsuedoCon;
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
 use anyhow::Error;
 use filedescriptor::{FileDescriptor, Pipe};
