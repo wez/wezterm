@@ -180,6 +180,7 @@ impl ConnectionOps for Connection {
         for idx in 0..unsafe { screens.count() } {
             let screen = unsafe { screens.objectAtIndex(idx) };
             let screen = nsscreen_to_screen_info(screen);
+            // This seems to be incorrect. Union does not adjust for scaling factor.
             virtual_rect = virtual_rect.union(&screen.rect);
             by_name.insert(screen.name.clone(), screen);
         }
@@ -202,6 +203,8 @@ impl ConnectionOps for Connection {
 pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
     let frame = unsafe { NSScreen::frame(screen) };
     let backing_frame = unsafe { NSScreen::convertRectToBacking_(screen, frame) };
+    log::warn!("nsscreen_to_screen_info frame: width: {}, height: {}", frame.size.width, frame.size.height);
+    log::warn!("nsscreen_to_screen_info backing_frame: width: {}, height: {}", backing_frame.size.width, backing_frame.size.height);
     let rect = euclid::rect(
         backing_frame.origin.x as isize,
         backing_frame.origin.y as isize,
@@ -220,6 +223,7 @@ pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
             backing_frame.origin.y
         )
     };
+    log::warn!("nsscreen_to_screen_info name: {name}");
 
     let has_max_fps: BOOL =
         unsafe { msg_send!(screen, respondsToSelector: sel!(maximumFramesPerSecond)) };

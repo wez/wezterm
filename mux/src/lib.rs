@@ -1278,6 +1278,7 @@ impl Mux {
 
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
+        log::warn!("Mux.move_pane_to_new_tab size: {size:?}");
         pane.resize(size)?;
         self.add_tab_and_active_pane(&tab)?;
         self.add_tab_to_window(&tab, window_id)?;
