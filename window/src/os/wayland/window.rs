@@ -250,14 +250,10 @@ impl WaylandWindow {
         }
 
         window.set_min_size(Some((32, 32)));
-        let (w, h) = window_frame.add_borders(
-            dimensions.pixel_width as u32,
-            dimensions.pixel_height as u32,
-        );
         let (x, y) = window_frame.location();
         window
             .xdg_surface()
-            .set_window_geometry(x, y, w as i32, h as i32);
+            .set_window_geometry(x, y, dimensions.pixel_width as i32, dimensions.pixel_height as i32);
         window.commit();
 
         let copy_and_paste = CopyAndPaste::create();
@@ -825,23 +821,20 @@ impl WaylandWindowInner {
                 }
 
                 log::trace!("Resizing frame");
-                let (width, height) = self.window_frame.subtract_borders(
-                    NonZeroU32::new(pixel_width as u32).unwrap(),
-                    NonZeroU32::new(pixel_height as u32).unwrap(),
-                );
-                // Clamp the size to at least one pixel.
-                let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
-                let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
                 if !self.window_frame.is_hidden() {
+                    // Clamp the size to at least one pixel.
+                    let width =
+                        NonZeroU32::new(pixel_width as u32).unwrap_or(NonZeroU32::new(1).unwrap());
+                    let height =
+                        NonZeroU32::new(pixel_height as u32).unwrap_or(NonZeroU32::new(1).unwrap());
                     self.window_frame.resize(width, height);
                 }
                 let (x, y) = self.window_frame.location();
-                let outer_size = self.window_frame.add_borders(width.get(), height.get());
                 self.window
                     .as_mut()
                     .unwrap()
                     .xdg_surface()
-                    .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
+                    .set_window_geometry(x, y, pixel_width, pixel_height);
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
