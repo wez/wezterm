@@ -287,6 +287,91 @@ hide:
     $ brew rm wezterm
     $ brew install --HEAD wezterm
     ```
+=== "Nix/NixOS"
+
+    ## Nix
+    
+    WezTerm is available in nixpkgs as `wezterm`.
+
+    ```nix
+    {
+        # configuration.nix
+
+        environment.systemPackages = [
+            pkgs.wezterm
+        ]
+    }
+    ```
+
+    ### Flake
+    
+    If you need a newer version use the flake. Use the cachix if you want to avoid building WezTerm from source.
+
+    The flake is in the `nix` directory, so the url will be something like `github:wez/wezterm?dir=nix`
+
+    Here's an example for NixOS configurations:
+    
+    ```nix
+    {
+        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        # ...
+
+        outputs = inputs @ {nixpkgs, ...}:{
+            nixosConfigurations.HOSTNAME = nixpkgs.lib.nixosSystem {
+                specialArgs = { inherit inputs; }; # Make sure you pass inputs through to your nixosConfiguration like this
+                modules = [
+                    # ...
+                ];
+            };
+        };
+    }
+    ```
+    And for home-manager you can do the following:
+
+    ```nix
+    # flake.nix
+    
+    {
+        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        # ...
+
+        outputs = inputs @ {nixpkgs, home-manager, ...}:{
+            homeConfigurations."user@HOSTNAME" = home-manager.lib.homeManagerConfiguration {
+                pkgs = nixpkgs.legacyPackages.x86_64-linux;
+                extraSpecialArgs = { inherit inputs; }; # Pass inputs to homeManagerConfiguration
+                modules = [
+                    ./home.nix
+                ];
+            };        
+        };
+    }
+    ```
+    ```nix
+    # home.nix
+    
+    {inputs, pkgs, ...}:{
+        programs.wezterm = {
+            enable = true;
+            package = inputs.wezterm.packages.${pkgs.system}.default;
+        };
+    }
+    ```
+
+
+    ### Cachix
+
+    Successful builds of the nightly nix action are pushed to this binary cache.
+
+    ```nix
+    # nixosConfiguration module
+    {
+        nix.settings = {
+            substituters = ["https://wezterm.cachix.org"];
+            trusted-public-keys = ["wezterm.cachix.org-<UPDATE_WITH_PUBLIC_KEY>"];
+        };
+    }
+    ```
+    
 
 === "Raw"
     ## Raw Linux Binary
