@@ -139,6 +139,7 @@ hide:
     |------------|----------|--------|--------|------------|
     |Ubuntu20    |[amd64]({{ ubuntu20_deb_stable }}) ||[amd64]({{ ubuntu20_deb_nightly }})| |
     |Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[arm64]({{ ubuntu22_arm64_deb_stable}})|[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
+    |Ubuntu24    |N/A                                |N/A                                    |[amd64]({{ ubuntu24_deb_nightly }})|[arm64]({{ ubuntu24_arm64_deb_nightly}})|
     |Debian10    |[amd64]({{ debian10_deb_stable }}) ||[amd64]({{ debian10_deb_nightly }})| |
     |Debian11    |[amd64]({{ debian11_deb_stable }}) ||[amd64]({{ debian11_deb_nightly }})| |
     |Debian12    |[amd64]({{ debian12_deb_stable }}) |[arm64]({{ debian12_arm64_deb_stable }})|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
