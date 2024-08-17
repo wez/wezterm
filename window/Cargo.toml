@@ -18,6 +18,7 @@ gl_generator = "0.14"
 wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
 
 [dependencies]
+accesskit = "0.16"
 async-channel = "2.3"
 async-io = "2.3"
 async-task = "4.7"

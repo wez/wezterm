@@ -1,3 +1,4 @@
+use accesskit::{ActionRequest, TreeUpdate};
 use async_trait::async_trait;
 use bitflags::bitflags;
 use config::window::WindowLevel;
@@ -216,6 +217,10 @@ pub enum WindowEvent {
     PerformKeyAssignment(config::keyassignment::KeyAssignment),
 
     AdviseModifiersLedStatus(Modifiers, KeyboardLedStatus),
+
+    InitialAccessKitTreeRequested,
+    AccessKitActionRequested(ActionRequest),
+    AccessibilityDeactivated,
 }
 
 pub struct WindowEventSender {
@@ -348,6 +353,12 @@ pub trait WindowOps {
         _window_state: WindowState,
     ) -> anyhow::Result<Option<os::parameters::Parameters>> {
         Ok(None)
+    }
+
+    fn update_accesskit_if_active(
+        &self,
+        _update_factory: impl FnOnce() -> TreeUpdate + Send + 'static,
+    ) {
     }
 }
 
