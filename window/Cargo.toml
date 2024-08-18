@@ -49,6 +49,7 @@ wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [target."cfg(windows)".dependencies]
+accesskit_windows = "0.22"
 clipboard-win = "2.2"
 shared_library = "0.1"
 winapi = { version = "0.3", features = [
