@@ -1385,8 +1385,11 @@ impl Pane for CopyOverlay {
                     MoveToSelectionOtherEnd => render.move_to_selection_other_end(),
                     MoveToSelectionOtherEndHoriz => render.move_to_selection_other_end_horiz(),
                     MoveBackwardWord => render.move_backward_one_word(),
+                    MoveBackwardNonBlankWord => render.move_backward_one_non_blank_word(),
                     MoveForwardWord => render.move_forward_one_word(),
+                    MoveForwardNonBlankWord => render.move_forward_one_non_blank_word(),
                     MoveForwardWordEnd => render.move_to_end_of_word(),
+                    MoveForwardNonBlankWordEnd => render.move_to_end_of_non_blank_word(),
                     MoveRight => render.move_right_single_cell(),
                     MoveLeft => render.move_left_single_cell(),
                     MoveUp => render.move_up_single_row(),
@@ -1898,9 +1901,29 @@ pub fn copy_key_table() -> KeyTable {
             KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
         ),
         (
+            WKeyCode::Char('W'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardNonBlankWord),
+        ),
+        (
+            WKeyCode::Char('W'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardNonBlankWord),
+        ),
+        (
             WKeyCode::Char('e'),
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWordEnd),
+        ),
+        (
+            WKeyCode::Char('E'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardNonBlankWordEnd),
+        ),
+        (
+            WKeyCode::Char('E'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardNonBlankWordEnd),
         ),
         (
             WKeyCode::LeftArrow,
@@ -1921,6 +1944,16 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('b'),
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardWord),
+        ),
+        (
+            WKeyCode::Char('B'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardNonBlankWord),
+        ),
+        (
+            WKeyCode::Char('B'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardNonBlankWord),
         ),
         (
             WKeyCode::Char('0'),
