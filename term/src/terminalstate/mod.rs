@@ -2315,9 +2315,8 @@ impl TerminalState {
         // The terminal only recognizes this control function if vertical split
         // screen mode (DECLRMM) is set.
         if self.left_and_right_margin_mode {
-            let rows = self.screen().physical_rows as u32;
             let cols = self.screen().physical_cols as u32;
-            let left = left.as_zero_based().min(rows - 1).max(0) as usize;
+            let left = left.as_zero_based().min(cols - 1).max(0) as usize;
             let right = right.as_zero_based().min(cols - 1).max(0) as usize;
 
             // The value of the left margin (Pl) must be less than the right margin (Pr).

@@ -24,7 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 * Wayland: currently being reimplemented, it maybe more unstable than usual.
   Please file GH issues for any problems you see.
-  Many thanks to @tzx! #4777
+  Many thanks to @tzx and @tmccombs! #4777 #5781
 * [show_update_window](config/lua/config/show_update_window.md) has been
   deprecated; it no longer has any effect and will be removed in a future
   release.
@@ -34,6 +34,16 @@ As features stabilize some brief notes about them will accumulate here.
   drawing glyphs. See
   [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more
   details. Thanks to @stribor14! #5051 #5169
+* Switched to the [nucleo](https://github.com/helix-editor/nucleo) fuzzy
+  matcher which produces matches that more closely match the popular `fzf`
+  program. #5532
+* The Copy Mode `Close` action no longer implicitly scrolls to the bottom.
+  This is to facilitate having a key assignment that closes copy mode without
+  adjusting the viewport position. You can compose multiple actions together using
+  `Multiple` if you wish; the default key assignments in Copy Mode use this technique
+  so that the effective behavior of the defaults remains unchanged.
+  Thanks to @LeszekSwirski! #4924 #3502
+* Improved startup performance on X11. Thanks to @blukai! #5923 #5802
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
@@ -46,6 +56,10 @@ As features stabilize some brief notes about them will accumulate here.
   ?988 #1647
 * [default_ssh_auth_sock](config/lua/config/default_ssh_auth_sock.md) option
   to manage `SSH_AUTH_SOCK`.
+* Search mode: now supports richer line editing. Thanks to @Mrreadiness and
+  @kenchou! #5416 #3087
+* [show_close_tab_button_in_tabs](config/lua/config/show_close_tab_button_in_tabs.md)
+  option for the fancy tab bar. Thanks to @zummenix! #3818
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
@@ -59,8 +73,8 @@ As features stabilize some brief notes about them will accumulate here.
   rather than the intended *starttime* field to decide which process
   was the youngest. Thanks to @crides! #5001
 * Wayland: fixed startup on Hyprland >= 0.37.0. Thanks to @fioncat! #5264 #5103
-* Wayland: updated to SCTK 0.18. Thanks to @deviant! #5276 #5154 #5079 #5071
-  #4604 #5209
+* Wayland: updated to SCTK 0.19. Thanks to @deviant and @tmccombs! #5276 #5154 #5079 #5071
+  #4604 #5209 #5781
 * Windows: Window buttons stopped working when using `win32_system_backdrop`.
   Thanks to @Kushagra2569! #5362 #5348
 * `wezterm cli activate-pane` now respects `unzoom_on_switch_pane`. Thanks to
@@ -75,16 +89,36 @@ As features stabilize some brief notes about them will accumulate here.
   #5515 #3807
 * Render invalidation issue when closing tabs other than the last tab. Thanks
   to @Mrreadiness! #5441 #5304
+* Search mode now accepts composed input from the IME. Thanks to @kenchou! #5564
+* Quick select mode will now accept unix paths with `//` in them. #5763
+* blob leases (for image rendering) could be removed by temporary directory
+  cleaners, resulting in issues with rendering. We no longer store these
+  in a pure temporary directory; they live in a cache dir, and if someone
+  does remove or truncate these files, we now convert that error case
+  into blank frame(s). #5422 #4657
+* PaneInformation object returned `pixel_width` when asked to return the
+  `pixel_height`.
+* ssh: we now explicitly kill and reap the `ProxyCommand` associated
+  with an ssh session. Thanks to @daaku! #5494 #5479
+* `default_ssh_domains()` didn't use the default local echo threshold
+  for ssh domains. #5547
+* multiplexer: internal PKI certificate now supplements its list of
+  "Subject Alternative Names" with the list of canonical hostnames returned
+  for the local system via `getaddrinfo`. #5543
+* DECSLRM incorrectly clamped the left margin based on the terminal height
+  instead of the terminal width. Thanks to @j4james and @tmccombs! #5871 #5750
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
-* Bundled harfbuzz to 8.4.0
+* Bundled harfbuzz to 9.0.0
 * image crate to 0.25, which means that JPEG images are now decoded via
   [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
   handling of non-conforming jpeg images. #5365
-* Color schemes:
+* Color schemes: [Astrodark (Gogh)](colorschemes/a/index.md#astrodark-gogh),
   [Blue Dolphin (Gogh)](colorschemes/b/index.md#blue-dolphin-gogh),
+  [Breadog (Gogh)](colorschemes/b/index.md#breadog-gogh),
   [Butrin (Gogh)](colorschemes/b/index.md#butrin-gogh),
+  [City Lights (Gogh)](colorschemes/c/index.md#city-lights-gogh),
   [CutiePro](colorschemes/c/index.md#cutiepro),
   [Ef-Dream](colorschemes/e/index.md#ef-dream),
   [Ef-Reverie](colorschemes/e/index.md#ef-reverie),
@@ -96,7 +130,9 @@ As features stabilize some brief notes about them will accumulate here.
   [Everforest Light Medium (Gogh)](colorschemes/e/index.md#everforest-light-medium-gogh),
   [Everforest Light Soft (Gogh)](colorschemes/e/index.md#everforest-light-soft-gogh),
   [Github Light (Gogh)](colorschemes/g/index.md#github-light-gogh),
+  [Iceberg (Gogh)](colorschemes/i/index.md#iceberg-gogh),
   [Kanagawa Dragon (Gogh)](colorschemes/k/index.md#kanagawa-dragon-gogh),
+  [kurokula](colorschemes/k/index.md#kurokula),
   [Mellifluous](colorschemes/m/index.md#mellifluous),
   [Miramare (Gogh)](colorschemes/m/index.md#miramare-gogh),
   [Modus Operandi (Gogh)](colorschemes/m/index.md#modus-operandi-gogh),
@@ -105,12 +141,15 @@ As features stabilize some brief notes about them will accumulate here.
   [Modus Vivendi Tinted (Gogh)](colorschemes/m/index.md#modus-vivendi-tinted-gogh),
   [NvimDark](colorschemes/n/index.md#nvimdark),
   [NvimLight](colorschemes/n/index.md#nvimlight),
+  [Paper (Gogh)](colorschemes/p/index.md#paper-gogh),
   [Quiet (Gogh)](colorschemes/q/index.md#quiet-gogh),
   [Selenized Black (Gogh)](colorschemes/s/index.md#selenized-black-gogh),
   [Selenized White (Gogh)](colorschemes/s/index.md#selenized-white-gogh),
   [Seoul256 (Gogh)](colorschemes/s/index.md#seoul256-gogh),
   [Seoul256 Light (Gogh)](colorschemes/s/index.md#seoul256-light-gogh),
-  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh)
+  [Sparky (Gogh)](colorschemes/s/index.md#sparky-gogh),
+  [Sugarplum](colorschemes/s/index.md#sugarplum),
+  [Vesper](colorschemes/v/index.md#vesper)
 
 ### 20240203-110809-5046fc22
 
@@ -212,7 +251,7 @@ As features stabilize some brief notes about them will accumulate here.
   as a preprocessing step, and controlling the filtering and format used
   by the resizing, along with showing diagnostics around the resize operation. #3264
 * Color schemes: [Aardvark Blue](colorschemes/a/index.md#aardvark-blue),
-  [alacritty](colorschemes/a/index.md#alacritty),
+  [alacritty](colorschemes/a/index.md),
   [Apple System Colors](colorschemes/a/index.md#apple-system-colors),
   [Bamboo Light](colorschemes/b/index.md#bamboo-light),
   [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
@@ -256,7 +295,7 @@ As features stabilize some brief notes about them will accumulate here.
   [Moonfly (Gogh)](colorschemes/m/index.md#moonfly-gogh),
   [Nightfly (Gogh)](colorschemes/n/index.md#nightfly-gogh),
   [Oxocarbon Dark (Gogh)](colorschemes/o/index.md#oxocarbon-dark-gogh),
-  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16),
+  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rose-pine-moon-base16),
   [Selenized Dark (Gogh)](colorschemes/s/index.md#selenized-dark-gogh),
   [Selenized Light (Gogh)](colorschemes/s/index.md#selenized-light-gogh),
   [Website (Gogh)](colorschemes/w/index.md#website-gogh)
@@ -472,7 +511,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled freetype to 2.13.0
 * Bundled Nerd Font Symbols font to v3.0.1. Note that there are several
   [breaking changes in v3](https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.0.0).
-* Color schemes: [3024 (dark) (terminal.sexy)](colorschemes/3/index.md#3024-dark-terminal-sexy),
+* Color schemes: [3024 (dark) (terminal.sexy)](colorschemes/3/index.md#3024-dark-terminalsexy),
   [3024 Day (Gogh)](colorschemes/3/index.md#3024-day-gogh),
   [3024 Night (Gogh)](colorschemes/3/index.md#3024-night-gogh),
   [Adventure Time (Gogh)](colorschemes/a/index.md#adventure-time-gogh),
@@ -480,45 +519,45 @@ As features stabilize some brief notes about them will accumulate here.
   [Apprentice (Gogh)](colorschemes/a/index.md#apprentice-gogh),
   [Argonaut (Gogh)](colorschemes/a/index.md#argonaut-gogh),
   [Arthur (Gogh)](colorschemes/a/index.md#arthur-gogh),
-  [Ashes (dark) (terminal.sexy)](colorschemes/a/index.md#ashes-dark-terminal-sexy),
+  [Ashes (dark) (terminal.sexy)](colorschemes/a/index.md#ashes-dark-terminalsexy),
   [Atom (Gogh)](colorschemes/a/index.md#atom-gogh),
   [Bamboo](colorschemes/b/index.md#bamboo),
   [Bamboo Multiplex](colorschemes/b/index.md#bamboo-multiplex),
   [Belafonte Day (Gogh)](colorschemes/b/index.md#belafonte-day-gogh),
   [Belafonte Night (Gogh)](colorschemes/b/index.md#belafonte-night-gogh),
-  [Bespin (dark) (terminal.sexy)](colorschemes/b/index.md#bespin-dark-terminal-sexy),
+  [Bespin (dark) (terminal.sexy)](colorschemes/b/index.md#bespin-dark-terminalsexy),
   [Birds Of Paradise (Gogh)](colorschemes/b/index.md#birds-of-paradise-gogh),
   [Blazer (Gogh)](colorschemes/b/index.md#blazer-gogh),
   [Borland (Gogh)](colorschemes/b/index.md#borland-gogh),
-  [Brewer (dark) (terminal.sexy)](colorschemes/b/index.md#brewer-dark-terminal-sexy),
+  [Brewer (dark) (terminal.sexy)](colorschemes/b/index.md#brewer-dark-terminalsexy),
   [Broadcast (Gogh)](colorschemes/b/index.md#broadcast-gogh),
   [Brogrammer (Gogh)](colorschemes/b/index.md#brogrammer-gogh),
   [C64 (Gogh)](colorschemes/c/index.md#c64-gogh),
-  [Catppuccin Frappé (Gogh)](colorschemes/c/index.md#catppuccin-frappé-gogh),
+  [Catppuccin Frappé (Gogh)](colorschemes/c/index.md#catppuccin-frappe-gogh),
   [Catppuccin Latte (Gogh)](colorschemes/c/index.md#catppuccin-latte-gogh),
   [Catppuccin Macchiato (Gogh)](colorschemes/c/index.md#catppuccin-macchiato-gogh),
   [Catppuccin Mocha (Gogh)](colorschemes/c/index.md#catppuccin-mocha-gogh),
   [catppuccin-frappe](colorschemes/c/index.md#catppuccin-frappe),
   [catppuccin-macchiato](colorschemes/c/index.md#catppuccin-macchiato),
   [catppuccin-mocha](colorschemes/c/index.md#catppuccin-mocha),
-  [Chalk (dark) (terminal.sexy)](colorschemes/c/index.md#chalk-dark-terminal-sexy),
+  [Chalk (dark) (terminal.sexy)](colorschemes/c/index.md#chalk-dark-terminalsexy),
   [Chalkboard (Gogh)](colorschemes/c/index.md#chalkboard-gogh),
   [Ciapre (Gogh)](colorschemes/c/index.md#ciapre-gogh),
   [Clrs (Gogh)](colorschemes/c/index.md#clrs-gogh),
   [Cobalt 2 (Gogh)](colorschemes/c/index.md#cobalt-2-gogh),
   [Cobalt Neon (Gogh)](colorschemes/c/index.md#cobalt-neon-gogh),
-  [Codeschool (dark) (terminal.sexy)](colorschemes/c/index.md#codeschool-dark-terminal-sexy),
+  [Codeschool (dark) (terminal.sexy)](colorschemes/c/index.md#codeschool-dark-terminalsexy),
   [Crayon Pony Fish (Gogh)](colorschemes/c/index.md#crayon-pony-fish-gogh),
   [Dark Pastel (Gogh)](colorschemes/d/index.md#dark-pastel-gogh),
   [Darkside (Gogh)](colorschemes/d/index.md#darkside-gogh),
-  [Default (dark) (terminal.sexy)](colorschemes/d/index.md#default-dark-terminal-sexy),
+  [Default (dark) (terminal.sexy)](colorschemes/d/index.md#default-dark-terminalsexy),
   [Desert (Gogh)](colorschemes/d/index.md#desert-gogh),
   [Dimmed Monokai (Gogh)](colorschemes/d/index.md#dimmed-monokai-gogh),
   [Earthsong (Gogh)](colorschemes/e/index.md#earthsong-gogh),
   [Ef-Tritanopia-Light](colorschemes/e/index.md#ef-tritanopia-light),
-  [Eighties (dark) (terminal.sexy)](colorschemes/e/index.md#eighties-dark-terminal-sexy),
+  [Eighties (dark) (terminal.sexy)](colorschemes/e/index.md#eighties-dark-terminalsexy),
   [Elemental (Gogh)](colorschemes/e/index.md#elemental-gogh),
-  [Embers (dark) (terminal.sexy)](colorschemes/e/index.md#embers-dark-terminal-sexy),
+  [Embers (dark) (terminal.sexy)](colorschemes/e/index.md#embers-dark-terminalsexy),
   [Espresso (Gogh)](colorschemes/e/index.md#espresso-gogh),
   [Espresso Libre (Gogh)](colorschemes/e/index.md#espresso-libre-gogh),
   [Everblush (Gogh)](colorschemes/e/index.md#everblush-gogh),
@@ -528,13 +567,13 @@ As features stabilize some brief notes about them will accumulate here.
   [Frontend Fun Forrest (Gogh)](colorschemes/f/index.md#frontend-fun-forrest-gogh),
   [Frontend Galaxy (Gogh)](colorschemes/f/index.md#frontend-galaxy-gogh),
   [Github (Gogh)](colorschemes/g/index.md#github-gogh),
-  [Gnometerm (terminal.sexy)](colorschemes/g/index.md#gnometerm-terminal-sexy),
-  [Google (dark) (terminal.sexy)](colorschemes/g/index.md#google-dark-terminal-sexy),
-  [Gotham (terminal.sexy)](colorschemes/g/index.md#gotham-terminal-sexy),
+  [Gnometerm (terminal.sexy)](colorschemes/g/index.md#gnometerm-terminalsexy),
+  [Google (dark) (terminal.sexy)](colorschemes/g/index.md#google-dark-terminalsexy),
+  [Gotham (terminal.sexy)](colorschemes/g/index.md#gotham-terminalsexy),
   [Grape (Gogh)](colorschemes/g/index.md#grape-gogh),
   [Grass (Gogh)](colorschemes/g/index.md#grass-gogh),
-  [Grayscale (dark) (terminal.sexy)](colorschemes/g/index.md#grayscale-dark-terminal-sexy),
-  [Greenscreen (dark) (terminal.sexy)](colorschemes/g/index.md#greenscreen-dark-terminal-sexy),
+  [Grayscale (dark) (terminal.sexy)](colorschemes/g/index.md#grayscale-dark-terminalsexy),
+  [Greenscreen (dark) (terminal.sexy)](colorschemes/g/index.md#greenscreen-dark-terminalsexy),
   [Gruvbox Dark (Gogh)](colorschemes/g/index.md#gruvbox-dark-gogh),
   [Hardcore (Gogh)](colorschemes/h/index.md#hardcore-gogh),
   [hardhacker](colorschemes/h/index.md#hardhacker),
@@ -548,7 +587,7 @@ As features stabilize some brief notes about them will accumulate here.
   [Hurtado (Gogh)](colorschemes/h/index.md#hurtado-gogh),
   [Ic Orange Ppl (Gogh)](colorschemes/i/index.md#ic-orange-ppl-gogh),
   [Idle Toes (Gogh)](colorschemes/i/index.md#idle-toes-gogh),
-  [Isotope (dark) (terminal.sexy)](colorschemes/i/index.md#isotope-dark-terminal-sexy),
+  [Isotope (dark) (terminal.sexy)](colorschemes/i/index.md#isotope-dark-terminalsexy),
   [Jackie Brown (Gogh)](colorschemes/j/index.md#jackie-brown-gogh),
   [Japanesque (Gogh)](colorschemes/j/index.md#japanesque-gogh),
   [Jellybeans (Gogh)](colorschemes/j/index.md#jellybeans-gogh),
@@ -557,15 +596,15 @@ As features stabilize some brief notes about them will accumulate here.
   [Lavandula (Gogh)](colorschemes/l/index.md#lavandula-gogh),
   [Liquid Carbon (Gogh)](colorschemes/l/index.md#liquid-carbon-gogh),
   [Liquid Carbon Transparent (Gogh)](colorschemes/l/index.md#liquid-carbon-transparent-gogh),
-  [Londontube (dark) (terminal.sexy)](colorschemes/l/index.md#londontube-dark-terminal-sexy),
+  [Londontube (dark) (terminal.sexy)](colorschemes/l/index.md#londontube-dark-terminalsexy),
   [Man Page (Gogh)](colorschemes/m/index.md#man-page-gogh),
-  [Marrakesh (dark) (terminal.sexy)](colorschemes/m/index.md#marrakesh-dark-terminal-sexy),
+  [Marrakesh (dark) (terminal.sexy)](colorschemes/m/index.md#marrakesh-dark-terminalsexy),
   [Mathias (Gogh)](colorschemes/m/index.md#mathias-gogh),
   [Medallion (Gogh)](colorschemes/m/index.md#medallion-gogh),
   [Misterioso (Gogh)](colorschemes/m/index.md#misterioso-gogh),
-  [Mocha (dark) (terminal.sexy)](colorschemes/m/index.md#mocha-dark-terminal-sexy),
+  [Mocha (dark) (terminal.sexy)](colorschemes/m/index.md#mocha-dark-terminalsexy),
   [Mona Lisa (Gogh)](colorschemes/m/index.md#mona-lisa-gogh),
-  [Monokai (dark) (terminal.sexy)](colorschemes/m/index.md#monokai-dark-terminal-sexy),
+  [Monokai (dark) (terminal.sexy)](colorschemes/m/index.md#monokai-dark-terminalsexy),
   [Monokai Soda (Gogh)](colorschemes/m/index.md#monokai-soda-gogh),
   [N0Tch2K (Gogh)](colorschemes/n/index.md#n0tch2k-gogh),
   [Neopolitan (Gogh)](colorschemes/n/index.md#neopolitan-gogh),
@@ -576,24 +615,24 @@ As features stabilize some brief notes about them will accumulate here.
   [Nord (Gogh)](colorschemes/n/index.md#nord-gogh),
   [Novel (Gogh)](colorschemes/n/index.md#novel-gogh),
   [Obsidian (Gogh)](colorschemes/o/index.md#obsidian-gogh),
-  [Ocean (dark) (terminal.sexy)](colorschemes/o/index.md#ocean-dark-terminal-sexy),
+  [Ocean (dark) (terminal.sexy)](colorschemes/o/index.md#ocean-dark-terminalsexy),
   [Oceanic Next (Gogh)](colorschemes/o/index.md#oceanic-next-gogh),
   [Ollie (Gogh)](colorschemes/o/index.md#ollie-gogh),
   [Paraiso (base16)](colorschemes/p/index.md#paraiso-base16),
-  [Paraiso (dark) (terminal.sexy)](colorschemes/p/index.md#paraiso-dark-terminal-sexy),
+  [Paraiso (dark) (terminal.sexy)](colorschemes/p/index.md#paraiso-dark-terminalsexy),
   [Paraiso Dark (Gogh)](colorschemes/p/index.md#paraiso-dark-gogh),
   [Pencil Dark (Gogh)](colorschemes/p/index.md#pencil-dark-gogh),
   [Pencil Light (Gogh)](colorschemes/p/index.md#pencil-light-gogh),
   [Pnevma (Gogh)](colorschemes/p/index.md#pnevma-gogh),
   [Pro (Gogh)](colorschemes/p/index.md#pro-gogh),
-  [Railscasts (dark) (terminal.sexy)](colorschemes/r/index.md#railscasts-dark-terminal-sexy),
+  [Railscasts (dark) (terminal.sexy)](colorschemes/r/index.md#railscasts-dark-terminalsexy),
   [Red Alert (Gogh)](colorschemes/r/index.md#red-alert-gogh),
   [Red Sands (Gogh)](colorschemes/r/index.md#red-sands-gogh),
   [Relaxed (Gogh)](colorschemes/r/index.md#relaxed-gogh),
   [Rippedcasts (Gogh)](colorschemes/r/index.md#rippedcasts-gogh),
-  [Rosé Pine (Gogh)](colorschemes/r/index.md#rosé-pine-gogh),
-  [Rosé Pine Dawn (Gogh)](colorschemes/r/index.md#rosé-pine-dawn-gogh),
-  [Rosé Pine Moon (Gogh)](colorschemes/r/index.md#rosé-pine-moon-gogh),
+  [Rosé Pine (Gogh)](colorschemes/r/index.md#rose-pine-gogh),
+  [Rosé Pine Dawn (Gogh)](colorschemes/r/index.md#rose-pine-dawn-gogh),
+  [Rosé Pine Moon (Gogh)](colorschemes/r/index.md#rose-pine-moon-gogh),
   [Royal (Gogh)](colorschemes/r/index.md#royal-gogh),
   [Sea Shells (Gogh)](colorschemes/s/index.md#sea-shells-gogh),
   [Seafoam Pastel (Gogh)](colorschemes/s/index.md#seafoam-pastel-gogh),
@@ -622,7 +661,7 @@ As features stabilize some brief notes about them will accumulate here.
   [tokyonight-storm](colorschemes/t/index.md#tokyonight-storm),
   [Toy Chest (Gogh)](colorschemes/t/index.md#toy-chest-gogh),
   [Treehouse (Gogh)](colorschemes/t/index.md#treehouse-gogh),
-  [Twilight (dark) (terminal.sexy)](colorschemes/t/index.md#twilight-dark-terminal-sexy),
+  [Twilight (dark) (terminal.sexy)](colorschemes/t/index.md#twilight-dark-terminalsexy),
   [Twilight (Gogh)](colorschemes/t/index.md#twilight-gogh),
   [Urple (Gogh)](colorschemes/u/index.md#urple-gogh),
   [Vaughn (Gogh)](colorschemes/v/index.md#vaughn-gogh),
@@ -864,8 +903,8 @@ As features stabilize some brief notes about them will accumulate here.
   [rose-pine](colorschemes/r/index.md#rose-pine),
   [rose-pine-dawn](colorschemes/r/index.md#rose-pine-dawn),
   [rose-pine-moon](colorschemes/r/index.md#rose-pine-moon),
-  [Solarized (dark) (terminal.sexy)](colorschemes/s/index.md#solarized-dark-terminal-sexy),
-  [tokyonight_moon](colorschemes/t/index.md#tokyonight-moon)
+  [Solarized (dark) (terminal.sexy)](colorschemes/s/index.md#solarized-dark-terminalsexy),
+  [tokyonight_moon](colorschemes/t/index.md)
 * [window:focus()](config/lua/window/focus.md),
   [ActivateWindow](config/lua/keyassignment/ActivateWindow.md),
   [ActivateWindowRelative](config/lua/keyassignment/ActivateWindowRelative.md),
@@ -1207,7 +1246,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### New
 
-* Color schemes: [carbonfox](colorschemes/c/index.md#carbonfox), [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [Dracula (Official)](colorschemes/d/index.md#dracula-official), [Poimandres](colorschemes/p/index.md#poimandres), [Poimandres Storm](colorschemes/p/index.md#poimandres-storm), [Sequoia Monochrome](colorschemes/s/index.md#sequoia-monochrome), [Sequoia Moonlight](colorschemes/s/index.md#sequoia-moonlight), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
+* Color schemes: [carbonfox](colorschemes/c/index.md#carbonfox), [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [Dracula (Official)](colorschemes/d/index.md#dracula-official), [Poimandres](colorschemes/p/index.md#poimandres), [Poimandres Storm](colorschemes/p/index.md#poimandres-storm), [Sequoia Monochrome](colorschemes/s/index.md#sequoia-monochrome), [Sequoia Moonlight](colorschemes/s/index.md#sequoia-moonlight), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwave-alpha-gogh)
 * [window_frame](config/lua/config/window_frame.md) now supports setting border size and color [#2417](https://github.com/wez/wezterm/issues/2417)
 * [CopyMode](copymode.md) now supports selecting and move by semantic zones. [#2346](https://github.com/wez/wezterm/issues/2346)
 * [max_fps](config/lua/config/max_fps.md) option to limit maximum frame rate [#2419](https://github.com/wez/wezterm/discussions/2419)
@@ -1285,7 +1324,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Internal scrollback datastructure improvements reduce per-cell overhead by up to ~40x depending on the composition of the line (lines with lots of varied attributes or image attachments will have more overhead).
 * Improved search performance
 * Quickselect: now defaults to searching 1000 lines above and below the current viewport, making it faster and the labels shorter for users with a larger scrollback. A new `scope_lines` parameter to [QuickSelectArgs](config/lua/keyassignment/QuickSelectArgs.md) allows controlling the search region explicitly. Thanks to [@yyogo](https://github.com/yyogo) for the initial PR! [#1317](https://github.com/wez/wezterm/pull/1317)
-* OSC 10, 11 and 12 (Set Default Text Background, Default Text Foreground Color, and Text Cursor Color) now support setting the alpha component [#2313](https://github.com/wez/wezterm/issues/2313), and added [CSI 38:6](escape-sequences.md#csi-386---foreground-color-rgba), `CSI 48:6` and `CSI 58:6` extensions to allow setting full color RGB with Alpha channel for spans of text.
+* OSC 10, 11 and 12 (Set Default Text Background, Default Text Foreground Color, and Text Cursor Color) now support setting the alpha component [#2313](https://github.com/wez/wezterm/issues/2313), and added [CSI 38:6](escape-sequences.md#csi-386-foreground-color-rgba), `CSI 48:6` and `CSI 58:6` extensions to allow setting full color RGB with Alpha channel for spans of text.
 * Copy Mode: setting the same selection mode a second time will now toggle off that mode and clear the selection, preserving the current position [#2246](https://github.com/wez/wezterm/discussions/2246)
 * Copy Mode: new default vim-style `y` "yank" key assignment will copy the selection and close copy mode
 
@@ -1345,7 +1384,7 @@ As features stabilize some brief notes about them will accumulate here.
 * In Copy Mode, `SHIFT-v` will enable line selection mode. Thanks to [@bew](https://github.com/bew)! [#2086](https://github.com/wez/wezterm/pull/2086)
 * In Copy Mode, `o` and `O` can be used to move the cursor to the other end of the selection, as in vim. Thanks to [@bew](https://github.com/bew)! [#2150](https://github.com/wez/wezterm/pull/2150)
 * Copy Mode: key assignments are [now configurable](copymode.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
-* Search Mode: key assignments are [now configurable](scrollback.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
+* Search Mode: key assignments are [now configurable](scrollback.md#configurable-search-mode-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
 * Search Mode: the default `CTRL-SHIFT-F` key assignment now defaults to the new `CurrentSelectionOrEmptyString` mode to search for the current selection text, if any.  See [Search](config/lua/keyassignment/Search.md) for more info.
 * Copy Mode and Search Mode can be toggled and remember search results and cursor positioning, making it easier to locate and select text without using the mouse [#1592](https://github.com/wez/wezterm/issues/1592)
 * In the Launcher Menu, you may now use `CTRL-G` to cancel/exit the launcher [#1977](https://github.com/wez/wezterm/issues/1977)
@@ -1359,7 +1398,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [PaneSelect](config/lua/keyassignment/PaneSelect.md) key assignment to activate the pane selection UI to activate or swap the selected pane. [#1842](https://github.com/wez/wezterm/issues/1842) [#1975](https://github.com/wez/wezterm/issues/1975)
 * [window_background_gradient](config/lua/config/window_background_gradient.md) now also supports `Linear` gradients with an angle of your choice. Thanks to [@erf](https://github.com/erf)! [#2038](https://github.com/wez/wezterm/pull/2038)
 * RPM and DEB packages now install zsh and bash `wezterm` CLI completions
-* Color schemes: [arcoiris](colorschemes/a/index.md#arcoiris), [duckbones](colorschemes/d/index.md#duckbones), [Grey-green](colorschemes/g/index.md#grey-green), [kanagawabones](colorschemes/k/index.md#kanagawabones), [Neon](colorschemes/n/index.md#neon), [neobones_dark](colorschemes/n/index.md#neobones_dark), [neobones_light](colorschemes/n/index.md#neobones_light), [seoulbones_dark](colorschemes/s/index.md#seoulbones_dark), [seoulbones_light](colorschemes/s/index.md#seoulbones_light), [tokyonight-day](colorschemes/t/index.md#tokyonight-day), [tokyonight-storm](colorschemes/t/index.md#tokyonight-storm), [tokyonight](colorschemes/t/index.md#tokyonight), [vimbones](colorschemes/v/index.md#vimbones), [zenbones](colorschemes/z/index.md#zenbones), [zenbones_dark](colorschemes/z/index.md#zenbones_dark), [zenbones_light](colorschemes/z/index.md#zenbones_light), [zenburned](colorschemes/z/index.md#zenburned), [zenwritten_dark](colorschemes/z/index.md#zenwritten_dark), [zenwritten_light](colorschemes/z/index.md#zenwritten_light)
+* Color schemes: [arcoiris](colorschemes/a/index.md#arcoiris), [duckbones](colorschemes/d/index.md#duckbones), [Grey-green](colorschemes/g/index.md#grey-green), [kanagawabones](colorschemes/k/index.md#kanagawabones), [Neon](colorschemes/n/index.md#neon), [neobones_dark](colorschemes/n/index.md#neobones_dark), [neobones_light](colorschemes/n/index.md#neobones_light), [seoulbones_dark](colorschemes/s/index.md#seoulbones_dark), [seoulbones_light](colorschemes/s/index.md#seoulbones_light), [tokyonight-day](colorschemes/t/index.md#tokyonight-day), [tokyonight-storm](colorschemes/t/index.md#tokyonight-storm), [tokyonight](colorschemes/t/index.md#tokyonight), [vimbones](colorschemes/v/index.md#vimbones), [zenbones](colorschemes/z/index.md#zenbones), [zenbones_dark](colorschemes/z/index.md#zenbones_dark), [zenbones_light](colorschemes/z/index.md), [zenburned](colorschemes/z/index.md#zenburned), [zenwritten_dark](colorschemes/z/index.md#zenwritten_dark), [zenwritten_light](colorschemes/z/index.md#zenwritten_light)
 * [wezterm.GLOBAL](config/lua/wezterm/GLOBAL.md) for persisting lua data across config reloads
 * `wezterm show-keys` command to show key and mouse binding assignments [#2134](https://github.com/wez/wezterm/issues/2134)
 
@@ -1932,7 +1971,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: Windows now have drop-shadows when they are opaque. These were disabled due transparency support was added. Thanks to [Rice](https://github.com/fanzeyi)! [#445](https://github.com/wez/wezterm/pull/445)
 * Unix: adjust font-config patterns to also match "dual spacing" fonts such as [Iosevka Term](https://typeof.net/Iosevka/). Thanks to [Leiser](https://github.com/leiserfg)! [#446](https://github.com/wez/wezterm/pull/446)
 * New: Added [alternate_buffer_wheel_scroll_speed](config/lua/config/alternate_buffer_wheel_scroll_speed.md) option to control how many cursor key presses are generated by the mouse wheel when the alternate screen is active. The new default for this is a faster-than-previous-releases 3 lines per wheel tick. [#432](https://github.com/wez/wezterm/issues/432)
-* macOS: Dead Keys are now processed even when `use_ime=false`.  [More details in the docs](config/keys.md#macos-left-and-right-option-key). [#410](https://github.com/wez/wezterm/issues/410).
+* macOS: Dead Keys are now processed even when `use_ime=false`.  [More details in the docs](config/keyboard-concepts.md#macos-left-and-right-option-key). [#410](https://github.com/wez/wezterm/issues/410).
 * X11: attempt to load cursors from the XCursor.theme resource specified on the root window [#524](https://github.com/wez/wezterm/issues/524)
 * Added `file://` URL matching to the default list of implicit hyperlink rules [#525](https://github.com/wez/wezterm/issues/525)
 

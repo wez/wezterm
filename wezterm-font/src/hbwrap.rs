@@ -507,6 +507,7 @@ pub enum PaintOp {
     },
     PopTransform,
     PushGlyphClip {
+        #[allow(unused)]
         glyph: hb_codepoint_t,
         draw: Vec<DrawOp>,
     },
@@ -518,12 +519,15 @@ pub enum PaintOp {
     },
     PopClip,
     PaintSolid {
+        #[allow(unused)]
         is_foreground: bool,
         color: hb_color_t,
     },
     PaintImage {
         image: Blob,
+        #[allow(unused)]
         width: u32,
+        #[allow(unused)]
         height: u32,
         format: hb_tag_t,
         slant: f32,

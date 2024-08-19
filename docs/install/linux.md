@@ -168,9 +168,10 @@ hide:
 
     * Centos Stream 8 and 9
     * Fedora 38, 39, 40, rawhide
-    * OpenSUSE Leap 15.5
-    * OpenSUSE Tumbleweed
+    * openSUSE Leap 15.5
+    * openSUSE Tumbleweed
     * RHEL 8, 9
+
 
     To perform initial installation:
 
@@ -178,8 +179,22 @@ hide:
     $ sudo dnf copr enable wezfurlong/wezterm-nightly
     $ sudo dnf install wezterm
     ```
+    ## openSUSE specific
 
-    To update:
+    To perform initial installation:
+
+    ```console
+    $ sudo zypper in dnf
+    $ sudo dnf copr enable wezfurlong/wezterm-nightly <repository>
+    ```
+    where `<repository>` is one of the following, depending on the flavor and architecture:
+    `opensuse-tumbleweed-x86_64`, `opensuse-tumbleweed-aarch64`, `opensuse-leap-15.5-x86_64`, `opensuse-leap-15.5-aarch64`.
+
+    ```console
+    $ sudo dnf install wezterm
+    ```
+
+    ## Update
 
     ```console
     $ sudo dnf update wezterm
@@ -199,7 +214,7 @@ hide:
 
     |Distro      | Stable           | Nightly             |
     |------------|------------------|---------------------|
-    |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
+    |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |No longer supported|
     |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
     |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|No longer supported|
     |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|[{{ fedora38_rpm_nightly_asset }}]({{ fedora38_rpm_nightly }})|
@@ -213,24 +228,24 @@ hide:
     $ sudo dnf install -y {{ fedora39_rpm_stable }}
     ```
 
-=== "SUSE"
-    ## SUSE Linux
+=== "openSUSE"
+    ## openSUSE
 
     !!! note
         It is recommended that you install via Copr so that it is easiest
         to stay up to date as future versions of wezterm are released.
 
-    WezTerm is also available in the official Factory repo in openSUSE
-    Tumbleweed. To install from Factory instead of Copr:
+    ## openSUSE Tumbleweed/Slowroll
+
+    The stable version of WezTerm is available in the official repositories.
 
     ```console
-    $ zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
-    $ zypper refresh
     $ zypper install wezterm
     ```
 
-    * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-    * Configuration instructions can be [found here](../config/files.md)
+    ## openSUSE Leap
+
+    Use Copr or build if from source.
 
 === "Arch"
     ## Arch Linux

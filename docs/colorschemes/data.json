@@ -1340,6 +1340,43 @@
   {
     "colors": {
       "ansi": [
+        "#111317",
+        "#f8747e",
+        "#75ad47",
+        "#d09214",
+        "#50a4e9",
+        "#cc83e3",
+        "#00b298",
+        "#adb0bb"
+      ],
+      "background": "#1a1d23",
+      "brights": [
+        "#576176",
+        "#faa5ab",
+        "#a5cd84",
+        "#efbd58",
+        "#8dc3f1",
+        "#deaeed",
+        "#27ffdf",
+        "#caccd3"
+      ],
+      "cursor_bg": "#caccd3",
+      "cursor_border": "#caccd3",
+      "cursor_fg": "#1a1d23",
+      "foreground": "#9b9fa9",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Astrodark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1c1c1c",
         "#d770af",
         "#9acc79",
@@ -5040,6 +5077,43 @@
   {
     "colors": {
       "ansi": [
+        "#362c24",
+        "#b10b00",
+        "#007232",
+        "#8b4c00",
+        "#005cb4",
+        "#9b0097",
+        "#006a78",
+        "#d4c3b7"
+      ],
+      "background": "#f1ebe6",
+      "brights": [
+        "#514337",
+        "#de1100",
+        "#008f40",
+        "#ae6000",
+        "#0074e1",
+        "#c300bd",
+        "#008697",
+        "#eae1da"
+      ],
+      "cursor_bg": "#362c24",
+      "cursor_border": "#362c24",
+      "cursor_fg": "#f1ebe6",
+      "foreground": "#362c24",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Breadog (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1e2229",
         "#ed1515",
         "#44853a",
@@ -7673,6 +7747,43 @@
   {
     "colors": {
       "ansi": [
+        "#41505e",
+        "#d95468",
+        "#8bd49c",
+        "#ebbf83",
+        "#539afc",
+        "#b62d65",
+        "#70e1e8",
+        "#ffffff"
+      ],
+      "background": "#171d23",
+      "brights": [
+        "#41505e",
+        "#d95468",
+        "#8bd49c",
+        "#ebbf83",
+        "#539afc",
+        "#b62d65",
+        "#70e1e8",
+        "#ffffff"
+      ],
+      "cursor_bg": "#008b94",
+      "cursor_border": "#008b94",
+      "cursor_fg": "#171d23",
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "City Lights (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#201e24",
         "#2d2b30",
         "#3f3d40",
@@ -8643,7 +8754,7 @@
       ],
       "background": "#181818",
       "brights": [
-        "#373b41",
+        "#88847f",
         "#e5a1a3",
         "#e8d6a7",
         "#f1bb79",
@@ -19312,6 +19423,43 @@
   {
     "colors": {
       "ansi": [
+        "#161821",
+        "#e27878",
+        "#b4be82",
+        "#e2a478",
+        "#84a0c6",
+        "#a093c7",
+        "#89b8c2",
+        "#c6c8d1"
+      ],
+      "background": "#161821",
+      "brights": [
+        "#6b7089",
+        "#e98989",
+        "#c0ca8e",
+        "#e9b189",
+        "#91acd1",
+        "#ada0d3",
+        "#95c4ce",
+        "#d2d4de"
+      ],
+      "cursor_bg": "#d2d4de",
+      "cursor_border": "#d2d4de",
+      "cursor_fg": "#161821",
+      "foreground": "#c6c8d1",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Iceberg (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1e2132",
         "#e27878",
         "#b4be82",
@@ -21089,6 +21237,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#333333",
+        "#b66056",
+        "#85b1a9",
+        "#dbbb43",
+        "#6890d7",
+        "#887aa3",
+        "#837369",
+        "#ddd0c4"
+      ],
+      "background": "#141515",
+      "brights": [
+        "#515151",
+        "#ffc663",
+        "#c1ffae",
+        "#fff700",
+        "#a1d9ff",
+        "#a994ff",
+        "#f9cfb9",
+        "#ffffff"
+      ],
+      "cursor_bg": "#702420",
+      "cursor_border": "#702420",
+      "cursor_fg": "#fefbf3",
+      "foreground": "#ddd0c4",
+      "indexed": {},
+      "selection_bg": "#515151",
+      "selection_fg": "#ffc663"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "kurokula",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "k",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -28043,6 +28230,43 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#cc3e28",
+        "#216609",
+        "#b58900",
+        "#1e6fcc",
+        "#5c21a5",
+        "#158c86",
+        "#aaaaaa"
+      ],
+      "background": "#f2eede",
+      "brights": [
+        "#555555",
+        "#cc3e28",
+        "#216609",
+        "#b58900",
+        "#1e6fcc",
+        "#5c21a5",
+        "#158c86",
+        "#aaaaaa"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#f2eede",
+      "foreground": "#000000",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Paper (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1c1c1c",
         "#585858",
         "#af87d7",
@@ -34534,6 +34758,46 @@
   {
     "colors": {
       "ansi": [
+        "#111147",
+        "#5ca8dc",
+        "#53b397",
+        "#249a84",
+        "#db7ddd",
+        "#d0beee",
+        "#f9f3f9",
+        "#a175d4"
+      ],
+      "background": "#111147",
+      "brights": [
+        "#111147",
+        "#5cb5dc",
+        "#52deb5",
+        "#01f5c7",
+        "#fa5dfd",
+        "#c6a5fd",
+        "#ffffff",
+        "#b577fd"
+      ],
+      "cursor_bg": "#53b397",
+      "cursor_border": "#53b397",
+      "cursor_fg": "#53b397",
+      "foreground": "#db7ddd",
+      "indexed": {},
+      "selection_bg": "#5ca8dc",
+      "selection_fg": "#d0beee"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "lemonlime0x3C33 (https://github.com/lemonlime0x3C33)",
+      "name": "Sugarplum",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#666666",
         "#ff1e8e",
         "#8eff1e",
@@ -36799,7 +37063,7 @@
   {
     "colors": {
       "ansi": [
-        "#e9e9ed",
+        "#b4b5b9",
         "#f52a65",
         "#587539",
         "#8c6c3e",
@@ -36826,13 +37090,13 @@
       "foreground": "#3760bf",
       "indexed": {},
       "scrollbar_thumb": "#c4c8da",
-      "selection_bg": "#b6bfe2",
+      "selection_bg": "#b7c1e3",
       "selection_fg": "#3760bf",
       "split": "#2e7de9",
       "tab_bar": {
         "active_tab": {
           "bg_color": "#2e7de9",
-          "fg_color": "#e9e9ec",
+          "fg_color": "#d0d5e3",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -36847,7 +37111,7 @@
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#e9e9ec",
+        "inactive_tab_edge": "#d0d5e3",
         "inactive_tab_hover": {
           "bg_color": "#c4c8da",
           "fg_color": "#2e7de9",
@@ -38669,6 +38933,45 @@
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
       "wezterm_version": "20230712-072601-f4abf8fd"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#f5a191",
+        "#90b99f",
+        "#e6b99d",
+        "#aca1cf",
+        "#e29eca",
+        "#ea83a5",
+        "#a0a0a0"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#7e7e7e",
+        "#ff8080",
+        "#99ffe4",
+        "#ffc799",
+        "#b9aeda",
+        "#ecaad6",
+        "#f591b2",
+        "#ffffff"
+      ],
+      "cursor_bg": "#acb1ab",
+      "cursor_border": "#acb1ab",
+      "cursor_fg": "#ffffff",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#988049",
+      "selection_fg": "#acb1ab"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Vesper",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {

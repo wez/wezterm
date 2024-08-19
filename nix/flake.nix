@@ -6,10 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # NOTE: @2024-05 Nix flakes does not support getting git submodules of 'self'.
@@ -168,6 +165,8 @@
               tic -x -o $out/share/terminfo ${src}/termwiz/data/wezterm.terminfo
             '';
         };
+
+        meta.mainProgram = "wezterm";
       };
 
       devShell = pkgs.mkShell {

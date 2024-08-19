@@ -414,9 +414,8 @@ async fn async_run_terminal_gui(
         config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
     std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
     wezterm_blob_leases::register_storage(Arc::new(
-        wezterm_blob_leases::simple_tempdir::SimpleTempDir::new()?,
+        wezterm_blob_leases::simple_tempdir::SimpleTempDir::new_in(&*config::CACHE_DIR)?,
     ))?;
-
     if let Err(err) = spawn_mux_server(unix_socket_path, should_publish) {
         log::warn!("{:#}", err);
     }

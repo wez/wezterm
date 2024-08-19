@@ -205,7 +205,7 @@ impl SessionInner {
             sess.set_option(libssh_rs::SshOption::HostKeys(host_key.to_string()))?;
         }
 
-        let sock =
+        let (sock, _child) =
             self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
         let raw = {
             #[cfg(unix)]
@@ -288,7 +288,7 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let sock =
+        let (sock, _child) =
             self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
 
         let mut sess = ssh2::Session::new()?;
@@ -332,7 +332,7 @@ impl SessionInner {
         port: u16,
         verbose: bool,
         proxy_command: Option<&String>,
-    ) -> anyhow::Result<Socket> {
+    ) -> anyhow::Result<(Socket, Option<KillOnDropChild>)> {
         match proxy_command.map(|s| s.as_str()) {
             Some("none") | None => {}
             Some(proxy_command) => {
@@ -351,19 +351,25 @@ impl SessionInner {
                 cmd.stdin(b.as_stdio()?);
                 cmd.stdout(b.as_stdio()?);
                 cmd.stderr(std::process::Stdio::inherit());
-                let _child = cmd
+                let child = cmd
                     .spawn()
                     .with_context(|| format!("spawning ProxyCommand {}", proxy_command))?;
 
                 #[cfg(unix)]
                 unsafe {
                     use std::os::unix::io::{FromRawFd, IntoRawFd};
-                    return Ok(Socket::from_raw_fd(a.into_raw_fd()));
+                    return Ok((
+                        Socket::from_raw_fd(a.into_raw_fd()),
+                        Some(KillOnDropChild(child)),
+                    ));
                 }
                 #[cfg(windows)]
                 unsafe {
                     use std::os::windows::io::{FromRawSocket, IntoRawSocket};
-                    return Ok(Socket::from_raw_socket(a.into_raw_socket()));
+                    return Ok((
+                        Socket::from_raw_socket(a.into_raw_socket()),
+                        Some(KillOnDropChild(child)),
+                    ));
                 }
             }
         }
@@ -392,7 +398,7 @@ impl SessionInner {
 
         sock.connect(&addr.into())
             .with_context(|| format!("Connecting to {hostname}:{port} ({addr:?})"))?;
-        Ok(sock)
+        Ok((sock, None))
     }
 
     /// Used to restrict to_socket_addrs results to the address
@@ -1085,4 +1091,18 @@ where
         log::error!("{}: {:#}", what, err);
     }
     Ok(true)
+}
+
+/// A little helper to ensure the Child process is killed on Drop.
+struct KillOnDropChild(std::process::Child);
+
+impl Drop for KillOnDropChild {
+    fn drop(&mut self) {
+        if let Err(err) = self.0.kill() {
+            log::error!("Error killing ProxyCommand: {}", err);
+        }
+        if let Err(err) = self.0.wait() {
+            log::error!("Error waiting for ProxyCommand to finish: {}", err);
+        }
+    }
 }

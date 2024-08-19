@@ -136,7 +136,7 @@ class CacheStep(ActionStep):
 
 class SccacheStep(ActionStep):
     def __init__(self, name):
-        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.4")
+        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.5")
 
 
 class CheckoutStep(ActionStep):
@@ -379,6 +379,17 @@ rustup default {toolchain}
 """,
                 ),
             ]
+        elif "macos" in self.name:
+            steps += [
+                RunStep(
+                    name="Install Rust (ARM)",
+                    run="rustup target add aarch64-apple-darwin",
+                ),
+                RunStep(
+                    name="Install Rust (Intel)",
+                    run="rustup target add x86_64-apple-darwin",
+                )
+            ]
         else:
             steps += [
                 ActionStep(
@@ -386,13 +397,6 @@ rustup default {toolchain}
                     action=f"dtolnay/rust-toolchain@{toolchain}",
                     params=params,
                 ),
-            ]
-        if "macos" in self.name:
-            steps += [
-                RunStep(
-                    name="Install Rust (ARM)",
-                    run="rustup target add aarch64-apple-darwin",
-                )
             ]
         if cache:
             steps += [
@@ -994,6 +998,7 @@ rustup default {toolchain}
 TARGETS = [
     Target(container="ubuntu:20.04", continuous_only=True, app_image=True),
     Target(container="ubuntu:22.04", continuous_only=True),
+    Target(container="ubuntu:24.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     # harfbuzz's C++ is too new for debian 9's toolchain
@@ -1001,9 +1006,8 @@ TARGETS = [
     Target(container="debian:10.3", continuous_only=True),
     Target(container="debian:11", continuous_only=True),
     Target(container="debian:12", continuous_only=True),
-    Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
-    Target(name="macos", os="macos-11"),
+    Target(name="macos", os="macos-latest"),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:38"),
     Target(container="fedora:39"),

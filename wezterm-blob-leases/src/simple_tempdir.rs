@@ -4,7 +4,7 @@ use crate::{BlobStorage, BoxedReader, BufSeekRead, ContentId, Error, LeaseId};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tempfile::TempDir;
 
@@ -25,9 +25,23 @@ impl SimpleTempDir {
         })
     }
 
+    pub fn new_in<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let path = path.as_ref();
+        std::fs::create_dir_all(path)?;
+        let root = tempfile::Builder::new()
+            .prefix("wezterm-blob-lease-")
+            .rand_bytes(8)
+            .tempdir_in(path)?;
+        Ok(Self {
+            root,
+            refs: Mutex::new(HashMap::new()),
+        })
+    }
+
     fn path_for_content(&self, content_id: ContentId) -> Result<PathBuf, Error> {
         let path = self.root.path().join(format!("{content_id}"));
-        std::fs::create_dir_all(path.parent().unwrap())?;
+        std::fs::create_dir_all(path.parent().unwrap())
+            .map_err(|err| Error::StorageDirIoError(path.clone(), err))?;
         Ok(path)
     }
 
@@ -91,7 +105,7 @@ impl BlobStorage for SimpleTempDir {
         let _refs = self.refs.lock().unwrap();
 
         let path = self.path_for_content(content_id)?;
-        Ok(std::fs::read(&path)?)
+        Ok(std::fs::read(&path).map_err(|err| Error::StorageDirIoError(path, err))?)
     }
 
     fn get_reader(&self, content_id: ContentId, lease_id: LeaseId) -> Result<BoxedReader, Error> {

@@ -24,7 +24,7 @@ camino = "1.0"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 filenamegen = "0.2.6"
-gethostname = "0.4"
+gethostname = "0.5"
 libc = "0.2"
 log = "0.4"
 portable-pty = { version="0.8", path = "../pty" }
