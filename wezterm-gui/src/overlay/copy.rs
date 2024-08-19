@@ -822,6 +822,7 @@ impl CopyRenderable {
         }
     }
 
+    // Move 1 vim word backward
     fn move_backward_one_word(&mut self) {
         let y = if self.cursor.x == 0 && self.cursor.y > 0 {
             self.cursor.x = usize::max_value();
@@ -877,6 +878,61 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    // Move 1 vim WORD backward
+    fn move_backward_one_non_blank_word(&mut self) {
+        let y = if self.cursor.x == 0 && self.cursor.y > 0 {
+            self.cursor.x = usize::max_value();
+            self.cursor.y.saturating_sub(1)
+        } else {
+            self.cursor.y
+        };
+
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            if self.cursor.x == usize::max_value() {
+                self.cursor.x = line.len().saturating_sub(1);
+            }
+            let s = line.columns_as_str(0..self.cursor.x.saturating_add(1));
+
+            let mut last_was_whitespace = false;
+            let mut passed_word = false;
+
+            for (idx, word) in s.split_word_bounds().rev().enumerate() {
+                let width = unicode_column_width(word, None);
+
+                if is_whitespace_word(word) {
+                    if passed_word {
+                        self.cursor.x = self.cursor.x.saturating_add(1);
+                        break;
+                    }
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    last_was_whitespace = true;
+                    continue;
+                }
+                last_was_whitespace = false;
+
+                if idx == 0 && width == 1 {
+                    // We were at the start of the initial word
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    continue;
+                }
+
+                self.cursor.x = self.cursor.x.saturating_sub(width);
+                passed_word = true;
+            }
+
+            if last_was_whitespace && self.cursor.y > 0 {
+                // The line begins with whitespace
+                self.cursor.x = usize::max_value();
+                self.cursor.y -= 1;
+                return self.move_backward_one_word();
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
+    // Move 1 vim word forward
     fn move_forward_one_word(&mut self) {
         let y = self.cursor.y;
         let (top, lines) = self.delegate.get_lines(y..y + 1);
@@ -909,7 +965,75 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    // Move 1 vim WORD forward
+    fn move_forward_one_non_blank_word(&mut self) {
+        let y = self.cursor.y;
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            let width = line.len();
+            let s = line.columns_as_str(self.cursor.x..width + 1);
+            let mut words = s.split_word_bounds();
+
+            while let Some(next_word) = words.next() {
+                self.cursor.x += unicode_column_width(next_word, None);
+                if is_whitespace_word(next_word) {
+                    break;
+                }
+            }
+
+            if self.cursor.x >= width {
+                let dims = self.delegate.get_dimensions();
+                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
+                if self.cursor.y + 1 < max_row {
+                    self.cursor.y += 1;
+                    return self.move_to_start_of_line_content();
+                }
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
+    // move to end of vim word
     fn move_to_end_of_word(&mut self) {
+        let y = self.cursor.y;
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            let width = line.len();
+            let s = line.columns_as_str(self.cursor.x..width + 1);
+            let mut words = s.split_word_bounds();
+
+            if self.cursor.x >= width - 1 {
+                let dims = self.delegate.get_dimensions();
+                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
+                if self.cursor.y + 1 < max_row {
+                    self.cursor.y += 1;
+                    self.cursor.x = 0;
+                    return self.move_to_end_of_word();
+                }
+            }
+
+            if let Some(word) = words.next() {
+                let mut word_end = self.cursor.x + unicode_column_width(word, None);
+                if !is_whitespace_word(word) {
+                    if self.cursor.x == word_end - 1 {
+                        while let Some(next_word) = words.next() {
+                            word_end += unicode_column_width(next_word, None);
+                            if !is_whitespace_word(next_word) {
+                                break;
+                            }
+                        }
+                    }
+                }
+                self.cursor.x = word_end - 1;
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
+    // move to end of vim WORD
+    fn move_to_end_of_non_blank_word(&mut self) {
         let y = self.cursor.y;
         let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
