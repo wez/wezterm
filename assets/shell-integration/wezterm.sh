@@ -486,9 +486,12 @@ __wezterm_semantic_precmd() {
 }
 
 function __wezterm_semantic_preexec() {
-  # Restore the original PS1/PS2
-  PS1="$__wezterm_save_ps1"
-  PS2="$__wezterm_save_ps2"
+  # Restore the original PS1/PS2 if set
+  if [ -n "${__wezterm_save_ps1+1}" ]; then
+	  PS1=$__wezterm_save_ps1"
+	  PS2="$__wezterm_save_ps2"
+	  unset __wezterm_save_ps1
+  fi
   # Indicate that the command output begins here
   printf "\033]133;C;\007"
   __wezterm_semantic_precmd_executing=1
