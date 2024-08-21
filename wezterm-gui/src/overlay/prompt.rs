@@ -68,6 +68,9 @@ pub fn show_line_prompt_overlay(
     let mut host = PromptHost::new();
     let mut editor = LineEditor::new(&mut term);
     editor.set_prompt(&args.prompt);
+    if let Some(value) = &args.initial_value {
+        editor.set_line_and_cursor(value, value.len());
+    }
     let line = editor.read_line(&mut host)?;
 
     promise::spawn::spawn_into_main_thread(async move {

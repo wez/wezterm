@@ -811,7 +811,6 @@ impl<'term> LineEditor<'term> {
     }
 
     fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
-        self.line.clear();
         self.history_pos = None;
         self.bottom_line = None;
         self.clear_completion();

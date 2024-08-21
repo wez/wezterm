@@ -8,7 +8,7 @@ from the user.
 When the user enters the line, emits an event that allows you to act
 upon the input.
 
-`PromptInputLine` accepts three fields:
+`PromptInputLine` accepts four fields:
 
 * `description` - the text to show at the top of the display area. You may
   embed escape sequences and/or use [wezterm.format](../wezterm/format.md).
@@ -20,6 +20,9 @@ upon the input.
   anything, or CTRL-C to cancel the input.
 * `prompt` - the text to show as the prompt. You may embed escape sequences
   and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`. {{since('nightly', inline=True)}}
+* `initial_value` - optional.  If provided, the initial content of the input
+  field will be set to this value.  The user may edit it prior to submitting
+  the input.
 
 ## Example of interactively renaming the current tab
 
@@ -34,6 +37,7 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = act.PromptInputLine {
       description = 'Enter new name for tab',
+      initial_value = 'My Tab Name',
       action = wezterm.action_callback(function(window, pane, line)
         -- line will be `nil` if they hit escape without entering anything
         -- An empty string if they just hit enter
