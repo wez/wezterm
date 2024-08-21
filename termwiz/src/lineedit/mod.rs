@@ -163,6 +163,12 @@ impl<'term> LineEditor<'term> {
         }
     }
 
+    pub fn with_text(terminal: &'term mut dyn Terminal, default: &str) -> Self {
+        let mut editor = Self::new(terminal);
+        editor.line.insert_text(default);
+        return editor;
+    }
+
     fn render(&mut self, host: &mut dyn LineEditorHost) -> Result<()> {
         let screen_size = self.terminal.get_screen_size()?;
 
@@ -811,7 +817,6 @@ impl<'term> LineEditor<'term> {
     }
 
     fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
-        self.line.clear();
         self.history_pos = None;
         self.bottom_line = None;
         self.clear_completion();
