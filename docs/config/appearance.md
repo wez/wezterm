@@ -222,7 +222,7 @@ builting color scheme.
 ### Defining a Color Scheme in a separate file
 
 If you'd like to factor your color schemes out into separate files, you
-can create a file with a `[colors]` section; take a look at [one of
+can create a [TOML format](https://toml.io/en/) file with a `[colors]` section; take a look at [one of
 the available color schemes for an example](https://github.com/wez/wezterm/tree/main/config/src/scheme_data.rs).
 
 It is recommended that you place your custom scheme in a directory
