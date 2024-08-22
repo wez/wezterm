@@ -1223,19 +1223,21 @@ impl TermWindow {
                     alert: Alert::Bell,
                     pane_id,
                 } => {
-                    match self.config.audible_bell {
-                        AudibleBell::SystemBeep => {
-                            Connection::get().expect("on main thread").beep();
+                    if self.window_contains_pane(pane_id) {
+                        match self.config.audible_bell {
+                            AudibleBell::SystemBeep => {
+                                Connection::get().expect("on main thread").beep();
+                            }
+                            AudibleBell::Disabled => {}
                         }
-                        AudibleBell::Disabled => {}
+
+                        log::trace!("Ding! (this is the bell) in pane {}", pane_id);
+                        self.emit_window_event("bell", Some(pane_id));
+
+                        let mut per_pane = self.pane_state(pane_id);
+                        per_pane.bell_start.replace(Instant::now());
+                        window.invalidate();
                     }
-
-                    log::trace!("Ding! (this is the bell) in pane {}", pane_id);
-                    self.emit_window_event("bell", Some(pane_id));
-
-                    let mut per_pane = self.pane_state(pane_id);
-                    per_pane.bell_start.replace(Instant::now());
-                    window.invalidate();
                 }
                 MuxNotification::Alert {
                     alert: Alert::ToastNotification { .. },
@@ -1878,20 +1880,23 @@ impl TermWindow {
         self.update_title_impl();
     }
 
-    fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
+    fn window_contains_pane(&mut self, pane_id: PaneId) -> bool {
         let mux = Mux::get();
 
         let (_domain, window_id, _tab_id) = match mux.resolve_pane_id(pane_id) {
             Some(tuple) => tuple,
-            None => return,
+            None => return false,
         };
 
-        // We only want to emit the event for the window which contains
-        // this pane.
-        if window_id != self.mux_window_id {
+        return window_id == self.mux_window_id;
+    }
+
+    fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
+        if !self.window_contains_pane(pane_id) {
             return;
         }
 
+        let mux = Mux::get();
         let window = GuiWin::new(self);
         let pane = match mux.get_pane(pane_id) {
             Some(pane) => mux_lua::MuxPane(pane.pane_id()),
