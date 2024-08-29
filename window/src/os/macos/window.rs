@@ -525,6 +525,10 @@ impl Window {
             window.setReleasedWhenClosed_(NO);
             window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(nil));
 
+            // Tell Cocoa that we output in sRGB, so it handles color space
+            // conversion for non-sRGB displays.
+            window.setColorSpace_(cocoa::appkit::NSColorSpace::sRGBColorSpace(nil));
+
             // We could set this, but it makes the entire window, including
             // its titlebar, opaque to this fixed degree.
             // window.setAlphaValue_(0.4);
