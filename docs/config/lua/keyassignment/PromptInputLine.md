@@ -12,7 +12,7 @@ upon the input.
 
 * `description` - the text to show at the top of the display area. You may
   embed escape sequences and/or use [wezterm.format](../wezterm/format.md).
-* `action` - and event callback registerd via `wezterm.action_callback`.  The
+* `action` - and event callback registered via `wezterm.action_callback`.  The
   callback's function signature is `(window, pane, line)` where `window` and
   `pane` are the [Window](../window/index.md) and [Pane](../pane/index.md)
   objects from the current pane and window, and `line` is the text that the

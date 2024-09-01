@@ -32,7 +32,7 @@ The kernel doesn't know any details of the connected device as there isn't
 a defined way for it to do that; it only knows how to transmit data over that
 serial line.
 
-To accomodate this the TTY interface in the kernel allows for some basic
+To accommodate this the TTY interface in the kernel allows for some basic
 stream operations such as line-buffering and canonicalization of unix newlines
 to carriage-return-line-feed as was needed for printer style output to
 correctly move to the first column and move down a line.
@@ -200,7 +200,7 @@ and continue.
 
 If your shell supports job control, the suspend signal that is typically
 associated with `CTRL-Z` will cause the foreground process to suspend which
-in turn will wakup the shell in a similar way to that of the child getting
+in turn will wakeup the shell in a similar way to that of the child getting
 terminated, but it can tell that it was suspended rather than terminated.
 
 ## Terminal Emulators and PTYs
@@ -288,4 +288,3 @@ but what it means for wezterm users is that they may wish to bypass ConPTY in
 some cases by using `wezterm ssh` to directly communicate with a "real" unix
 pty either on a remote system or inside a WSL or VM running on the local
 machine.
-

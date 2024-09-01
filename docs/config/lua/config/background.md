@@ -59,7 +59,7 @@ A layer is a lua table with the following fields:
     * `"Right"`
 * `horizontal_offset` - like `vertical_offset` but applies to the x-direction.
 * `opacity` - a number in the range `0` through `1.0` inclusive that is multiplied with the alpha channel of the source to adjust the opacity of the layer. The default is `1.0` to use the source alpha channel as-is. Using a smaller value makes the layer less opaque/more transparent.
-* `hsb` - a hue, saturation, brightness tranformation that can be used to adjust those attributes of the layer. See [foreground_text_hsb](foreground_text_hsb.md) for more information about this kind of transform.
+* `hsb` - a hue, saturation, brightness transformation that can be used to adjust those attributes of the layer. See [foreground_text_hsb](foreground_text_hsb.md) for more information about this kind of transform.
 * `height` - controls the height of the image. The following values are accepted:
     * `"Cover"` (this is the default) - Scales the image, preserving aspect ratio, to the smallest possible size to fill the viewport, leaving no empty space.  If the aspect ratio of the viewport differs from the image, the image is cropped.
     * `"Contain"` - Scales the image as large as possible without cropping or stretching. If the viewport is larger than the image, tiles the image unless `repeat_y` is set to `"NoRepeat"`.

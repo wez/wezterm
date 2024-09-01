@@ -91,7 +91,7 @@ that is moving from the top left corner down to the bottom right corner.
 ```lua
 config.window_background_gradient = {
   colors = { '#EEBD89', '#D13ABD' },
-  -- Specifices a Linear gradient starting in the top left corner.
+  -- Specifies a Linear gradient starting in the top left corner.
   orientation = { Linear = { angle = -45.0 } },
 }
 ```
