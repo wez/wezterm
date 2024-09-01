@@ -16,7 +16,7 @@ upon the input.
   The label will be shown in the list, while the id can be a different
   string that is meaningful to your action. The label can be used together
   with [wezterm.format](../wezterm/format.md) to produce styled test.
-* `action` - and event callback registerd via `wezterm.action_callback`.  The
+* `action` - and event callback registered via `wezterm.action_callback`.  The
   callback's function signature is `(window, pane, id, label)` where `window` and
   `pane` are the [Window](../window/index.md) and [Pane](../pane/index.md)
   objects from the current pane and window, and `id` and `label` hold the

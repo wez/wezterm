@@ -65,7 +65,7 @@ $ scoop install wezterm
 ### For `Chocolatey` users
 
 If you prefer to use [Chocolatey](https://chocolatey.org) to manage software,
-wezterm is availabe from the Community Repository.  It can be installed like
+wezterm is available from the Community Repository.  It can be installed like
 so:
 
 ```console
