@@ -19,9 +19,9 @@ Available flags are:
   anti-aliased modes, but that was written for rasterizing direct to bitmaps.
   In the context of wezterm where we are rasterizing to a texture that is then
   sampled and applied to a framebuffer through vertices on the GPU, the hinting
+  process can be counter-productive and result in unexpected visual artifacts.
 * `NO_BITMAP` - don't load any pre-rendered bitmap strikes
 * `FORCE_AUTOHINT` - Use the freetype auto-hinter rather than the font's
-  process can be counter-productive and result in unexpected visual artifacts.
   native hinter.
 * `MONOCHROME` - instructs renderer to use 1-bit monochrome rendering.
   This option doesn't impact the hinter.
