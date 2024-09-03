@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
       - name: "Download artifact"
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: "ubuntu22.04"
       - name: "Checksum"
