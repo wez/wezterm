@@ -724,7 +724,7 @@ impl Screen {
             self.lines.remove(remove_idx);
         }
 
-        if remove_idx == 0 {
+        if remove_idx == 0 && self.allow_scrollback {
             self.stable_row_index_offset += lines_removed;
         }
 
