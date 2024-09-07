@@ -357,11 +357,16 @@ impl SessionInner {
 
                 #[cfg(unix)]
                 unsafe {
+                    use passfd::FdPassingExt;
                     use std::os::unix::io::{FromRawFd, IntoRawFd};
-                    return Ok((
-                        Socket::from_raw_fd(a.into_raw_fd()),
-                        Some(KillOnDropChild(child)),
-                    ));
+
+                    let raw = a.into_raw_fd();
+                    let dest = match self.config.get("proxyusefdpass").map(|s| s.as_str()) {
+                        Some("yes") => raw.recv_fd()?,
+                        _ => raw,
+                    };
+
+                    return Ok((Socket::from_raw_fd(dest), Some(KillOnDropChild(child))));
                 }
                 #[cfg(windows)]
                 unsafe {
