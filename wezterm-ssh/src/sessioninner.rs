@@ -337,10 +337,10 @@ impl SessionInner {
                 if cfg!(windows) {
                     let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
                     cmd = std::process::Command::new(comspec);
-                    cmd.args(&["/c", proxy_command]);
+                    cmd.args(["/c", proxy_command]);
                 } else {
                     cmd = std::process::Command::new("sh");
-                    cmd.args(&["-c", &format!("exec {}", proxy_command)]);
+                    cmd.args(["-c", &format!("exec {}", proxy_command)]);
                 }
 
                 let (a, b) = socketpair()?;
@@ -378,8 +378,7 @@ impl SessionInner {
 
         let addr = (hostname, port)
             .to_socket_addrs()?
-            .filter(|addr| self.filter_sock_addr(addr))
-            .next()
+            .find(|addr| self.filter_sock_addr(addr))
             .with_context(|| format!("resolving address for {}", hostname))?;
         if verbose {
             log::info!("resolved {hostname}:{port} -> {addr:?}");
@@ -388,8 +387,7 @@ impl SessionInner {
         if let Some(bind_addr) = self.config.get("bindaddress") {
             let bind_addr = (bind_addr.as_str(), 0)
                 .to_socket_addrs()?
-                .filter(|addr| self.filter_sock_addr(addr))
-                .next()
+                .find(|addr| self.filter_sock_addr(addr))
                 .with_context(|| format!("resolving bind address {bind_addr:?}"))?;
             if verbose {
                 log::info!("binding to {bind_addr:?}");
