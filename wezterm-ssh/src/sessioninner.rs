@@ -205,8 +205,7 @@ impl SessionInner {
             sess.set_option(libssh_rs::SshOption::HostKeys(host_key.to_string()))?;
         }
 
-        let (sock, _child) =
-            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
+        let (sock, _child) = self.connect_to_host(&hostname, port, verbose)?;
         let raw = {
             #[cfg(unix)]
             {
@@ -288,8 +287,7 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let (sock, _child) =
-            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
+        let (sock, _child) = self.connect_to_host(&hostname, port, verbose)?;
 
         let mut sess = ssh2::Session::new()?;
         if verbose {
@@ -331,9 +329,8 @@ impl SessionInner {
         hostname: &str,
         port: u16,
         verbose: bool,
-        proxy_command: Option<&String>,
     ) -> anyhow::Result<(Socket, Option<KillOnDropChild>)> {
-        match proxy_command.map(|s| s.as_str()) {
+        match self.config.get("proxycommand").map(|s| s.as_str()) {
             Some("none") | None => {}
             Some(proxy_command) => {
                 let mut cmd;
