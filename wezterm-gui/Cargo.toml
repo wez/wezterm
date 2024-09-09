@@ -31,16 +31,16 @@ anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.7"
-cc = "1.0"
+cc = "1.1"
 
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.3"
-bytemuck = { version="1.4", features=["derive"]}
+bytemuck = { version="1.18", features=["derive"]}
 chrono = {version="0.4", default-features=false}
-clap = {version="4.0", features=["derive"]}
+clap = {version="4.5", features=["derive"]}
 codec = { path = "../codec" }
-colorgrad = "0.6"
+colorgrad = "0.7"
 config = { path = "../config" }
 downcast-rs = "1.0"
 dhat = {version="0.3", optional=true}
@@ -48,14 +48,14 @@ dirs-next = "2.0"
 emojis = "0.6"
 env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
-fastrand = "2.0"
+fastrand = "2.1"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 frecency = { path = "../frecency" }
 futures = "0.3"
 nucleo-matcher = "0.3"
 hdrhistogram = "7.1"
-http_req = "0.11"
+http_req = "0.12"
 image = "0.25"
 lazy_static = "1.4"
 libc = "0.2"
@@ -80,7 +80,7 @@ serde_json = "1.0"
 shlex = "1.1"
 smol = "2.0"
 tabout = { path = "../tabout" }
-tempfile = "3.4"
+tempfile = "3.12"
 terminfo = "0.9"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
