@@ -217,7 +217,7 @@ impl TerminalState {
                 xpos += x_delta;
             }
             ypos += y_delta;
-            if !params.do_not_move_cursor && y < height_in_cells - 1 {
+            if !params.do_not_move_cursor && (params.style != ImageAttachStyle::Iterm || y < height_in_cells - 1) {
                 self.new_line(false);
             }
         }
