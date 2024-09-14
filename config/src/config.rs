@@ -1645,7 +1645,7 @@ const MAX_SCROLLBACK_LINES: usize = 999_999_999;
 fn validate_scrollback_lines(value: &usize) -> Result<(), String> {
     if *value > MAX_SCROLLBACK_LINES {
         return Err(format!(
-            "Illegal value {value} for scrollback_size; it must be <= {MAX_SCROLLBACK_LINES}!"
+            "Illegal value {value} for scrollback_lines; it must be <= {MAX_SCROLLBACK_LINES}!"
         ));
     }
     Ok(())

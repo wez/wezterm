@@ -44,6 +44,8 @@ As features stabilize some brief notes about them will accumulate here.
   so that the effective behavior of the defaults remains unchanged.
   Thanks to @LeszekSwirski! #4924 #3502
 * Improved startup performance on X11. Thanks to @blukai! #5923 #5802
+* There is now an upper bound of 999,999,999 for `scrollback_lines`. Thanks to
+  @x3ro! #5996
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
