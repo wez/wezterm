@@ -120,6 +120,8 @@ As features stabilize some brief notes about them will accumulate here.
   wezterm to exit. Thanks to @loops! #6135 #5482 #6128
 * Wayland: potential panic when working with the clipboard. Thanks to @rengare!
   #5518
+* multiplexer: could lose track of delta updates if the display changed
+  while the current delta was being computed. Thanks to @loops! #5981
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
