@@ -1223,21 +1223,23 @@ impl TermWindow {
                     alert: Alert::Bell,
                     pane_id,
                 } => {
-                    if self.window_contains_pane(pane_id) {
-                        match self.config.audible_bell {
-                            AudibleBell::SystemBeep => {
-                                Connection::get().expect("on main thread").beep();
-                            }
-                            AudibleBell::Disabled => {}
-                        }
-
-                        log::trace!("Ding! (this is the bell) in pane {}", pane_id);
-                        self.emit_window_event("bell", Some(pane_id));
-
-                        let mut per_pane = self.pane_state(pane_id);
-                        per_pane.bell_start.replace(Instant::now());
-                        window.invalidate();
+                    if !self.window_contains_pane(pane_id) {
+                        return Ok(());
                     }
+
+                    match self.config.audible_bell {
+                        AudibleBell::SystemBeep => {
+                            Connection::get().expect("on main thread").beep();
+                        }
+                        AudibleBell::Disabled => {}
+                    }
+
+                    log::trace!("Ding! (this is the bell) in pane {}", pane_id);
+                    self.emit_window_event("bell", Some(pane_id));
+
+                    let mut per_pane = self.pane_state(pane_id);
+                    per_pane.bell_start.replace(Instant::now());
+                    window.invalidate();
                 }
                 MuxNotification::Alert {
                     alert: Alert::ToastNotification { .. },
