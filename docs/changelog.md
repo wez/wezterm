@@ -60,6 +60,7 @@ As features stabilize some brief notes about them will accumulate here.
   @kenchou! #5416 #3087
 * [show_close_tab_button_in_tabs](config/lua/config/show_close_tab_button_in_tabs.md)
   option for the fancy tab bar. Thanks to @zummenix! #3818
+* wezterm-ssh now supports `ProxyUseFdPass`. Thanks to @loops! #6103 #6093
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
