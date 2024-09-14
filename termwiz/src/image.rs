@@ -30,7 +30,7 @@ where
 }
 
 #[cfg(feature = "use_serde")]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn serialize_notnan<S>(value: &NotNan<f32>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
