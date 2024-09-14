@@ -109,6 +109,8 @@ As features stabilize some brief notes about them will accumulate here.
   instead of the terminal width. Thanks to @j4james and @tmccombs! #5871 #5750
 * Scrollback position was incorrectly advanced when in alt-screen mode.
   Thanks to @tbung! #6099 #4607
+* Wayland: Fixed potential panic on startup when monitors have changed are
+  in the process of hot plugging when wezterm starts. Thanks to @loops! #6084
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
