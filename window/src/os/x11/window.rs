@@ -795,13 +795,21 @@ impl XWindowInner {
                 conn.child_to_parent_id.borrow_mut().remove(&self.child_id);
             }
             Event::X(xcb::x::Event::SelectionClear(e)) => {
-                self.selection_clear(e)?;
+                if let Err(err) = self.selection_clear(e) {
+                    log::error!("Error handling SelectionClear: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::SelectionRequest(e)) => {
-                self.selection_request(e)?;
+                if let Err(err) = self.selection_request(e) {
+                    // Don't propagate this, as it is not worth exiting the program over it.
+                    // <https://github.com/wez/wezterm/pull/6135>
+                    log::error!("Error handling SelectionRequest: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::SelectionNotify(e)) => {
-                self.selection_notify(e)?;
+                if let Err(err) = self.selection_notify(e) {
+                    log::error!("Error handling SelectionNotify: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::PropertyNotify(msg)) => {
                 let atom_name = conn.atom_name(msg.atom());
