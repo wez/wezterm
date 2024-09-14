@@ -118,6 +118,8 @@ As features stabilize some brief notes about them will accumulate here.
   pane where the bell is ringing. Thanks to @loops! #6012 #5985
 * x11: transient errors in obtaining/setting the selection could cause
   wezterm to exit. Thanks to @loops! #6135 #5482 #6128
+* Wayland: potential panic when working with the clipboard. Thanks to @rengare!
+  #5518
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
