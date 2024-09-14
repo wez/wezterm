@@ -75,6 +75,43 @@ task:
     - "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
 
 task:
+  name: ubuntu-24.04-arm
+  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  arm_container:
+    image: ubuntu:24.04
+    cpu: 4
+    memory: 12G
+  environment:
+    GITHUB_TOKEN: ENCRYPTED[23bd9513fa7174e74eaddce6a3099cabb22118423591553b23518e8c34bf155e07c559838b1d3422f561c73c1e31e6fc]
+    FURY_TOKEN: ENCRYPTED[833e7ce9bfd87970b321dd621677f792a65f485b40819cad30258d3a1e1569f9cb4878a2958efecdf40a5050354edd54]
+
+  stateful: false
+  install_rust_script:
+    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    - apt update
+    - apt-get install -y git curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  install_gh_cli_script:
+    - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg > /usr/share/keyrings/githubcli-archive-keyring.gpg
+    - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+    - apt update
+    - apt install gh -y
+    - gh --version
+  getdeps_script:
+    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
+  build_script:
+    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
+    - export BUILD_REASON="Schedule"
+    - export RELEASE="nightly"
+    - "test -n \"$CIRRUS_TAG\" && BUILD_REASON=\"tag\""
+    - "test -n \"$CIRRUS_TAG\" && RELEASE=$(ci/tag-name.sh)"
+    - "./ci/deploy.sh"
+    - "ls -l *.deb"
+    - "bash ci/retry.sh gh release upload --clobber ${RELEASE} *.deb"
+    - "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
+
+task:
   name: debian-12-arm
   only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   arm_container:
