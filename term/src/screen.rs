@@ -754,7 +754,9 @@ impl Screen {
         let to_clear = len - self.physical_rows;
         for _ in 0..to_clear {
             self.lines.pop_front();
-            self.stable_row_index_offset += 1;
+            if self.allow_scrollback {
+                self.stable_row_index_offset += 1;
+            }
         }
     }
 

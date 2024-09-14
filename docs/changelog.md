@@ -107,6 +107,8 @@ As features stabilize some brief notes about them will accumulate here.
   for the local system via `getaddrinfo`. #5543
 * DECSLRM incorrectly clamped the left margin based on the terminal height
   instead of the terminal width. Thanks to @j4james and @tmccombs! #5871 #5750
+* Scrollback position was incorrectly advanced when in alt-screen mode.
+  Thanks to @tbung! #6099 #4607
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
