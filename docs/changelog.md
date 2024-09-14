@@ -126,6 +126,8 @@ As features stabilize some brief notes about them will accumulate here.
   while the current delta was being computed. Thanks to @loops! #5981
 * Plugins: normalize the plugin path to exclude trailing slashes. Thanks to
   @joncrangle! #5883
+* zooming a tab might not work if you also recently used `pane:activate()`.
+  Thanks to @SpyMachine! #5964 #5928
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
