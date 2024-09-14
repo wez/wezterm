@@ -113,6 +113,8 @@ As features stabilize some brief notes about them will accumulate here.
   in the process of hot plugging when wezterm starts. Thanks to @loops! #6084
 * macOS: explicitly set the window to sRGB colorspace to resolve incorrect
   colors on non-sRGB monitors. Thanks to @rianmcguire! #6063 #5824
+* The bell would ring each window instead of just the window containing the
+  pane where the bell is ringing. Thanks to @loops!. #6012 #5985
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
