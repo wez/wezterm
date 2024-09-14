@@ -1644,12 +1644,11 @@ fn default_scrollback_lines() -> usize {
 const MAX_SCROLLBACK_LINES: usize = 999_999_999;
 fn validate_scrollback_lines(value: &usize) -> Result<(), String> {
     if *value > MAX_SCROLLBACK_LINES {
-        Err(format!(
+        return Err(format!(
             "Illegal value {value} for scrollback_size; it must be <= {MAX_SCROLLBACK_LINES}!"
-        ))
-    } else {
-        Ok(())
+        ));
     }
+    Ok(())
 }
 
 fn default_initial_rows() -> u16 {
