@@ -111,6 +111,8 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @tbung! #6099 #4607
 * Wayland: Fixed potential panic on startup when monitors have changed are
   in the process of hot plugging when wezterm starts. Thanks to @loops! #6084
+* macOS: explicitly set the window to sRGB colorspace to resolve incorrect
+  colors on non-sRGB monitors. Thanks to @rianmcguire! #6063 #5824
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
