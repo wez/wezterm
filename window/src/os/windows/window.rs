@@ -7,6 +7,8 @@ use crate::{
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ScreenRect, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
+use accesskit::{ActionHandler, ActionRequest, ActivationHandler, TreeUpdate};
+use accesskit_windows::{Adapter, QueuedEvents};
 use anyhow::{bail, Context};
 use async_trait::async_trait;
 use config::{ConfigHandle, ImePreeditRendering, SystemBackdrop};
@@ -18,7 +20,7 @@ use raw_window_handle::{
 };
 use shared_library::shared_library;
 use std::any::Any;
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::OsString;
@@ -126,6 +128,8 @@ pub(crate) struct WindowInner {
     config: ConfigHandle,
     paint_throttled: bool,
     invalidated: bool,
+    focused: bool,
+    accesskit_adapter: OnceCell<Adapter>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -542,6 +546,8 @@ impl Window {
             config: config.clone(),
             paint_throttled: false,
             invalidated: true,
+            focused: false,
+            accesskit_adapter: OnceCell::new(),
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -726,6 +732,58 @@ impl WindowInner {
                 .detach();
             }
         }
+    }
+}
+
+struct WindowsActivationHandler {
+    hwnd: accesskit_windows::HWND,
+}
+
+const INITIAL_ACCESSKIT_TREE_REQUESTED: WPARAM = 0;
+
+impl ActivationHandler for WindowsActivationHandler {
+    fn request_initial_tree(&mut self) -> Option<TreeUpdate> {
+        unsafe {
+            PostMessageW(
+                self.hwnd.0 as HWND,
+                WM_USER,
+                INITIAL_ACCESSKIT_TREE_REQUESTED,
+                0,
+            );
+        }
+        None
+    }
+}
+
+struct WindowsActionHandler {
+    hwnd: accesskit_windows::HWND,
+}
+
+const ACCESSKIT_ACTION_REQUESTED: WPARAM = 1;
+
+impl ActionHandler for WindowsActionHandler {
+    fn do_action(&mut self, request: ActionRequest) {
+        let request = Box::new(request);
+        let lparam = Box::into_raw(request) as LPARAM;
+        unsafe {
+            PostMessageW(
+                self.hwnd.0 as HWND,
+                WM_USER,
+                ACCESSKIT_ACTION_REQUESTED,
+                lparam,
+            );
+        }
+    }
+}
+
+impl WindowInner {
+    fn update_accesskit_if_active(
+        &mut self,
+        update_factory: impl FnOnce() -> TreeUpdate,
+    ) -> Option<QueuedEvents> {
+        self.accesskit_adapter
+            .get_mut()
+            .and_then(|adapter| adapter.update_if_active(update_factory))
     }
 }
 
@@ -1032,6 +1090,26 @@ impl WindowOps for Window {
                 color: top_border_color,
             }),
         }))
+    }
+
+    fn update_accesskit_if_active(
+        &self,
+        update_factory: impl FnOnce() -> TreeUpdate + Send + 'static,
+    ) {
+        let window = self.0;
+        promise::spawn::spawn_into_main_thread(async move {
+            if let Some(handle) = Connection::get()
+                .expect("Connection::init has not been called")
+                .get_window(window)
+            {
+                let mut inner = handle.borrow_mut();
+                if let Some(events) = inner.update_accesskit_if_active(update_factory) {
+                    drop(inner);
+                    events.raise();
+                }
+            }
+        })
+        .detach();
     }
 }
 
@@ -1525,14 +1603,28 @@ unsafe fn wm_enter_exit_size_move(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     let mut should_size = false;
+    let mut accesskit_events = None;
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let mut inner = inner.borrow_mut();
         inner.in_size_move = msg == WM_ENTERSIZEMOVE;
         should_size = !inner.in_size_move;
+
+        if let Some(adapter) = inner.accesskit_adapter.get_mut() {
+            let is_focused = match msg {
+                WM_ENTERSIZEMOVE => false,
+                WM_EXITSIZEMOVE => true,
+                _ => unreachable!(),
+            };
+            accesskit_events = adapter.update_window_focus_state(is_focused);
+        }
     }
 
     if should_size {
         wm_size(hwnd, 0, 0, 0)?;
+    }
+
+    if let Some(events) = accesskit_events {
+        events.raise();
     }
 
     Some(0)
@@ -1578,10 +1670,18 @@ unsafe fn wm_set_focus(
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
-    rc_from_hwnd(hwnd)?
-        .borrow_mut()
-        .events
-        .dispatch(WindowEvent::FocusChanged(true));
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+
+    inner.focused = true;
+    inner.events.dispatch(WindowEvent::FocusChanged(true));
+    if let Some(adapter) = inner.accesskit_adapter.get_mut() {
+        if let Some(events) = adapter.update_window_focus_state(true) {
+            drop(inner);
+            events.raise();
+            return Some(0);
+        }
+    }
     None
 }
 
@@ -1591,10 +1691,18 @@ unsafe fn wm_kill_focus(
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
-    rc_from_hwnd(hwnd)?
-        .borrow_mut()
-        .events
-        .dispatch(WindowEvent::FocusChanged(false));
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+
+    inner.focused = false;
+    inner.events.dispatch(WindowEvent::FocusChanged(false));
+    if let Some(adapter) = inner.accesskit_adapter.get_mut() {
+        if let Some(events) = adapter.update_window_focus_state(true) {
+            drop(inner);
+            events.raise();
+            return Some(0);
+        }
+    }
     None
 }
 
@@ -1644,6 +1752,26 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     .detach();
 
     Some(0)
+}
+
+unsafe fn wm_getobject(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+
+    let hwnd = accesskit_windows::HWND(hwnd as isize);
+    let wparam = accesskit_windows::WPARAM(wparam);
+    let lparam = accesskit_windows::LPARAM(lparam);
+
+    inner
+        .accesskit_adapter
+        .get_or_init(|| Adapter::new(hwnd, inner.focused, WindowsActionHandler { hwnd }));
+    let mut activation_handler = WindowsActivationHandler { hwnd };
+    let result = inner
+        .accesskit_adapter
+        .get_mut()
+        .and_then(|adapter| adapter.handle_wm_getobject(wparam, lparam, &mut activation_handler));
+    drop(inner);
+    result.map(|result| result.into().0)
 }
 
 fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
@@ -2939,6 +3067,25 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 inner.events.dispatch(WindowEvent::CloseRequested);
                 // Don't let it close
                 return Some(0);
+            }
+            None
+        }
+        WM_GETOBJECT => wm_getobject(hwnd, msg, wparam, lparam),
+        WM_USER => {
+            if let Some(inner) = rc_from_hwnd(hwnd) {
+                let mut inner = inner.borrow_mut();
+                match wparam {
+                    INITIAL_ACCESSKIT_TREE_REQUESTED => inner
+                        .events
+                        .dispatch(WindowEvent::InitialAccessKitTreeRequested),
+                    ACCESSKIT_ACTION_REQUESTED => {
+                        let request = unsafe { Box::from_raw(lparam as *mut ActionRequest) };
+                        inner
+                            .events
+                            .dispatch(WindowEvent::AccessKitActionRequested(*request));
+                    }
+                    _ => {}
+                }
             }
             None
         }

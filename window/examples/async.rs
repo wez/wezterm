@@ -1,9 +1,13 @@
 use ::window::*;
+use accesskit::{NodeBuilder, NodeId, Role, Tree, TreeUpdate};
 use config::Dimension;
 use promise::spawn::spawn;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
+
+const WINDOW_TITLE: &str = "the title";
+const WINDOW_ID: NodeId = NodeId(0);
 
 struct MyWindow {
     allow_close: bool,
@@ -77,6 +81,10 @@ impl MyWindow {
                     frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
                     win.finish_frame(frame).unwrap();
                 }
+                win.update_accesskit_if_active(accesskit_tree);
+            }
+            WindowEvent::InitialAccessKitTreeRequested => {
+                win.update_accesskit_if_active(accesskit_tree);
             }
             WindowEvent::AppearanceChanged(_)
             | WindowEvent::AdviseDeadKeyStatus(_)
@@ -89,8 +97,21 @@ impl MyWindow {
             | WindowEvent::DroppedString(_)
             | WindowEvent::PerformKeyAssignment(_)
             | WindowEvent::MouseLeave
-            | WindowEvent::SetInnerSizeCompleted => {}
+            | WindowEvent::SetInnerSizeCompleted
+            | WindowEvent::AccessKitActionRequested(_)
+            | WindowEvent::AccessibilityDeactivated => {}
         }
+    }
+}
+
+fn accesskit_tree() -> TreeUpdate {
+    let mut root = NodeBuilder::new(Role::Window);
+    root.set_name(WINDOW_TITLE);
+    let tree = Tree::new(WINDOW_ID);
+    TreeUpdate {
+        nodes: vec![(WINDOW_ID, root.build())],
+        tree: Some(tree),
+        focus: WINDOW_ID,
     }
 }
 
@@ -114,7 +135,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     let cb_state = Rc::clone(&state);
     let win = Window::new_window(
         "myclass",
-        "the title",
+        WINDOW_TITLE,
         RequestedWindowGeometry {
             width: Dimension::Pixels(800.),
             height: Dimension::Pixels(600.),
@@ -129,11 +150,11 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
+    let gl = win.enable_opengl().await?;
+    state.borrow_mut().gl.replace(gl);
+
     eprintln!("before show");
     win.show();
-    let gl = win.enable_opengl().await?;
-
-    state.borrow_mut().gl.replace(gl);
     win.invalidate();
     Ok(())
 }

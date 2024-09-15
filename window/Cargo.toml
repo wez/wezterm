@@ -18,6 +18,7 @@ gl_generator = "0.14"
 wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
 
 [dependencies]
+accesskit = "0.16"
 async-channel = "2.3"
 async-io = "2.3"
 async-task = "4.7"
@@ -48,6 +49,7 @@ wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [target."cfg(windows)".dependencies]
+accesskit_windows = "0.22"
 clipboard-win = "2.2"
 shared_library = "0.1"
 winapi = { version = "0.3", features = [
