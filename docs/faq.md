@@ -371,13 +371,8 @@ and another other option is to explicitly set the PATH up:
 
 ```lua
 config.set_environment_variables = {
-  PATH = {
-    -- prepend the path to your utility
-    wezterm.home_dir
-      .. '/.local/bob/nvim-bin:'
-      -- and include the rest of the PATH
-      .. os.getenv 'PATH',
-  },
+  -- prepend the path to your utility and include the rest of the PATH
+  PATH = wezterm.home_dir .. '/.local/bob/nvim-bin:' .. os.getenv 'PATH',
 }
 ```
 
