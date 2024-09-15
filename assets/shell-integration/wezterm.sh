@@ -488,7 +488,7 @@ __wezterm_semantic_precmd() {
 function __wezterm_semantic_preexec() {
   # Restore the original PS1/PS2 if set
   if [ -n "${__wezterm_save_ps1+1}" ]; then
-	  PS1=$__wezterm_save_ps1"
+	  PS1="$__wezterm_save_ps1"
 	  PS2="$__wezterm_save_ps2"
 	  unset __wezterm_save_ps1
   fi
