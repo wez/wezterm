@@ -8,7 +8,7 @@ from the user.
 When the user enters the line, emits an event that allows you to act
 upon the input.
 
-`PromptInputLine` accepts two fields:
+`PromptInputLine` accepts three fields:
 
 * `description` - the text to show at the top of the display area. You may
   embed escape sequences and/or use [wezterm.format](../wezterm/format.md).
@@ -18,6 +18,8 @@ upon the input.
   objects from the current pane and window, and `line` is the text that the
   user entered. `line` may be `nil` if they hit Escape without entering
   anything, or CTRL-C to cancel the input.
+* `prompt` - the text to show as the prompt. You may embed escape sequences
+  and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`
 
 ## Example of interactively renaming the current tab
 
