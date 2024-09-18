@@ -84,7 +84,7 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let mut pane_index = match tab
+        let pane_index = match tab
             .iter_panes_ignoring_zoom()
             .iter()
             .find(|p| p.pane.pane_id() == pane_id)
@@ -119,18 +119,6 @@ pub trait Domain: Downcast + Send + Sync {
                     anyhow::anyhow!("pane {} not found in its containing tab!?", src_pane_id)
                 })?;
 
-                // May need to update pane_index if src_pane was also in the same tab
-                if src_tab.tab_id() == tab.tab_id() {
-                    pane_index = match tab
-                        .iter_panes_ignoring_zoom()
-                        .iter()
-                        .find(|p| p.pane.pane_id() == pane_id)
-                    {
-                        Some(p) => p.index,
-                        None => anyhow::bail!("invalid pane id {}", pane_id),
-                    };
-                }
-
                 if src_tab.is_dead() {
                     mux.remove_tab(src_tab.tab_id());
                 }
@@ -139,7 +127,17 @@ pub trait Domain: Downcast + Send + Sync {
             }
         };
 
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
+        // pane_index may have changed if src_pane was also in the same tab
+        let final_pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        tab.split_and_insert(final_pane_index, split_request, Arc::clone(&pane))?;
         Ok(pane)
     }
 
