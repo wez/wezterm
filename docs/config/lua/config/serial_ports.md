@@ -13,7 +13,7 @@ Each entry defines a `SerialDomain` with the following fields:
   all multiplexer domains in your configuration.
 * `port` - the name of the serial device. On Windows systems this can be
   a name like `COM0`. On Posix systems this will be a device path something
-  like `/dev/ttyUSB0`.  If omitted, the `name` field be be interpreted as
+  like `/dev/ttyUSB0`.  If omitted, the `name` field be interpreted as
   the port name.
 * `baud` - the communication speed to assign to the port. If omitted,
   the default baud rate will be 9600.

@@ -8,7 +8,7 @@ tags:
 
 Configures whether the window has a title bar and/or resizable border.
 
-The value is a set of of flags:
+The value is a set of flags:
 
 * `window_decorations = "NONE"` - disables titlebar and border (borderless
   mode), but causes problems with resizing and minimizing the window, so you
