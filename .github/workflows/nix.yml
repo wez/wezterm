@@ -8,6 +8,7 @@ on:
       - '**/*.rs'
       - '.github/workflows/nix.yml'
       - 'nix/**'
+  workflow_dispatch:
   push:
     branches:
       - main
