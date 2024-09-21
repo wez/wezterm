@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "fedora39"
           path: "wezterm-*.rpm"
