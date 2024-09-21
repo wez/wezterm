@@ -28,7 +28,7 @@ jobs:
           flake-lock-path: ./nix/flake.lock
           ignore-missing-flake-lock: false
       - name: Setup Cachix
-        uses: cachix/cachix-action@v27
+        uses: cachix/cachix-action@v15
         with:
           name: wezterm
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
