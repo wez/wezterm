@@ -128,6 +128,8 @@ As features stabilize some brief notes about them will accumulate here.
   @joncrangle! #5883
 * zooming a tab might not work if you also recently used `pane:activate()`.
   Thanks to @SpyMachine! #5964 #5928
+* `pane:current_working_dir.file_path` returned incorrect results for
+  paths that contained `#` or `?` characters. Thanks to @loops! #6158 #6171
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
