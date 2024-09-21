@@ -668,12 +668,19 @@ impl super::TermWindow {
         );
 
         let panes = if let Some(float_pane) = self.get_float_pane_to_render() {
-            if position.column >= float_pane.left && position.column <= float_pane.left + float_pane.width
-                && position.row as usize >= float_pane.top && position.row as usize <= float_pane.top + float_pane.height {
-                vec![float_pane]
-            } else {
-                return
+            let mouse_in_float = position.column >= float_pane.left &&
+                position.column <= float_pane.left + float_pane.width &&
+                position.row as usize >= float_pane.top &&
+                position.row as usize <= float_pane.top + float_pane.height;
+
+            if !mouse_in_float {
+                // Mouse events are not dispatched to the other panes when
+                // a floating pane is active, this is to prevent users from selecting one of the
+                // panes that the float is on top of and encountering some weird behavior, ex.
+                // closing the last non-floating pane while the floating pane is active.
+                return;
             }
+            vec![float_pane]
         } else {
             self.get_panes_to_render()
         };

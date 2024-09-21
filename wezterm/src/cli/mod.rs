@@ -107,7 +107,7 @@ Outputs the pane-id for the newly created pane on success"
         name = "float-pane",
         rename_all = "kebab",
         trailing_var_arg = true,
-        about = "spawn a float pane"
+        about = "spawn a floating pane"
     )]
     FloatPane(split_pane::FloatPane),
 

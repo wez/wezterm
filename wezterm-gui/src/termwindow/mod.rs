@@ -538,6 +538,10 @@ impl TermWindow {
         // force cursor to be repainted
         window.invalidate();
 
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            pane.focus_changed(focused);
+        }
+
         self.update_title();
         self.emit_window_event("window-focus-changed", None);
     }

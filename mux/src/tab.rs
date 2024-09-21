@@ -743,10 +743,10 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
-    pub fn get_float_size(
+    pub fn compute_float_size(
         &self,
     ) -> TerminalSize {
-        self.inner.lock().get_float_size()
+        self.inner.lock().compute_float_size()
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -961,7 +961,7 @@ impl TabInner {
     fn get_float_pane(&self) -> Option<PositionedPane> {
         if let Some(float_pane) = self.float_pane.as_ref() {
             let root_size = self.size;
-            let size = self.get_float_size();
+            let size = self.compute_float_size();
 
             let cell_height = root_size.pixel_height / root_size.rows;
             let cell_width = root_size.pixel_width / root_size.cols;
@@ -1205,7 +1205,7 @@ impl TabInner {
         }
 
         if let Some(float_pane) = &self.float_pane {
-            let float_size = self.get_float_size();
+            let float_size = self.compute_float_size();
             float_pane.resize(float_size).ok();
         }
 
@@ -1945,7 +1945,7 @@ impl TabInner {
         None
     }
 
-    fn get_float_size(&self) -> TerminalSize {
+    fn compute_float_size(&self) -> TerminalSize {
         let root_size = self.size;
 
         let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
@@ -2086,10 +2086,8 @@ impl TabInner {
         }
 
         self.float_pane = Some(Arc::clone(&pane));
-        {
-            pane.resize(float_size)?;
-        }
 
+        pane.resize(float_size)?;
         Ok(())
     }
 

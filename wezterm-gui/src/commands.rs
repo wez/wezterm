@@ -1449,8 +1449,8 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                           domain: SpawnTabDomain::CurrentPaneDomain,
                           ..
                       }) => CommandDef {
-            brief: label_string(action, "Create a float pane".to_string()).into(),
-            doc: "Create a float pane"
+            brief: label_string(action, "Create a floating pane".to_string()).into(),
+            doc: "Create a floating pane"
                 .into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1519,8 +1519,8 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("cod_split_vertical"),
         },
         FloatPane(_) => CommandDef {
-            brief: label_string(action, "Create a float pane".to_string()).into(),
-            doc: "Create a float pane"
+            brief: label_string(action, "Create a floating pane".to_string()).into(),
+            doc: "Create a floating pane"
                 .into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
