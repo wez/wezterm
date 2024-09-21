@@ -103,7 +103,7 @@ jobs:
         shell: bash
         run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora38.rpm"
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "fedora38"
           path: "wezterm-*.rpm"

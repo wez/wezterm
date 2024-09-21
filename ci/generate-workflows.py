@@ -609,7 +609,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v3",
+                action="actions/upload-artifact@v4",
                 params={"name": self.name, "path": paths, "retention-days": 5},
             ),
         ]
