@@ -459,7 +459,7 @@ pub struct PromptInputLine {
     pub action: Box<KeyAssignment>,
     /// Optional label to pre-fill the input line with
     #[dynamic(default)]
-    pub with_content: String,
+    pub initial_value: Option<String>,
     /// Descriptive text to show ahead of prompt
     #[dynamic(default)]
     pub description: String,

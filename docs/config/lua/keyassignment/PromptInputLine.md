@@ -20,7 +20,7 @@ upon the input.
   anything, or CTRL-C to cancel the input.
 * `prompt` - the text to show as the prompt. You may embed escape sequences
   and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`. {{since('nightly', inline=True)}}
-* `with_content` - optional.  If provided, the initial content of the input
+* `initial_value` - optional.  If provided, the initial content of the input
   field will be set to this value.  The user may edit it prior to submitting
   the input.
 
@@ -37,7 +37,7 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = act.PromptInputLine {
       description = 'Enter new name for tab',
-      with_content = 'Tab: ',
+      initial_value = 'My Tab Name',
       action = wezterm.action_callback(function(window, pane, line)
         -- line will be `nil` if they hit escape without entering anything
         -- An empty string if they just hit enter
