@@ -10,9 +10,15 @@ permissions:
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
   schedule:
     # Schedule for five minutes after the hour, every hour
     - cron: '5 * * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/no-response.yml'
 
 jobs:
   noResponse:
