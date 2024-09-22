@@ -941,10 +941,20 @@ impl Domain for ClientDomain {
 
         let mux = Mux::get();
 
+        let tab = mux
+            .get_tab(_tab_id)
+            .ok_or_else(|| anyhow!("tab_id {} is invalid", _tab_id))?;
+        let local_pane = mux
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let client_pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
         let result = inner
             .client
             .add_float_pane(FloatPane{
-                pane_id,
+                pane_id: client_pane.remote_pane_id,
                 command,
                 command_dir,
                 domain: SpawnTabDomain::CurrentPaneDomain
@@ -957,6 +967,8 @@ impl Domain for ClientDomain {
             result.size,
             "wezterm",
         ));
+
+        tab.insert_float(result.size, Arc::clone(&pane)).ok();
 
         mux.add_pane(&pane)?;
 
