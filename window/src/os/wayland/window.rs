@@ -252,9 +252,12 @@ impl WaylandWindow {
 
         window.set_min_size(Some((32, 32)));
         let (x, y) = window_frame.location();
-        window
-            .xdg_surface()
-            .set_window_geometry(x, y, dimensions.pixel_width as i32, dimensions.pixel_height as i32);
+        window.xdg_surface().set_window_geometry(
+            x,
+            y,
+            dimensions.pixel_width as i32,
+            dimensions.pixel_height as i32,
+        );
         window.commit();
 
         let copy_and_paste = CopyAndPaste::create();
@@ -1263,12 +1266,20 @@ impl WaylandState {
                     if let Some((w, h)) = configure.suggested_bounds {
                         pending_event.configure.replace((w, h));
                     }
-                } else if configure.state.contains(SCTKWindowState::TILED_TOP | SCTKWindowState::TILED_BOTTOM) && is_frame_hidden {
+                } else if configure
+                    .state
+                    .contains(SCTKWindowState::TILED_TOP | SCTKWindowState::TILED_BOTTOM)
+                    && is_frame_hidden
+                {
                     // Tiled window without borders will take exactly half of the screen.
                     if let Some((w, h)) = configure.suggested_bounds {
                         pending_event.configure.replace((w / 2, h));
                     }
-                } else if configure.state.contains(SCTKWindowState::TILED_LEFT | SCTKWindowState::TILED_RIGHT) && is_frame_hidden {
+                } else if configure
+                    .state
+                    .contains(SCTKWindowState::TILED_LEFT | SCTKWindowState::TILED_RIGHT)
+                    && is_frame_hidden
+                {
                     // Tiled window without borders will take exactly half of the screen.
                     if let Some((w, h)) = configure.suggested_bounds {
                         pending_event.configure.replace((w, h / 2));
