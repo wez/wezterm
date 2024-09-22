@@ -460,6 +460,13 @@ pub struct PromptInputLine {
     /// Descriptive text to show ahead of prompt
     #[dynamic(default)]
     pub description: String,
+    /// Text to show for prompt
+    #[dynamic(default = "default_prompt")]
+    pub prompt: String,
+}
+
+fn default_prompt() -> String {
+    "> ".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
