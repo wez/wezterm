@@ -22,7 +22,7 @@ upon the input.
   and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`. {{since('nightly', inline=True)}}
 * `initial_value` - optional.  If provided, the initial content of the input
   field will be set to this value.  The user may edit it prior to submitting
-  the input.
+  the input. {{since('nightly', inline=True)}}
 
 ## Example of interactively renaming the current tab
 

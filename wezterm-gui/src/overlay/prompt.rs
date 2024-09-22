@@ -68,10 +68,8 @@ pub fn show_line_prompt_overlay(
     let mut host = PromptHost::new();
     let mut editor = LineEditor::new(&mut term);
     editor.set_prompt(&args.prompt);
-    if let Some(value) = &args.initial_value {
-        editor.set_line_and_cursor(value, value.len());
-    }
-    let line = editor.read_line(&mut host)?;
+    let line =
+        editor.read_line_with_optional_initial_value(&mut host, args.initial_value.as_deref())?;
 
     promise::spawn::spawn_into_main_thread(async move {
         trampoline(name, window, pane, line);
