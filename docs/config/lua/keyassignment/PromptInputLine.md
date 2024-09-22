@@ -19,7 +19,7 @@ upon the input.
   user entered. `line` may be `nil` if they hit Escape without entering
   anything, or CTRL-C to cancel the input.
 * `prompt` - the text to show as the prompt. You may embed escape sequences
-  and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`
+  and/or use [wezterm.format](../wezterm/format.md).  Defaults to: `"> "`. {{since('nightly', inline=True)}}
 
 ## Example of interactively renaming the current tab
 
