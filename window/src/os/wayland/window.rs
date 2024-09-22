@@ -1268,6 +1268,11 @@ impl WaylandState {
                     if let Some((w, h)) = configure.suggested_bounds {
                         pending_event.configure.replace((w / 2, h));
                     }
+                } else if configure.state.contains(SCTKWindowState::TILED_LEFT | SCTKWindowState::TILED_RIGHT) && is_frame_hidden {
+                    // Tiled window without borders will take exactly half of the screen.
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w, h / 2));
+                    }
                 }
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
