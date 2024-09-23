@@ -41,7 +41,7 @@ impl MovePaneToNewTab {
                     let panes = client.list_panes().await?;
                     let mut window_id = None;
                     'outer_move: for tabroot in panes.tabs {
-                        let mut cursor = tabroot.into_tree().cursor();
+                        let mut cursor = tabroot.0.into_tree().cursor();
 
                         loop {
                             if let Some(entry) = cursor.leaf_mut() {

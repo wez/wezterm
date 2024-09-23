@@ -645,7 +645,7 @@ pub struct ListPanes {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
-    pub tabs: Vec<PaneNode>,
+    pub tabs: Vec<(PaneNode, PaneNode)>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
 }

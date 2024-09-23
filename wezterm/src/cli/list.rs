@@ -1,6 +1,7 @@
 use crate::cli::CliOutputFormatKind;
 use clap::Parser;
 use serde::Serializer as _;
+use mux::tab::PaneNode;
 use tabout::{tabulate_output, Alignment, Column};
 use wezterm_client::client::Client;
 use wezterm_term::TerminalSize;
@@ -21,7 +22,7 @@ impl ListCommand {
         let panes = client.list_panes().await?;
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let mut cursor = tabroot.into_tree().cursor();
+            let mut cursor = tabroot.0.into_tree().cursor();
 
             loop {
                 if let Some(entry) = cursor.leaf_mut() {
@@ -40,6 +41,19 @@ impl ListCommand {
                     Ok(c) => cursor = c,
                     Err(_) => break,
                 }
+            }
+
+            if let PaneNode::Leaf(entry) = &tabroot.1 {
+                let window_title = panes
+                    .window_titles
+                    .get(&entry.window_id)
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                output_items.push(CliListResultItem::from(
+                    entry.clone(),
+                    tab_title,
+                    window_title,
+                ));
             }
         }
         match self.format {

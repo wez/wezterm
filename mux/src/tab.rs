@@ -553,7 +553,7 @@ impl Tab {
         self.inner.lock().sync_with_pane_tree(size, root, make_pane)
     }
 
-    pub fn codec_pane_tree(&self) -> PaneNode {
+    pub fn codec_pane_tree(&self) -> (PaneNode, PaneNode) {
         self.inner.lock().codec_pane_tree()
     }
 
@@ -845,14 +845,14 @@ impl TabInner {
         assert!(self.pane.is_some());
     }
 
-    fn codec_pane_tree(&mut self) -> PaneNode {
+    fn codec_pane_tree(&mut self) -> (PaneNode, PaneNode) {
         let mux = Mux::get();
         let tab_id = self.id;
         let window_id = match mux.window_containing_tab(tab_id) {
             Some(w) => w,
             None => {
                 log::error!("no window contains tab {}", tab_id);
-                return PaneNode::Empty;
+                return (PaneNode::Empty, PaneNode::Empty);
             }
         };
 
@@ -863,14 +863,47 @@ impl TabInner {
             Some(ws) => ws,
             None => {
                 log::error!("window id {} doesn't have a window!?", window_id);
-                return PaneNode::Empty;
+                return (PaneNode::Empty, PaneNode::Empty);
             }
         };
 
         let active = self.get_active_pane();
         let zoomed = self.zoomed.as_ref();
+        let float_pane = self.float_pane.as_ref();
+
+        let codec_float_pane = if let Some(float_pane) = float_pane {
+            let dims = float_pane.get_dimensions();
+            let working_dir = float_pane.get_current_working_dir(CachePolicy::AllowStale);
+            let cursor_pos = float_pane.get_cursor_position();
+
+            PaneNode::Leaf(PaneEntry {
+                window_id,
+                tab_id,
+                pane_id: float_pane.pane_id(),
+                title: float_pane.get_title(),
+                size: TerminalSize {
+                    cols: dims.cols,
+                    rows: dims.viewport_rows,
+                    pixel_height: dims.pixel_height,
+                    pixel_width: dims.pixel_width,
+                    dpi: dims.dpi,
+                },
+                working_dir: working_dir.map(Into::into),
+                is_active_pane: true,
+                is_zoomed_pane: false,
+                workspace: workspace.to_string(),
+                cursor_pos,
+                physical_top: 0,
+                top_row: 0,
+                left_col: 0,
+                tty_name: float_pane.tty_name(),
+            })
+        } else {
+            PaneNode::Empty
+        };
+
         if let Some(root) = self.pane.as_ref() {
-            pane_tree(
+            (pane_tree(
                 root,
                 tab_id,
                 window_id,
@@ -879,9 +912,9 @@ impl TabInner {
                 &workspace,
                 0,
                 0,
-            )
+            ), codec_float_pane)
         } else {
-            PaneNode::Empty
+            (PaneNode::Empty, codec_float_pane)
         }
     }
 
@@ -2241,7 +2274,7 @@ pub enum PaneNode {
         right: Box<PaneNode>,
         node: SplitDirectionAndSize,
     },
-    Leaf(PaneEntry),
+    Leaf(PaneEntry)
 }
 
 impl PaneNode {
@@ -2253,7 +2286,7 @@ impl PaneNode {
                 right: Box::new((*right).into_tree()),
                 data: Some(node),
             },
-            PaneNode::Leaf(e) => bintree::Tree::Leaf(e),
+            PaneNode::Leaf(e) => bintree::Tree::Leaf(e)
         }
     }
 

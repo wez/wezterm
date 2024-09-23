@@ -538,12 +538,12 @@ impl ClientDomain {
             .collect();
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let root_size = match tabroot.root_size() {
+            let root_size = match tabroot.0.root_size() {
                 Some(size) => size,
                 None => continue,
             };
 
-            if let Some((remote_window_id, remote_tab_id)) = tabroot.window_and_tab_ids() {
+            if let Some((remote_window_id, remote_tab_id)) = tabroot.0.window_and_tab_ids() {
                 let tab;
 
                 remote_windows_to_forget.remove(&remote_window_id);
@@ -577,7 +577,7 @@ impl ClientDomain {
 
                 log::debug!("domain: {} tree: {:#?}", inner.local_domain_id, tabroot);
                 let mut workspace = None;
-                tab.sync_with_pane_tree(root_size, tabroot, |entry| {
+                tab.sync_with_pane_tree(root_size, tabroot.0, |entry| {
                     workspace.replace(entry.workspace.clone());
                     remote_panes_to_forget.remove(&entry.pane_id);
                     if let Some(pane_id) = inner.remote_to_local_pane_id(entry.pane_id) {
