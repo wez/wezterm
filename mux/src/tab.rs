@@ -546,7 +546,7 @@ impl Tab {
     /// PaneEntry, or to create a new Pane from that entry.
     /// make_pane is expected to add the pane to the mux if it creates
     /// a new pane, otherwise the pane won't poll/update in the GUI.
-    pub fn sync_with_pane_tree<F>(&self, size: TerminalSize, root: PaneNode, make_pane: F)
+    pub fn sync_with_pane_tree<F>(&self, size: TerminalSize, root: (PaneNode, PaneNode), make_pane: F)
     where
         F: FnMut(PaneEntry) -> Arc<dyn Pane>,
     {
@@ -794,7 +794,7 @@ impl TabInner {
         }
     }
 
-    fn sync_with_pane_tree<F>(&mut self, size: TerminalSize, root: PaneNode, mut make_pane: F)
+    fn sync_with_pane_tree<F>(&mut self, size: TerminalSize, root: (PaneNode, PaneNode), mut make_pane: F)
     where
         F: FnMut(PaneEntry) -> Arc<dyn Pane>,
     {
@@ -803,7 +803,7 @@ impl TabInner {
 
         log::debug!("sync_with_pane_tree with size {:?}", size);
 
-        let t = build_from_pane_tree(root.into_tree(), &mut active, &mut zoomed, &mut make_pane);
+        let t = build_from_pane_tree(root.0.into_tree(), &mut active, &mut zoomed, &mut make_pane);
         let mut cursor = t.cursor();
 
         self.active = 0;
@@ -833,6 +833,11 @@ impl TabInner {
         self.pane.replace(cursor.tree());
         self.zoomed = zoomed;
         self.size = size;
+
+        if let PaneNode::Leaf(entry) = root.1 {
+            let float_pane = make_pane(entry);
+            self.float_pane.replace(float_pane);
+        }
 
         self.resize(size);
 
