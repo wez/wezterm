@@ -1223,7 +1223,6 @@ impl WaylandState {
             .window_by_id(window_id)
             .expect("Inner Window should exist");
 
-        let is_frame_hidden = window_inner.borrow().window_frame.is_hidden();
         let p = window_inner.borrow().pending_event.clone();
         let mut pending_event = p.lock().unwrap();
 
@@ -1260,31 +1259,6 @@ impl WaylandState {
                     state |= WindowState::MAXIMIZED;
                 }
 
-                // For MAXIMIZED and FULL_SCREEN window configure contains Windowed size.
-                // Replacing it with Wayland suggested bounds.
-                if state.intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN) {
-                    if let Some((w, h)) = configure.suggested_bounds {
-                        pending_event.configure.replace((w, h));
-                    }
-                } else if configure
-                    .state
-                    .contains(SCTKWindowState::TILED_TOP | SCTKWindowState::TILED_BOTTOM)
-                    && is_frame_hidden
-                {
-                    // Tiled window without borders will take exactly half of the screen.
-                    if let Some((w, h)) = configure.suggested_bounds {
-                        pending_event.configure.replace((w / 2, h));
-                    }
-                } else if configure
-                    .state
-                    .contains(SCTKWindowState::TILED_LEFT | SCTKWindowState::TILED_RIGHT)
-                    && is_frame_hidden
-                {
-                    // Tiled window without borders will take exactly half of the screen.
-                    if let Some((w, h)) = configure.suggested_bounds {
-                        pending_event.configure.replace((w, h / 2));
-                    }
-                }
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
                     pending_event.window_state,
