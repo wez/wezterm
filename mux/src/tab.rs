@@ -1804,10 +1804,7 @@ impl TabInner {
         if let Some(float_pane) = &self.float_pane {
             if float_pane.is_dead() {
                 dead_panes.push(Arc::clone(float_pane));
-                let mux = Mux::get();
-                let pane_id = float_pane.pane_id();
                 self.float_pane = None;
-                mux.remove_float_pane(pane_id);
             }
         }
 

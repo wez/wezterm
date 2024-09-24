@@ -812,15 +812,6 @@ impl Mux {
         }
     }
 
-    fn remove_float_pane_internal(&self, pane_id: PaneId) {
-        log::debug!("removing float pane {}", pane_id);
-        if let Some(pane) = self.panes.write().remove(&pane_id).clone() {
-            log::debug!("killing float pane {}", pane_id);
-            pane.kill();
-            self.notify(MuxNotification::PaneRemoved(pane_id));
-        }
-    }
-
     fn remove_tab_internal(&self, tab_id: TabId) -> Option<Arc<Tab>> {
         log::debug!("remove_tab_internal tab {}", tab_id);
 
@@ -882,11 +873,6 @@ impl Mux {
 
     pub fn remove_pane(&self, pane_id: PaneId) {
         self.remove_pane_internal(pane_id);
-        self.prune_dead_windows();
-    }
-
-    pub fn remove_float_pane(&self, pane_id: PaneId) {
-        self.remove_float_pane_internal(pane_id);
         self.prune_dead_windows();
     }
 
