@@ -89,6 +89,10 @@ To remove the plugin simply delete the appropriate plugin directory.
     When changes are made to the local project, `wezterm.plugin.update_all()` must be run
     to sync the changes into the Wezterm runtime directory for testing and use.
 
+!!! Info
+    This assumes development on the repo default branch (i.e. `main`). To use a different
+    development branch see below.
+
 ### Managing a Plugin with Multiple Lua Modules
 
 When `requiring` other Lua modules in your plugin the value of `package.path` needs to updated
@@ -98,9 +102,9 @@ with the location of the plugin. The plugin directory can be obtained by running
 ```
 [
     {
-        "component": "filesCssZssZssZsUserssZsalecsZsprojectssZsbarsDswezterm",
+        "component": "filesCssZssZssZsUserssZsdevelopersZsprojectssZsmysDsPlugin",
         "plugin_dir": "/Users/alec/Library/Application Support/wezterm/plugins/filesCssZssZssZsUserssZsalecsZsprojectssZsbarsDswezterm",
-        "url": "file:///Users/alec/projects/bar.wezterm",
+        "url": "file:///Users/developer/projects/my.Plugin",
     },
 ]
 ```
@@ -108,27 +112,20 @@ with the location of the plugin. The plugin directory can be obtained by running
 The package path can then be updated with the value of `plugin_dir`. For example:
 
 ```lua
-function findPluginDir(myProject)
+function findPluginPackagePath(myProject)
+  local separator = package.config:sub(1, 1) == '\\' and '\\' or '/'
   for _, v in ipairs(wezterm.plugin.list()) do
     if v.url == myProject then
-      return v.plugin_dir
+      return v.plugin_dir .. separator .. 'plugin' .. separator .. '?.lua'
     end
   end
-  --- TODO Add error fail here
+  --- #TODO Add error fail here
 end
 
-local separator = package.config:sub(1, 1) == '\\' and '\\' or '/'
-local repo_name = 'file:///Users/alec/projects/bar.wezterm'
-
-plugin_dir = findPluginDir(repo_name)
 
 package.path = package.path
   .. ';'
-  .. plugin_dir
-  .. separator
-  .. 'plugin'
-  .. separator
-  .. '?.lua'
+  .. findPluginPackagePath('file:///Users/developer/projects/my.Plugin')
 ```
 
 !!! Tip
@@ -142,7 +139,7 @@ package.path = package.path
 1. Optionally set an `upstream` remote to the original plugin repo. This makes it easier it merge upstream changes
 1. Create a new branch for development
 1. Make the new branch the default branch with `git symbolic-ref HEAD refs/heads/mybranch`
-1. Set the `plugin_dir` if required (see above)
+1. Set the `plugin_dir` if required (some plugins hard code the value of the plugin directory).
 1. Add the plugin to Wezterm using the file protocol
 
 Proceed using the develop workflow above
