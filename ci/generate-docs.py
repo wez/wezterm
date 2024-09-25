@@ -394,6 +394,10 @@ TOC = [
                 "config/lua/wezterm.mux",
             ),
             Gen(
+                "module: wezterm.plugin",
+                "config/lua/wezterm.plugin",
+            ),
+            Gen(
                 "module: wezterm.procinfo",
                 "config/lua/wezterm.procinfo",
             ),
