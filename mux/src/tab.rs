@@ -1116,10 +1116,6 @@ impl TabInner {
             }
         }
 
-        if let Some(float_pane) = self.get_float_pane() {
-            panes.push(float_pane);
-        }
-
         let active_idx = self.active;
         let zoomed_id = self.zoomed.as_ref().map(|p| p.pane_id());
         let root_size = self.size;

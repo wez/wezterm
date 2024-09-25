@@ -260,12 +260,12 @@ impl crate::TermWindow {
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            if pos.is_float {
-                self.paint_pane(&pos, &mut float_layers).context("paint_pane")?;
-                self.paint_float_border(pos, &mut float_layers).context("paint_float_border")?;
-            } else {
-                self.paint_pane(&pos, &mut layers).context("paint_pane")?;
-            }
+            self.paint_pane(&pos, &mut layers).context("paint_pane")?;
+        }
+
+        if let Some(float_pane) = self.get_float_pane_to_render(){
+            self.paint_pane(&float_pane, &mut float_layers).context("paint_pane")?;
+            self.paint_float_border(float_pane, &mut float_layers).context("paint_float_border")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
