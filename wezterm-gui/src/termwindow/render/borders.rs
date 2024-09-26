@@ -80,6 +80,59 @@ impl crate::TermWindow {
         Ok(())
     }
 
+    pub fn compute_background_rect(
+        &self,
+        pos: &PositionedPane,
+        padding_left: f32,
+        padding_top: f32,
+        border: &Border,
+        top_pixel_y: f32,
+        cell_width: f32,
+        cell_height: f32,
+    ) -> euclid::Rect<f32, window::PixelUnit> {
+        let (x, width_delta) = if pos.left == 0 {
+            (
+                0.,
+                padding_left + border.left.get() as f32 + (cell_width / 2.0),
+            )
+        } else {
+            (
+                padding_left + border.left.get() as f32 - (cell_width / 2.0)
+                    + (pos.left as f32 * cell_width),
+                cell_width,
+            )
+        };
+
+        let (y, height_delta) = if pos.top == 0 {
+            (
+                (top_pixel_y - padding_top),
+                padding_top + (cell_height / 2.0),
+            )
+        } else {
+            (
+                top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
+                cell_height,
+            )
+        };
+
+        euclid::rect(
+            x,
+            y,
+            // Width calculation
+            if pos.left + pos.width >= self.terminal_size.cols as usize {
+                self.dimensions.pixel_width as f32 - x
+            } else {
+                (pos.width as f32 * cell_width) + width_delta
+            },
+            // Height calculation
+            if pos.top + pos.height >= self.terminal_size.rows as usize {
+                self.dimensions.pixel_height as f32 - y
+            } else {
+                (pos.height as f32 * cell_height) + height_delta
+            },
+        )
+    }
+
     pub fn paint_float_border(
         &mut self,
         pos: PositionedPane,
@@ -105,50 +158,8 @@ impl crate::TermWindow {
         let cell_height = self.render_metrics.cell_size.height as f32;
         let cell_width = self.render_metrics.cell_size.width as f32;
 
-        //refactor with logic from paint_pane?
-        let background_rect: euclid::Rect<f32, PixelUnit> = {
-            // We want to fill out to the edges of the splits
-            let (x, width_delta) = if pos.left == 0 {
-                (
-                    0.,
-                    padding_left + os_border.left.get() as f32 + (cell_width / 2.0),
-                )
-            } else {
-                (
-                    padding_left + os_border.left.get() as f32 - (cell_width / 2.0)
-                        + (pos.left as f32 * cell_width),
-                    cell_width,
-                )
-            };
-
-            let (y, height_delta) = if pos.top == 0 {
-                (
-                    (top_pixel_y - padding_top),
-                    padding_top + (cell_height / 2.0),
-                )
-            } else {
-                (
-                    top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
-                    cell_height,
-                )
-            };
-            euclid::rect(
-                x,
-                y,
-                // Go all the way to the right edge if we're right-most
-                if pos.left + pos.width >= self.terminal_size.cols as usize {
-                    self.dimensions.pixel_width as f32 - x
-                } else {
-                    (pos.width as f32 * cell_width) + width_delta
-                },
-                // Go all the way to the bottom if we're bottom-most
-                if pos.top + pos.height >= self.terminal_size.rows as usize {
-                    self.dimensions.pixel_height as f32 - y
-                } else {
-                    (pos.height as f32 * cell_height) + height_delta as f32
-                },
-            )
-        };
+        let background_rect = self.compute_background_rect(&pos,
+            padding_left, padding_top, &os_border, top_pixel_y, cell_width, cell_height);
 
         let pos_y = background_rect.origin.y - float_border.top.get() as f32;
         let pos_x = background_rect.origin.x - float_border.left.get() as f32;
