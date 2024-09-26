@@ -1239,6 +1239,7 @@ impl TabInner {
         }
 
         if let Some(float_pane) = &self.float_pane {
+            self.size = size;
             let float_size = self.compute_float_size();
             float_pane.resize(float_size).ok();
         }
