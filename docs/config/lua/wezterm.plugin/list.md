@@ -8,4 +8,4 @@ Each entry has three fields:
 
 * `url`: The URL of the plugin repo, as provided to the `wezterm.plugin.require` function
 * `component`: The encoded name of the plugin, derived from the repo URL
-* `plugin_dir`: The absolute location of the plugin checkout in the Wexterm runtime directory. Use this to set the plugin path if needed
+* `plugin_dir`: The absolute location of the plugin checkout in the Wezterm runtime directory. Use this to set the plugin path if needed
