@@ -8,5 +8,7 @@ Attempt to fast-forward or `pull --rebase` each of the repos in the plugin direc
 
     The configuration is **not** reloaded afterwards; the user will need to do that themselves.
 
-<!-- #TODO How can a user reload the config? -->
+!!! Tip
+
+    Run the [`wezterm.reload_configuration()`](../wezterm/reload_configuration.md) function to reload the configuration.
 

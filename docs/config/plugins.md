@@ -55,19 +55,19 @@ return config
 
 When changes are published to a plugin repository they are not updated in the local Wezterm instance.
 
-Run the command `wezterm.plugin.update_all()` to update all local plugins.
+Run the command [`wezterm.plugin.update_all()`](lua/wezterm.plugin/update_all.md) to update all local plugins.
 
 !!! Tip
 
-    This can be run using the Lua REPL in [DebugOverlay](https://wezfurlong.org/wezterm/troubleshooting.html#debug-overlay).
+    This can be run using the Lua REPL in [DebugOverlay](../troubleshooting.md#debug-overlay).
 
 ## Removing a Plugin
 
-When a plugin is first referenced, `wezterm.plugin.require()` will clone the repo if it doesn't already
+When a plugin is first referenced, [`wezterm.plugin.require()`](lua/wezterm.plugin/require.md) will clone the repo if it doesn't already
 exist and store it in the runtime directory under `plugins/NAME` where
 `NAME` is derived from the repo URL.
 
-You can discover locations of the various plugins with `wezterm.plugin.list()`
+You can discover locations of the various plugins with [`wezterm.plugin.list()`](lua/wezterm.plugin/list.md).
 
 To remove the plugin simply delete the appropriate plugin directory.
 
@@ -86,7 +86,7 @@ To remove the plugin simply delete the appropriate plugin directory.
    ```
 
 !!! Info
-    When changes are made to the local project, `wezterm.plugin.update_all()` must be run
+    When changes are made to the local project, [`wezterm.plugin.update_all()`](lua/wezterm.plugin/update_all.md) must be run
     to sync the changes into the Wezterm runtime directory for testing and use.
 
 !!! Info
@@ -122,10 +122,9 @@ function findPluginPackagePath(myProject)
   --- #TODO Add error fail here
 end
 
-
 package.path = package.path
   .. ';'
-  .. findPluginPackagePath('file:///Users/developer/projects/my.Plugin')
+  .. findPluginPackagePath 'file:///Users/developer/projects/my.Plugin'
 ```
 
 !!! Tip
