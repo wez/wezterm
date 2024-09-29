@@ -3,6 +3,7 @@ use anyhow::Context;
 use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
 use futures::FutureExt;
+use log::log;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;
@@ -82,6 +83,7 @@ where
                         return Err(err).context("reading Pdu from client");
                     }
                 };
+
                 handler.process_one(decoded);
             }
             Ok(Item::WritePdu(decoded)) => {
@@ -204,6 +206,18 @@ where
             }
             Ok(Item::Notif(MuxNotification::ActiveWorkspaceChanged(_))) => {}
             Ok(Item::Notif(MuxNotification::Empty)) => {}
+            Ok(Item::Notif(MuxNotification::FloatPaneVisibilityChanged{
+                tab_id,
+                visible
+            })) => {
+                Pdu::FloatPaneVisibilityChanged(codec::FloatPaneVisibilityChanged {
+                    tab_id,
+                    visible
+                })
+                .encode_async(&mut stream, 0)
+                .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+            }
             Err(err) => {
                 log::error!("process_async Err {}", err);
                 return Ok(());

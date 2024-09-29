@@ -1289,6 +1289,7 @@ impl TermWindow {
                     // Also handled by clientpane
                     self.update_title_post_status();
                 }
+                MuxNotification::FloatPaneVisibilityChanged { .. } => { }
                 MuxNotification::TabResized(_) => {
                     // Also handled by wezterm-client
                     self.update_title_post_status();
@@ -1501,6 +1502,8 @@ impl TermWindow {
                 } else {
                     return true;
                 }
+            }
+            MuxNotification::FloatPaneVisibilityChanged { .. } => {
             }
             MuxNotification::Alert {
                 alert: Alert::ToastNotification { .. },
@@ -2929,6 +2932,14 @@ impl TermWindow {
                 };
                 tab.toggle_zoom();
             }
+            ToggleFloatingPane => {
+                let mux = Mux::get();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(PerformAssignmentResult::Handled),
+                };
+                tab.toggle_float();
+            }
             SetPaneZoomState(zoomed) => {
                 let mux = Mux::get();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -3453,8 +3464,7 @@ impl TermWindow {
                 height: size.rows as _,
                 pixel_width: size.cols as usize * self.render_metrics.cell_size.width as usize,
                 pixel_height: size.rows as usize * self.render_metrics.cell_size.height as usize,
-                pane,
-                is_float: false
+                pane
             }]
         } else {
             let mut panes = tab.iter_panes();
@@ -3483,6 +3493,10 @@ impl TermWindow {
             Some(tab) => tab,
             None => return None,
         };
+
+        if !tab.float_pane_is_visible() {
+            return None;
+        }
 
         tab.get_float_pane()
     }

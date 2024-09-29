@@ -1621,6 +1621,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Window"],
             icon: Some("md_fullscreen"),
         },
+        ToggleFloatingPane => CommandDef {
+            brief: "Toggle floating pane".into(),
+            doc: "Toggles the visibility state for the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "e".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("md_fullscreen"),
+        },
         ActivateLastTab => CommandDef {
             brief: "Activate the last active tab".into(),
             doc: "If there was no prior active tab, has no effect.".into(),
@@ -2160,6 +2168,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ActivatePaneDirection(PaneDirection::Up),
         ActivatePaneDirection(PaneDirection::Down),
         TogglePaneZoomState,
+        ToggleFloatingPane,
         ActivateLastTab,
         ShowLauncher,
         ShowTabNavigator,

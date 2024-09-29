@@ -93,6 +93,10 @@ pub enum MuxNotification {
         old_workspace: String,
         new_workspace: String,
     },
+    FloatPaneVisibilityChanged{
+        tab_id: TabId,
+        visible: bool,
+    }
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -523,6 +527,16 @@ impl Mux {
         if let Some(pane) = self.get_pane(pane_id) {
             pane.focus_changed(true);
         }
+    }
+
+    pub fn set_float_pane_visibility(&self, tab_id: TabId, visible: bool) -> anyhow::Result<()> {
+        let tab = self
+            .get_tab(tab_id)
+            .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
+
+        tab.set_float_pane_visibility(visible);
+
+        Ok(())
     }
 
     /// Called by PaneFocused event handlers to reconcile a remote
@@ -1056,6 +1070,12 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
+            if let Some(float_pane) = tab.get_float_pane() {
+                if pane_id == float_pane.pane.pane_id() {
+                    ids = Some((tab.tab_id(), float_pane.pane.domain_id()));
+                    break;
+                }
+            }
             for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {
                     ids = Some((tab.tab_id(), p.pane.domain_id()));

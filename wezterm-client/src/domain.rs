@@ -15,6 +15,7 @@ use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
+use mux::MuxNotification::FloatPaneVisibilityChanged;
 use wezterm_term::TerminalSize;
 
 pub struct ClientInner {
@@ -354,6 +355,22 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                 }
             }
         }
+        MuxNotification::FloatPaneVisibilityChanged { tab_id, visible } => {
+            if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_float_pane_visibility(codec::FloatPaneVisibilityChanged {
+                                tab_id: remote_tab_id,
+                                visible,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
+            }
+        }
         MuxNotification::WindowTitleChanged {
             window_id,
             title: _,
@@ -496,6 +513,16 @@ impl ClientDomain {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
                     tab.set_title(&title);
+                }
+            }
+        }
+    }
+
+    pub fn set_float_pane_visibility(&self, remote_tab_id: TabId, visible: bool) {
+        if let Some(inner) = self.inner() {
+            if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
+                if let Some(tab) = Mux::get().get_tab(local_tab_id) {
+                    tab.set_float_pane_visibility(visible);
                 }
             }
         }

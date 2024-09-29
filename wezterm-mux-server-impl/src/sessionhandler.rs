@@ -732,6 +732,25 @@ impl SessionHandler {
                     .detach();
             }
 
+            Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged{ tab_id, visible }) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let _identity = mux.with_identity(client_id);
+
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.set_float_pane_visibility(visible);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response
+                    );
+                }).detach()
+            }
+
             Pdu::MovePaneToNewTab(request) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {

@@ -550,6 +550,7 @@ pub enum KeyAssignment {
     SplitHorizontal(SpawnCommand),
     SplitVertical(SpawnCommand),
     FloatPane(SpawnCommand),
+    ToggleFloatingPane,
     ShowLauncher,
     ShowLauncherArgs(LauncherActionArgs),
     ClearScrollback(ScrollbackEraseMode),

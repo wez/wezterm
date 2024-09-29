@@ -43,7 +43,7 @@ impl ListCommand {
                 }
             }
 
-            if let PaneNode::Leaf(entry) = &tabroot.1 {
+            if let PaneNode::Leaf(entry) = &tabroot.1.0 {
                 let window_title = panes
                     .window_titles
                     .get(&entry.window_id)

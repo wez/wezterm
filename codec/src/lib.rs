@@ -16,7 +16,7 @@ use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
+use mux::tab::{PaneNode, SerdeUrl, SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
@@ -503,6 +503,7 @@ pdu! {
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
     FloatPane: 63,
+    FloatPaneVisibilityChanged: 64
 }
 
 impl Pdu {
@@ -645,7 +646,7 @@ pub struct ListPanes {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
-    pub tabs: Vec<(PaneNode, PaneNode)>,
+    pub tabs: Vec<(PaneNode, (PaneNode, bool))>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
 }
@@ -656,6 +657,12 @@ pub struct FloatPane {
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub domain: config::keyassignment::SpawnTabDomain,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct FloatPaneVisibilityChanged {
+    pub tab_id: TabId,
+    pub visible: bool
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
