@@ -9,7 +9,7 @@ use ::window::{
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
 use mux::pane::{Pane, WithPaneLines};
-use mux::tab::SplitDirection;
+use mux::tab::{SplitDirection, Tab};
 use mux::Mux;
 use mux_lua::MuxPane;
 use std::convert::TryInto;
@@ -667,7 +667,30 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
-        for pos in self.get_panes_to_render() {
+        let panes = if let Some(float_pane) = self.get_float_pane_to_render() {
+            let mouse_in_float = position.column >= float_pane.left &&
+                position.column <= float_pane.left + float_pane.width &&
+                position.row as usize >= float_pane.top &&
+                position.row as usize <= float_pane.top + float_pane.height;
+
+            if !mouse_in_float {
+                let mux = Mux::get();
+                if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id){
+                    mux.set_float_pane_visibility(tab.tab_id(), false).ok();
+                }
+
+                // Mouse events are not dispatched to the other panes when
+                // a floating pane is active, this is to prevent users from selecting one of the
+                // panes that the float is on top of and encountering some weird behavior, ex.
+                // closing the last non-floating pane while the floating pane is active.
+                return;
+            }
+            vec![float_pane]
+        } else {
+            self.get_panes_to_render()
+        };
+
+        for pos in panes {
             if !is_already_captured
                 && row >= pos.top as i64
                 && row <= (pos.top + pos.height) as i64

@@ -1,7 +1,9 @@
 use crate::quad::TripleLayerQuadAllocator;
 use crate::utilsprites::RenderMetrics;
 use ::window::ULength;
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext, FloatBorderConfig, PixelUnit};
+use mux::tab::PositionedPane;
+use window::parameters::Border;
 
 impl crate::TermWindow {
     pub fn paint_window_borders(
@@ -78,6 +80,140 @@ impl crate::TermWindow {
         Ok(())
     }
 
+    pub fn compute_background_rect(
+        &self,
+        pos: &PositionedPane,
+        padding_left: f32,
+        padding_top: f32,
+        border: &Border,
+        top_pixel_y: f32,
+        cell_width: f32,
+        cell_height: f32,
+    ) -> euclid::Rect<f32, window::PixelUnit> {
+        let (x, width_delta) = if pos.left == 0 {
+            (
+                0.,
+                padding_left + border.left.get() as f32 + (cell_width / 2.0),
+            )
+        } else {
+            (
+                padding_left + border.left.get() as f32 - (cell_width / 2.0)
+                    + (pos.left as f32 * cell_width),
+                cell_width,
+            )
+        };
+
+        let (y, height_delta) = if pos.top == 0 {
+            (
+                (top_pixel_y - padding_top),
+                padding_top + (cell_height / 2.0),
+            )
+        } else {
+            (
+                top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
+                cell_height,
+            )
+        };
+
+        euclid::rect(
+            x,
+            y,
+            // Width calculation
+            if pos.left + pos.width >= self.terminal_size.cols as usize {
+                self.dimensions.pixel_width as f32 - x
+            } else {
+                (pos.width as f32 * cell_width) + width_delta
+            },
+            // Height calculation
+            if pos.top + pos.height >= self.terminal_size.rows as usize {
+                self.dimensions.pixel_height as f32 - y
+            } else {
+                (pos.height as f32 * cell_height) + height_delta
+            },
+        )
+    }
+
+    pub fn paint_float_border(
+        &mut self,
+        pos: PositionedPane,
+        layers: &mut TripleLayerQuadAllocator,
+    ) -> anyhow::Result<()> {
+        let (padding_left, padding_top) = self.padding_left_top();
+        let config = self.config.float_pane_border.clone();
+        let float_border = self.get_float_border();
+
+        let os_border = self.get_os_border();
+        let tab_bar_height = if self.show_tab_bar {
+            self.tab_bar_pixel_height()?
+        } else {
+            0.
+        };
+
+        let (top_bar_height, _bottom_bar_height) = if self.config.tab_bar_at_bottom {
+            (0.0, tab_bar_height)
+        } else {
+            (tab_bar_height, 0.0)
+        };
+        let top_pixel_y = top_bar_height + padding_top + os_border.top.get() as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let cell_width = self.render_metrics.cell_size.width as f32;
+
+        let background_rect = self.compute_background_rect(&pos,
+            padding_left, padding_top, &os_border, top_pixel_y, cell_width, cell_height);
+
+        let pos_y = background_rect.origin.y - float_border.top.get() as f32;
+        let pos_x = background_rect.origin.x - float_border.left.get() as f32;
+        let pixel_width = background_rect.size.width + float_border.left.get() as f32;
+        let pixel_height = background_rect.size.height + float_border.top.get() as f32;
+
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x,
+                pos_y,
+                float_border.left.get() as f32,
+                pixel_height + float_border.top.get() as f32,
+            ),
+            config.left_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x + float_border.left.get() as f32,
+                pos_y,
+                pixel_width,
+                float_border.top.get() as f32,
+            ),
+            config.top_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x + float_border.left.get() as f32,
+                pos_y + pixel_height,
+                pixel_width,
+                float_border.bottom.get() as f32,
+            ),
+            config.bottom_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
+        )?;
+        self.filled_rectangle(
+            layers,
+            2,
+            euclid::rect(
+                pos_x + pixel_width,
+                pos_y,
+                float_border.right.get() as f32,
+                pixel_height + float_border.top.get() as f32,
+            ),
+            config.right_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
+        )?;
+
+        Ok(())
+    }
+
     pub fn get_os_border_impl(
         os_parameters: &Option<window::parameters::Parameters>,
         config: &ConfigHandle,
@@ -135,6 +271,65 @@ impl crate::TermWindow {
         );
 
         border
+    }
+
+    //refactor with get_os_border_impl?
+    fn get_float_border_impl(
+        dimensions: &crate::Dimensions,
+        render_metrics: &RenderMetrics,
+        border_config: &FloatBorderConfig
+    ) -> Border {
+        let mut border= Border::default();
+        border.left += ULength::new(
+            border_config
+                .left_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.right += ULength::new(
+            border_config
+                .right_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.top += ULength::new(
+            border_config
+                .top_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+        border.bottom += ULength::new(
+            border_config
+                .bottom_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+
+        border
+    }
+
+    fn get_float_border(&self) -> Border {
+        Self::get_float_border_impl(
+            &self.dimensions,
+            &self.render_metrics,
+            &self.config.float_pane_border
+        )
     }
 
     pub fn get_os_border(&self) -> window::parameters::Border {

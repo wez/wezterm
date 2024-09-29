@@ -71,6 +71,25 @@ pub trait Domain: Downcast + Send + Sync {
         Ok(tab)
     }
 
+    async fn add_float_pane(
+        &self,
+        tab: TabId,
+        _pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let float_size = tab.compute_float_size();
+        let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
+        tab.insert_float(float_size, Arc::clone(&pane))?;
+        Ok(pane)
+    }
+
     async fn split_pane(
         &self,
         source: SplitSource,

@@ -6,7 +6,7 @@ use mux::client::ClientId;
 use mux::domain::SplitSource;
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::TabId;
+use mux::tab::{PaneNode, TabId};
 use mux::{Mux, MuxNotification};
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
@@ -725,6 +725,33 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::FloatPane(float) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    schedule_float_pane(float, send_response, client_id);
+                })
+                    .detach();
+            }
+
+            Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged{ tab_id, visible }) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let _identity = mux.with_identity(client_id);
+
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.set_float_pane_visibility(visible);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response
+                    );
+                }).detach()
+            }
+
             Pdu::MovePaneToNewTab(request) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
@@ -1059,6 +1086,34 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
 
     let (pane, size) = mux
         .split_pane(split.pane_id, split.split_request, source, split.domain)
+        .await?;
+
+    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        pane_id: pane.pane_id(),
+        tab_id,
+        window_id,
+        size,
+    }))
+}
+
+fn schedule_float_pane<SND>(float: FloatPane,  send_response: SND, client_id: Option<Arc<ClientId>>)
+    where
+        SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(float_pane(float, client_id).await) })
+        .detach();
+}
+
+async fn float_pane(float_pane: FloatPane, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
+    let mux = Mux::get();
+    let _identity = mux.with_identity(client_id);
+
+    let (_pane_domain_id, window_id, tab_id) = mux
+        .resolve_pane_id(float_pane.pane_id)
+        .ok_or_else(|| anyhow!("pane_id {} invalid", float_pane.pane_id))?;
+
+    let (pane, size) = mux
+        .float_pane(float_pane.pane_id, float_pane.command, float_pane.command_dir, float_pane.domain)
         .await?;
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {

@@ -93,6 +93,10 @@ pub enum MuxNotification {
         old_workspace: String,
         new_workspace: String,
     },
+    FloatPaneVisibilityChanged{
+        tab_id: TabId,
+        visible: bool,
+    }
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -523,6 +527,16 @@ impl Mux {
         if let Some(pane) = self.get_pane(pane_id) {
             pane.focus_changed(true);
         }
+    }
+
+    pub fn set_float_pane_visibility(&self, tab_id: TabId, visible: bool) -> anyhow::Result<()> {
+        let tab = self
+            .get_tab(tab_id)
+            .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
+
+        tab.set_float_pane_visibility(visible);
+
+        Ok(())
     }
 
     /// Called by PaneFocused event handlers to reconcile a remote
@@ -1056,6 +1070,12 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
+            if let Some(float_pane) = tab.get_float_pane() {
+                if pane_id == float_pane.pane.pane_id() {
+                    ids = Some((tab.tab_id(), float_pane.pane.domain_id()));
+                    break;
+                }
+            }
             for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {
                     ids = Some((tab.tab_id(), p.pane.domain_id()));
@@ -1167,6 +1187,63 @@ impl Mux {
                 _ => None,
             }
         })
+    }
+
+    pub async fn float_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (_pane_domain_id, window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+        let domain = self
+            .resolve_spawn_tab_domain(Some(pane_id), &domain)
+            .context("resolve_spawn_tab_domain")?;
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(Some(window_id)).await?;
+        }
+
+        let current_pane = self
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let term_config = current_pane.get_config();
+
+        let command_dir = if !command_dir.is_some() {
+            self.resolve_cwd(
+                command_dir,
+                Some(Arc::clone(&current_pane)),
+                domain.domain_id(),
+                CachePolicy::FetchImmediate,
+            )
+        } else {
+            command_dir
+        };
+
+        let pane = domain.add_float_pane(tab_id, pane_id, command_builder, command_dir).await?;
+
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard
+
+        let dims = pane.get_dimensions();
+
+        let size = TerminalSize {
+            cols: dims.cols,
+            rows: dims.viewport_rows,
+            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_width: 0,
+            dpi: dims.dpi,
+        };
+
+        Ok((pane, size))
     }
 
     pub async fn split_pane(
