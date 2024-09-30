@@ -200,6 +200,43 @@ impl GuiFrontEnd {
                     })
                     .detach();
                 }
+                MuxNotification::QueryClipboard {
+                    pane_id,
+                    selection,
+                    mut writer,
+                } => {
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let fe = crate::frontend::front_end();
+                        log::trace!("get clipboard in pane {} {:?}", pane_id, selection);
+                        if let Some(window) = fe.known_windows.borrow().keys().next() {
+                            let clipboard = match selection {
+                                ClipboardSelection::Clipboard => Clipboard::Clipboard,
+                                ClipboardSelection::PrimarySelection => Clipboard::PrimarySelection,
+                            };
+                            let future = window.get_clipboard(clipboard);
+                            promise::spawn::spawn(async move {
+                                let content = future.await;
+                                match content {
+                                    Ok(content) => {
+                                        if let Err(err) = writer.write(content) {
+                                            log::error!(
+                                                "Error sending clipboard content {:?}",
+                                                err
+                                            );
+                                        };
+                                    }
+                                    Err(err) => {
+                                        log::error!("Error reading clipboard {:?}", err);
+                                    }
+                                }
+                            })
+                            .detach();
+                        } else {
+                            log::error!("Cannot get clipboard as there are no windows");
+                        };
+                    })
+                    .detach();
+                }
             }
             true
         });

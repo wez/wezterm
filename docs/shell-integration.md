@@ -3,6 +3,7 @@ wezterm supports integrating with the shell through the following means:
 * `OSC 7` Escape sequences to advise the terminal of the working directory
 * `OSC 133` Escape sequence to define Input, Output and Prompt zones
 * `OSC 1337` Escape sequences to set user vars for tracking additional shell state
+* `OSC 52` Escape sequences for writing to and reading from the clipboard
 
 `OSC` is escape sequence jargon for *Operating System Command*.
 
@@ -180,3 +181,33 @@ return config
 
 Now, rather than just running `cmd.exe` on its own, this will cause `cmd.exe`
 to self-inject the clink line editor.
+
+## OSC 52 Clipboard Copy
+
+The data can be copied to the `System Clipboard` or `Primary Selection` with a
+command like this:
+
+```bash
+printf '\033]52;c;%s\033\\' $(base64 <<< "hello world")
+```
+
+- `c` copies to the system clipboard
+- `p` copies to the primary selection buffer
+
+The second parameter provides the selection data, which is a string encoded in base64 (RFC-4648).
+
+## OSC 52 Clipboard Paste
+
+The data can be pasted from the `System Clipboard` or `Primary Selection` with a
+command like this:
+
+```bash
+printf "\033]7;c;?\033\\"
+```
+
+- `c` pastes to the system clipboard
+- `p` pastes to the primary selection buffer
+
+Note that this feature poses a potential security risk and is disabled by
+default. It requires enabling via [a configuration option](config/lua/config/enable_osc52_clipboard_reading.md).
+You should carefully consider whether you're willing to accept the associated risks before enabling it.

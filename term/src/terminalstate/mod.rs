@@ -446,6 +446,7 @@ fn default_color_map() -> HashMap<u16, RgbColor> {
 /// back-pressure when there is a lot of data to read,
 /// and we're in control of the write side, which represents
 /// input from the interactive user, or pastes.
+#[derive(Debug, Clone)]
 struct ThreadedWriter {
     sender: Sender<WriterMessage>,
 }

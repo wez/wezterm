@@ -461,6 +461,8 @@ pdu! {
     SendPaste: 13,
     Resize: 14,
     SetClipboard: 20,
+    QueryClipboard: 21,
+    QueryClipboardResponse: 63,
     GetLines: 22,
     GetLinesResponse: 23,
     GetPaneRenderChanges: 24,
@@ -516,6 +518,7 @@ impl Pdu {
             | Self::SendPaste(_)
             | Self::Resize(_)
             | Self::SetClipboard(_)
+            | Self::QueryClipboard(_)
             | Self::SetPaneZoomed(_)
             | Self::SpawnV2(_) => true,
             _ => false,
@@ -594,6 +597,7 @@ impl Pdu {
             | Pdu::SetPalette(SetPalette { pane_id, .. })
             | Pdu::NotifyAlert(NotifyAlert { pane_id, .. })
             | Pdu::SetClipboard(SetClipboard { pane_id, .. })
+            | Pdu::QueryClipboard(QueryClipboard { pane_id, .. })
             | Pdu::PaneFocused(PaneFocused { pane_id })
             | Pdu::PaneRemoved(PaneRemoved { pane_id }) => Some(*pane_id),
             _ => None,
@@ -767,6 +771,18 @@ pub struct SetClipboard {
     pub pane_id: PaneId,
     pub clipboard: Option<String>,
     pub selection: ClipboardSelection,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct QueryClipboard {
+    pub pane_id: PaneId,
+    pub selection: ClipboardSelection,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct QueryClipboardResponse {
+    pub pane_id: PaneId,
+    pub content: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
