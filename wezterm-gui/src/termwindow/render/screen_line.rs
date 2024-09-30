@@ -11,6 +11,7 @@ use config::{HsbTransform, TextStyle};
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::Instant;
+use std::cmp::{max, min};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::color::LinearRgba;
 use termwiz::surface::CursorShape;
@@ -287,16 +288,60 @@ impl crate::TermWindow {
         let selection_pixel_range = if !params.selection.is_empty() {
             let start = params.left_pixel_x + (params.selection.start as f32 * cell_width);
             let width = (params.selection.end - params.selection.start) as f32 * cell_width;
+
+            // When using reverse video, we draw the selection rectangle with
+            // text foreground as its color
+            let selection_color = if self.config.force_reverse_video_selection {
+                params.foreground
+            } else {
+                params.selection_bg
+            };
+
             let mut quad = self
                 .filled_rectangle(
                     layers,
                     0,
                     euclid::rect(start, params.top_pixel_y, width, cell_height),
-                    params.selection_bg,
+                    selection_color,
                 )
                 .context("filled_rectangle")?;
 
             quad.set_hsv(hsv);
+
+            // When using reverse video selection, we also draw a selection
+            // rectangle for each item with a different foreground color than
+            // the default one
+            if self.config.force_reverse_video_selection {
+                for item in shaped.iter() {
+                    let cluster = &item.cluster;
+
+                    if !item.fg_color.eq(&params.foreground) {
+                        // Calculate the number of item's cells actually inside
+                        // the selection
+                        let left = max(cluster.first_cell_idx, params.selection.start);
+                        let right = min(cluster.first_cell_idx + cluster.width, params.selection.end);
+
+                        // Only draw a rectangle for items with selected cells
+                        if right > left {
+                            // log::error!("Drawing A rectangle {} {}", left, right);
+                            let mut quad = self
+                                .filled_rectangle(
+                                    layers,
+                                    0,
+                                    euclid::rect(
+                                        params.left_pixel_x + (left as f32 * cell_width),
+                                        params.top_pixel_y,
+                                        (right - left) as f32 * cell_width,
+                                        cell_height
+                                    ),
+                                    item.fg_color,
+                                )
+                                .context("filled_rectangle")?;
+                            quad.set_hsv(hsv);
+                        }
+                    }
+                }
+            }
 
             start..start + width
         } else {

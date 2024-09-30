@@ -573,11 +573,15 @@ impl crate::TermWindow {
             visibility,
         ) {
             // Selected text overrides colors
-            (true, _, _, CursorVisibility::Hidden) => (
+            (true, _, _, CursorVisibility::Hidden) => if self.config.force_reverse_video_selection {(
+                params.bg_color,
+                params.fg_color,
+                params.cursor_bg,
+            )} else {(
                 params.selection_fg.when_fully_transparent(params.fg_color),
                 params.selection_bg,
                 params.cursor_bg,
-            ),
+            )},
             // block Cursor cell overrides colors
             (
                 _,
