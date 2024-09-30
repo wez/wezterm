@@ -4,6 +4,55 @@ tags:
 ---
 # `tab_bar_style`
 
+This example changes the tab edges to the PowerLine arrow symbols:
+
+![Demonstrating setting the styling of the left and right tab edges](../../../screenshots/wezterm-tab-edge-styled.png)
+
+```lua
+local wezterm = require 'wezterm'
+
+local config = wezterm.config_builder()
+
+config.use_fancy_tab_bar = false
+
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
+  -- The filled in variant of the < symbol
+  local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
+
+  -- The filled in variant of the > symbol
+  local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
+  local title = tab.active_pane.title
+  if tab.tab_title and #tab.tab_title > 0 then
+    title = tab.tab_title
+  end
+  if tab.is_active then
+    return {
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#2b2042" } },
+      { Text = SOLID_LEFT_ARROW },
+      { Background = { Color = "#2b2042" } },
+      { Foreground = { Color = "#A9A6AC" } },
+      { Text = (tab.tab_index + 1) .. ": " .. title .. " " },
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#2b2042" } },
+      { Text = SOLID_RIGHT_ARROW },
+    }
+  else
+    return {
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#1b1032" } },
+      { Text = SOLID_LEFT_ARROW },
+      { Background = { Color = "#1b1032" } },
+      { Foreground = { Color = "#66646C" } },
+      { Text = (tab.tab_index + 1) .. ": " .. title .. " " },
+      { Background = { Color = "#0b0022" } },
+      { Foreground = { Color = "#1b1032" } },
+      { Text = SOLID_RIGHT_ARROW },
+    }
+  end
+end)
+```
+
 {{since('20210814-124438-54e29167')}}
 
 `new_tab_left`, `new_tab_right`, `new_tab_hover_left`, `new_tab_hover_right`
@@ -36,45 +85,6 @@ The available elements are:
 * `inactive_tab_hover_left`, `inactive_tab_hover_right` - the left and right sides of inactive tabs in the hover state
 * `new_tab_left`, `new_tab_right` - the left and right sides of the new tab `+` button
 * `new_tab_hover_left`, `new_tab_hover_right` - the left and right sides of the new tab `+` button in the hover state.
-
-This example changes the tab edges to the PowerLine arrow symbols:
-
-![Demonstrating setting the styling of the left and right tab edges](../../../screenshots/wezterm-tab-edge-styled.png)
-
-```lua
-local wezterm = require 'wezterm'
-
-local config = wezterm.config_builder()
-
--- The filled in variant of the < symbol
-local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
-
--- The filled in variant of the > symbol
-local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
-
-config.tab_bar_style = {
-  active_tab_left = wezterm.format {
-    { Background = { Color = '#0b0022' } },
-    { Foreground = { Color = '#2b2042' } },
-    { Text = SOLID_LEFT_ARROW },
-  },
-  active_tab_right = wezterm.format {
-    { Background = { Color = '#0b0022' } },
-    { Foreground = { Color = '#2b2042' } },
-    { Text = SOLID_RIGHT_ARROW },
-  },
-  inactive_tab_left = wezterm.format {
-    { Background = { Color = '#0b0022' } },
-    { Foreground = { Color = '#1b1032' } },
-    { Text = SOLID_LEFT_ARROW },
-  },
-  inactive_tab_right = wezterm.format {
-    { Background = { Color = '#0b0022' } },
-    { Foreground = { Color = '#1b1032' } },
-    { Text = SOLID_RIGHT_ARROW },
-  },
-}
-```
 
 #### Retro Tab Bar with Integrated Window Management Buttons
 
