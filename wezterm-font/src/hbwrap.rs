@@ -1052,7 +1052,11 @@ impl Buffer {
         unsafe {
             let mut len: u32 = 0;
             let info = hb_buffer_get_glyph_infos(self.buf, &mut len as *mut _);
-            slice::from_raw_parts(info, len as usize)
+            if info.is_null() {
+                &[]
+            } else {
+                slice::from_raw_parts(info, len as usize)
+            }
         }
     }
 
@@ -1062,7 +1066,11 @@ impl Buffer {
         unsafe {
             let mut len: u32 = 0;
             let pos = hb_buffer_get_glyph_positions(self.buf, &mut len as *mut _);
-            slice::from_raw_parts(pos, len as usize)
+            if pos.is_null() {
+                &[]
+            } else {
+                slice::from_raw_parts(pos, len as usize)
+            }
         }
     }
 

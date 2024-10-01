@@ -92,10 +92,15 @@ impl FontRasterizer for FreeTypeRasterizer {
         // pitch is the number of bytes per source row
         let pitch = ft_glyph.bitmap.pitch.abs() as usize;
         let data = unsafe {
-            slice::from_raw_parts_mut(
-                ft_glyph.bitmap.buffer,
-                ft_glyph.bitmap.rows as usize * pitch,
-            )
+            // TODO: Stop violating precondition
+            if !ft_glyph.bitmap.buffer.is_null() {
+                slice::from_raw_parts_mut(
+                    ft_glyph.bitmap.buffer,
+                    ft_glyph.bitmap.rows as usize * pitch,
+                )
+            } else {
+                &mut []
+            }
         };
 
         let glyph = match mode {

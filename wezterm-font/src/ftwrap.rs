@@ -431,7 +431,13 @@ impl Face {
     pub fn pixel_sizes(&self) -> Vec<u16> {
         let sizes = unsafe {
             let rec = &(*self.face);
-            std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+            // std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+            // TODO: Stop violating unsafe precondition
+            if !rec.available_sizes.is_null() {
+                std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+            } else {
+                &[]
+            }
         };
         sizes
             .iter()
