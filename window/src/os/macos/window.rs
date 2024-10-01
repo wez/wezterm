@@ -1113,7 +1113,7 @@ impl WindowInner {
             self.window
                 .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
             self.apply_decorations();
-            self.window.makeKeyAndOrderFront_(nil)
+            self.window.makeKeyAndOrderFront_(nil);
         }
     }
 
@@ -2062,7 +2062,12 @@ impl WindowView {
         YES
     }
 
-    extern "C" fn accepts_first_responder(_this: &mut Object, _sel: Sel) -> BOOL {
+    extern "C" fn accepts_first_responder(this: &mut Object, _sel: Sel) -> BOOL {
+        if let Some(this) = Self::get_this(this) {
+            // TODO: Probably not the best place
+            // to call update, but it works
+            this.update_title_bar_buttons_position();
+        }
         YES
     }
 
@@ -2160,6 +2165,18 @@ impl WindowView {
         self.update_title_bar_buttons_position();
     }
 
+    extern "C" fn did_become_main(this: &mut Object, _sel: Sel, _id: id) {
+        if let Some(this) = Self::get_this(this) {
+            this.update_title_bar_buttons_position();
+        }
+    }
+
+    extern "C" fn did_resign_main(this: &mut Object, _sel: Sel, _id: id) {
+        if let Some(this) = Self::get_this(this) {
+            this.update_title_bar_buttons_position();
+        }
+    }
+
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             this.inner
@@ -2167,6 +2184,7 @@ impl WindowView {
                 .events
                 .dispatch(WindowEvent::FocusChanged(true));
             this.update_application_presentation(true);
+            this.update_title_bar_buttons_position();
         }
     }
 
@@ -2177,6 +2195,7 @@ impl WindowView {
                 .events
                 .dispatch(WindowEvent::FocusChanged(false));
             this.update_application_presentation(true);
+            this.update_title_bar_buttons_position();
         }
     }
 
@@ -2830,9 +2849,7 @@ impl WindowView {
         if let Some(this) = Self::get_this(this) {
             this.update_title_bar_buttons_position();
 
-            let inner = this.inner.borrow_mut();
-
-            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+            if let Some(gl_context_pair) = this.inner.borrow_mut().gl_context_pair.as_ref() {
                 gl_context_pair.backend.update();
             }
         }
@@ -3167,6 +3184,15 @@ impl WindowView {
             cls.add_method(
                 sel!(windowDidChangeScreen:),
                 Self::did_change_screen as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(windowDidBecomeMain:),
+                Self::did_become_main as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(windowDidResignMain:),
+                Self::did_resign_main as extern "C" fn(&mut Object, Sel, id),
             );
 
             cls.add_method(
