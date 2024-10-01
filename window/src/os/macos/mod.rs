@@ -1,3 +1,4 @@
+use cocoa::appkit::NSApplication;
 use cocoa::base::{id, nil};
 use cocoa::foundation::NSString;
 use objc::rc::StrongPtr;
@@ -31,4 +32,17 @@ unsafe fn nsstring_to_str<'a>(mut ns: *mut Object) -> &'a str {
     let len = NSString::len(ns as id);
     let bytes = std::slice::from_raw_parts(data, len);
     std::str::from_utf8_unchecked(bytes)
+}
+
+unsafe fn nsapplication_shared_direction_is_rtl() -> bool {
+    // 0 -> Left to Right
+    // 1 -> Right to Left
+    let layout_direction: cocoa::foundation::NSInteger = unsafe {
+        msg_send![
+            NSApplication::sharedApplication(nil),
+            userInterfaceLayoutDirection
+        ]
+    };
+
+    layout_direction != 0
 }

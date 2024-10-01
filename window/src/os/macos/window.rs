@@ -1,7 +1,7 @@
 // let () = msg_send! is a common pattern for objc
 #![allow(clippy::let_unit_value)]
 
-use super::keycodes::*;
+use super::{keycodes::*, nsapplication_shared_direction_is_rtl};
 use super::{nsstring, nsstring_to_str};
 use crate::clipboard::Clipboard as ClipboardContext;
 use crate::connection::ConnectionOps;
@@ -27,7 +27,7 @@ use cocoa::foundation::{
     NSUInteger,
 };
 use config::{ConfigHandle, Dimension};
-use core_foundation::base::{CFTypeID, TCFType};
+use core_foundation::base::{CFTypeID, TCFType, TCFTypeRef};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
 use core_foundation::string::{CFString, CFStringRef, UniChar};
@@ -891,12 +891,18 @@ impl WindowOps for Window {
                 == wezterm_input_types::IntegratedTitleButtonAlignment::Left
                 || config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative);
 
+        let is_rtl = unsafe { nsapplication_shared_direction_is_rtl() };
+        let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
+        let native_buttons =
+            config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative;
+
+        let macos_native_padding = Dimension::Pixels(76.0 + tab_bar_height);
+
         let left_padding = if window_buttons_at_left {
-            if config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative {
-                if !window_state.contains(WindowState::FULL_SCREEN) {
+            if native_buttons {
+                if !is_full_screen && !is_rtl {
                     // width of the three buttons + left and right padding around
-                    let padding = 76.0 + tab_bar_height;
-                    Dimension::Pixels(padding)
+                    macos_native_padding
                 } else {
                     Dimension::Cells(0.5)
                 }
@@ -907,7 +913,13 @@ impl WindowOps for Window {
             Dimension::Cells(0.5)
         };
 
-        (left_padding, Default::default())
+        let right_padding = if native_buttons && !is_full_screen && is_rtl {
+            macos_native_padding
+        } else {
+            Default::default()
+        };
+
+        (left_padding, right_padding)
     }
 }
 
@@ -2982,6 +2994,31 @@ impl WindowView {
     // Based on code from electron and
     // https://github.com/stonesam92/ChitChat/blob/8aa2feb58e3467546ee5c861df53de604cb2ca96/WhatsMac/AppDelegate.m#L391
     fn update_title_bar_buttons_position(&self) {
+        // [[NSUserDefaults standardUserDefaults] setObject:@"YES" forKey:@"AppleTextDirection"];
+        // [[NSUserDefaults standardUserDefaults] setObject:@"YES" forKey:@"NSForceRightToLeftWritingDirection"];
+
+        unsafe {
+            let user_defaults = <id as cocoa::foundation::NSUserDefaults>::standardUserDefaults();
+
+            cocoa::foundation::NSUserDefaults::setBool_forKey_(
+                user_defaults,
+                YES,
+                *nsstring("AppleTextDirection"),
+            );
+            cocoa::foundation::NSUserDefaults::setBool_forKey_(
+                user_defaults,
+                YES,
+                *nsstring("NSForceRightToLeftWritingDirection"),
+            );
+        }
+
+        let is_rtl = unsafe { nsapplication_shared_direction_is_rtl() };
+        //  appkit::NSApplication::sharedApplication(nil)
+
+        // if ([UIApplication sharedApplication].userInterfaceLayoutDirection == UIUserInterfaceLayoutDirectionRightToLeft) {
+
+        // return;
+
         let titlebar_height;
         let window;
         // Get titlebar height and window or return without handling
@@ -3016,6 +3053,7 @@ impl WindowView {
         }
 
         // Set titlebar container position and size
+        let window_width;
         {
             let titlebar_container_view = unsafe {
                 window
@@ -3025,6 +3063,7 @@ impl WindowView {
             };
 
             let window_frame = unsafe { appkit::NSWindow::frame(*window) };
+            window_width = window_frame.size.width;
 
             let mut frame = unsafe { NSView::frame(titlebar_container_view) };
             frame.origin.y = window_frame.size.height - titlebar_height;
@@ -3036,7 +3075,11 @@ impl WindowView {
             }
         }
 
-        let mut button_x = (titlebar_height * 0.5 - 8.0).max(0.0);
+        let mut button_x = if is_rtl {
+            titlebar_height * 0.5 + 8.0
+        } else {
+            (titlebar_height * 0.5 - 8.0).max(0.0)
+        };
 
         for button_kind in [
             appkit::NSWindowButton::NSWindowCloseButton,
@@ -3048,7 +3091,12 @@ impl WindowView {
 
             // in fullscreen, the titlebar frame is not governed by kTitlebarHeight but rather appears to be fixed by the system.
             // thus, we set a constant Y origin for the buttons when in fullscreen.
-            frame.origin.x = button_x;
+
+            if is_rtl {
+                frame.origin.x = window_width - button_x;
+            } else {
+                frame.origin.x = button_x;
+            }
             frame.origin.y = ((titlebar_height - frame.size.height) / 2.0).round();
 
             // spacing for the next button
