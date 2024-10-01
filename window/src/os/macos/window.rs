@@ -1654,77 +1654,6 @@ impl Inner {
             Ok(TranslateStatus::NotDead)
         }
     }
-
-    fn update_title_bar_buttons_position(&mut self) {
-        let Some(window) = self.window.as_ref().map(|p| p.load()) else {
-            return;
-        };
-
-        if !self
-            .config
-            .window_decorations
-            .contains(WindowDecorations::INTEGRATED_BUTTONS)
-        {
-            return;
-        }
-
-        // Currently height detection supported only for the fancy tab bar
-        if !self.config.use_fancy_tab_bar {
-            return;
-        }
-
-        let Some(height) = self
-            .font_config
-            .title_font()
-            .map(|f| (f.metrics().cell_height.get() as f64 * 1.75 * 0.5).ceil())
-            .ok()
-        else {
-            return;
-        };
-
-        unsafe {
-            // https://github.com/stonesam92/ChitChat/blob/8aa2feb58e3467546ee5c861df53de604cb2ca96/WhatsMac/AppDelegate.m#L391
-            use appkit::*;
-
-            let titlebar_height = height;
-
-            let window_frame = NSWindow::frame(*window);
-
-            let close_button = window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);
-
-            // Set size of titlebar container
-            let titlebar_container_view = NSView::superview(NSView::superview(close_button));
-
-            let mut titlebar_container_frame = NSView::frame(titlebar_container_view);
-            titlebar_container_frame.origin.y = window_frame.size.height - titlebar_height;
-            titlebar_container_frame.size.height = titlebar_height;
-            NSView::setFrameOrigin(titlebar_container_view, titlebar_container_frame.origin);
-            NSView::setFrameSize(titlebar_container_view, titlebar_container_frame.size);
-
-            let mut button_x = (height * 0.5 - 8.0).max(0.0);
-
-            let minimize_button =
-                window.standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
-            let zoom_button = window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
-
-            for button in [close_button, minimize_button, zoom_button] {
-                let mut button_frame = NSView::frame(button);
-
-                button_frame.origin.x = button_x;
-
-                // in fullscreen, the titlebar frame is not governed by kTitlebarHeight but rather appears to be fixed by the system.
-                // thus, we set a constant Y origin for the buttons when in fullscreen.
-
-                button_frame.origin.y =
-                    ((titlebar_height - button_frame.size.height) / 2.0).round();
-
-                // spacing for next button
-                button_x += button_frame.size.width + 6.0;
-
-                NSView::setFrameOrigin(button, button_frame.origin);
-            }
-        }
-    }
 }
 
 const VIEW_CLS_NAME: &str = "WezTermWindowView";
@@ -3048,8 +2977,87 @@ impl WindowView {
         YES
     }
 
+    // Repositions macOS' traffic lights to the correct place.
+    // Must be called in a lot of places because AppKit positions them back.
+    // Based on code from electron and
+    // https://github.com/stonesam92/ChitChat/blob/8aa2feb58e3467546ee5c861df53de604cb2ca96/WhatsMac/AppDelegate.m#L391
     fn update_title_bar_buttons_position(&self) {
-        self.inner.borrow_mut().update_title_bar_buttons_position();
+        let titlebar_height;
+        let window;
+        // Get titlebar height and window or return without handling
+        {
+            let inner = self.inner.borrow_mut();
+
+            if !inner
+                .config
+                .window_decorations
+                .contains(WindowDecorations::INTEGRATED_BUTTONS)
+            {
+                return;
+            }
+
+            // Currently height detection supported only for the fancy tab bar
+            if !inner.config.use_fancy_tab_bar {
+                return;
+            }
+
+            let Ok(title_font) = inner.font_config.title_font() else {
+                return;
+            };
+
+            let title_cell_height = title_font.metrics().cell_height.get();
+            titlebar_height = (title_cell_height * 1.75 * 0.5).ceil();
+
+            let Some(window_weak) = inner.window.as_ref() else {
+                return;
+            };
+
+            window = window_weak.load();
+        }
+
+        // Set titlebar container position and size
+        {
+            let titlebar_container_view = unsafe {
+                window
+                    .standardWindowButton_(appkit::NSWindowButton::NSWindowCloseButton)
+                    .superview()
+                    .superview()
+            };
+
+            let window_frame = unsafe { appkit::NSWindow::frame(*window) };
+
+            let mut frame = unsafe { NSView::frame(titlebar_container_view) };
+            frame.origin.y = window_frame.size.height - titlebar_height;
+            frame.size.height = titlebar_height;
+
+            unsafe {
+                titlebar_container_view.setFrameOrigin(frame.origin);
+                titlebar_container_view.setFrameSize(frame.size);
+            }
+        }
+
+        let mut button_x = (titlebar_height * 0.5 - 8.0).max(0.0);
+
+        for button_kind in [
+            appkit::NSWindowButton::NSWindowCloseButton,
+            appkit::NSWindowButton::NSWindowMiniaturizeButton,
+            appkit::NSWindowButton::NSWindowZoomButton,
+        ] {
+            let button = unsafe { window.standardWindowButton_(button_kind) };
+            let mut frame = unsafe { NSView::frame(button) };
+
+            // in fullscreen, the titlebar frame is not governed by kTitlebarHeight but rather appears to be fixed by the system.
+            // thus, we set a constant Y origin for the buttons when in fullscreen.
+            frame.origin.x = button_x;
+            frame.origin.y = ((titlebar_height - frame.size.height) / 2.0).round();
+
+            // spacing for the next button
+            button_x += frame.size.width + 6.0;
+
+            unsafe {
+                button.setFrameOrigin(frame.origin);
+            }
+        }
     }
 
     fn get_this(this: &Object) -> Option<&mut Self> {
