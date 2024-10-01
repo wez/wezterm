@@ -1,0 +1,8 @@
+Show current configuration values
+
+Usage: wezterm-gui ls-config [OPTIONS]
+
+Options:
+      --setting <SETTING>  Show the value of one specific configuration
+                           setting
+  -h, --help               Print help

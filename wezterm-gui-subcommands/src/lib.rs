@@ -271,3 +271,10 @@ pub struct ShowKeysCommand {
     #[arg(long)]
     pub key_table: Option<String>,
 }
+
+#[derive(Debug, Parser, Clone)]
+pub struct LsConfigCommand {
+    /// Show the value of one specific configuration setting
+    #[arg(long = "setting")]
+    pub setting: Option<String>,
+}

@@ -28,6 +28,7 @@ use termwiz::surface::{Line, SEQ_ZERO};
 use unicode_normalization::UnicodeNormalization;
 use wezterm_bidi::Direction;
 use wezterm_client::domain::ClientDomain;
+use wezterm_dynamic::{ToDynamic, Value};
 use wezterm_font::shaper::PresentationWidth;
 use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::*;
@@ -128,6 +129,9 @@ enum SubCommand {
 
     #[command(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
+
+    #[command(name = "ls-config", about = "Show current configuration values")]
+    LsConfig(LsConfigCommand),
 
     #[command(name = "show-keys", about = "Show key assignments")]
     ShowKeys(ShowKeysCommand),
@@ -1167,6 +1171,32 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     Ok(())
 }
 
+fn run_ls_config(config: config::ConfigHandle, cmd: &LsConfigCommand) -> anyhow::Result<()> {
+    let all_settings = match config.to_dynamic() {
+        Value::Object(t) => t,
+        _ => terminate_with_error_message("Could not read config"),
+    };
+
+    if let Some(setting) = cmd.setting.as_ref() {
+        let value = Value::String(setting.to_string());
+
+        if let Some((k, v)) = all_settings.iter().find(|(k, _)| **k == value) {
+            println!("{:?} = {:?}", k, v);
+        } else {
+            println!("Setting not found: \"{}\"", setting);
+        }
+
+        return Ok(());
+    }
+
+    // Print all settings if an individual one was not specified
+    for (k, v) in all_settings.iter() {
+        println!("{:?} = {:?}", k, v);
+    }
+
+    Ok(())
+}
+
 fn run() -> anyhow::Result<()> {
     // Inform the system of our AppUserModelID.
     // Without this, our toast notifications won't be correctly
@@ -1276,6 +1306,7 @@ fn run() -> anyhow::Result<()> {
             Some(connect.domain_name),
         ),
         SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
+        SubCommand::LsConfig(cmd) => run_ls_config(config, &cmd),
         SubCommand::ShowKeys(cmd) => run_show_keys(config, &cmd),
     }
 }
