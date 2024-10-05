@@ -1891,6 +1891,13 @@ impl TabInner {
     }
 
     fn set_active_pane(&mut self, pane: &Arc<dyn Pane>) {
+        if let Some(float_pane) = self.float_pane.as_ref() {
+            if float_pane.pane_id() == pane.pane_id() {
+                self.set_float_pane_visibility(true);
+                return;
+            }
+        }
+
         if self.zoomed.is_some() {
             if !configuration().unzoom_on_switch_pane {
                 return;
