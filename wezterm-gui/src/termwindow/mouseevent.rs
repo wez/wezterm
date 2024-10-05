@@ -22,6 +22,7 @@ use termwiz::surface::Line;
 use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
+use window::MouseEventKind;
 
 impl super::TermWindow {
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
@@ -676,7 +677,13 @@ impl super::TermWindow {
             if !mouse_in_float {
                 let mux = Mux::get();
                 if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id){
-                    mux.set_float_pane_visibility(tab.tab_id(), false).ok();
+                    //Hide floating pane if mouse is clicked outside the floating pane
+                    match &event.kind {
+                        WMEK::Press(_) => {
+                            mux.set_float_pane_visibility(tab.tab_id(), false).ok();
+                        }
+                        _ => {}
+                    }
                 }
 
                 // Mouse events are not dispatched to the other panes when
