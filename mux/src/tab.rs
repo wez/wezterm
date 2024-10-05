@@ -64,6 +64,8 @@ pub struct PositionedPane {
     pub is_active: bool,
     /// true if this pane is zoomed
     pub is_zoomed: bool,
+    /// true if this pane is floating
+    pub is_floating: bool,
     /// The offset from the top left corner of the containing tab to the top
     /// left corner of this pane, in cells.
     pub left: usize,
@@ -266,6 +268,7 @@ fn pane_tree(
                 title: pane.get_title(),
                 is_active_pane: is_pane(pane, &active),
                 is_zoomed_pane: is_pane(pane, &zoomed),
+                is_floating_pane: false,
                 size: TerminalSize {
                     cols: dims.cols,
                     rows: dims.viewport_rows,
@@ -912,6 +915,7 @@ impl TabInner {
                 working_dir: working_dir.map(Into::into),
                 is_active_pane: true,
                 is_zoomed_pane: false,
+                is_floating_pane: true,
                 workspace: workspace.to_string(),
                 cursor_pos,
                 physical_top: 0,
@@ -1030,6 +1034,7 @@ impl TabInner {
                 index: 0,
                 is_active: true,
                 is_zoomed: false,
+                is_floating: true,
                 left,
                 top,
                 width: size.cols,
@@ -1122,6 +1127,7 @@ impl TabInner {
                     index: 0,
                     is_active: true,
                     is_zoomed: true,
+                    is_floating: false,
                     left: 0,
                     top: 0,
                     width: size.cols.into(),
@@ -1168,6 +1174,7 @@ impl TabInner {
                     index,
                     is_active: index == active_idx,
                     is_zoomed: zoomed_id == Some(pane.pane_id()),
+                    is_floating: false,
                     left,
                     top,
                     width: dims.cols as _,
@@ -2363,6 +2370,7 @@ pub struct PaneEntry {
     pub working_dir: Option<SerdeUrl>,
     pub is_active_pane: bool,
     pub is_zoomed_pane: bool,
+    pub is_floating_pane: bool,
     pub workspace: String,
     pub cursor_pos: StableCursorPosition,
     pub physical_top: StableRowIndex,

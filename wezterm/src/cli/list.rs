@@ -152,6 +152,7 @@ struct CliListResultItem {
     window_title: String,
     is_active: bool,
     is_zoomed: bool,
+    is_floating: bool,
     tty_name: Option<String>,
 }
 
@@ -170,6 +171,7 @@ impl CliListResultItem {
             top_row,
             is_active_pane,
             is_zoomed_pane,
+            is_floating_pane,
             tty_name,
             size:
                 TerminalSize {
@@ -210,6 +212,7 @@ impl CliListResultItem {
             window_title: window_title.to_string(),
             is_active: is_active_pane,
             is_zoomed: is_zoomed_pane,
+            is_floating: is_floating_pane,
             tty_name,
         }
     }
