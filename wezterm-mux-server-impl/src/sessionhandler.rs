@@ -729,7 +729,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     schedule_float_pane(float, send_response, client_id);
                 })
-                .detach();
+                    .detach();
             }
 
             Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged{ tab_id, visible }) => {
@@ -744,7 +744,6 @@ impl SessionHandler {
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                             tab.set_float_pane_visibility(visible);
-                            mux.notify(mux::MuxNotification::FloatPaneVisibilityChanged{tab_id, visible});
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response

@@ -1898,10 +1898,6 @@ impl TabInner {
             }
         }
 
-        if self.float_pane_visible {
-            self.set_float_pane_visibility(false);
-        }
-
         if self.zoomed.is_some() {
             if !configuration().unzoom_on_switch_pane {
                 return;
@@ -1929,9 +1925,6 @@ impl TabInner {
                 tab_id: self.id,
                 visible,
             });
-            if let Some(window_id) = mux.window_containing_tab(self.id) {
-                mux.notify(MuxNotification::WindowInvalidated(window_id));
-            }
         }
     }
 
