@@ -913,7 +913,7 @@ impl TabInner {
                     dpi: dims.dpi,
                 },
                 working_dir: working_dir.map(Into::into),
-                is_active_pane: true,
+                is_active_pane: self.float_pane_visible,
                 is_zoomed_pane: false,
                 is_floating_pane: true,
                 workspace: workspace.to_string(),
