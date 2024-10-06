@@ -1929,6 +1929,10 @@ impl TabInner {
                 tab_id: self.id,
                 visible,
             });
+            if let Some(window_id) = mux.window_containing_tab(self.id)
+            {
+                mux.notify(MuxNotification::WindowInvalidated(window_id));
+            }
         }
     }
 
