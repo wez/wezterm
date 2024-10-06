@@ -1898,6 +1898,10 @@ impl TabInner {
             }
         }
 
+        if self.float_pane_visible {
+            self.set_float_pane_visibility(false);
+        }
+
         if self.zoomed.is_some() {
             if !configuration().unzoom_on_switch_pane {
                 return;
