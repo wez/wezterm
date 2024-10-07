@@ -1685,7 +1685,7 @@ impl TabInner {
 
     fn prune_dead_panes(&mut self) -> bool {
         let mux = Mux::get();
-        !self
+        let result = !self
             .remove_pane_if(
                 |_, pane| {
                     // If the pane is no longer known to the mux, then its liveness
@@ -1704,7 +1704,15 @@ impl TabInner {
                 },
                 true,
             )
-            .is_empty()
+            .is_empty();
+
+        if self.iter_panes().iter().len() == 0 {
+            if let Some(float_pane) = &self.float_pane {
+                self.kill_pane(float_pane.pane_id());
+            }
+        }
+
+        result
     }
 
     fn kill_pane(&mut self, pane_id: PaneId) -> bool {
@@ -1823,7 +1831,7 @@ impl TabInner {
         }
 
         if let Some(float_pane) = &self.float_pane {
-            if float_pane.is_dead() {
+            if float_pane.is_dead() || f(0, &float_pane) {
                 dead_panes.push(Arc::clone(float_pane));
                 self.float_pane = None;
             }
