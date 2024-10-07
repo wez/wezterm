@@ -63,7 +63,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [show_close_tab_button_in_tabs](config/lua/config/show_close_tab_button_in_tabs.md)
   option for the fancy tab bar. Thanks to @zummenix! #3818
 * wezterm-ssh now supports `ProxyUseFdPass`. Thanks to @loops! #6103 #6093
-* `PromptInputLine` now supports a optional `prompt` and `initial_value`
+* `PromptInputLine` now supports optional `prompt` and `initial_value`
   parameters. Thanks to @mgpinf and @ekorchmar! #6054 #6007
 
 #### Fixed
