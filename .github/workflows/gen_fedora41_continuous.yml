@@ -1,14 +1,16 @@
-name: fedora38
+name: fedora41_continuous
 
 on:
-  pull_request:
+  schedule:
+    - cron: "10 3 * * *"
+  push:
     branches:
       - main
     paths:
       - "**/*.rs"
       - "**/Cargo.lock"
       - "**/Cargo.toml"
-      - ".github/workflows/gen_fedora38.yml"
+      - ".github/workflows/gen_fedora41_continuous.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
       - "assets/open-wezterm-here"
@@ -25,8 +27,9 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:38"
+    container: "fedora:41"
     env:
+      BUILD_REASON: "Schedule"
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
@@ -89,7 +92,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora38"
+          cache-key: "fedora41"
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
@@ -98,9 +101,33 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora41.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: "fedora38"
+          name: "fedora41"
           path: "wezterm-*.rpm"
+          retention-days: 5
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v4
+      - name: "Download artifact"
+        uses: actions/download-artifact@v4
+        with:
+          name: "fedora41"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
+      - name: "Upload to Nightly Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"
