@@ -2009,6 +2009,9 @@ impl TabInner {
                 } else {
                     self.resize(split_info.second.clone());
                 }
+                // Resize the tab back to the original tab size
+                // to avoid leaving unusable space within the tab
+                self.resize(tab_size)
             }
 
             let mut cursor = self.pane.take().unwrap().cursor();
