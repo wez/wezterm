@@ -46,7 +46,7 @@ fn csi_size() {
     assert_eq!(std::mem::size_of::<Cursor>(), 12);
     assert_eq!(std::mem::size_of::<Edit>(), 8);
     assert_eq!(std::mem::size_of::<Mode>(), 24);
-    assert_eq!(std::mem::size_of::<MouseReport>(), 8);
+    assert_eq!(std::mem::size_of::<MouseReport>(), 12);
     assert_eq!(std::mem::size_of::<Window>(), 40);
     assert_eq!(std::mem::size_of::<Keyboard>(), 8);
     assert_eq!(std::mem::size_of::<CSI>(), 32);
