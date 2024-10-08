@@ -2560,7 +2560,7 @@ impl WindowView {
                             // but didn't call one of our callbacks.
                             // In theory, we should stop here, but the IME
                             // mysteriously swallows key repeats for certain
-                            // keys (eg: `f`) but not others.
+                            // keys (i.e. b, f, j, m, p, q, v, x) but not others.
                             // To compensate for that, if the current event
                             // is a repeat, and the IME previously generated
                             // `Acted`, we will assume that we're safe to replay
@@ -2689,7 +2689,11 @@ impl WindowView {
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
-                inner.ime_last_event.take();
+                // Don't clear the last IME event when a key is up otherwise it
+                // could mess up the succeeding key repeats.
+                if key_is_down {
+                    inner.ime_last_event.take();
+                }
                 inner.events.dispatch(WindowEvent::KeyEvent(event));
             }
         }
