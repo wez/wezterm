@@ -775,6 +775,12 @@ impl Tab {
             .split_and_insert(pane_index, request, pane)
     }
 
+    pub fn has_floating_pane(&self) -> bool {
+        self.inner
+            .lock()
+            .has_floating_pane()
+    }
+
     pub fn toggle_float(&self) {
         self.inner
             .lock()
@@ -2163,6 +2169,10 @@ impl TabInner {
                 },
             }
         })
+    }
+
+    fn has_floating_pane(&mut self) -> bool {
+        self.float_pane.is_some()
     }
 
     fn toggle_float_pane(&mut self) {

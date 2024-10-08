@@ -2938,7 +2938,16 @@ impl TermWindow {
                     Some(tab) => tab,
                     None => return Ok(PerformAssignmentResult::Handled),
                 };
-                tab.toggle_float();
+                if !tab.has_floating_pane() {
+                    self.spawn_command(
+                        &SpawnCommand {
+                            domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                            ..Default::default()
+                        },
+                        SpawnWhere::Float);
+                } else {
+                    tab.toggle_float();
+                }
             }
             SetPaneZoomState(zoomed) => {
                 let mux = Mux::get();
