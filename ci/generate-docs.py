@@ -364,6 +364,7 @@ TOC = [
             Page("Default Key Assignments", "config/default-keys.md"),
             Page("Keyboard Encoding", "config/key-encoding.md"),
             Page("Mouse Binding", "config/mouse.md"),
+            Page("Plugins", "config/plugins.md"),
             GenColorScheme("Color Schemes", "colorschemes"),
             Gen("Recipes", "recipes", extract_title=True),
         ],
@@ -391,6 +392,10 @@ TOC = [
             Gen(
                 "module: wezterm.mux",
                 "config/lua/wezterm.mux",
+            ),
+            Gen(
+                "module: wezterm.plugin",
+                "config/lua/wezterm.plugin",
             ),
             Gen(
                 "module: wezterm.procinfo",
