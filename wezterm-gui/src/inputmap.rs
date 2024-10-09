@@ -492,8 +492,16 @@ impl InputMap {
                 println!();
             }
         }
-        println!("  }}");
 
+        if key_table.is_none() {
+            println!("  }},");
+            println!();
+            println!("  mouse_bindings = {{");
+
+            show_mouse_table_as_lua(&self.mouse, 4);
+        }
+
+        println!("  }}");
         println!("}}");
     }
 
@@ -807,5 +815,72 @@ fn show_key_table_as_lua(table: &config::keyassignment::KeyTable, indent: usize)
     for ((key, mods), entry) in ordered {
         let action = &entry.action;
         println!("{pad}{},", lua_key(key, *mods, action));
+    }
+}
+
+fn lua_mouse_button(button: &MouseButton) -> String {
+    match button {
+        MouseButton::Left => quote_lua_string("Left"),
+        MouseButton::Middle => quote_lua_string("Middle"),
+        MouseButton::Right => quote_lua_string("Right"),
+        MouseButton::WheelUp(n) => format!("{{ WheelUp = {n} }}"),
+        MouseButton::WheelDown(n) => format!("{{ WheelDown = {n} }}"),
+        MouseButton::WheelLeft(n) => format!("{{ WheelLeft = {n} }}"),
+        MouseButton::WheelRight(n) => format!("{{ WheelRight = {n} }}"),
+        MouseButton::None => "".to_string(),
+    }
+}
+
+fn lua_mouse_event(event: &MouseEventTrigger) -> String {
+    match event {
+        MouseEventTrigger::Down { streak, button } => {
+            let btn = lua_mouse_button(button);
+            format!("{{ Down = {{ streak = {streak}, button = {btn} }} }}")
+        }
+        MouseEventTrigger::Up { streak, button } => {
+            let btn = lua_mouse_button(button);
+            format!("{{ Up = {{ streak = {streak}, button = {btn} }} }}")
+        }
+        MouseEventTrigger::Drag { streak, button } => {
+            let btn = lua_mouse_button(button);
+            format!("{{ Drag = {{ streak = {streak}, button = {btn} }} }}")
+        }
+    }
+}
+
+fn lua_mouse(
+    trigger: &MouseEventTrigger,
+    mods: MouseEventTriggerMods,
+    action: &KeyAssignment,
+) -> String {
+    let dyn_action = action.to_dynamic();
+    let action = luaify(dyn_action, true);
+    let event = lua_mouse_event(trigger);
+    let mouse_reporting = if mods.mouse_reporting {
+        "true".to_string()
+    } else {
+        "false".to_string()
+    };
+    let alt_screen = match mods.alt_screen {
+        MouseEventAltScreen::True => "true".to_string(),
+        MouseEventAltScreen::False => "false".to_string(),
+        MouseEventAltScreen::Any => quote_lua_string("Any"),
+    };
+    let actual_mods = mods.mods;
+    let mods = format!("{actual_mods:?}").replace(" ", "");
+
+    format!("{{ event = {event}, mods = {mods}, action = {action}, mouse_reporting = {mouse_reporting}, alt_screen = {alt_screen} }}")
+}
+
+fn show_mouse_table_as_lua(
+    mouse: &HashMap<(MouseEventTrigger, MouseEventTriggerMods), KeyAssignment>,
+    indent: usize,
+) {
+    let ordered = mouse.iter().collect::<BTreeMap<_, _>>();
+
+    let pad = " ".repeat(indent);
+
+    for ((event, mods), action) in ordered {
+        println!("{pad}{},", lua_mouse(&event, *mods, action));
     }
 }
