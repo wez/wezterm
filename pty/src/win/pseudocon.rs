@@ -6,7 +6,7 @@ use filedescriptor::{FileDescriptor, OwnedHandle};
 use lazy_static::lazy_static;
 use shared_library::shared_library;
 use std::ffi::OsString;
-use std::io::Error as IoError;
+use std::io::{Error as IoError, Read};
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::Path;
@@ -24,7 +24,7 @@ use winapi::um::winnt::HANDLE;
 
 pub type HPCON = HANDLE;
 
-pub const PSUEDOCONSOLE_INHERIT_CURSOR: DWORD = 0x1;
+pub const PSEUDOCONSOLE_INHERIT_CURSOR: DWORD = 0x1;
 pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
 pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
 #[allow(dead_code)]
@@ -63,20 +63,47 @@ lazy_static! {
     static ref CONPTY: ConPtyFuncs = load_conpty();
 }
 
-pub struct PsuedoCon {
+pub struct PseudoCon {
     con: HPCON,
+    output: FileDescriptor,
 }
 
-unsafe impl Send for PsuedoCon {}
-unsafe impl Sync for PsuedoCon {}
+unsafe impl Send for PseudoCon {}
+unsafe impl Sync for PseudoCon {}
 
-impl Drop for PsuedoCon {
+impl Drop for PseudoCon {
     fn drop(&mut self) {
+        // HACK: manually closing handles to avoid `ClosePseudoConsole` call from blocking,
+        //       in future versions of conpty.dll `ClosePseudoConsole` will no longer block
+        //       and this unsafe block will not be needed.
+        //
+        // NOTE:
+        // A `HPCON` is a struct consisting of 3 HANDLEs:
+        // A pipe for communicating with the PTY, a handle to keep it alive
+        // until ClosePseudoConsole is called, and a process handle to the
+        // underlying conhost process.
+        unsafe {
+            let handles = self.con as *mut [HANDLE; 3];
+            for i in 0..3 {
+                CloseHandle((*handles)[i]);
+                (*handles)[i] = std::ptr::null_mut();
+            }
+        }
+
+        let mut buffer = [0; 1000];
+        // read up to 1000 bytes
+        while let Ok(num_byes_read) = self.output.read(&mut buffer) {
+            if num_byes_read == 0 {
+                break;
+            }
+        }
+
+        // This won't do anything but deallocate the handle.
         unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
     }
 }
 
-impl PsuedoCon {
+impl PseudoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
         let result = unsafe {
@@ -84,7 +111,7 @@ impl PsuedoCon {
                 size,
                 input.as_raw_handle() as _,
                 output.as_raw_handle() as _,
-                PSUEDOCONSOLE_INHERIT_CURSOR
+                PSEUDOCONSOLE_INHERIT_CURSOR
                     | PSEUDOCONSOLE_RESIZE_QUIRK
                     | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
@@ -92,10 +119,10 @@ impl PsuedoCon {
         };
         ensure!(
             result == S_OK,
-            "failed to create psuedo console: HRESULT {}",
+            "failed to create pseudo console: HRESULT {}",
             result
         );
-        Ok(Self { con })
+        Ok(Self { con, output })
     }
 
     pub fn resize(&self, size: COORD) -> Result<(), Error> {
