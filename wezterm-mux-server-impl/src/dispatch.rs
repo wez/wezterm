@@ -1,7 +1,7 @@
 use crate::sessionhandler::{PduSender, SessionHandler};
 use anyhow::Context;
 use async_ossl::AsyncSslStream;
-use codec::{DecodedPdu, Pdu};
+use codec::{DecodedPdu, Pdu, QueryClipboardResponse};
 use futures::FutureExt;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
@@ -64,6 +64,8 @@ where
         mux.subscribe(move |n| tx.try_send(Item::Notif(n)).is_ok());
     }
 
+    let mut query_clipboard_tx: Option<smol::channel::Sender<Option<String>>> = None;
+
     loop {
         let rx_msg = item_rx.recv();
         let wait_for_read = stream.readable().map(|_| Ok(Item::Readable));
@@ -82,7 +84,25 @@ where
                         return Err(err).context("reading Pdu from client");
                     }
                 };
-                handler.process_one(decoded);
+                // Check if this is ours
+                if let Pdu::QueryClipboardResponse(QueryClipboardResponse { content, .. }) =
+                    decoded.pdu
+                {
+                    query_clipboard_tx
+                        .as_ref()
+                        .expect("must be a valid tx at this point")
+                        .send(content)
+                        .await
+                        .expect("the channel must remain open");
+                    query_clipboard_tx = None;
+                    // respond to complete the promise on the client side
+                    Pdu::UnitResponse(codec::UnitResponse {})
+                        .encode_async(&mut stream, decoded.serial)
+                        .await?;
+                    stream.flush().await.context("flushing PDU to client")?;
+                } else {
+                    handler.process_one(decoded);
+                }
             }
             Ok(Item::WritePdu(decoded)) => {
                 match decoded.pdu.encode_async(&mut stream, decoded.serial).await {
@@ -140,6 +160,29 @@ where
                 .encode_async(&mut stream, 0)
                 .await?;
                 stream.flush().await.context("flushing PDU to client")?;
+            }
+            Ok(Item::Notif(MuxNotification::QueryClipboard {
+                pane_id,
+                selection,
+                mut writer,
+            })) => {
+                let (tx, rx) = smol::channel::bounded(1);
+                query_clipboard_tx = Some(tx);
+
+                Pdu::QueryClipboard(codec::QueryClipboard { pane_id, selection })
+                    .encode_async(&mut stream, 0)
+                    .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+
+                promise::spawn::spawn(async move {
+                    if let Some(content) = rx.recv().await.expect("the channel must have the message")
+                    {
+                        if let Err(err) = writer.write(content) {
+                            log::error!("Error writing to the clipboard reader {}", err)
+                        }
+                    }
+                })
+                .detach()
             }
             Ok(Item::Notif(MuxNotification::TabAddedToWindow { tab_id, window_id })) => {
                 Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id })

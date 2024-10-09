@@ -4,6 +4,7 @@
 use super::*;
 mod c0;
 use bitflags::bitflags;
+use termwiz::escape::osc::Selection;
 mod c1;
 mod csi;
 // mod selection; FIXME: port to render layer
@@ -36,6 +37,16 @@ impl Clipboard for LocalClip {
         *self.clip.lock().unwrap() = clip;
         Ok(())
     }
+    fn get_contents(
+        &self,
+        _selection: ClipboardSelection,
+        mut writer: Box<dyn ClipboardReader>,
+    ) -> anyhow::Result<()> {
+        writer
+            .write(format!("{:?}", &self.clip.lock().unwrap()))
+            .ok();
+        Ok(())
+    }
 }
 
 struct TestTerm {
@@ -54,10 +65,22 @@ impl TerminalConfiguration for TestTermConfig {
     fn color_palette(&self) -> ColorPalette {
         ColorPalette::default()
     }
+    fn enable_osc52_clipboard_reading(&self) -> bool {
+        true
+    }
 }
 
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
+        TestTerm::new_with_writer(height, width, scrollback, Box::new(Vec::new()))
+    }
+
+    fn new_with_writer(
+        height: usize,
+        width: usize,
+        scrollback: usize,
+        writer: Box<dyn std::io::Write + Send>,
+    ) -> Self {
         let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
@@ -74,7 +97,7 @@ impl TestTerm {
             Arc::new(TestTermConfig { scrollback }),
             "WezTerm",
             "O_o",
-            Box::new(Vec::new()),
+            writer,
         );
         let clip: Arc<dyn Clipboard> = Arc::new(LocalClip::new());
         term.set_clipboard(&clip);
@@ -491,6 +514,69 @@ fn issue_1161() {
             // U+3000 is ideographic space, a double-width space
             "x\u{3000}x",
         ],
+    );
+}
+
+struct TestOsc52Writer(std::sync::mpsc::SyncSender<Vec<u8>>);
+
+impl std::io::Write for TestOsc52Writer {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0
+            .send(buf.to_vec())
+            .map(|()| buf.len())
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::BrokenPipe, err))
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+struct TestOsc52Clip(LocalClip);
+
+impl Clipboard for TestOsc52Clip {
+    fn set_contents(
+        &self,
+        _selection: ClipboardSelection,
+        clip: Option<String>,
+    ) -> anyhow::Result<()> {
+        assert_eq!(clip, Some(String::from("hello")));
+        *self.0.clip.lock().unwrap() = clip;
+        Ok(())
+    }
+    fn get_contents(
+        &self,
+        _selection: ClipboardSelection,
+        mut writer: Box<dyn ClipboardReader>,
+    ) -> anyhow::Result<()> {
+        log::error!("query selection {:?}", writer);
+        let osc = format!("{}", self.0.clip.lock().unwrap().clone().unwrap());
+        let rtn = writer.write(osc);
+        assert!(rtn.is_ok(), "{:?}", rtn);
+        Ok(())
+    }
+}
+
+#[test]
+fn test_osc52() {
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let mut term = TestTerm::new_with_writer(5, 10, 0, Box::new(TestOsc52Writer(tx)));
+
+    let clip: Arc<dyn Clipboard> = Arc::new(TestOsc52Clip(LocalClip::new()));
+    term.set_clipboard(&clip);
+    term.print(format!(
+        "{}",
+        OperatingSystemCommand::SetSelection(Selection::CLIPBOARD, "hello".into())
+    ));
+    term.print(format!(
+        "{}",
+        OperatingSystemCommand::QuerySelection(Selection::CLIPBOARD)
+    ));
+    let result = rx.recv_timeout(std::time::Duration::from_secs(1));
+    assert!(result.is_ok(), "{:?}", result);
+    assert_eq!(
+        String::from_utf8_lossy(&result.unwrap()),
+        "\u{1b}]52;c;aGVsbG8=\u{1b}\\"
     );
 }
 

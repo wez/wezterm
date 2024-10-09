@@ -86,6 +86,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().enable_kitty_keyboard
     }
 
+    fn enable_osc52_clipboard_reading(&self) -> bool {
+        self.configuration().enable_osc52_clipboard_reading
+    }
+
     fn canonicalize_pasted_newlines(&self) -> wezterm_term::config::NewlineCanon {
         match self.configuration().canonicalize_pasted_newlines {
             None => wezterm_term::config::NewlineCanon::default(),

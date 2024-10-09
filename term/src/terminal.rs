@@ -10,11 +10,43 @@ pub enum ClipboardSelection {
     PrimarySelection,
 }
 
+/// A special trait that defines an interface for reading the clipboard content via [`Clipboard::get_contents`].
+/// Once the content is available, it will be written to the provided [`Box<dyn ClipboardReader>`].
+pub trait ClipboardReader: Send + Sync + std::fmt::Debug + ClipboardReaderBoxClone {
+    /// Similar to [`std::io::Write`] but receives a full String instead of bytes
+    fn write(&mut self, contents: String) -> Result<(), std::io::Error>;
+}
+
+/// Allow [`ClipboardReader`] to be [`Clone`] when used within [`Box<dyn ClipboardReader>`]
+pub trait ClipboardReaderBoxClone {
+    fn clone_box(&self) -> Box<dyn ClipboardReader>;
+}
+// Automatically implement for all `dyn ClipboardReader` types that also implement `Clone`
+impl<T> ClipboardReaderBoxClone for T
+where
+    T: 'static + ClipboardReader + Clone,
+{
+    fn clone_box(&self) -> Box<dyn ClipboardReader> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn ClipboardReader> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
 pub trait Clipboard: Send + Sync {
     fn set_contents(
         &self,
         selection: ClipboardSelection,
         data: Option<String>,
+    ) -> anyhow::Result<()>;
+    fn get_contents(
+        &self,
+        selection: ClipboardSelection,
+        writer: Box<dyn ClipboardReader>,
     ) -> anyhow::Result<()>;
 }
 
@@ -25,6 +57,13 @@ impl Clipboard for Box<dyn Clipboard> {
         data: Option<String>,
     ) -> anyhow::Result<()> {
         self.as_ref().set_contents(selection, data)
+    }
+    fn get_contents(
+        &self,
+        selection: ClipboardSelection,
+        writer: Box<dyn ClipboardReader>,
+    ) -> anyhow::Result<()> {
+        self.as_ref().get_contents(selection, writer)
     }
 }
 
