@@ -504,7 +504,7 @@ pdu! {
     AdjustPaneSize: 62,
     FloatPane: 63,
     FloatPaneVisibilityChanged: 64,
-    MoveFloatPaneToSplit: 65,
+    MoveFloatingPaneToSplit: 65,
     MovePaneToFloatingPane: 66,
 }
 
@@ -685,7 +685,7 @@ pub struct MovePaneToFloatingPane {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct MoveFloatPaneToSplit {
+pub struct MoveFloatingPaneToSplit {
     pub pane_id: PaneId,
     pub split_direction: SplitDirection,
 }

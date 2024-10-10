@@ -1248,10 +1248,9 @@ impl Mux {
 
     pub async fn move_floating_pane_to_split(
         &self,
-        // TODO: disambiguate with TabId
         pane_id: PaneId,
         direction: SplitDirection,
-    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+    ) -> anyhow::Result<()> {
         let (pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
@@ -1265,21 +1264,9 @@ impl Mux {
             domain.attach(Some(window_id)).await?;
         }
 
-        let pane = domain.move_floating_pane_to_split(tab_id, direction).await?;
+        domain.move_floating_pane_to_split(tab_id, direction).await?;
 
-        //// FIXME: clipboard
-
-        let dims = pane.get_dimensions();
-
-        let size = TerminalSize {
-            cols: dims.cols,
-            rows: dims.viewport_rows,
-            pixel_height: 0, // FIXME: split pane pixel dimensions
-            pixel_width: 0,
-            dpi: dims.dpi,
-        };
-
-        Ok((pane, size))
+        Ok(())
     }
 
     pub async fn split_pane(

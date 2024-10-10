@@ -740,7 +740,7 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::MoveFloatPaneToSplit(request) => {
+            Pdu::MoveFloatingPaneToSplit(request) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
                     schedule_move_floating_pane_to_split(request.pane_id, request.split_direction, client_id, send_response);
@@ -1177,7 +1177,7 @@ async fn move_floating_pane_to_split(pane_id: PaneId, split_direction: SplitDire
     let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
 
-    let (pane, size) = mux
+    mux
         .move_floating_pane_to_split(pane_id, split_direction)
         .await?;
 

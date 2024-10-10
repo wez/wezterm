@@ -3114,66 +3114,34 @@ impl TermWindow {
             }
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
-            MovePaneToFloatingPane  => {
-                //This should also error out if the tab only has 1 pane
-                if self.is_float_active() {
-                    return Ok(PerformAssignmentResult::Handled);
-                }
-
-                let mux_window_id = self.mux_window_id;
-                promise::spawn::spawn(async move {
-                    let mux = Mux::get();
-                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
-                        Some(tab) => tab,
-                        None => anyhow::bail!("no active tab!?"),
-                    };
-                    let pane = tab
-                        .get_active_pane()
-                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
-                    mux.move_pane_to_floating_pane(pane.pane_id()).await?;
-                    Result::<(), anyhow::Error>::Ok(())
-                }).detach();
+            MoveFloatingPaneToHorizontalSplit(spawn) => {
+                self.move_floating_pane_to_split(SplitDirection::Horizontal);
             }
-            MoveFloatToHorizontalSplit (spawn) => {
-                if !self.is_float_active() {
-                    return Ok(PerformAssignmentResult::Handled);
-                }
-
-                let mux_window_id = self.mux_window_id;
-                promise::spawn::spawn(async move {
-                    let mux = Mux::get();
-                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
-                        Some(tab) => tab,
-                        None => anyhow::bail!("no active tab!?"),
-                    };
-                    let pane = tab
-                        .get_active_pane()
-                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
-                    mux.move_floating_pane_to_split(pane.pane_id(), SplitDirection::Horizontal).await?;
-                    Result::<(), anyhow::Error>::Ok(())
-                }).detach();
-            }
-            MoveFloatToVerticalSplit(spawn) => {
-                if !self.is_float_active() {
-                    return Ok(PerformAssignmentResult::Handled);
-                }
-
-                let mux_window_id = self.mux_window_id;
-                promise::spawn::spawn(async move {
-                    let mux = Mux::get();
-                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
-                        Some(tab) => tab,
-                        None => anyhow::bail!("no active tab!?"),
-                    };
-                    let pane = tab
-                        .get_active_pane()
-                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
-                    mux.move_floating_pane_to_split(pane.pane_id(), SplitDirection::Vertical).await?;
-                    Result::<(), anyhow::Error>::Ok(())
-                }).detach();
+            MoveFloatingPantToVerticalSplit(spawn) => {
+                self.move_floating_pane_to_split(SplitDirection::Vertical);
             }
         };
         Ok(PerformAssignmentResult::Handled)
+    }
+
+    fn move_floating_pane_to_split(&self, split_direction: SplitDirection) {
+        if !self.is_float_active() {
+            return;
+        }
+
+        let mux_window_id = self.mux_window_id;
+        promise::spawn::spawn(async move {
+            let mux = Mux::get();
+            let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                Some(tab) => tab,
+                None => anyhow::bail!("no active tab!?"),
+            };
+            let pane = tab
+                .get_active_pane()
+                .ok_or_else(|| anyhow!("tab to have a pane"))?;
+            mux.move_floating_pane_to_split(pane.pane_id(), split_direction).await?;
+            Result::<(), anyhow::Error>::Ok(())
+        }).detach();
     }
 
     fn do_open_link_at_mouse_cursor(&self, pane: &Arc<dyn Pane>) {

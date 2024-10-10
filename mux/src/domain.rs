@@ -94,35 +94,37 @@ pub trait Domain: Downcast + Send + Sync {
         &self,
         tab: TabId,
         direction: SplitDirection,
-    ) -> anyhow::Result<Arc<dyn Pane>> {
+    ) -> anyhow::Result<()> {
         let mux = Mux::get();
         let tab = match mux.get_tab(tab) {
             Some(t) => t,
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let pane = tab.get_float_pane().unwrap().pane;
-        tab.clear_float_pane();
-        let pane_id = tab.get_active_pane().unwrap().pane_id();
+        if let Some(float_pane) = tab.get_float_pane() {
+            tab.clear_float_pane();
+            if let Some(active_non_floating_pane) = tab.get_active_pane() {
+                let pane_id = active_non_floating_pane.pane_id();
 
-        let pane_index = match tab
-            .iter_panes_ignoring_zoom()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
+                let pane_index = match tab
+                    .iter_panes_ignoring_zoom()
+                    .iter()
+                    .find(|p| p.pane.pane_id() == pane_id)
+                {
+                    Some(p) => p.index,
+                    None => anyhow::bail!("invalid pane id {}", pane_id),
+                };
 
-        let split_request = SplitRequest {
-            direction,
-            target_is_second: true,
-            top_level: false,
-            size: Default::default(),
-        };
-
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
-        Ok(pane)
+                let split_request = SplitRequest {
+                    direction,
+                    target_is_second: true,
+                    top_level: false,
+                    size: Default::default(),
+                };
+                tab.split_and_insert(pane_index, split_request, Arc::clone(&float_pane.pane))?;
+            }
+        }
+        Ok(())
     }
 
     async fn split_pane(

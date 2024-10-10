@@ -821,7 +821,7 @@ impl Domain for ClientDomain {
         &self,
         pane_id: PaneId,
         split_direction: SplitDirection,
-    ) -> anyhow::Result<Arc<dyn Pane>> {
+    ) -> anyhow::Result<()> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -833,9 +833,9 @@ impl Domain for ClientDomain {
             .downcast_ref::<ClientPane>()
             .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
 
-        let result = inner
+        inner
             .client
-            .move_floating_pane_to_split(codec::MoveFloatPaneToSplit {
+            .move_floating_pane_to_split(codec::MoveFloatingPaneToSplit {
                 pane_id: pane.remote_pane_id,
                 split_direction,
             })
@@ -843,7 +843,7 @@ impl Domain for ClientDomain {
 
         self.resync().await?;
 
-        Ok(local_pane)
+        Ok(())
     }
 
     /// Forward the request to the remote; we need to translate the local ids

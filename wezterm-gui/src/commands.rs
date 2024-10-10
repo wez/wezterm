@@ -1462,26 +1462,12 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Shell"],
             icon: Some("cod_primitive_square"),
         },
-        MovePaneToFloatingPane => CommandDef {
-            brief: label_string(action, "Move pane to floating pane".to_string()).into(),
-            doc: "Move pane to floating pane"
-                .into(),
-            keys: vec![(
-                Modifiers::CTRL
-                    .union(Modifiers::ALT)
-                    .union(Modifiers::SHIFT),
-                "u".into(),
-            )],
-            args: &[ArgType::ActivePane],
-            menubar: &["Shell"],
-            icon: Some("cod_split_vertical"),
-        },
-        MoveFloatToHorizontalSplit(SpawnCommand {
+        MoveFloatingPaneToHorizontalSplit(SpawnCommand {
                       domain: SpawnTabDomain::CurrentPaneDomain,
                       ..
                   }) => CommandDef {
-            brief: label_string(action, "Move float pane to horizontal split".to_string()).into(),
-            doc: "Move float pane to horizontal split"
+            brief: label_string(action, "Move floating pane to horizontal split".to_string()).into(),
+            doc: "Move floating pane to horizontal split"
                 .into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1493,12 +1479,12 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Shell"],
             icon: Some("cod_split_vertical"),
         },
-        MoveFloatToVerticalSplit(SpawnCommand {
+        MoveFloatingPantToVerticalSplit(SpawnCommand {
                                        domain: SpawnTabDomain::CurrentPaneDomain,
                                        ..
                                    }) => CommandDef {
-            brief: label_string(action, "Move float pane to vertical split".to_string()).into(),
-            doc: "Move float pane to vertical split"
+            brief: label_string(action, "Move floating pane to vertical split".to_string()).into(),
+            doc: "Move floating pane to vertical split"
                 .into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1575,27 +1561,18 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("cod_primitive_square"),
         },
-        MovePaneToFloatingPane => CommandDef {
-            brief: label_string(action, "Move pane to floating pane".to_string()).into(),
-            doc: "Move pane to floating pane"
+        MoveFloatingPaneToHorizontalSplit(_) => CommandDef {
+            brief: label_string(action, "Move floating pane to horizontal split (Top/Bottom)".to_string()).into(),
+            doc: "Move floating pane to horizontal split (Top/Bottom)"
                 .into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
             menubar: &[],
             icon: Some("cod_split_vertical"),
         },
-        MoveFloatToHorizontalSplit(_) => CommandDef {
-            brief: label_string(action, "Move float to horizontal split (Top/Bottom)".to_string()).into(),
-            doc: "Move float to horizontal split (Top/Bottom)"
-                .into(),
-            keys: vec![],
-            args: &[ArgType::ActivePane],
-            menubar: &[],
-            icon: Some("cod_split_vertical"),
-        },
-        MoveFloatToVerticalSplit(_) => CommandDef {
-            brief: label_string(action, "Move float to vertical split (Top/Bottom)".to_string()).into(),
-            doc: "Move float to vertical split (Top/Bottom)"
+        MoveFloatingPantToVerticalSplit(_) => CommandDef {
+            brief: label_string(action, "Move floating pane to vertical split (Top/Bottom)".to_string()).into(),
+            doc: "Move floating pane to vertical split (Top/Bottom)"
                 .into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
@@ -2138,12 +2115,11 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),
-        MovePaneToFloatingPane,
-        MoveFloatToHorizontalSplit(SpawnCommand {
+        MoveFloatingPaneToHorizontalSplit(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),
-        MoveFloatToVerticalSplit(SpawnCommand {
+        MoveFloatingPantToVerticalSplit(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),
