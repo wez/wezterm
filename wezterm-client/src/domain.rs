@@ -802,7 +802,7 @@ impl Domain for ClientDomain {
             .downcast_ref::<ClientPane>()
             .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
 
-        let result = inner
+        inner
             .client
             .move_pane_to_floating_pane(codec::MovePaneToFloatingPane {
                 pane_id: pane.remote_pane_id,

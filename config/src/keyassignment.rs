@@ -337,6 +337,7 @@ pub enum PaneSelectMode {
     SwapWithActiveKeepFocus,
     MoveToNewTab,
     MoveToNewWindow,
+    MoveToFloatingPane
 }
 
 impl Default for PaneSelectMode {

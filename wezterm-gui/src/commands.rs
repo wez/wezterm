@@ -898,6 +898,17 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Window"],
             icon: Some("cod_multiple_windows"),
         },
+        PaneSelect(PaneSelectArguments {
+                       mode: PaneSelectMode::MoveToFloatingPane,
+                       ..
+                   }) => CommandDef {
+            brief: "Move a pane to floating pane".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![], // FIXME: find a new assignment
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+            icon: Some("cod_multiple_windows"),
+        },
         DecreaseFontSize => CommandDef {
             brief: "Decrease font size".into(),
             doc: "Scales the font size smaller by 10%".into(),
@@ -2190,6 +2201,11 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         PaneSelect(PaneSelectArguments {
             alphabet: String::new(),
             mode: PaneSelectMode::MoveToNewWindow,
+            show_pane_ids: false,
+        }),
+        PaneSelect(PaneSelectArguments {
+            alphabet: String::new(),
+            mode: PaneSelectMode::MoveToFloatingPane,
             show_pane_ids: false,
         }),
         RotatePanes(RotationDirection::Clockwise),

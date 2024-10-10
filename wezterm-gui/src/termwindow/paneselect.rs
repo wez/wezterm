@@ -213,6 +213,21 @@ impl PaneSelector {
                         .detach();
                     }
                 }
+                PaneSelectMode::MoveToFloatingPane => {
+                    if let Some(pos) = panes.iter().find(|p| p.index == pane_index) {
+                        let pane_id = pos.pane.pane_id();
+                        let window_id = term_window.mux_window_id;
+                        promise::spawn::spawn(async move {
+                            if let Err(err) = mux
+                                .move_pane_to_floating_pane(pane_id)
+                                .await
+                            {
+                                log::error!("failed to move_pane_to_floating_pane: {err:#}");
+                            }
+                        })
+                        .detach();
+                    }
+                }
             }
         }
 
