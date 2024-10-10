@@ -499,7 +499,6 @@ impl ImgCatCommand {
 
         let caps = Capabilities::new_from_env()?;
         let mut term = termwiz::terminal::new_terminal(caps)?;
-        term.set_raw_mode()?;
 
         let mut probe = term
             .probe_capabilities()
@@ -510,6 +509,8 @@ impl ImgCatCommand {
         let term_size = probe.screen_size()?;
 
         let is_tmux = xt_version.is_tmux();
+
+        drop(probe);
 
         // TODO: ideally we'd do some kind of probing to see if conpty
         // is in the mix. For now we just assume that if we are on windows
@@ -524,8 +525,6 @@ impl ImgCatCommand {
         let needs_force_cursor_move = !self.no_move_cursor && !self.position.is_some() && (is_tmux || is_conpty)
             // We can only use forced movement if we know the pixel geometry
             && (term_size.xpixel != 0 && term_size.ypixel != 0);
-
-        term.set_cooked_mode()?;
 
         let save_cursor = Esc::Code(EscCode::DecSaveCursorPosition);
         let restore_cursor = Esc::Code(EscCode::DecRestoreCursorPosition);
