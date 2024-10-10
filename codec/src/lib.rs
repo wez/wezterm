@@ -505,6 +505,7 @@ pdu! {
     FloatPane: 63,
     FloatPaneVisibilityChanged: 64,
     MoveFloatPaneToSplit: 65,
+    MovePaneToFloatingPane: 66,
 }
 
 impl Pdu {
@@ -676,6 +677,11 @@ pub struct SplitPane {
     /// Instead of spawning a command, move the specified
     /// pane into the new split target
     pub move_pane_id: Option<PaneId>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MovePaneToFloatingPane {
+    pub pane_id: PaneId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

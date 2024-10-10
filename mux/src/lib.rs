@@ -1343,6 +1343,34 @@ impl Mux {
         Ok((pane, size))
     }
 
+    pub async fn move_pane_to_floating_pane(
+        &self,
+        pane_id: PaneId,
+    ) -> anyhow::Result<()> {
+        let (domain_id, _src_window, src_tab) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
+
+        let domain = self
+            .get_domain(domain_id)
+            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
+
+        domain.move_pane_to_floating_pane(pane_id) .await?;
+
+        let tab = match self.get_tab(src_tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", src_tab),
+        };
+
+        let pane = tab
+            .remove_pane(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
+
+        tab.set_floating_pane(&pane);
+
+        Ok(())
+    }
+
     pub async fn move_pane_to_new_tab(
         &self,
         pane_id: PaneId,

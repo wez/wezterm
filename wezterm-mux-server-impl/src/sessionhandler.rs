@@ -732,6 +732,14 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::MovePaneToFloatingPane(request) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    schedule_move_pane_to_floating_pane(request.pane_id, client_id, send_response);
+                })
+                .detach();
+            }
+
             Pdu::MoveFloatPaneToSplit(request) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
@@ -1129,6 +1137,28 @@ async fn float_pane(float_pane: FloatPane, client_id: Option<Arc<ClientId>>) -> 
         window_id,
         size,
     }))
+}
+
+fn schedule_move_pane_to_floating_pane<SND>(
+    pane_id: PaneId,
+    client_id: Option<Arc<ClientId>>,
+    send_response: SND)
+where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(crate::sessionhandler::move_pane_to_floating_pane(pane_id, client_id).await) })
+        .detach();
+}
+
+async fn move_pane_to_floating_pane(pane_id: PaneId, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
+    let mux = Mux::get();
+    let _identity = mux.with_identity(client_id);
+
+    mux
+        .move_pane_to_floating_pane(pane_id)
+        .await?;
+
+    Ok::<Pdu, anyhow::Error>(Pdu::UnitResponse(UnitResponse{}))
 }
 
 fn schedule_move_floating_pane_to_split<SND>(

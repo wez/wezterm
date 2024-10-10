@@ -1462,6 +1462,20 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Shell"],
             icon: Some("cod_primitive_square"),
         },
+        MovePaneToFloatingPane => CommandDef {
+            brief: label_string(action, "Move pane to floating pane".to_string()).into(),
+            doc: "Move pane to floating pane"
+                .into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "u".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+            icon: Some("cod_split_vertical"),
+        },
         MoveFloatToHorizontalSplit(SpawnCommand {
                       domain: SpawnTabDomain::CurrentPaneDomain,
                       ..
@@ -1560,6 +1574,15 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             args: &[ArgType::ActivePane],
             menubar: &[],
             icon: Some("cod_primitive_square"),
+        },
+        MovePaneToFloatingPane => CommandDef {
+            brief: label_string(action, "Move pane to floating pane".to_string()).into(),
+            doc: "Move pane to floating pane"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &[],
+            icon: Some("cod_split_vertical"),
         },
         MoveFloatToHorizontalSplit(_) => CommandDef {
             brief: label_string(action, "Move float to horizontal split (Top/Bottom)".to_string()).into(),
@@ -2115,6 +2138,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),
+        MovePaneToFloatingPane,
         MoveFloatToHorizontalSplit(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()

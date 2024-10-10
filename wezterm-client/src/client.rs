@@ -1367,6 +1367,7 @@ impl Client {
     rpc!(add_float_pane, FloatPane, SpawnResponse);
     rpc!(set_float_pane_visibility, FloatPaneVisibilityChanged, UnitResponse);
     rpc!(move_floating_pane_to_split, MoveFloatPaneToSplit, UnitResponse);
+    rpc!(move_pane_to_floating_pane, MovePaneToFloatingPane, UnitResponse);
     rpc!(
         move_pane_to_new_tab,
         MovePaneToNewTab,

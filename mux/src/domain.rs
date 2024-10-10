@@ -205,6 +205,13 @@ pub trait Domain: Downcast + Send + Sync {
         Ok(None)
     }
 
+    async fn move_pane_to_floating_pane(
+        &self,
+        _pane_id: PaneId,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
     /// pre-created with local UI that we do not want to allow

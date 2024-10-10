@@ -3114,12 +3114,31 @@ impl TermWindow {
             }
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
+            MovePaneToFloatingPane  => {
+                //This should also error out if the tab only has 1 pane
+                if self.is_float_active() {
+                    return Ok(PerformAssignmentResult::Handled);
+                }
+
+                let mux_window_id = self.mux_window_id;
+                promise::spawn::spawn(async move {
+                    let mux = Mux::get();
+                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                        Some(tab) => tab,
+                        None => anyhow::bail!("no active tab!?"),
+                    };
+                    let pane = tab
+                        .get_active_pane()
+                        .ok_or_else(|| anyhow!("tab to have a pane"))?;
+                    mux.move_pane_to_floating_pane(pane.pane_id()).await?;
+                    Result::<(), anyhow::Error>::Ok(())
+                }).detach();
+            }
             MoveFloatToHorizontalSplit (spawn) => {
                 if !self.is_float_active() {
                     return Ok(PerformAssignmentResult::Handled);
                 }
 
-                let domain = spawn.domain.clone();
                 let mux_window_id = self.mux_window_id;
                 promise::spawn::spawn(async move {
                     let mux = Mux::get();
@@ -3139,7 +3158,6 @@ impl TermWindow {
                     return Ok(PerformAssignmentResult::Handled);
                 }
 
-                let domain = spawn.domain.clone();
                 let mux_window_id = self.mux_window_id;
                 promise::spawn::spawn(async move {
                     let mux = Mux::get();

@@ -787,6 +787,33 @@ impl Domain for ClientDomain {
         anyhow::bail!("spawn_pane not implemented for ClientDomain")
     }
 
+    async fn move_pane_to_floating_pane(
+        &self,
+        pane_id: PaneId,
+    ) -> anyhow::Result<()> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        let result = inner
+            .client
+            .move_pane_to_floating_pane(codec::MovePaneToFloatingPane {
+                pane_id: pane.remote_pane_id,
+            })
+            .await?;
+
+        self.resync().await?;
+
+        Ok(())
+    }
+
     /// Forward the request to the remote; we need to translate the local ids
     /// to those that match the remote for the request, resync the changed
     /// structure, and then translate the results back to local

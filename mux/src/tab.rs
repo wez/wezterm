@@ -723,6 +723,10 @@ impl Tab {
         self.inner.lock().set_float_pane_visibility(visible);
     }
 
+    pub fn set_floating_pane(&self, pane: &Arc<dyn Pane>) {
+        self.inner.lock().set_floating_pane(pane);
+    }
+
     pub fn set_active_idx(&self, pane_index: usize) {
         self.inner.lock().set_active_idx(pane_index)
     }
@@ -1942,6 +1946,11 @@ impl TabInner {
             self.recency.tag(item.index);
             self.advise_focus_change(prior);
         }
+    }
+
+    fn set_floating_pane(&mut self, pane: &Arc<dyn Pane>) {
+        self.float_pane = Some(Arc::clone(&pane));
+        self.set_float_pane_visibility(true);
     }
 
     fn set_float_pane_visibility(&mut self, visible: bool) {
