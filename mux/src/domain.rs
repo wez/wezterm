@@ -84,7 +84,7 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let float_size = tab.compute_float_size();
+        let float_size = tab.compute_floating_pane_size();
         let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
         tab.insert_float(float_size, Arc::clone(&pane))?;
         Ok(pane)
@@ -101,8 +101,8 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        if let Some(float_pane) = tab.get_float_pane() {
-            tab.clear_float_pane();
+        if let Some(float_pane) = tab.get_floating_pane() {
+            tab.clear_floating_pane();
             if let Some(active_non_floating_pane) = tab.get_active_pane() {
                 let pane_id = active_non_floating_pane.pane_id();
 

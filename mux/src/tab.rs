@@ -45,8 +45,8 @@ struct TabInner {
     active: usize,
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
-    float_pane: Option<Arc<dyn Pane>>,
-    float_pane_visible: bool,
+    floating_pane: Option<Arc<dyn Pane>>,
+    floating_pane_visible: bool,
     recency: Recency,
 }
 
@@ -582,12 +582,12 @@ impl Tab {
         self.inner.lock().iter_panes()
     }
 
-    pub fn float_pane_is_visible(&self) -> bool {
-        self.inner.lock().float_pane_is_visible()
+    pub fn floating_pane_is_visible(&self) -> bool {
+        self.inner.lock().floating_pane_is_visible()
     }
 
-    pub fn get_float_pane(&self) -> Option<PositionedPane> {
-        self.inner.lock().get_float_pane()
+    pub fn get_floating_pane(&self) -> Option<PositionedPane> {
+        self.inner.lock().get_floating_pane()
     }
 
     pub fn iter_panes_ignoring_zoom(&self) -> Vec<PositionedPane> {
@@ -758,16 +758,16 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
-    pub fn compute_float_size(
+    pub fn compute_floating_pane_size(
         &self,
     ) -> TerminalSize {
-        self.inner.lock().compute_float_size()
+        self.inner.lock().compute_floating_pane_size()
     }
 
-    pub fn clear_float_pane(
+    pub fn clear_floating_pane(
         & self,
     ) {
-        self.inner.lock().clear_float_pane();
+        self.inner.lock().clear_floating_pane();
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -804,7 +804,7 @@ impl Tab {
     ) -> anyhow::Result<()> {
         self.inner
             .lock()
-            .add_float_pane(float_size, pane)
+            .add_floating_pane(float_size, pane)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -823,8 +823,8 @@ impl TabInner {
             zoomed: None,
             title: String::new(),
             recency: Recency::default(),
-            float_pane: None,
-            float_pane_visible: false
+            floating_pane: None,
+            floating_pane_visible: false
         }
     }
 
@@ -870,11 +870,11 @@ impl TabInner {
 
         if let PaneNode::Leaf(entry) = root.1.0 {
             let float_pane = make_pane(entry);
-            self.float_pane.replace(float_pane);
-            self.float_pane_visible = root.1.1;
+            self.floating_pane.replace(float_pane);
+            self.floating_pane_visible = root.1.1;
         } else if let PaneNode::Empty = root.1.0 {
-            self.float_pane = None;
-            self.float_pane_visible = false;
+            self.floating_pane = None;
+            self.floating_pane_visible = false;
         }
 
         self.resize(size);
@@ -912,7 +912,7 @@ impl TabInner {
 
         let active = self.get_active_pane();
         let zoomed = self.zoomed.as_ref();
-        let float_pane = self.float_pane.as_ref();
+        let float_pane = self.floating_pane.as_ref();
 
         let codec_float_pane = if let Some(float_pane) = float_pane {
             let dims = float_pane.get_dimensions();
@@ -932,7 +932,7 @@ impl TabInner {
                     dpi: dims.dpi,
                 },
                 working_dir: working_dir.map(Into::into),
-                is_active_pane: self.float_pane_visible,
+                is_active_pane: self.floating_pane_visible,
                 is_zoomed_pane: false,
                 is_floating_pane: true,
                 workspace: workspace.to_string(),
@@ -941,7 +941,7 @@ impl TabInner {
                 top_row: 0,
                 left_col: 0,
                 tty_name: float_pane.tty_name(),
-            }), self.float_pane_visible)
+            }), self.floating_pane_visible)
         } else {
             (PaneNode::Empty, false)
         };
@@ -1035,14 +1035,14 @@ impl TabInner {
         self.iter_panes_impl(true)
     }
 
-    fn float_pane_is_visible(&self) -> bool {
-        self.float_pane_visible
+    fn floating_pane_is_visible(&self) -> bool {
+        self.floating_pane_visible
     }
 
-    fn get_float_pane(&self) -> Option<PositionedPane> {
-        if let Some(float_pane) = self.float_pane.as_ref() {
+    fn get_floating_pane(&self) -> Option<PositionedPane> {
+        if let Some(float_pane) = self.floating_pane.as_ref() {
             let root_size = self.size;
-            let size = self.compute_float_size();
+            let size = self.compute_floating_pane_size();
 
             let cell_height = root_size.pixel_height / root_size.rows;
             let cell_width = root_size.pixel_width / root_size.cols;
@@ -1281,9 +1281,9 @@ impl TabInner {
             return;
         }
 
-        if let Some(float_pane) = &self.float_pane {
+        if let Some(float_pane) = &self.floating_pane {
             self.size = size;
-            let float_size = self.compute_float_size();
+            let float_size = self.compute_floating_pane_size();
             float_pane.resize(float_size).ok();
         }
 
@@ -1726,7 +1726,7 @@ impl TabInner {
             .is_empty();
 
         if self.iter_panes().iter().len() == 0 {
-            if let Some(float_pane) = &self.float_pane {
+            if let Some(float_pane) = &self.floating_pane {
                 self.kill_pane(float_pane.pane_id());
             }
         }
@@ -1849,10 +1849,10 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
-        if let Some(float_pane) = &self.float_pane {
+        if let Some(float_pane) = &self.floating_pane {
             if float_pane.is_dead() || f(0, &float_pane) {
                 dead_panes.push(Arc::clone(float_pane));
-                self.float_pane = None;
+                self.floating_pane = None;
             }
         }
 
@@ -1893,7 +1893,7 @@ impl TabInner {
     }
 
     fn is_float_active(&self) -> bool {
-        self.float_pane.is_some() && self.float_pane_visible
+        self.floating_pane.is_some() && self.floating_pane_visible
     }
 
     fn get_active_pane(&mut self) -> Option<Arc<dyn Pane>> {
@@ -1901,8 +1901,8 @@ impl TabInner {
             return Some(Arc::clone(zoomed));
         }
 
-        if self.float_pane_visible {
-            if let Some(float_pane) = self.float_pane.as_ref() {
+        if self.floating_pane_visible {
+            if let Some(float_pane) = self.floating_pane.as_ref() {
                 return Some(Arc::clone(float_pane));
             }
         }
@@ -1918,14 +1918,14 @@ impl TabInner {
     }
 
     fn set_active_pane(&mut self, pane: &Arc<dyn Pane>) {
-        if let Some(float_pane) = self.float_pane.as_ref() {
+        if let Some(float_pane) = self.floating_pane.as_ref() {
             if float_pane.pane_id() == pane.pane_id() {
                 self.set_float_pane_visibility(true);
                 return;
             }
         }
 
-        if self.float_pane_visible {
+        if self.floating_pane_visible {
             self.set_float_pane_visibility(false);
         }
 
@@ -1949,13 +1949,13 @@ impl TabInner {
     }
 
     fn set_floating_pane(&mut self, pane: &Arc<dyn Pane>) {
-        self.float_pane = Some(Arc::clone(&pane));
+        self.floating_pane = Some(Arc::clone(&pane));
         self.set_float_pane_visibility(true);
     }
 
     fn set_float_pane_visibility(&mut self, visible: bool) {
-        if visible != self.float_pane_visible {
-            self.float_pane_visible = visible;
+        if visible != self.floating_pane_visible {
+            self.floating_pane_visible = visible;
             let mux = Mux::get();
             mux.notify(MuxNotification::FloatPaneVisibilityChanged{
                 tab_id: self.id,
@@ -2062,11 +2062,11 @@ impl TabInner {
         None
     }
 
-    fn clear_float_pane(& mut self) {
-        self.float_pane = None;
+    fn clear_floating_pane(& mut self) {
+        self.floating_pane = None;
     }
 
-    fn compute_float_size(&self) -> TerminalSize {
+    fn compute_floating_pane_size(&self) -> TerminalSize {
         let root_size = self.size;
 
         let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
@@ -2194,12 +2194,12 @@ impl TabInner {
     }
 
     fn has_floating_pane(&mut self) -> bool {
-        self.float_pane.is_some()
+        self.floating_pane.is_some()
     }
 
     fn toggle_float_pane(&mut self) {
-        if self.float_pane.is_some() {
-            if self.float_pane_visible {
+        if self.floating_pane.is_some() {
+            if self.floating_pane_visible {
                 self.set_float_pane_visibility(false);
             } else {
                 self.set_float_pane_visibility(true);
@@ -2207,7 +2207,7 @@ impl TabInner {
         }
     }
 
-    fn add_float_pane(
+    fn add_floating_pane(
         &mut self,
         float_size: TerminalSize,
         pane: Arc<dyn Pane>,
@@ -2216,12 +2216,12 @@ impl TabInner {
             anyhow::bail!("cannot add float while zoomed");
         }
 
-        if self.float_pane.is_some() {
+        if self.floating_pane.is_some() {
             anyhow::bail!("cannot add float while another float is active")
         }
 
-        self.float_pane = Some(Arc::clone(&pane));
-        self.float_pane_visible = true;
+        self.floating_pane = Some(Arc::clone(&pane));
+        self.floating_pane_visible = true;
 
         pane.resize(float_size)?;
         Ok(())

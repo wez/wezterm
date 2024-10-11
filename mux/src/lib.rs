@@ -1070,7 +1070,7 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
-            if let Some(float_pane) = tab.get_float_pane() {
+            if let Some(float_pane) = tab.get_floating_pane() {
                 if pane_id == float_pane.pane.pane_id() {
                     ids = Some((tab.tab_id(), float_pane.pane.domain_id()));
                     break;
