@@ -14,7 +14,7 @@
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
-use mux::pane::PaneId;
+use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, Tab, TabId};
 use mux::window::WindowId;
@@ -506,6 +506,7 @@ pdu! {
     FloatPaneVisibilityChanged: 64,
     MoveFloatingPaneToSplit: 65,
     MovePaneToFloatingPane: 66,
+    ActiveFloatingPaneChanged: 67,
 }
 
 impl Pdu {
@@ -648,7 +649,7 @@ pub struct ListPanes {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
-    pub tabs: Vec<(PaneNode, (PaneNode, bool))>,
+    pub tabs: Vec<(PaneNode, (Vec<PaneNode>, usize, bool))>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
 }
@@ -665,6 +666,11 @@ pub struct FloatPane {
 pub struct FloatPaneVisibilityChanged {
     pub tab_id: TabId,
     pub visible: bool
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ActiveFloatingPaneChanged {
+    pub pane_id: PaneId
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

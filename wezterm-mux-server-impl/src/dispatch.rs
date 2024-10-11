@@ -218,6 +218,16 @@ where
                 .await?;
                 stream.flush().await.context("flushing PDU to client")?;
             }
+            Ok(Item::Notif(MuxNotification::ActiveFloatingPaneChanged{
+                pane_id
+                           })) => {
+                Pdu::ActiveFloatingPaneChanged(codec::ActiveFloatingPaneChanged {
+                    pane_id
+                })
+                    .encode_async(&mut stream, 0)
+                    .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+            }
             Err(err) => {
                 log::error!("process_async Err {}", err);
                 return Ok(());

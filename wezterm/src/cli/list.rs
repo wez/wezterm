@@ -43,18 +43,18 @@ impl ListCommand {
                 }
             }
 
-            if let PaneNode::Leaf(entry) = &tabroot.1.0 {
-                let window_title = panes
-                    .window_titles
-                    .get(&entry.window_id)
-                    .map(|s| s.as_str())
-                    .unwrap_or("");
-                output_items.push(CliListResultItem::from(
-                    entry.clone(),
-                    tab_title,
-                    window_title,
-                ));
-            }
+            //if let PaneNode::Leaf(entry) = &tabroot.1.0 {
+            //    let window_title = panes
+            //        .window_titles
+            //        .get(&entry.window_id)
+            //        .map(|s| s.as_str())
+            //        .unwrap_or("");
+            //    output_items.push(CliListResultItem::from(
+            //        entry.clone(),
+            //        tab_title,
+            //        window_title,
+            //    ));
+            //}
         }
         match self.format {
             CliOutputFormatKind::Json => {

@@ -27,6 +27,7 @@ pub struct ClientInner {
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
     remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
     pub focused_remote_pane_id: Mutex<Option<PaneId>>,
+    pub focused_remove_floating_pane_id: Mutex<Option<PaneId>>,
 }
 
 impl ClientInner {
@@ -247,6 +248,7 @@ impl ClientInner {
             remote_to_local_tab: Mutex::new(HashMap::new()),
             remote_to_local_pane: Mutex::new(HashMap::new()),
             focused_remote_pane_id: Mutex::new(None),
+            focused_remove_floating_pane_id: Mutex::new(None)
         }
     }
 }
@@ -369,6 +371,19 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                     })
                     .detach();
                 }
+            }
+        }
+        MuxNotification::ActiveFloatingPaneChanged {pane_id} => {
+            if let Some(inner) = client_domain.inner() {
+                promise::spawn::spawn(async move {
+                    inner
+                        .client
+                        .set_active_floating_pane(codec::ActiveFloatingPaneChanged {
+                            pane_id: pane_id
+                        })
+                        .await
+                })
+                .detach();
             }
         }
         MuxNotification::WindowTitleChanged {
@@ -523,6 +538,16 @@ impl ClientDomain {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
                     tab.set_float_pane_visibility(visible);
+                }
+            }
+        }
+    }
+
+    pub fn set_active_floating_pane(&self, pane_id: PaneId, remote_tab_id: TabId) {
+        if let Some(inner) = self.inner() {
+            if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
+                if let Some(tab) = Mux::get().get_tab(local_tab_id) {
+                    tab.set_active_floating_pane(pane_id);
                 }
             }
         }

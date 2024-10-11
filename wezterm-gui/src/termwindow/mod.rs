@@ -1290,6 +1290,7 @@ impl TermWindow {
                     self.update_title_post_status();
                 }
                 MuxNotification::FloatPaneVisibilityChanged { .. } => { }
+                MuxNotification::ActiveFloatingPaneChanged { .. } => { }
                 MuxNotification::TabResized(_) => {
                     // Also handled by wezterm-client
                     self.update_title_post_status();
@@ -1503,8 +1504,8 @@ impl TermWindow {
                     return true;
                 }
             }
-            MuxNotification::FloatPaneVisibilityChanged { .. } => {
-            }
+            MuxNotification::FloatPaneVisibilityChanged { .. } => { }
+            MuxNotification::ActiveFloatingPaneChanged { .. } => { }
             MuxNotification::Alert {
                 alert: Alert::ToastNotification { .. },
                 ..

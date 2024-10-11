@@ -96,6 +96,9 @@ pub enum MuxNotification {
     FloatPaneVisibilityChanged{
         tab_id: TabId,
         visible: bool,
+    },
+    ActiveFloatingPaneChanged{
+        pane_id: PaneId,
     }
 }
 

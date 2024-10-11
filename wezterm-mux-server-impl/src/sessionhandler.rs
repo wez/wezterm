@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use termwiz::surface::SequenceNo;
 use url::Url;
+use mux::MuxNotification::ActiveFloatingPaneChanged;
 use wezterm_term::terminal::Alert;
 use wezterm_term::StableRowIndex;
 
@@ -760,6 +761,30 @@ impl SessionHandler {
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                             tab.set_float_pane_visibility(visible);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response
+                    );
+                }).detach()
+            }
+
+            Pdu::ActiveFloatingPaneChanged(codec::ActiveFloatingPaneChanged{ pane_id}) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let _identity = mux.with_identity(client_id);
+
+                            let (_domain_id, window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
+
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+
+                            tab.set_active_floating_pane(pane_id);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response

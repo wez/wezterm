@@ -34,6 +34,7 @@ use std::thread;
 use std::time::Duration;
 use thiserror::Error;
 use codec::FloatPaneVisibilityChanged;
+use codec::ActiveFloatingPaneChanged;
 use wezterm_uds::UnixStream;
 
 #[derive(Error, Debug)]
@@ -314,6 +315,32 @@ fn process_unilateral(
                         })?;
 
                 client_domain.set_float_pane_visibility(tab_id, visible);
+                client_domain.resync().await;
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+            return Ok(());
+        }
+        Pdu::ActiveFloatingPaneChanged(ActiveFloatingPaneChanged { pane_id}) => {
+            let pane_id = *pane_id;
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+
+                let (_domain, window_id, tab_id) = mux.resolve_pane_id(pane_id)
+                    .ok_or_else(|| anyhow::anyhow!("can't find {pane_id} in mux"))?;
+
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                        })?;
+
+                client_domain.set_active_floating_pane(pane_id, tab_id);
+                client_domain.resync().await;
                 anyhow::Result::<()>::Ok(())
             })
             .detach();
@@ -1366,6 +1393,7 @@ impl Client {
     rpc!(split_pane, SplitPane, SpawnResponse);
     rpc!(add_float_pane, FloatPane, SpawnResponse);
     rpc!(set_float_pane_visibility, FloatPaneVisibilityChanged, UnitResponse);
+    rpc!(set_active_floating_pane, ActiveFloatingPaneChanged, UnitResponse);
     rpc!(move_floating_pane_to_split, MoveFloatingPaneToSplit, UnitResponse);
     rpc!(move_pane_to_floating_pane, MovePaneToFloatingPane, UnitResponse);
     rpc!(
