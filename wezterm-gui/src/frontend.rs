@@ -94,7 +94,7 @@ impl GuiFrontEnd {
                 MuxNotification::WindowInvalidated(_) => {}
                 MuxNotification::PaneOutput(_) => {}
                 MuxNotification::PaneAdded(_) => {}
-                MuxNotification::FloatPaneVisibilityChanged { .. } => { }
+                MuxNotification::FloatingPaneVisibilityChanged { .. } => { }
                 MuxNotification::ActiveFloatingPaneChanged { .. } => { }
                 MuxNotification::Alert {
                     pane_id,

@@ -33,7 +33,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
 use thiserror::Error;
-use codec::FloatPaneVisibilityChanged;
+use codec::FloatingPaneVisibilityChanged;
 use codec::ActiveFloatingPaneChanged;
 use wezterm_uds::UnixStream;
 
@@ -299,7 +299,7 @@ fn process_unilateral(
             .detach();
             return Ok(());
         }
-        Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged { tab_id, visible }) => {
+        Pdu::FloatingPaneVisibilityChanged(FloatingPaneVisibilityChanged { tab_id, visible }) => {
             let tab_id = *tab_id;
             let visible = visible.clone();
             promise::spawn::spawn_into_main_thread(async move {
@@ -314,7 +314,7 @@ fn process_unilateral(
                             anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
                         })?;
 
-                client_domain.set_float_pane_visibility(tab_id, visible);
+                client_domain.set_floating_pane_visibility(tab_id, visible);
                 client_domain.resync().await;
                 anyhow::Result::<()>::Ok(())
             })
@@ -1391,8 +1391,8 @@ impl Client {
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn_v2, SpawnV2, SpawnResponse);
     rpc!(split_pane, SplitPane, SpawnResponse);
-    rpc!(add_float_pane, FloatPane, SpawnResponse);
-    rpc!(set_float_pane_visibility, FloatPaneVisibilityChanged, UnitResponse);
+    rpc!(add_floating_pane, SpawnFloatingPane, SpawnResponse);
+    rpc!(set_floating_pane_visibility, FloatingPaneVisibilityChanged, UnitResponse);
     rpc!(set_active_floating_pane, ActiveFloatingPaneChanged, UnitResponse);
     rpc!(move_floating_pane_to_split, MoveFloatingPaneToSplit, UnitResponse);
     rpc!(move_pane_to_floating_pane, MovePaneToFloatingPane, UnitResponse);

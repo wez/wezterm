@@ -724,8 +724,8 @@ impl Tab {
         self.inner.lock().set_active_pane(pane)
     }
 
-    pub fn set_float_pane_visibility(&self, visible: bool) {
-        self.inner.lock().set_float_pane_visibility(visible, true);
+    pub fn set_floating_pane_visibility(&self, visible: bool) {
+        self.inner.lock().set_floating_pane_visibility(visible, true);
     }
 
     pub fn set_active_floating_pane(&self, index: usize) {
@@ -1927,7 +1927,7 @@ impl TabInner {
         }
 
         if self.floating_panes.is_empty() {
-            self.set_float_pane_visibility(false, false);
+            self.set_floating_pane_visibility(false, false);
         }
 
         if !dead_panes.is_empty() && kill {
@@ -1993,13 +1993,13 @@ impl TabInner {
         for (i, floating_pane) in self.floating_panes.iter().enumerate() {
             if floating_pane.pane_id() == pane.pane_id() {
                 self.set_active_floating_pane(i, true);
-                self.set_float_pane_visibility(true, true);
+                self.set_floating_pane_visibility(true, true);
                 return;
             }
         }
 
         if self.floating_pane_visible {
-            self.set_float_pane_visibility(false, true);
+            self.set_floating_pane_visibility(false, true);
         }
 
         if self.zoomed.is_some() {
@@ -2024,14 +2024,14 @@ impl TabInner {
     fn append_floating_pane(&mut self, pane: &Arc<dyn Pane>) {
         self.floating_panes.push(Arc::clone(&pane));
         self.set_active_floating_pane(self.floating_panes.len() - 1, true);
-        self.set_float_pane_visibility(true, false);
+        self.set_floating_pane_visibility(true, false);
     }
 
-    fn set_float_pane_visibility(&mut self, visible: bool, invalidate: bool) {
+    fn set_floating_pane_visibility(&mut self, visible: bool, invalidate: bool) {
         if visible != self.floating_pane_visible {
             self.floating_pane_visible = visible;
             let mux = Mux::get();
-            mux.notify(MuxNotification::FloatPaneVisibilityChanged{
+            mux.notify(MuxNotification::FloatingPaneVisibilityChanged {
                 tab_id: self.id,
                 visible,
             });
@@ -2162,7 +2162,7 @@ impl TabInner {
             self.set_active_floating_pane(self.active_floating_pane - 1, true);
         } else {
             self.set_active_floating_pane(0, true);
-            self.set_float_pane_visibility(false, true);
+            self.set_floating_pane_visibility(false, true);
         }
     }
 
@@ -2298,7 +2298,7 @@ impl TabInner {
     }
 
     fn toggle_floating_pane(&mut self) {
-        self.set_float_pane_visibility(!self.is_floating_pane_active(), true);
+        self.set_floating_pane_visibility(!self.is_floating_pane_active(), true);
     }
 
     fn add_floating_pane(

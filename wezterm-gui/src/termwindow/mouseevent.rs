@@ -668,19 +668,19 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
-        let panes = if let Some(float_pane) = self.get_float_pane_to_render() {
-            let mouse_in_float = position.column >= float_pane.left &&
-                position.column <= float_pane.left + float_pane.width &&
-                position.row as usize >= float_pane.top &&
-                position.row as usize <= float_pane.top + float_pane.height;
+        let panes = if let Some(floating_pane) = self.get_floating_pane_to_render() {
+            let mouse_in_floating_pane = position.column >= floating_pane.left &&
+                position.column <= floating_pane.left + floating_pane.width &&
+                position.row as usize >= floating_pane.top &&
+                position.row as usize <= floating_pane.top + floating_pane.height;
 
-            if !mouse_in_float {
+            if !mouse_in_floating_pane {
                 let mux = Mux::get();
                 if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id){
                     //Hide floating pane if mouse is clicked outside the floating pane
                     match &event.kind {
                         WMEK::Press(_) => {
-                            mux.set_float_pane_visibility(tab.tab_id(), false).ok();
+                            mux.set_floating_pane_visibility(tab.tab_id(), false).ok();
                         }
                         _ => {}
                     }
@@ -692,7 +692,7 @@ impl super::TermWindow {
                 // closing the last non-floating pane while the floating pane is active.
                 return;
             }
-            vec![float_pane]
+            vec![floating_pane]
         } else {
             self.get_panes_to_render()
         };

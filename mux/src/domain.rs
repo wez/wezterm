@@ -71,7 +71,7 @@ pub trait Domain: Downcast + Send + Sync {
         Ok(tab)
     }
 
-    async fn add_float_pane(
+    async fn add_floating_pane(
         &self,
         tab: TabId,
         _pane_id: PaneId,
@@ -101,9 +101,9 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        if let Some(float_pane) = tab.get_active_floating_pane() {
+        if let Some(floating_pane) = tab.get_active_floating_pane() {
             tab.remove_floating_pane(tab.get_active_floating_pane_index());
-            tab.set_float_pane_visibility(false);
+            tab.set_floating_pane_visibility(false);
             if let Some(active_non_floating_pane) = tab.get_active_pane() {
                 let pane_id = active_non_floating_pane.pane_id();
 
@@ -122,7 +122,7 @@ pub trait Domain: Downcast + Send + Sync {
                     top_level: false,
                     size: Default::default(),
                 };
-                tab.split_and_insert(pane_index, split_request, Arc::clone(&float_pane.pane))?;
+                tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane.pane))?;
             }
         }
         Ok(())

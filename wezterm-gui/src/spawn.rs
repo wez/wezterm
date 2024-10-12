@@ -125,16 +125,16 @@ pub async fn spawn_command_internal(
                     .get_active_pane()
                     .ok_or_else(|| anyhow!("tab to have a pane"))?;
 
-                log::trace!("doing float_pane");
+                log::trace!("doing spawn_floating_pane");
                 let (pane, _size) = mux
-                    .float_pane(
+                    .spawn_floating_pane(
                         pane.pane_id(),
                         cmd_builder,
                         cwd,
                         spawn.domain,
                     )
                     .await
-                    .context("float_pane")?;
+                    .context("spawn_floating_pane")?;
                 pane.set_config(term_config);
             } else {
                 bail!("there is no active tab while floating pane!?");

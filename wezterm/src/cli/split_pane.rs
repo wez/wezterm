@@ -115,7 +115,7 @@ impl SplitPane {
 }
 
 #[derive(Debug, Parser, Clone)]
-pub struct FloatPane {
+pub struct FloatingPane {
     /// Specify the pane that should be floating.
     /// The default is to use the current pane based on the
     /// environment variable WEZTERM_PANE.
@@ -134,11 +134,11 @@ pub struct FloatPane {
     prog: Vec<OsString>,
 }
 
-impl FloatPane {
+impl FloatingPane {
     pub async fn run(self, client: Client) -> anyhow::Result<()> {
         let pane_id = client.resolve_pane_id(self.pane_id).await?;
         let spawned = client
-            .add_float_pane(codec::FloatPane {
+            .add_floating_pane(codec::SpawnFloatingPane {
                 pane_id,
                 domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
                 command: if self.prog.is_empty() {

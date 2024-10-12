@@ -1456,7 +1456,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("md_content_copy"),
         },
-        FloatPane(SpawnCommand {
+        SpawnFloatingPane(SpawnCommand {
                           domain: SpawnTabDomain::CurrentPaneDomain,
                           ..
                       }) => CommandDef {
@@ -1529,7 +1529,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("cod_split_vertical"),
         },
-        FloatPane(_) => CommandDef {
+        SpawnFloatingPane(_) => CommandDef {
             brief: label_string(action, "Create a floating pane".to_string()).into(),
             doc: "Create a floating pane"
                 .into(),
@@ -2088,7 +2088,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Shell
         SpawnTab(SpawnTabDomain::CurrentPaneDomain),
         SpawnWindow,
-        FloatPane(SpawnCommand {
+        SpawnFloatingPane(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),

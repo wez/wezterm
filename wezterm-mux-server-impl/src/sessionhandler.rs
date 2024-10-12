@@ -725,10 +725,10 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::FloatPane(float) => {
+            Pdu::SpawnFloatingPane(float) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    schedule_float_pane(float, send_response, client_id);
+                    schedule_spawn_floating_pane(float, send_response, client_id);
                 })
                 .detach();
             }
@@ -749,7 +749,7 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::FloatPaneVisibilityChanged(FloatPaneVisibilityChanged{ tab_id, visible }) => {
+            Pdu::FloatingPaneVisibilityChanged(FloatingPaneVisibilityChanged { tab_id, visible }) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
                     catch(
@@ -760,7 +760,7 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.set_float_pane_visibility(visible);
+                            tab.set_floating_pane_visibility(visible);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response
@@ -1132,24 +1132,24 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
     }))
 }
 
-fn schedule_float_pane<SND>(float: FloatPane,  send_response: SND, client_id: Option<Arc<ClientId>>)
+fn schedule_spawn_floating_pane<SND>(float: SpawnFloatingPane, send_response: SND, client_id: Option<Arc<ClientId>>)
     where
         SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(async move { send_response(float_pane(float, client_id).await) })
+    promise::spawn::spawn(async move { send_response(spawn_floating_pane(float, client_id).await) })
         .detach();
 }
 
-async fn float_pane(float_pane: FloatPane, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
+async fn spawn_floating_pane(spawn_floating_pane: SpawnFloatingPane, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
     let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
 
     let (_pane_domain_id, window_id, tab_id) = mux
-        .resolve_pane_id(float_pane.pane_id)
-        .ok_or_else(|| anyhow!("pane_id {} invalid", float_pane.pane_id))?;
+        .resolve_pane_id(spawn_floating_pane.pane_id)
+        .ok_or_else(|| anyhow!("pane_id {} invalid", spawn_floating_pane.pane_id))?;
 
     let (pane, size) = mux
-        .float_pane(float_pane.pane_id, float_pane.command, float_pane.command_dir, float_pane.domain)
+        .spawn_floating_pane(spawn_floating_pane.pane_id, spawn_floating_pane.command, spawn_floating_pane.command_dir, spawn_floating_pane.domain)
         .await?;
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {

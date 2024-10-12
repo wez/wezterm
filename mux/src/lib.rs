@@ -93,7 +93,7 @@ pub enum MuxNotification {
         old_workspace: String,
         new_workspace: String,
     },
-    FloatPaneVisibilityChanged{
+    FloatingPaneVisibilityChanged {
         tab_id: TabId,
         visible: bool,
     },
@@ -533,12 +533,12 @@ impl Mux {
         }
     }
 
-    pub fn set_float_pane_visibility(&self, tab_id: TabId, visible: bool) -> anyhow::Result<()> {
+    pub fn set_floating_pane_visibility(&self, tab_id: TabId, visible: bool) -> anyhow::Result<()> {
         let tab = self
             .get_tab(tab_id)
             .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
 
-        tab.set_float_pane_visibility(visible);
+        tab.set_floating_pane_visibility(visible);
 
         Ok(())
     }
@@ -1192,7 +1192,7 @@ impl Mux {
         })
     }
 
-    pub async fn float_pane(
+    pub async fn spawn_floating_pane(
         &self,
         // TODO: disambiguate with TabId
         pane_id: PaneId,
@@ -1228,7 +1228,7 @@ impl Mux {
             command_dir
         };
 
-        let pane = domain.add_float_pane(tab_id, pane_id, command_builder, command_dir).await?;
+        let pane = domain.add_floating_pane(tab_id, pane_id, command_builder, command_dir).await?;
 
         if let Some(config) = term_config {
             pane.set_config(config);

@@ -267,9 +267,9 @@ impl crate::TermWindow {
             self.paint_pane(&pos, &mut layers).context("paint_pane")?;
         }
 
-        if let Some(float_pane) = self.get_float_pane_to_render(){
-            self.paint_pane(&float_pane, &mut float_layers).context("paint_pane")?;
-            self.paint_float_border(float_pane, &mut float_layers).context("paint_float_border")?;
+        if let Some(floating_pane) = self.get_floating_pane_to_render(){
+            self.paint_pane(&floating_pane, &mut float_layers).context("paint_pane")?;
+            self.paint_float_border(floating_pane, &mut float_layers).context("paint_float_border")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {

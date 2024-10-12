@@ -206,11 +206,11 @@ where
             }
             Ok(Item::Notif(MuxNotification::ActiveWorkspaceChanged(_))) => {}
             Ok(Item::Notif(MuxNotification::Empty)) => {}
-            Ok(Item::Notif(MuxNotification::FloatPaneVisibilityChanged{
+            Ok(Item::Notif(MuxNotification::FloatingPaneVisibilityChanged {
                 tab_id,
                 visible
             })) => {
-                Pdu::FloatPaneVisibilityChanged(codec::FloatPaneVisibilityChanged {
+                Pdu::FloatingPaneVisibilityChanged(codec::FloatingPaneVisibilityChanged {
                     tab_id,
                     visible
                 })

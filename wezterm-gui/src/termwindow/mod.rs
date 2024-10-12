@@ -1289,7 +1289,7 @@ impl TermWindow {
                     // Also handled by clientpane
                     self.update_title_post_status();
                 }
-                MuxNotification::FloatPaneVisibilityChanged { .. } => { }
+                MuxNotification::FloatingPaneVisibilityChanged { .. } => { }
                 MuxNotification::ActiveFloatingPaneChanged { .. } => { }
                 MuxNotification::TabResized(_) => {
                     // Also handled by wezterm-client
@@ -1418,8 +1418,8 @@ impl TermWindow {
             return tab_overlay.pane_id() == pane_id;
         }
 
-        if let Some(float_pane) = tab.get_active_floating_pane(){
-            if(float_pane.pane.pane_id() == pane_id)
+        if let Some(floating_pane) = tab.get_active_floating_pane(){
+            if(floating_pane.pane.pane_id() == pane_id)
             {
                 return true;
             }
@@ -1504,7 +1504,7 @@ impl TermWindow {
                     return true;
                 }
             }
-            MuxNotification::FloatPaneVisibilityChanged { .. } => { }
+            MuxNotification::FloatingPaneVisibilityChanged { .. } => { }
             MuxNotification::ActiveFloatingPaneChanged { .. } => { }
             MuxNotification::Alert {
                 alert: Alert::ToastNotification { .. },
@@ -2611,8 +2611,8 @@ impl TermWindow {
                     }),
                 );
             }
-            FloatPane(spawn) => {
-                log::trace!("FloatPane {:?}", spawn);
+            SpawnFloatingPane(spawn) => {
+                log::trace!("SpawnFloatingPane {:?}", spawn);
                 self.spawn_command(
                     spawn,
                     SpawnWhere::Float);
@@ -3521,7 +3521,7 @@ impl TermWindow {
         self.get_pos_panes_for_tab(&tab)
     }
 
-    fn get_float_pane_to_render(&self) -> Option<PositionedPane> {
+    fn get_floating_pane_to_render(&self) -> Option<PositionedPane> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,

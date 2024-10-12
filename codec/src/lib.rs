@@ -502,8 +502,8 @@ pdu! {
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
-    FloatPane: 63,
-    FloatPaneVisibilityChanged: 64,
+    SpawnFloatingPane: 63,
+    FloatingPaneVisibilityChanged: 64,
     MoveFloatingPaneToSplit: 65,
     MovePaneToFloatingPane: 66,
     ActiveFloatingPaneChanged: 67,
@@ -655,7 +655,7 @@ pub struct ListPanesResponse {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct FloatPane {
+pub struct SpawnFloatingPane {
     pub pane_id: PaneId,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
@@ -663,7 +663,7 @@ pub struct FloatPane {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct FloatPaneVisibilityChanged {
+pub struct FloatingPaneVisibilityChanged {
     pub tab_id: TabId,
     pub visible: bool
 }
