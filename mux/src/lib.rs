@@ -1074,11 +1074,10 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
-            if let Some(float_pane) = tab.get_floating_pane() {
-                if pane_id == float_pane.pane.pane_id() {
-                    ids = Some((tab.tab_id(), float_pane.pane.domain_id()));
-                    break;
-                }
+            //TODO: the 2 loops feels weird
+            if let Some(floating_pane) = tab.get_floating_pane_by_pane_id(pane_id){
+                ids = Some((tab.tab_id(), floating_pane.domain_id()));
+                break;
             }
             for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {

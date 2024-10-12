@@ -358,12 +358,10 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
-                            if tab.is_float_active() {
-                                tab.set_active_pane(&pane);
 
-                                mux.record_focus_for_current_identity(pane_id);
-                                mux.notify(mux::MuxNotification::PaneFocused(pane_id));
-                            }
+                            tab.set_active_pane(&pane);
+                            mux.record_focus_for_current_identity(pane_id);
+                            mux.notify(mux::MuxNotification::PaneFocused(pane_id));
 
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },

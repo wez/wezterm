@@ -587,6 +587,10 @@ impl Tab {
         self.inner.lock().floating_pane_is_visible()
     }
 
+    pub fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
+        self.inner.lock().get_floating_pane_by_pane_id(pane_id)
+    }
+
     pub fn get_floating_pane(&self) -> Option<PositionedPane> {
         self.inner.lock().get_floating_pane()
     }
@@ -1042,6 +1046,16 @@ impl TabInner {
     /// list of PositionedPane instances along with their positioning information.
     fn iter_panes(&mut self) -> Vec<PositionedPane> {
         self.iter_panes_impl(true)
+    }
+
+    fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
+        for pane in &self.floating_panes {
+            if pane.pane_id() == pane_id {
+
+                return Some(Arc::clone(&pane))
+            }
+        }
+        return None
     }
 
     fn floating_pane_is_visible(&self) -> bool {
