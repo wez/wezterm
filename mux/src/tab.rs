@@ -2158,7 +2158,7 @@ impl TabInner {
             self.floating_panes.remove(index);
         }
         //TODO: This seems wrong
-        if self.floating_panes.len() > 0 {
+        if self.floating_panes.len() > 0 && self.active_floating_pane > 0 {
             self.set_active_floating_pane(self.active_floating_pane - 1, true);
         } else {
             self.set_active_floating_pane(0, true);

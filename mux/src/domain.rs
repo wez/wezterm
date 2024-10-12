@@ -103,8 +103,13 @@ pub trait Domain: Downcast + Send + Sync {
 
         if let Some(floating_pane) = tab.get_active_floating_pane() {
             tab.remove_floating_pane(tab.get_active_floating_pane_index());
-            tab.set_floating_pane_visibility(false);
-            if let Some(active_non_floating_pane) = tab.get_active_pane() {
+
+            //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
+            if let Some(active_non_floating_pane) = tab.iter_panes_ignoring_zoom()
+                .iter()
+                .nth(tab.get_active_idx())
+                .map(|p| Arc::clone(&p.pane)) {
+
                 let pane_id = active_non_floating_pane.pane_id();
 
                 let pane_index = match tab
