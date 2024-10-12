@@ -15,7 +15,7 @@ upon the input.
   is itself a table with a `label` field and an optional `id` field.
   The label will be shown in the list, while the id can be a different
   string that is meaningful to your action. The label can be used together
-  with [wezterm.format](../wezterm/format.md) to produce styled test.
+  with [wezterm.format](../wezterm/format.md) to produce styled text.
 * `action` - and event callback registered via `wezterm.action_callback`.  The
   callback's function signature is `(window, pane, id, label)` where `window` and
   `pane` are the [Window](../window/index.md) and [Pane](../pane/index.md)
