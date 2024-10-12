@@ -1418,7 +1418,7 @@ impl TermWindow {
             return tab_overlay.pane_id() == pane_id;
         }
 
-        if let Some(float_pane) = tab.get_floating_pane(){
+        if let Some(float_pane) = tab.get_active_floating_pane(){
             if(float_pane.pane.pane_id() == pane_id)
             {
                 return true;
@@ -3532,7 +3532,7 @@ impl TermWindow {
             return None;
         }
 
-        tab.get_floating_pane()
+        tab.get_active_floating_pane()
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.

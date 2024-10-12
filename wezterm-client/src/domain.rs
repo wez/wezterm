@@ -818,7 +818,7 @@ impl Domain for ClientDomain {
     async fn move_pane_to_floating_pane(
         &self,
         pane_id: PaneId,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -839,7 +839,7 @@ impl Domain for ClientDomain {
 
         self.resync().await?;
 
-        Ok(())
+        Ok(true)
     }
 
     /// Forward the request to the remote; we need to translate the local ids

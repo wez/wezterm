@@ -1345,7 +1345,9 @@ impl Mux {
             .get_domain(domain_id)
             .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
 
-        domain.move_pane_to_floating_pane(pane_id) .await?;
+        if domain.move_pane_to_floating_pane(pane_id).await?{
+            return Ok(())
+        }
 
         let tab = match self.get_tab(src_tab) {
             Some(t) => t,
@@ -1356,7 +1358,7 @@ impl Mux {
             .remove_pane(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
 
-        tab.set_floating_pane(&pane);
+        tab.append_floating_pane(&pane);
 
         Ok(())
     }

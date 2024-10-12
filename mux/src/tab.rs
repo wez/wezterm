@@ -591,8 +591,8 @@ impl Tab {
         self.inner.lock().get_floating_pane_by_pane_id(pane_id)
     }
 
-    pub fn get_floating_pane(&self) -> Option<PositionedPane> {
-        self.inner.lock().get_floating_pane()
+    pub fn get_active_floating_pane(&self) -> Option<PositionedPane> {
+        self.inner.lock().get_active_floating_pane()
     }
 
     pub fn iter_panes_ignoring_zoom(&self) -> Vec<PositionedPane> {
@@ -733,7 +733,7 @@ impl Tab {
     }
 
     //TODO: This should be something like add_floating_pane now
-    pub fn set_floating_pane(&self, pane: &Arc<dyn Pane>) {
+    pub fn append_floating_pane(&self, pane: &Arc<dyn Pane>) {
         self.inner.lock().append_floating_pane(pane);
     }
 
@@ -774,11 +774,12 @@ impl Tab {
         self.inner.lock().compute_floating_pane_size()
     }
 
-    //TODO: This should be remove_floating_pane now
-    pub fn clear_floating_pane(
-        & self,
-    ) {
-        self.inner.lock().clear_floating_pane();
+    pub fn get_active_floating_pane_index(&self) -> usize {
+        self.inner.lock().active_floating_pane
+    }
+
+    pub fn remove_floating_pane(&self, index: usize ) {
+        self.inner.lock().remove_floating_pane(index);
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -1062,7 +1063,7 @@ impl TabInner {
         self.floating_pane_visible
     }
 
-    fn get_floating_pane(&self) -> Option<PositionedPane> {
+    fn get_active_floating_pane(&self) -> Option<PositionedPane> {
         if self.floating_pane_visible && self.active_floating_pane < self.floating_panes.len() {
             let floating_pane = &self.floating_panes[self.active_floating_pane];
             let root_size = self.size;
@@ -2023,7 +2024,7 @@ impl TabInner {
     fn append_floating_pane(&mut self, pane: &Arc<dyn Pane>) {
         self.floating_panes.push(Arc::clone(&pane));
         self.set_active_floating_pane(self.floating_panes.len() - 1, true);
-        self.set_float_pane_visibility(true, true);
+        self.set_float_pane_visibility(true, false);
     }
 
     fn set_float_pane_visibility(&mut self, visible: bool, invalidate: bool) {
@@ -2152,10 +2153,11 @@ impl TabInner {
     }
 
     //TODO: this should be updated to accept a pane
-    fn clear_floating_pane(& mut self) {
+    fn remove_floating_pane(& mut self, index: usize) {
         if self.active_floating_pane < self.floating_panes.len() {
-            self.floating_panes.remove(self.active_floating_pane);
+            self.floating_panes.remove(index);
         }
+        //TODO: This seems wrong
         if self.floating_panes.len() > 0 {
             self.set_active_floating_pane(self.active_floating_pane - 1, true);
         } else {
