@@ -2527,7 +2527,6 @@ impl TermWindow {
         if self.is_float_active() {
             match assignment {
                 ActivatePaneByIndex(..) |
-                ActivatePaneDirection(..) |
                 SplitPane(..) |
                 SpawnTab(..) |
                 PaneSelect(..) => {

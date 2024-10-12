@@ -321,16 +321,14 @@ fn process_unilateral(
             .detach();
             return Ok(());
         }
-        Pdu::ActiveFloatingPaneChanged(ActiveFloatingPaneChanged { pane_id}) => {
-            let pane_id = *pane_id;
+        Pdu::ActiveFloatingPaneChanged(ActiveFloatingPaneChanged {index, tab_id}) => {
+            let tab_id = *tab_id;
+            let index = *index;
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
                 let client_domain = mux
                     .get_domain(local_domain_id)
                     .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
-
-                let (_domain, window_id, tab_id) = mux.resolve_pane_id(pane_id)
-                    .ok_or_else(|| anyhow::anyhow!("can't find {pane_id} in mux"))?;
 
                 let client_domain =
                     client_domain
@@ -339,8 +337,10 @@ fn process_unilateral(
                             anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
                         })?;
 
-                client_domain.set_active_floating_pane(pane_id, tab_id);
+                client_domain.set_active_floating_pane(index, tab_id);
+                //TODO: is resync the best way to do this?
                 client_domain.resync().await;
+
                 anyhow::Result::<()>::Ok(())
             })
             .detach();

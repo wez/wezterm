@@ -219,10 +219,12 @@ where
                 stream.flush().await.context("flushing PDU to client")?;
             }
             Ok(Item::Notif(MuxNotification::ActiveFloatingPaneChanged{
-                pane_id
+                index,
+                tab_id
                            })) => {
                 Pdu::ActiveFloatingPaneChanged(codec::ActiveFloatingPaneChanged {
-                    pane_id
+                    index,
+                    tab_id,
                 })
                     .encode_async(&mut stream, 0)
                     .await?;

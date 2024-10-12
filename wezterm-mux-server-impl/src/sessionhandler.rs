@@ -358,10 +358,12 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
-                            tab.set_active_pane(&pane);
+                            if tab.is_float_active() {
+                                tab.set_active_pane(&pane);
 
-                            mux.record_focus_for_current_identity(pane_id);
-                            mux.notify(mux::MuxNotification::PaneFocused(pane_id));
+                                mux.record_focus_for_current_identity(pane_id);
+                                mux.notify(mux::MuxNotification::PaneFocused(pane_id));
+                            }
 
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
@@ -768,7 +770,7 @@ impl SessionHandler {
                 }).detach()
             }
 
-            Pdu::ActiveFloatingPaneChanged(codec::ActiveFloatingPaneChanged{ pane_id}) => {
+            Pdu::ActiveFloatingPaneChanged(codec::ActiveFloatingPaneChanged{index, tab_id}) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
                     catch(
@@ -776,15 +778,11 @@ impl SessionHandler {
                             let mux = Mux::get();
                             let _identity = mux.with_identity(client_id);
 
-                            let (_domain_id, window_id, tab_id) = mux
-                                .resolve_pane_id(pane_id)
-                                .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
-
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
 
-                            tab.set_active_floating_pane(pane_id);
+                            tab.set_active_floating_pane(index);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response

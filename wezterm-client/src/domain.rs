@@ -373,17 +373,20 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                 }
             }
         }
-        MuxNotification::ActiveFloatingPaneChanged {pane_id} => {
-            if let Some(inner) = client_domain.inner() {
-                promise::spawn::spawn(async move {
-                    inner
-                        .client
-                        .set_active_floating_pane(codec::ActiveFloatingPaneChanged {
-                            pane_id: pane_id
-                        })
-                        .await
-                })
-                .detach();
+        MuxNotification::ActiveFloatingPaneChanged {index, tab_id} => {
+            if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_active_floating_pane(codec::ActiveFloatingPaneChanged {
+                                tab_id: remote_tab_id,
+                                index
+                            })
+                            .await
+                    })
+                    .detach();
+                }
             }
         }
         MuxNotification::WindowTitleChanged {
@@ -543,11 +546,11 @@ impl ClientDomain {
         }
     }
 
-    pub fn set_active_floating_pane(&self, pane_id: PaneId, remote_tab_id: TabId) {
+    pub fn set_active_floating_pane(&self, index: usize, remote_tab_id: TabId) {
         if let Some(inner) = self.inner() {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
-                    tab.set_active_floating_pane(pane_id);
+                    tab.set_active_floating_pane(index);
                 }
             }
         }

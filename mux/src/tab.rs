@@ -724,8 +724,8 @@ impl Tab {
         self.inner.lock().set_float_pane_visibility(visible, true);
     }
 
-    pub fn set_active_floating_pane(&self, pane_id: PaneId) {
-        self.inner.lock().set_active_floating_pane(pane_id, true);
+    pub fn set_active_floating_pane(&self, index: usize) {
+        self.inner.lock().set_active_floating_pane(index, true);
     }
 
     //TODO: This should be something like add_floating_pane now
@@ -1597,6 +1597,20 @@ impl TabInner {
             }
             self.toggle_zoom();
         }
+
+        if self.floating_pane_visible && self.floating_panes.len() > 0 {
+            let len = self.floating_panes.len();
+
+            let new_index = match direction {
+                PaneDirection::Right => (self.active_floating_pane + 1) % len,
+                PaneDirection::Left => (self.active_floating_pane + len - 1) % len,
+                //Not sure what to do with other directions, leave as is for now
+                _ => self.active_floating_pane,
+            };
+
+            self.set_active_floating_pane(new_index, true);
+        }
+
         if let Some(panel_idx) = self.get_pane_direction(direction, false) {
             self.set_active_idx(panel_idx);
         }
@@ -2018,9 +2032,8 @@ impl TabInner {
     fn set_active_floating_pane(&mut self, index: usize, invalidate: bool) {
         if index != self.active_floating_pane && index < self.floating_panes.len() {
             self.active_floating_pane = index;
-            let pane = &self.floating_panes[self.active_floating_pane];
             let mux = Mux::get();
-            mux.notify(MuxNotification::ActiveFloatingPaneChanged {pane_id: pane.pane_id()});
+            mux.notify(MuxNotification::ActiveFloatingPaneChanged {tab_id: self.id, index: index});
             if invalidate {
                 if let Some(window_id) = mux.window_containing_tab(self.id)
                 {

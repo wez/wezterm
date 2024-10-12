@@ -670,7 +670,8 @@ pub struct FloatPaneVisibilityChanged {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ActiveFloatingPaneChanged {
-    pub pane_id: PaneId
+    pub index: usize,
+    pub tab_id: TabId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
