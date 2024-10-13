@@ -576,7 +576,7 @@ impl Publish {
 
                                 let mut window_id = None;
                                 'outer: for tabroot in panes.tabs {
-                                    let mut cursor = tabroot.0.into_tree().cursor();
+                                    let mut cursor = tabroot.panes.into_tree().cursor();
 
                                     loop {
                                         if let Some(entry) = cursor.leaf_mut() {

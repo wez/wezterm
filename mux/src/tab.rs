@@ -550,14 +550,14 @@ impl Tab {
     /// PaneEntry, or to create a new Pane from that entry.
     /// make_pane is expected to add the pane to the mux if it creates
     /// a new pane, otherwise the pane won't poll/update in the GUI.
-    pub fn sync_with_pane_tree<F>(&self, size: TerminalSize, root: (PaneNode, (Vec<PaneNode>, usize, bool)), make_pane: F)
+    pub fn sync_with_pane_tree<F>(&self, size: TerminalSize, root: TabEntry, make_pane: F)
     where
         F: FnMut(PaneEntry) -> Arc<dyn Pane>,
     {
         self.inner.lock().sync_with_pane_tree(size, root, make_pane)
     }
 
-    pub fn codec_pane_tree(&self) -> (PaneNode, (Vec<PaneNode>, usize, bool)) {
+    pub fn codec_pane_tree(&self) -> TabEntry {
         self.inner.lock().codec_pane_tree()
     }
 
@@ -707,7 +707,7 @@ impl Tab {
         self.inner.lock().is_dead()
     }
 
-    pub fn is_float_active(&self) -> bool {
+    pub fn is_floating_pane_active(&self) -> bool {
         self.inner.lock().is_floating_pane_active()
     }
 
@@ -733,7 +733,7 @@ impl Tab {
     }
 
     //TODO: This should be something like add_floating_pane now
-    pub fn append_floating_pane(&self, pane: &Arc<dyn Pane>) {
+    pub fn append_floating_pane(&self, pane: Arc<dyn Pane>) {
         self.inner.lock().append_floating_pane(pane);
     }
 
@@ -809,14 +809,14 @@ impl Tab {
             .toggle_floating_pane();
     }
 
-    pub fn insert_float(
+    pub fn add_floating_pane(
         &self,
-        float_size: TerminalSize,
+        size: TerminalSize,
         pane: Arc<dyn Pane>,
     ) -> anyhow::Result<()> {
         self.inner
             .lock()
-            .add_floating_pane(float_size, pane)
+            .add_floating_pane(size, pane)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -841,7 +841,7 @@ impl TabInner {
         }
     }
 
-    fn sync_with_pane_tree<F>(&mut self, size: TerminalSize, root: (PaneNode, (Vec<PaneNode>, usize, bool)), mut make_pane: F)
+    fn sync_with_pane_tree<F>(&mut self, size: TerminalSize, root: TabEntry, mut make_pane: F)
     where
         F: FnMut(PaneEntry) -> Arc<dyn Pane>,
     {
@@ -850,7 +850,7 @@ impl TabInner {
 
         log::debug!("sync_with_pane_tree with size {:?}", size);
 
-        let t = build_from_pane_tree(root.0.into_tree(), &mut active, &mut zoomed, &mut make_pane);
+        let t = build_from_pane_tree(root.panes.into_tree(), &mut active, &mut zoomed, &mut make_pane);
         let mut cursor = t.cursor();
 
         self.active = 0;
@@ -882,15 +882,15 @@ impl TabInner {
 
         //TODO: we are in a lock this should be safe?  is it needed?
         self.floating_panes.clear();
-        for pane_node in root.1.0 {
+        for pane_node in root.floating_panes {
             if let PaneNode::Leaf(entry) = pane_node {
                 let is_zoomed = entry.is_zoomed_pane;
                 let floating_pane = make_pane(entry);
                 if is_zoomed {
                     zoomed = Some(Arc::clone(&floating_pane))
                 }
-                self.active_floating_pane = root.1.1;
-                self.floating_pane_visible = root.1.2;
+                self.active_floating_pane = root.active_floating_pane_index;
+                self.floating_pane_visible = root.floating_pane_visible;
                 self.floating_panes.push(floating_pane);
             }
         }
@@ -907,14 +907,19 @@ impl TabInner {
         assert!(self.pane.is_some());
     }
 
-    fn codec_pane_tree(&mut self) -> (PaneNode, (Vec<PaneNode>, usize, bool)) {
+    fn codec_pane_tree(&mut self) -> TabEntry {
         let mux = Mux::get();
         let tab_id = self.id;
         let window_id = match mux.window_containing_tab(tab_id) {
             Some(w) => w,
             None => {
                 log::error!("no window contains tab {}", tab_id);
-                return (PaneNode::Empty, (vec!(), self.active_floating_pane, false));
+                return TabEntry{
+                    panes: PaneNode::Empty,
+                    floating_panes: vec!(),
+                    active_floating_pane_index: self.active_floating_pane,
+                    floating_pane_visible: self.floating_pane_visible
+                };
             }
         };
 
@@ -925,7 +930,12 @@ impl TabInner {
             Some(ws) => ws,
             None => {
                 log::error!("window id {} doesn't have a window!?", window_id);
-                return (PaneNode::Empty, (vec!(), 0, false));
+                return TabEntry{
+                    panes: PaneNode::Empty,
+                    floating_panes: vec!(),
+                    active_floating_pane_index: self.active_floating_pane,
+                    floating_pane_visible: self.floating_pane_visible
+                };
             }
         };
 
@@ -951,6 +961,7 @@ impl TabInner {
                     dpi: dims.dpi,
                 },
                 working_dir: working_dir.map(Into::into),
+                //TODO: this seems wrong, there are other floating panes
                 is_active_pane: self.floating_pane_visible,
                 is_zoomed_pane: is_pane(floating_pane, &zoomed),
                 is_floating_pane: true,
@@ -965,18 +976,28 @@ impl TabInner {
         }
 
         if let Some(root) = self.pane.as_ref() {
-            (pane_tree(
-                root,
-                tab_id,
-                window_id,
-                active.as_ref(),
-                zoomed,
-                &workspace,
-                0,
-                0,
-            ), (codec_floating_panes, self.active_floating_pane, self.floating_pane_visible))
+            TabEntry{
+                panes: pane_tree(
+                    root,
+                    tab_id,
+                    window_id,
+                    active.as_ref(),
+                    zoomed,
+                    &workspace,
+                    0,
+                    0,
+                ),
+                floating_panes: codec_floating_panes,
+                active_floating_pane_index: self.active_floating_pane,
+                floating_pane_visible: self.floating_pane_visible
+            }
         } else {
-            (PaneNode::Empty, (codec_floating_panes, self.active_floating_pane, self.floating_pane_visible))
+            TabEntry{
+                panes: PaneNode::Empty,
+                floating_panes: codec_floating_panes,
+                active_floating_pane_index: self.active_floating_pane,
+                floating_pane_visible: self.floating_pane_visible
+            }
         }
     }
 
@@ -1056,7 +1077,6 @@ impl TabInner {
     fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
         for pane in &self.floating_panes {
             if pane.pane_id() == pane_id {
-
                 return Some(Arc::clone(&pane))
             }
         }
@@ -1068,6 +1088,7 @@ impl TabInner {
     }
 
     fn get_active_floating_pane(&self) -> Option<PositionedPane> {
+        //TODO: is this right?  A floating pane can be zoomed
         if self.zoomed.is_some() {
             return None
         }
@@ -1314,9 +1335,9 @@ impl TabInner {
             return;
         }
 
-        let float_size = self.compute_floating_pane_size();
+        let floating_pane_size = self.compute_floating_pane_size();
         for floating_pane in &self.floating_panes {
-            floating_pane.resize(float_size).ok();
+            floating_pane.resize(floating_pane_size).ok();
         }
 
         if let Some(zoomed) = &self.zoomed {
@@ -2029,8 +2050,8 @@ impl TabInner {
         }
     }
 
-    fn append_floating_pane(&mut self, pane: &Arc<dyn Pane>) {
-        self.floating_panes.push(Arc::clone(&pane));
+    fn append_floating_pane(&mut self, pane: Arc<dyn Pane>) {
+        self.floating_panes.push(pane);
         self.set_active_floating_pane(self.floating_panes.len() - 1, true);
         self.set_floating_pane_visibility(true, false);
     }
@@ -2191,11 +2212,11 @@ impl TabInner {
             pixel_cell: cell_height,
         };
 
-        let float_padding = configuration().float_pane_padding;
-        let top_padding_pixels = float_padding.top.evaluate_as_pixels(v_context) as usize;
-        let bottom_padding_pixels = float_padding.bottom.evaluate_as_pixels(v_context) as usize;
-        let left_padding_pixels = float_padding.left.evaluate_as_pixels(h_context) as usize;
-        let right_padding_pixels = float_padding.right.evaluate_as_pixels(h_context) as usize;
+        let padding = configuration().floating_pane_padding;
+        let top_padding_pixels = padding.top.evaluate_as_pixels(v_context) as usize;
+        let bottom_padding_pixels = padding.bottom.evaluate_as_pixels(v_context) as usize;
+        let left_padding_pixels = padding.left.evaluate_as_pixels(h_context) as usize;
+        let right_padding_pixels = padding.right.evaluate_as_pixels(h_context) as usize;
         let pixel_width = root_size.pixel_width - right_padding_pixels - left_padding_pixels;
         let pixel_height = root_size.pixel_height - bottom_padding_pixels - top_padding_pixels;
         let cols = (pixel_width as f32 / cell_width) as usize;
@@ -2311,19 +2332,16 @@ impl TabInner {
 
     fn add_floating_pane(
         &mut self,
-        float_size: TerminalSize,
+        size: TerminalSize,
         pane: Arc<dyn Pane>,
     ) -> anyhow::Result<()> {
         if self.zoomed.is_some() {
-            anyhow::bail!("cannot add float while zoomed");
+            anyhow::bail!("cannot add floating pane while zoomed");
         }
 
-        //TODO: I don't think I need to use Arc here
-        self.append_floating_pane(&Arc::clone(&pane));
-        //TODO: I don't think this is needed (already set in append_floating_pane)
-        self.floating_pane_visible = true;
+        self.append_floating_pane(Arc::clone(&pane));
 
-        pane.resize(float_size)?;
+        pane.resize(size)?;
         Ok(())
     }
 
@@ -2532,6 +2550,14 @@ pub struct PaneEntry {
     pub top_row: usize,
     pub left_col: usize,
     pub tty_name: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct TabEntry {
+    pub panes: PaneNode,
+    pub floating_panes: Vec<PaneNode>,
+    pub active_floating_pane_index: usize,
+    pub floating_pane_visible: bool,
 }
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]

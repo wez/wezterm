@@ -315,7 +315,7 @@ fn process_unilateral(
                         })?;
 
                 client_domain.set_floating_pane_visibility(tab_id, visible);
-                client_domain.resync().await;
+                let _ = client_domain.resync().await;
                 anyhow::Result::<()>::Ok(())
             })
             .detach();
@@ -339,7 +339,7 @@ fn process_unilateral(
 
                 client_domain.set_active_floating_pane(index, tab_id);
                 //TODO: is resync the best way to do this?
-                client_domain.resync().await;
+                let _ = client_domain.resync().await;
 
                 anyhow::Result::<()>::Ok(())
             })

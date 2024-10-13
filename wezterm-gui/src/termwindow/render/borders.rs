@@ -1,7 +1,7 @@
 use crate::quad::TripleLayerQuadAllocator;
 use crate::utilsprites::RenderMetrics;
 use ::window::ULength;
-use config::{ConfigHandle, DimensionContext, FloatBorderConfig, PixelUnit};
+use config::{ConfigHandle, DimensionContext, FloatingPaneBorderConfig, PixelUnit};
 use mux::tab::PositionedPane;
 use window::parameters::Border;
 
@@ -133,14 +133,14 @@ impl crate::TermWindow {
         )
     }
 
-    pub fn paint_float_border(
+    pub fn paint_floating_pane_border(
         &mut self,
         pos: PositionedPane,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         let (padding_left, padding_top) = self.padding_left_top();
-        let config = self.config.float_pane_border.clone();
-        let float_border = self.get_float_border();
+        let config = self.config.floating_pane_border.clone();
+        let floating_pane_border = self.get_floating_pane_border();
 
         let os_border = self.get_os_border();
         let tab_bar_height = if self.show_tab_bar {
@@ -161,10 +161,10 @@ impl crate::TermWindow {
         let background_rect = self.compute_background_rect(&pos,
             padding_left, padding_top, &os_border, top_pixel_y, cell_width, cell_height);
 
-        let pos_y = background_rect.origin.y - float_border.top.get() as f32;
-        let pos_x = background_rect.origin.x - float_border.left.get() as f32;
-        let pixel_width = background_rect.size.width + float_border.left.get() as f32;
-        let pixel_height = background_rect.size.height + float_border.top.get() as f32;
+        let pos_y = background_rect.origin.y - floating_pane_border.top.get() as f32;
+        let pos_x = background_rect.origin.x - floating_pane_border.left.get() as f32;
+        let pixel_width = background_rect.size.width + floating_pane_border.left.get() as f32;
+        let pixel_height = background_rect.size.height + floating_pane_border.top.get() as f32;
 
         self.filled_rectangle(
             layers,
@@ -172,8 +172,8 @@ impl crate::TermWindow {
             euclid::rect(
                 pos_x,
                 pos_y,
-                float_border.left.get() as f32,
-                pixel_height + float_border.top.get() as f32,
+                floating_pane_border.left.get() as f32,
+                pixel_height + floating_pane_border.top.get() as f32,
             ),
             config.left_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
         )?;
@@ -181,10 +181,10 @@ impl crate::TermWindow {
             layers,
             2,
             euclid::rect(
-                pos_x + float_border.left.get() as f32,
+                pos_x + floating_pane_border.left.get() as f32,
                 pos_y,
                 pixel_width,
-                float_border.top.get() as f32,
+                floating_pane_border.top.get() as f32,
             ),
             config.top_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
         )?;
@@ -192,10 +192,10 @@ impl crate::TermWindow {
             layers,
             2,
             euclid::rect(
-                pos_x + float_border.left.get() as f32,
+                pos_x + floating_pane_border.left.get() as f32,
                 pos_y + pixel_height,
                 pixel_width,
-                float_border.bottom.get() as f32,
+                floating_pane_border.bottom.get() as f32,
             ),
             config.bottom_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
         )?;
@@ -205,8 +205,8 @@ impl crate::TermWindow {
             euclid::rect(
                 pos_x + pixel_width,
                 pos_y,
-                float_border.right.get() as f32,
-                pixel_height + float_border.top.get() as f32,
+                floating_pane_border.right.get() as f32,
+                pixel_height + floating_pane_border.top.get() as f32,
             ),
             config.right_color.map(|c| c.to_linear()).unwrap_or(os_border.color),
         )?;
@@ -274,10 +274,10 @@ impl crate::TermWindow {
     }
 
     //refactor with get_os_border_impl?
-    fn get_float_border_impl(
+    fn get_floating_pane_border_impl(
         dimensions: &crate::Dimensions,
         render_metrics: &RenderMetrics,
-        border_config: &FloatBorderConfig
+        border_config: &FloatingPaneBorderConfig
     ) -> Border {
         let mut border= Border::default();
         border.left += ULength::new(
@@ -324,11 +324,11 @@ impl crate::TermWindow {
         border
     }
 
-    fn get_float_border(&self) -> Border {
-        Self::get_float_border_impl(
+    fn get_floating_pane_border(&self) -> Border {
+        Self::get_floating_pane_border_impl(
             &self.dimensions,
             &self.render_metrics,
-            &self.config.float_pane_border
+            &self.config.floating_pane_border
         )
     }
 

@@ -14,7 +14,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use termwiz::surface::SequenceNo;
 use url::Url;
-use mux::MuxNotification::ActiveFloatingPaneChanged;
 use wezterm_term::terminal::Alert;
 use wezterm_term::StableRowIndex;
 

@@ -1419,7 +1419,7 @@ impl TermWindow {
         }
 
         if let Some(floating_pane) = tab.get_active_floating_pane(){
-            if(floating_pane.pane.pane_id() == pane_id)
+            if floating_pane.pane.pane_id() == pane_id
             {
                 return true;
             }
@@ -2524,7 +2524,7 @@ impl TermWindow {
             result => return Ok(result),
         }
 
-        if self.is_float_active() {
+        if self.is_floating_pane_active() {
             match assignment {
                 ActivatePaneByIndex(..) |
                 SplitPane(..) |
@@ -2615,7 +2615,7 @@ impl TermWindow {
                 log::trace!("SpawnFloatingPane {:?}", spawn);
                 self.spawn_command(
                     spawn,
-                    SpawnWhere::Float);
+                    SpawnWhere::FloatingPane);
             }
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
@@ -2942,7 +2942,7 @@ impl TermWindow {
                             domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
                             ..Default::default()
                         },
-                        SpawnWhere::Float);
+                        SpawnWhere::FloatingPane);
                 } else {
                     tab.toggle_float();
                 }
@@ -3114,10 +3114,10 @@ impl TermWindow {
             }
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
-            MoveFloatingPaneToHorizontalSplit(spawn) => {
+            MoveFloatingPaneToHorizontalSplit => {
                 self.move_floating_pane_to_split(SplitDirection::Horizontal);
             }
-            MoveFloatingPantToVerticalSplit(spawn) => {
+            MoveFloatingPaneToVerticalSplit => {
                 self.move_floating_pane_to_split(SplitDirection::Vertical);
             }
         };
@@ -3125,7 +3125,7 @@ impl TermWindow {
     }
 
     fn move_floating_pane_to_split(&self, split_direction: SplitDirection) {
-        if !self.is_float_active() {
+        if !self.is_floating_pane_active() {
             return;
         }
 
@@ -3397,14 +3397,14 @@ impl TermWindow {
         }
     }
 
-    pub fn is_float_active(&self) -> bool {
+    pub fn is_floating_pane_active(&self) -> bool {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
             None => return false,
         };
 
-        return tab.is_float_active();
+        return tab.is_floating_pane_active();
     }
 
     fn get_splits(&mut self) -> Vec<PositionedSplit> {

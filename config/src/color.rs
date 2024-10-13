@@ -599,7 +599,7 @@ pub struct WindowFrameConfig {
 }
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
-pub struct FloatBorderConfig {
+pub struct FloatingPaneBorderConfig {
     #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
     pub left_width: Dimension,
     #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
@@ -646,7 +646,7 @@ impl Default for WindowFrameConfig {
     }
 }
 
-impl Default for FloatBorderConfig {
+impl Default for FloatingPaneBorderConfig {
     fn default() -> Self {
         Self {
             left_width: default_zero_pixel(),

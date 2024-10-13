@@ -688,7 +688,7 @@ impl super::TermWindow {
 
                 // Mouse events are not dispatched to the other panes when
                 // a floating pane is active, this is to prevent users from selecting one of the
-                // panes that the float is on top of and encountering some weird behavior, ex.
+                // panes that the floating pane is on top of and encountering some weird behavior, ex.
                 // closing the last non-floating pane while the floating pane is active.
                 return;
             }

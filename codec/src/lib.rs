@@ -16,7 +16,7 @@ use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, Tab, TabId};
+use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, Tab, TabEntry, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
@@ -649,7 +649,7 @@ pub struct ListPanes {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
-    pub tabs: Vec<(PaneNode, (Vec<PaneNode>, usize, bool))>,
+    pub tabs: Vec<TabEntry>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
 }

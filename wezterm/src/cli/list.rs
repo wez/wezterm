@@ -22,7 +22,7 @@ impl ListCommand {
         let panes = client.list_panes().await?;
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let mut cursor = tabroot.0.into_tree().cursor();
+            let mut cursor = tabroot.panes.into_tree().cursor();
 
             loop {
                 if let Some(entry) = cursor.leaf_mut() {
@@ -43,7 +43,7 @@ impl ListCommand {
                 }
             }
 
-            for floating_pane in &tabroot.1.0 {
+            for floating_pane in &tabroot.floating_panes {
                 if let PaneNode::Leaf(entry) = floating_pane {
                     let window_title = panes
                         .window_titles

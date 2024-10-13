@@ -15,7 +15,7 @@ pub enum SpawnWhere {
     NewWindow,
     NewTab,
     SplitPane(SplitRequest),
-    Float,
+    FloatingPane,
 }
 
 pub fn spawn_command_impl(
@@ -115,10 +115,10 @@ pub async fn spawn_command_internal(
                 bail!("there is no active tab while splitting pane!?");
             }
         }
-        SpawnWhere::Float => {
+        SpawnWhere::FloatingPane => {
             let src_window_id = match src_window_id {
                 Some(id) => id,
-                None => anyhow::bail!("no src window when float a pane?"),
+                None => anyhow::bail!("no src window when spawning floating pane?"),
             };
             if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
                 let pane = tab

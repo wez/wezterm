@@ -1074,7 +1074,6 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
-            //TODO: the 2 loops feels weird
             if let Some(floating_pane) = tab.get_floating_pane_by_pane_id(pane_id){
                 ids = Some((tab.tab_id(), floating_pane.domain_id()));
                 break;
@@ -1194,7 +1193,6 @@ impl Mux {
 
     pub async fn spawn_floating_pane(
         &self,
-        // TODO: disambiguate with TabId
         pane_id: PaneId,
         command_builder: Option<CommandBuilder>,
         command_dir: Option<String>,
@@ -1234,14 +1232,12 @@ impl Mux {
             pane.set_config(config);
         }
 
-        // FIXME: clipboard
-
         let dims = pane.get_dimensions();
 
         let size = TerminalSize {
             cols: dims.cols,
             rows: dims.viewport_rows,
-            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_height: 0,
             pixel_width: 0,
             dpi: dims.dpi,
         };
@@ -1358,7 +1354,7 @@ impl Mux {
             .remove_pane(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
 
-        tab.append_floating_pane(&pane);
+        tab.append_floating_pane(pane);
 
         Ok(())
     }

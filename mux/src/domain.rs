@@ -84,9 +84,9 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let float_size = tab.compute_floating_pane_size();
-        let pane = self.spawn_pane(float_size, command_builder, command_dir) .await?;
-        tab.insert_float(float_size, Arc::clone(&pane))?;
+        let size = tab.compute_floating_pane_size();
+        let pane = self.spawn_pane(size, command_builder, command_dir).await?;
+        tab.add_floating_pane(size, Arc::clone(&pane))?;
         Ok(pane)
     }
 
@@ -101,36 +101,37 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        if let Some(floating_pane) = tab.get_active_floating_pane() {
-            tab.remove_floating_pane(tab.get_active_floating_pane_index());
-            tab.set_floating_pane_visibility(false);
+        let floating_pane = tab.get_active_floating_pane()
+            .ok_or_else(|| anyhow::anyhow!("tab does not have active floating pane"))?;
 
-            //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
-            if let Some(active_non_floating_pane) = tab.iter_panes_ignoring_zoom()
-                .iter()
-                .nth(tab.get_active_idx())
-                .map(|p| Arc::clone(&p.pane)) {
+        tab.remove_floating_pane(tab.get_active_floating_pane_index());
+        tab.set_floating_pane_visibility(false);
 
-                let pane_id = active_non_floating_pane.pane_id();
+        //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
+        let active_non_floating_pane = tab.iter_panes_ignoring_zoom()
+            .iter()
+            .nth(tab.get_active_idx())
+            .map(|p| Arc::clone(&p.pane))
+            .ok_or_else(|| anyhow::anyhow!("tab does not have a active non floating pane"))?;
 
-                let pane_index = match tab
-                    .iter_panes_ignoring_zoom()
-                    .iter()
-                    .find(|p| p.pane.pane_id() == pane_id)
-                {
-                    Some(p) => p.index,
-                    None => anyhow::bail!("invalid pane id {}", pane_id),
-                };
+        let pane_id = active_non_floating_pane.pane_id();
 
-                let split_request = SplitRequest {
-                    direction,
-                    target_is_second: true,
-                    top_level: false,
-                    size: Default::default(),
-                };
-                tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane.pane))?;
-            }
-        }
+        let pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_request = SplitRequest {
+            direction,
+            target_is_second: true,
+            top_level: false,
+            size: Default::default(),
+        };
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane.pane))?;
         Ok(())
     }
 

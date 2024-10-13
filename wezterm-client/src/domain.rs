@@ -15,7 +15,6 @@ use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use mux::MuxNotification::FloatingPaneVisibilityChanged;
 use wezterm_term::TerminalSize;
 
 pub struct ClientInner {
@@ -593,12 +592,12 @@ impl ClientDomain {
             .collect();
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let root_size = match tabroot.0.root_size() {
+            let root_size = match tabroot.panes.root_size() {
                 Some(size) => size,
                 None => continue,
             };
 
-            if let Some((remote_window_id, remote_tab_id)) = tabroot.0.window_and_tab_ids() {
+            if let Some((remote_window_id, remote_tab_id)) = tabroot.panes.window_and_tab_ids() {
                 let tab;
 
                 remote_windows_to_forget.remove(&remote_window_id);
@@ -1082,7 +1081,7 @@ impl Domain for ClientDomain {
             "wezterm",
         ));
 
-        tab.insert_float(result.size, Arc::clone(&pane)).ok();
+        tab.add_floating_pane(result.size, Arc::clone(&pane)).ok();
 
         mux.add_pane(&pane)?;
 
