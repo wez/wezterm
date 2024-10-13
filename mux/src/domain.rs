@@ -103,6 +103,7 @@ pub trait Domain: Downcast + Send + Sync {
 
         if let Some(floating_pane) = tab.get_active_floating_pane() {
             tab.remove_floating_pane(tab.get_active_floating_pane_index());
+            tab.set_floating_pane_visibility(false);
 
             //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
             if let Some(active_non_floating_pane) = tab.iter_panes_ignoring_zoom()
