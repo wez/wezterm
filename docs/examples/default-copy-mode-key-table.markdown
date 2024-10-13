@@ -16,7 +16,14 @@ return {
         mods = 'NONE',
         action = act.CopyMode 'MoveToStartOfNextLine',
       },
-      { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
+      {
+        key = 'Escape',
+        mods = 'NONE',
+        action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
+          { CopyMode = 'Close' },
+        },
+      },
       {
         key = 'Space',
         mods = 'NONE',
@@ -124,7 +131,14 @@ return {
       { key = 'b', mods = 'NONE', action = act.CopyMode 'MoveBackwardWord' },
       { key = 'b', mods = 'ALT', action = act.CopyMode 'MoveBackwardWord' },
       { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
-      { key = 'c', mods = 'CTRL', action = act.CopyMode 'Close' },
+      {
+        key = 'c',
+        mods = 'CTRL',
+        action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
+          { CopyMode = 'Close' },
+        },
+      },
       {
         key = 'd',
         mods = 'CTRL',
@@ -147,7 +161,14 @@ return {
         mods = 'NONE',
         action = act.CopyMode 'MoveToScrollbackTop',
       },
-      { key = 'g', mods = 'CTRL', action = act.CopyMode 'Close' },
+      {
+        key = 'g',
+        mods = 'CTRL',
+        action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
+          { CopyMode = 'Close' },
+        },
+      },
       { key = 'h', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
       { key = 'j', mods = 'NONE', action = act.CopyMode 'MoveDown' },
       { key = 'k', mods = 'NONE', action = act.CopyMode 'MoveUp' },
@@ -162,7 +183,14 @@ return {
         mods = 'NONE',
         action = act.CopyMode 'MoveToSelectionOtherEnd',
       },
-      { key = 'q', mods = 'NONE', action = act.CopyMode 'Close' },
+      {
+        key = 'q',
+        mods = 'NONE',
+        action = act.Multiple {
+          { CopyMode = 'ScrollToBottom' },
+          { CopyMode = 'Close' },
+        },
+      },
       {
         key = 't',
         mods = 'NONE',
@@ -189,6 +217,7 @@ return {
         mods = 'NONE',
         action = act.Multiple {
           { CopyTo = 'ClipboardAndPrimarySelection' },
+          { CopyMode = 'ScrollToBottom' },
           { CopyMode = 'Close' },
         },
       },

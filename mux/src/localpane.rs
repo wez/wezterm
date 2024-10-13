@@ -1045,17 +1045,14 @@ impl LocalPane {
         {
             let leader = self.get_leader(policy);
             if let Some(path) = &leader.current_working_dir {
-                return Url::parse(&format!("file://localhost{}", path.display())).ok();
+                return Url::from_directory_path(path).ok();
             }
             return None;
         }
 
         #[cfg(windows)]
         if let Some(fg) = self.divine_foreground_process(policy) {
-            // Since windows paths typically start with something like C:\,
-            // we cannot simply stick `localhost` on the front; we have to
-            // omit the hostname otherwise the url parser is unhappy.
-            return Url::parse(&format!("file://{}", fg.cwd.display())).ok();
+            return Url::from_directory_path(fg.cwd).ok();
         }
 
         #[allow(unreachable_code)]

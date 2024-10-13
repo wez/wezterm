@@ -136,7 +136,7 @@ class CacheStep(ActionStep):
 
 class SccacheStep(ActionStep):
     def __init__(self, name):
-        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.4")
+        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.5")
 
 
 class CheckoutStep(ActionStep):
@@ -551,7 +551,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v3",
+                action="actions/upload-artifact@v4",
                 params={"name": self.name, "path": paths},
             ),
         ]
@@ -609,7 +609,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v3",
+                action="actions/upload-artifact@v4",
                 params={"name": self.name, "path": paths, "retention-days": 5},
             ),
         ]
@@ -638,7 +638,7 @@ rustup default {toolchain}
         return [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v3",
+                action="actions/download-artifact@v4",
                 params={"name": self.name},
             ),
             checksum,
@@ -673,7 +673,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v3",
+                action="actions/download-artifact@v4",
                 params={"name": self.name},
             ),
             checksum,
@@ -998,6 +998,7 @@ rustup default {toolchain}
 TARGETS = [
     Target(container="ubuntu:20.04", continuous_only=True, app_image=True),
     Target(container="ubuntu:22.04", continuous_only=True),
+    Target(container="ubuntu:24.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     # harfbuzz's C++ is too new for debian 9's toolchain

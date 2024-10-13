@@ -84,7 +84,9 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 fn make_ident(key: &str) -> String {
-    let key = key.to_ascii_lowercase();
+    let key = key
+        .to_ascii_lowercase()
+        .replace("terminal.sexy", "terminalsexy");
     let fields: Vec<&str> = key
         .split(|c: char| !c.is_alphanumeric())
         .filter(|c| !c.is_empty())

@@ -1,15 +1,35 @@
-name: debian12_tag
+name: ubuntu24.04_continuous
 
 on:
+  schedule:
+    - cron: "10 3 * * *"
   push:
-    tags:
-      - "20*"
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_ubuntu24.04_continuous.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "debian:12"
+    container: "ubuntu:24.04"
     env:
+      BUILD_REASON: "Schedule"
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
@@ -78,7 +98,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
-          cache-key: "debian12"
+          cache-key: "ubuntu24.04"
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
@@ -88,10 +108,11 @@ jobs:
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: "debian12"
+          name: "ubuntu24.04"
           path: |
             wezterm-*.deb
             wezterm-*.xz
+          retention-days: 5
 
   upload:
     runs-on: ubuntu-latest
@@ -106,17 +127,12 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v4
         with:
-          name: "debian12"
+          name: "ubuntu24.04"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Create pre-release"
+      - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
-      - name: "Upload to Tagged Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz *.sha256"

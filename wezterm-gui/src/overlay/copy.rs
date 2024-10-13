@@ -571,7 +571,6 @@ impl CopyRenderable {
     }
 
     fn close(&self) {
-        self.set_viewport(None);
         TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
@@ -1684,28 +1683,35 @@ pub fn search_key_table() -> KeyTable {
     table
 }
 
+fn scroll_to_bottom_and_close() -> KeyAssignment {
+    KeyAssignment::Multiple(vec![
+        KeyAssignment::ScrollToBottom,
+        KeyAssignment::CopyMode(CopyModeAssignment::Close),
+    ])
+}
+
 pub fn copy_key_table() -> KeyTable {
     let mut table = KeyTable::default();
     for (key, mods, action) in [
         (
             WKeyCode::Char('c'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('g'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('q'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('\x1b'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            scroll_to_bottom_and_close(),
         ),
         (
             WKeyCode::Char('h'),
@@ -1957,7 +1963,7 @@ pub fn copy_key_table() -> KeyTable {
             Modifiers::NONE,
             KeyAssignment::Multiple(vec![
                 KeyAssignment::CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection),
-                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+                scroll_to_bottom_and_close(),
             ]),
         ),
         (

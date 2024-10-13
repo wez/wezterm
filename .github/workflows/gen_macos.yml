@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: "rustup target add x86_64-apple-darwin"
       - name: "Compile with sccache"
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.5
       - name: "Cache Rust Dependencies"
         uses: actions/cache@v4
         id: cache-cargo-vendor
@@ -91,7 +91,7 @@ jobs:
         shell: bash
         run: "bash ci/deploy.sh"
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "macos"
           path: "WezTerm-*.zip"

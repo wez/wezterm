@@ -80,9 +80,11 @@ impl PerPane {
             changed = true;
         }
 
+        let old_seqno = self.seqno;
+        self.seqno = pane.get_current_seqno();
         let mut all_dirty_lines = pane.get_changed_since(
             0..dims.physical_top + dims.viewport_rows as StableRowIndex,
-            self.seqno,
+            old_seqno,
         );
         if !all_dirty_lines.is_empty() {
             changed = true;
@@ -124,7 +126,6 @@ impl PerPane {
         self.working_dir = working_dir.clone();
         self.dimensions = dims;
         self.mouse_grabbed = mouse_grabbed;
-        self.seqno = pane.get_current_seqno();
 
         let bonus_lines = bonus_lines.into();
         Some(GetPaneRenderChangesResponse {

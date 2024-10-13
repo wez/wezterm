@@ -204,7 +204,10 @@ impl ConnectionOps for WaylandConnection {
         let output_state = &self.wayland_state.borrow().output;
 
         for output in output_state.outputs() {
-            let info = output_state.info(&output).unwrap();
+            let info = match output_state.info(&output) {
+                Some(i) => i,
+                None => continue,
+            };
             let name = match info.name {
                 Some(n) => n.clone(),
                 None => format!("{} {}", info.model, info.make),

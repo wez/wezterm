@@ -6,10 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # NOTE: @2024-05 Nix flakes does not support getting git submodules of 'self'.
@@ -130,6 +127,13 @@
             --add-needed "${pkgs.libGL}/lib/libEGL.so.1" \
             --add-needed "${pkgs.vulkan-loader}/lib/libvulkan.so.1" \
             $out/bin/wezterm-gui
+        '' + lib.optionalString stdenv.isDarwin ''
+            mkdir -p "$out/Applications"
+            OUT_APP="$out/Applications/WezTerm.app"
+            cp -r assets/macos/WezTerm.app "$OUT_APP"
+            rm $OUT_APP/*.dylib
+            cp -r assets/shell-integration/* "$OUT_APP"
+            ln -s $out/bin/{wezterm,wezterm-mux-server,wezterm-gui,strip-ansi-escapes} "$OUT_APP"
         '';
 
         postInstall = ''
@@ -159,6 +163,8 @@
               tic -x -o $out/share/terminfo ${src}/termwiz/data/wezterm.terminfo
             '';
         };
+
+        meta.mainProgram = "wezterm";
       };
 
       devShell = pkgs.mkShell {

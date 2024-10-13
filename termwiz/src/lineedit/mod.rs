@@ -299,6 +299,14 @@ impl<'term> LineEditor<'term> {
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
     pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
+        self.read_line_with_optional_initial_value(host, None)
+    }
+
+    pub fn read_line_with_optional_initial_value(
+        &mut self,
+        host: &mut dyn LineEditorHost,
+        initial_value: Option<&str>,
+    ) -> Result<Option<String>> {
         ensure!(
             self.state == EditorState::Inactive,
             "recursive call to read_line!"
@@ -311,7 +319,7 @@ impl<'term> LineEditor<'term> {
 
         self.terminal.set_raw_mode()?;
         self.state = EditorState::Editing;
-        let res = self.read_line_impl(host);
+        let res = self.read_line_impl(host, initial_value);
         self.state = EditorState::Inactive;
 
         if let Some(move_end) = self.move_to_editor_end.take() {
@@ -810,8 +818,15 @@ impl<'term> LineEditor<'term> {
         Ok(())
     }
 
-    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
+    fn read_line_impl(
+        &mut self,
+        host: &mut dyn LineEditorHost,
+        initial_value: Option<&str>,
+    ) -> Result<Option<String>> {
         self.line.clear();
+        if let Some(value) = initial_value {
+            self.line.set_line_and_cursor(value, value.len());
+        }
         self.history_pos = None;
         self.bottom_line = None;
         self.clear_completion();

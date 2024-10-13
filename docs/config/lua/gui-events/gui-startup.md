@@ -97,7 +97,7 @@ wezterm.on('gui-startup', function(cmd)
   build_pane:send_text 'cargo build\n'
 
   -- A workspace for interacting with a local machine that
-  -- runs some docker containners for home automation
+  -- runs some docker containers for home automation
   local tab, pane, window = mux.spawn_window {
     workspace = 'automation',
     args = { 'ssh', 'vault' },
@@ -111,5 +111,6 @@ return config
 ```
 
 See also:
+
 * [wezterm.mux](../wezterm.mux/index.md)
 * [gui-attached](gui-attached.md).

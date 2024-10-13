@@ -1,20 +1,15 @@
-name: Nix
+name: nix_continuous
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '**/*.rs'
-      - '.github/workflows/nix.yml'
-      - 'nix/**'
+  schedule:
+    - cron: "10 3 * * *"
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - '**/*.rs'
-      - '.github/workflows/nix.yml'
+      - '.github/workflows/nix_continuous.yml'
       - 'nix/**'
 
 jobs:
@@ -32,5 +27,13 @@ jobs:
         with:
           flake-lock-path: ./nix/flake.lock
           ignore-missing-flake-lock: false
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: wezterm
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - name: Build default package
-        run: nix build ./nix
+        run: |
+          nix build ./nix --json \
+          | jq -r '.[].outputs | to_entries[].value' \
+          | cachix push wezterm
