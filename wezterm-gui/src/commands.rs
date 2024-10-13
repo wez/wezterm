@@ -1456,19 +1456,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("md_content_copy"),
         },
-        SpawnFloatingPane(SpawnCommand {
+        SpawnCommandInNewFloatingPane(SpawnCommand {
                           domain: SpawnTabDomain::CurrentPaneDomain,
                           ..
                       }) => CommandDef {
             brief: label_string(action, "Create a floating pane".to_string()).into(),
             doc: "Create a floating pane"
                 .into(),
-            keys: vec![(
-                Modifiers::CTRL
-                    .union(Modifiers::ALT)
-                    .union(Modifiers::SHIFT),
-                "p".into(),
-            )],
+            keys: vec![],
             args: &[ArgType::ActivePane],
             menubar: &["Shell"],
             icon: Some("cod_primitive_square"),
@@ -1529,7 +1524,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("cod_split_vertical"),
         },
-        SpawnFloatingPane(_) => CommandDef {
+        SpawnCommandInNewFloatingPane(_) => CommandDef {
             brief: label_string(action, "Create a floating pane".to_string()).into(),
             doc: "Create a floating pane"
                 .into(),
@@ -1538,6 +1533,8 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("cod_primitive_square"),
         },
+        //TODO:: Figure out if is is possible to ony show these in the palette when a floating pane
+        //is visible
         MoveFloatingPaneToHorizontalSplit => CommandDef {
             brief: label_string(action, "Move floating pane to horizontal split (Left/Right)".to_string()).into(),
             doc: "Move floating pane to horizontal split (Left/Right)"
@@ -1547,6 +1544,8 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("cod_split_horizontal"),
         },
+        //TODO:: Figure out if is is possible to ony show these in the palette when a floating pane
+        //is visible
         MoveFloatingPaneToVerticalSplit => CommandDef {
             brief: label_string(action, "Move floating pane to vertical split (Top/Bottom)".to_string()).into(),
             doc: "Move floating pane to vertical split (Top/Bottom)"
@@ -2088,7 +2087,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Shell
         SpawnTab(SpawnTabDomain::CurrentPaneDomain),
         SpawnWindow,
-        SpawnFloatingPane(SpawnCommand {
+        SpawnCommandInNewFloatingPane(SpawnCommand {
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..Default::default()
         }),

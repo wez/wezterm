@@ -104,17 +104,9 @@ Outputs the pane-id for the newly created pane on success"
     SplitPane(split_pane::SplitPane),
 
     #[command(
-        name = "float-pane",
-        rename_all = "kebab",
-        trailing_var_arg = true,
-        about = "spawn a floating pane"
-    )]
-    SpawnFloatingPane(split_pane::FloatingPane),
-
-    #[command(
         name = "spawn",
         trailing_var_arg = true,
-        about = "Spawn a command into a new window or tab
+        about = "Spawn a command into a new window, tab or floating pane
 Outputs the pane-id for the newly created pane on success"
     )]
     SpawnCommand(spawn_command::SpawnCommand),
@@ -192,7 +184,6 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::List(cmd) => cmd.run(client).await,
         CliSubCommand::MovePaneToNewTab(cmd) => cmd.run(client).await,
         CliSubCommand::SplitPane(cmd) => cmd.run(client).await,
-        CliSubCommand::SpawnFloatingPane(cmd) => cmd.run(client).await,
         CliSubCommand::SendText(cmd) => cmd.run(client).await,
         CliSubCommand::GetText(cmd) => cmd.run(client).await,
         CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &crate::init_config(opts)?).await,

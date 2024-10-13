@@ -2618,7 +2618,7 @@ impl TermWindow {
                     }),
                 );
             }
-            SpawnFloatingPane(spawn) => {
+            SpawnCommandInNewFloatingPane(spawn) => {
                 log::trace!("SpawnFloatingPane {:?}", spawn);
                 self.spawn_command(
                     spawn,
