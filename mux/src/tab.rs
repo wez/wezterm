@@ -878,20 +878,24 @@ impl TabInner {
             }
         }
         self.pane.replace(cursor.tree());
-        self.zoomed = zoomed;
         self.size = size;
 
         //TODO: we are in a lock this should be safe?  is it needed?
         self.floating_panes.clear();
         for pane_node in root.1.0 {
             if let PaneNode::Leaf(entry) = pane_node {
+                let is_zoomed = entry.is_zoomed_pane;
                 let floating_pane = make_pane(entry);
+                if is_zoomed {
+                    zoomed = Some(Arc::clone(&floating_pane))
+                }
                 self.active_floating_pane = root.1.1;
                 self.floating_pane_visible = root.1.2;
                 self.floating_panes.push(floating_pane);
             }
         }
 
+        self.zoomed = zoomed;
         self.resize(size);
 
         log::debug!(
@@ -948,7 +952,7 @@ impl TabInner {
                 },
                 working_dir: working_dir.map(Into::into),
                 is_active_pane: self.floating_pane_visible,
-                is_zoomed_pane: false,
+                is_zoomed_pane: is_pane(floating_pane, &zoomed),
                 is_floating_pane: true,
                 workspace: workspace.to_string(),
                 cursor_pos,
@@ -1060,10 +1064,14 @@ impl TabInner {
     }
 
     fn floating_pane_is_visible(&self) -> bool {
-        self.floating_pane_visible
+        self.floating_pane_visible && !self.zoomed.is_some()
     }
 
     fn get_active_floating_pane(&self) -> Option<PositionedPane> {
+        if self.zoomed.is_some() {
+            return None
+        }
+
         if self.floating_pane_visible && self.active_floating_pane < self.floating_panes.len() {
             let floating_pane = &self.floating_panes[self.active_floating_pane];
             let root_size = self.size;
