@@ -732,7 +732,6 @@ impl Tab {
         self.inner.lock().set_active_floating_pane(index, true);
     }
 
-    //TODO: This should be something like add_floating_pane now
     pub fn append_floating_pane(&self, pane: Arc<dyn Pane>) {
         self.inner.lock().append_floating_pane(pane);
     }
@@ -778,8 +777,8 @@ impl Tab {
         self.inner.lock().active_floating_pane
     }
 
-    pub fn remove_floating_pane(&self, index: usize ) {
-        self.inner.lock().remove_floating_pane(index);
+    pub fn remove_floating_pane(&self, index: usize) -> anyhow::Result<Arc<dyn Pane>> {
+        self.inner.lock().remove_floating_pane(index)
     }
 
     /// Split the pane that has pane_index in the given direction and assign
@@ -880,6 +879,8 @@ impl TabInner {
         self.pane.replace(cursor.tree());
         self.size = size;
 
+        self.active_floating_pane = root.active_floating_pane_index;
+        self.floating_pane_visible = root.floating_pane_visible;
         //TODO: we are in a lock this should be safe?  is it needed?
         self.floating_panes.clear();
         for pane_node in root.floating_panes {
@@ -889,8 +890,6 @@ impl TabInner {
                 if is_zoomed {
                     zoomed = Some(Arc::clone(&floating_pane))
                 }
-                self.active_floating_pane = root.active_floating_pane_index;
-                self.floating_pane_visible = root.floating_pane_visible;
                 self.floating_panes.push(floating_pane);
             }
         }
@@ -943,7 +942,7 @@ impl TabInner {
         let zoomed = self.zoomed.as_ref();
 
         let mut codec_floating_panes = vec!();
-        for floating_pane in &self.floating_panes {
+        for (i, floating_pane) in self.floating_panes.iter().enumerate() {
             let dims = floating_pane.get_dimensions();
             let working_dir = floating_pane.get_current_working_dir(CachePolicy::AllowStale);
             let cursor_pos = floating_pane.get_cursor_position();
@@ -961,8 +960,7 @@ impl TabInner {
                     dpi: dims.dpi,
                 },
                 working_dir: working_dir.map(Into::into),
-                //TODO: this seems wrong, there are other floating panes
-                is_active_pane: self.floating_pane_visible,
+                is_active_pane: i == self.active_floating_pane && self.floating_pane_visible,
                 is_zoomed_pane: is_pane(floating_pane, &zoomed),
                 is_floating_pane: true,
                 workspace: workspace.to_string(),
@@ -1088,7 +1086,8 @@ impl TabInner {
     }
 
     fn get_active_floating_pane(&self) -> Option<PositionedPane> {
-        //TODO: is this right?  A floating pane can be zoomed
+        //Even if the zoomed pane is a floating pane. Not returning it since it is currently
+        //not visible as a floating pane, instead as a zoomed pane
         if self.zoomed.is_some() {
             return None
         }
@@ -1773,8 +1772,7 @@ impl TabInner {
         let mux = Mux::get();
         let previous_floating_pane_visibility = self.floating_pane_visible;
         let previous_active_floating_pane = self.active_floating_pane;
-        //TODO: this may be important
-        let mut result = !self
+        let mut invalidate = !self
             .remove_pane_if(
                 |_, pane| {
                     // If the pane is no longer known to the mux, then its liveness
@@ -1809,10 +1807,10 @@ impl TabInner {
 
         if previous_floating_pane_visibility != self.floating_pane_visible ||
             previous_active_floating_pane != self.active_floating_pane {
-            result = true;
+            invalidate = true;
         }
 
-        result
+        invalidate
     }
 
     fn kill_pane(&mut self, pane_id: PaneId) -> bool {
@@ -1930,8 +1928,7 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
-        // Step 1: Collect indices of panes to remove and count how many are before the active pane
-        let mut indices_to_remove = Vec::new();
+        let mut floating_pane_indices_to_remove = Vec::new();
         let mut count_before_active = 0;
 
         for (i, floating_pane) in self.floating_panes.iter().enumerate() {
@@ -1942,16 +1939,16 @@ impl TabInner {
                     count_before_active += 1;
                 }
 
-                indices_to_remove.push(i);
+                floating_pane_indices_to_remove.push(i);
             }
         }
 
         let active_floating_index = self.active_floating_pane;
-        indices_to_remove.retain(|&idx| idx <= active_floating_index);
-        let new_active_floating_pane = active_floating_index.saturating_sub(indices_to_remove.len());
+        floating_pane_indices_to_remove.retain(|&idx| idx <= active_floating_index);
+        let new_active_floating_pane = active_floating_index.saturating_sub(floating_pane_indices_to_remove.len());
         self.set_active_floating_pane(new_active_floating_pane, false);
 
-        for i in indices_to_remove {
+        for i in floating_pane_indices_to_remove {
             self.floating_panes.remove(i);
         }
 
@@ -2027,8 +2024,6 @@ impl TabInner {
             }
         }
 
-        //A pane that is not floating is being set active so we make
-        //sure that the floating pane is hidden
         if self.floating_pane_visible {
             self.set_floating_pane_visibility(false, true);
         }
@@ -2188,18 +2183,27 @@ impl TabInner {
         None
     }
 
-    //TODO: this should be updated to accept a pane
-    fn remove_floating_pane(& mut self, index: usize) {
-        if self.active_floating_pane < self.floating_panes.len() {
-            self.floating_panes.remove(index);
+    fn remove_floating_pane(& mut self, index: usize) -> anyhow::Result<Arc<dyn Pane>> {
+        if index >= self.floating_panes.len() {
+            anyhow::bail!("floating_panes index {index} out or range")
         }
-        //TODO: This seems wrong
-        if self.floating_panes.len() > 0 && self.active_floating_pane > 0 {
-            self.set_active_floating_pane(self.active_floating_pane - 1, true);
-        } else {
-            self.set_active_floating_pane(0, true);
+
+        let result = self.floating_panes.remove(index);
+        if self.floating_panes.is_empty() {
             self.set_floating_pane_visibility(false, true);
+            self.active_floating_pane = 0;
+        } else {
+            if self.active_floating_pane > index {
+                self.active_floating_pane -= 1;
+            } else if self.active_floating_pane == index {
+                if index >= self.floating_panes.len() {
+                    self.active_floating_pane = self.floating_panes.len() - 1;
+                } else {
+                    self.active_floating_pane = index;
+                }
+            }
         }
+        Ok(Arc::clone(&result))
     }
 
     fn compute_floating_pane_size(&self) -> TerminalSize {

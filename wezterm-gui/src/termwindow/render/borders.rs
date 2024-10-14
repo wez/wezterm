@@ -1,7 +1,7 @@
 use crate::quad::TripleLayerQuadAllocator;
 use crate::utilsprites::RenderMetrics;
 use ::window::ULength;
-use config::{ConfigHandle, DimensionContext, FloatingPaneBorderConfig, PixelUnit};
+use config::{ConfigHandle, Dimension, DimensionContext, FloatingPaneBorderConfig, PixelUnit};
 use mux::tab::PositionedPane;
 use window::parameters::Border;
 
@@ -214,6 +214,53 @@ impl crate::TermWindow {
         Ok(())
     }
 
+    fn apply_config_to_border(
+        border: &mut Border,
+        left_width: Dimension,
+        right_width: Dimension,
+        top_height: Dimension,
+        bottom_height: Dimension,
+        dimensions: &crate::Dimensions,
+        render_metrics: &RenderMetrics,
+    ) {
+        border.left += ULength::new(
+            left_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.right += ULength::new(
+            right_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_width as f32,
+                    pixel_cell: render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.top += ULength::new(
+            top_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+        border.bottom += ULength::new(
+            bottom_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: dimensions.dpi as f32,
+                    pixel_max: dimensions.pixel_height as f32,
+                    pixel_cell: render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+    }
+
     pub fn get_os_border_impl(
         os_parameters: &Option<window::parameters::Parameters>,
         config: &ConfigHandle,
@@ -225,102 +272,34 @@ impl crate::TermWindow {
             .and_then(|p| p.border_dimensions.clone())
             .unwrap_or_default();
 
-        border.left += ULength::new(
-            config
-                .window_frame
-                .border_left_width
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_width as f32,
-                    pixel_cell: render_metrics.cell_size.width as f32,
-                })
-                .ceil() as usize,
-        );
-        border.right += ULength::new(
-            config
-                .window_frame
-                .border_right_width
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_width as f32,
-                    pixel_cell: render_metrics.cell_size.width as f32,
-                })
-                .ceil() as usize,
-        );
-        border.top += ULength::new(
-            config
-                .window_frame
-                .border_top_height
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_height as f32,
-                    pixel_cell: render_metrics.cell_size.height as f32,
-                })
-                .ceil() as usize,
-        );
-        border.bottom += ULength::new(
-            config
-                .window_frame
-                .border_bottom_height
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_height as f32,
-                    pixel_cell: render_metrics.cell_size.height as f32,
-                })
-                .ceil() as usize,
+        Self::apply_config_to_border(
+            &mut border,
+            config.window_frame.border_left_width,
+            config.window_frame.border_right_width,
+            config.window_frame.border_top_height,
+            config.window_frame.border_bottom_height,
+            dimensions,
+            render_metrics
         );
 
         border
     }
 
-    //refactor with get_os_border_impl?
     fn get_floating_pane_border_impl(
         dimensions: &crate::Dimensions,
         render_metrics: &RenderMetrics,
         border_config: &FloatingPaneBorderConfig
     ) -> Border {
         let mut border= Border::default();
-        border.left += ULength::new(
-            border_config
-                .left_width
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_width as f32,
-                    pixel_cell: render_metrics.cell_size.width as f32,
-                })
-                .ceil() as usize,
+        Self::apply_config_to_border(
+            &mut border,
+            border_config.left_width,
+            border_config.right_width,
+            border_config.top_height,
+            border_config.bottom_height,
+            dimensions,
+            render_metrics
         );
-        border.right += ULength::new(
-            border_config
-                .right_width
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_width as f32,
-                    pixel_cell: render_metrics.cell_size.width as f32,
-                })
-                .ceil() as usize,
-        );
-        border.top += ULength::new(
-            border_config
-                .top_height
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_height as f32,
-                    pixel_cell: render_metrics.cell_size.height as f32,
-                })
-                .ceil() as usize,
-        );
-        border.bottom += ULength::new(
-            border_config
-                .bottom_height
-                .evaluate_as_pixels(DimensionContext {
-                    dpi: dimensions.dpi as f32,
-                    pixel_max: dimensions.pixel_height as f32,
-                    pixel_cell: render_metrics.cell_size.height as f32,
-                })
-                .ceil() as usize,
-        );
-
         border
     }
 

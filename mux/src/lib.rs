@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
-use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
+use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalConfiguration, TerminalSize};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -48,6 +48,7 @@ mod tmux_pty;
 pub mod window;
 
 use crate::activity::Activity;
+use crate::renderable::RenderableDimensions;
 
 pub const DEFAULT_WORKSPACE: &str = "default";
 
@@ -1191,43 +1192,7 @@ impl Mux {
         })
     }
 
-    pub async fn spawn_floating_pane(
-        &self,
-        pane_id: PaneId,
-        command_builder: Option<CommandBuilder>,
-        command_dir: Option<String>,
-        domain: config::keyassignment::SpawnTabDomain,
-    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
-        let (_pane_domain_id, window_id, tab_id) = self
-            .resolve_pane_id(pane_id)
-            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
-
-        let domain = self
-            .resolve_spawn_tab_domain(Some(pane_id), &domain)
-            .context("resolve_spawn_tab_domain")?;
-
-        if domain.state() == DomainState::Detached {
-            domain.attach(Some(window_id)).await?;
-        }
-
-        let current_pane = self
-            .get_pane(pane_id)
-            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
-        let term_config = current_pane.get_config();
-
-        let command_dir = if !command_dir.is_some() {
-            self.resolve_cwd(
-                command_dir,
-                Some(Arc::clone(&current_pane)),
-                domain.domain_id(),
-                CachePolicy::FetchImmediate,
-            )
-        } else {
-            command_dir
-        };
-
-        let pane = domain.add_floating_pane(tab_id, pane_id, command_builder, command_dir).await?;
-
+    fn apply_config_to_pane(pane: Arc<dyn Pane>, term_config: Option<Arc<dyn TerminalConfiguration>>) -> (TerminalSize) {
         if let Some(config) = term_config {
             pane.set_config(config);
         }
@@ -1242,40 +1207,23 @@ impl Mux {
             dpi: dims.dpi,
         };
 
-        Ok((pane, size))
+        size
     }
 
-    pub async fn move_floating_pane_to_split(
-        &self,
-        pane_id: PaneId,
-        direction: SplitDirection,
-    ) -> anyhow::Result<()> {
-        let (pane_domain_id, window_id, tab_id) = self
+    fn resolve_domain_from_pane_id(&self, pane_id: PaneId) -> anyhow::Result<(Arc<dyn Domain>, WindowId, TabId)> {
+        let (domain_id, src_window, src_tab) = self
             .resolve_pane_id(pane_id)
-            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
 
         let domain = self
-            .get_domain(pane_domain_id)
-            //TODO::Update this
-            .context("resolve_spawn_tab_domain")?;
+            .get_domain(domain_id)
+            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
 
-        if domain.state() == DomainState::Detached {
-            domain.attach(Some(window_id)).await?;
-        }
-
-        domain.move_floating_pane_to_split(tab_id, direction).await?;
-
-        Ok(())
+        Ok((domain, src_window, src_tab))
     }
 
-    pub async fn split_pane(
-        &self,
-        // TODO: disambiguate with TabId
-        pane_id: PaneId,
-        request: SplitRequest,
-        source: SplitSource,
-        domain: config::keyassignment::SpawnTabDomain,
-    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+    async fn resolve_spawn_tab_domain_from_pane_id(&self, pane_id: PaneId, domain: SpawnTabDomain) ->
+    anyhow::Result<(Arc<dyn Domain>, TabId, Arc<dyn Pane>, Option<Arc<dyn TerminalConfiguration>>)> {
         let (_pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
@@ -1291,7 +1239,61 @@ impl Mux {
         let current_pane = self
             .get_pane(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+
         let term_config = current_pane.get_config();
+        Ok((domain, tab_id, current_pane, term_config))
+    }
+
+    pub async fn spawn_floating_pane(
+        &self,
+        pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (domain, tab_id, current_pane, term_config) = self.resolve_spawn_tab_domain_from_pane_id(pane_id, domain).await?;
+
+        let command_dir = if !command_dir.is_some() {
+            self.resolve_cwd(
+                command_dir,
+                Some(Arc::clone(&current_pane)),
+                domain.domain_id(),
+                CachePolicy::FetchImmediate,
+            )
+        } else {
+            command_dir
+        };
+
+        let pane = domain.add_floating_pane(tab_id, pane_id, command_builder, command_dir).await?;
+        let size = Self::apply_config_to_pane(Arc::clone(&pane), term_config);
+
+        Ok((pane, size))
+    }
+
+    pub async fn move_floating_pane_to_split(
+        &self,
+        pane_id: PaneId,
+        direction: SplitDirection,
+    ) -> anyhow::Result<()> {
+        let (domain, window_id, tab_id) = self.resolve_domain_from_pane_id(pane_id)?;
+
+        domain.move_floating_pane_to_split(tab_id, direction).await?;
+
+        //TODO: why don't I have to do the other stuff in move_pane_to_floating_pane
+
+        Ok(())
+    }
+
+    pub async fn split_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        request: SplitRequest,
+        source: SplitSource,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (domain, tab_id, current_pane, term_config) =
+            self.resolve_spawn_tab_domain_from_pane_id(pane_id, domain).await?;
 
         let source = match source {
             SplitSource::Spawn {
@@ -1310,21 +1312,7 @@ impl Mux {
         };
 
         let pane = domain.split_pane(source, tab_id, pane_id, request).await?;
-        if let Some(config) = term_config {
-            pane.set_config(config);
-        }
-
-        // FIXME: clipboard
-
-        let dims = pane.get_dimensions();
-
-        let size = TerminalSize {
-            cols: dims.cols,
-            rows: dims.viewport_rows,
-            pixel_height: 0, // FIXME: split pane pixel dimensions
-            pixel_width: 0,
-            dpi: dims.dpi,
-        };
+        let size = Self::apply_config_to_pane(Arc::clone(&pane), term_config);
 
         Ok((pane, size))
     }
@@ -1333,13 +1321,7 @@ impl Mux {
         &self,
         pane_id: PaneId,
     ) -> anyhow::Result<()> {
-        let (domain_id, _src_window, src_tab) = self
-            .resolve_pane_id(pane_id)
-            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
-
-        let domain = self
-            .get_domain(domain_id)
-            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
+        let (domain, _, src_tab) = self.resolve_domain_from_pane_id(pane_id)?;
 
         if domain.move_pane_to_floating_pane(pane_id).await?{
             return Ok(())
@@ -1365,14 +1347,7 @@ impl Mux {
         window_id: Option<WindowId>,
         workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<(Arc<Tab>, WindowId)> {
-        let (domain_id, _src_window, src_tab) = self
-            .resolve_pane_id(pane_id)
-            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
-
-        let domain = self
-            .get_domain(domain_id)
-            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
-
+        let (domain, _, src_tab) = self.resolve_domain_from_pane_id(pane_id)?;
         if let Some((tab, window_id)) = domain
             .move_pane_to_new_tab(pane_id, window_id, workspace_for_new_window.clone())
             .await?

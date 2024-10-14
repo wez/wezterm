@@ -101,10 +101,8 @@ pub trait Domain: Downcast + Send + Sync {
             None => anyhow::bail!("Invalid tab id {}", tab),
         };
 
-        let floating_pane = tab.get_active_floating_pane()
-            .ok_or_else(|| anyhow::anyhow!("tab does not have active floating pane"))?;
+        let floating_pane = tab.remove_floating_pane(tab.get_active_floating_pane_index())?;
 
-        tab.remove_floating_pane(tab.get_active_floating_pane_index());
         tab.set_floating_pane_visibility(false);
 
         //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
@@ -116,6 +114,7 @@ pub trait Domain: Downcast + Send + Sync {
 
         let pane_id = active_non_floating_pane.pane_id();
 
+        //TODO: this is duplicated
         let pane_index = match tab
             .iter_panes_ignoring_zoom()
             .iter()
@@ -131,7 +130,7 @@ pub trait Domain: Downcast + Send + Sync {
             top_level: false,
             size: Default::default(),
         };
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane.pane))?;
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane))?;
         Ok(())
     }
 
