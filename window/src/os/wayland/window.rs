@@ -845,11 +845,9 @@ impl WaylandWindowInner {
 
                 log::trace!("Resizing frame");
                 if !self.window_frame.is_hidden() {
-                    // Clamp the size to at least one pixel.
-                    let width =
-                        NonZeroU32::new(pixel_width as u32).unwrap_or(NonZeroU32::new(1).unwrap());
-                    let height =
-                        NonZeroU32::new(pixel_height as u32).unwrap_or(NonZeroU32::new(1).unwrap());
+                    // Clamp the size to at least one surface heigh/width.
+                    let width = NonZeroU32::new(w).unwrap_or(NonZeroU32::new(1).unwrap());
+                    let height = NonZeroU32::new(h).unwrap_or(NonZeroU32::new(1).unwrap());
                     self.window_frame.resize(width, height);
                     pending.refresh_decorations = true
                 }
