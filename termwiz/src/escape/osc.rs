@@ -1393,6 +1393,22 @@ mod test {
     }
 
     #[test]
+    fn selection() {
+        assert_eq!(
+            parse(&["52", "c", "?"], "\x1b]52;c;?\x1b\\"),
+            OperatingSystemCommand::QuerySelection(Selection::CLIPBOARD)
+        );
+        assert_eq!(
+            parse(&["52", "c"], "\x1b]52;c\x1b\\"),
+            OperatingSystemCommand::ClearSelection(Selection::CLIPBOARD)
+        );
+        assert_eq!(
+            parse(&["52", "c", "eA=="], "\x1b]52;c;eA==\x1b\\"),
+            OperatingSystemCommand::SetSelection(Selection::CLIPBOARD, "x".into())
+        );
+    }
+
+    #[test]
     fn finalterm() {
         assert_eq!(
             parse(&["133", "L"], "\x1b]133;L\x1b\\"),

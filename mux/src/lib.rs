@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
-use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
+use wezterm_term::{Clipboard, ClipboardReader, ClipboardSelection, DownloadHandler, TerminalSize};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -70,6 +70,11 @@ pub enum MuxNotification {
         pane_id: PaneId,
         selection: ClipboardSelection,
         clipboard: Option<String>,
+    },
+    QueryClipboard {
+        pane_id: PaneId,
+        selection: ClipboardSelection,
+        writer: Box<dyn ClipboardReader>,
     },
     SaveToDownloads {
         name: Option<String>,
@@ -1432,6 +1437,21 @@ impl Clipboard for MuxClipboard {
             pane_id: self.pane_id,
             selection,
             clipboard,
+        });
+        Ok(())
+    }
+    fn get_contents(
+        &self,
+        selection: ClipboardSelection,
+        writer: Box<dyn ClipboardReader>,
+    ) -> anyhow::Result<()> {
+        let mux =
+            Mux::try_get().ok_or_else(|| anyhow::anyhow!("MuxClipboard::get_contents: no Mux?"))?;
+
+        mux.notify(MuxNotification::QueryClipboard {
+            pane_id: self.pane_id,
+            selection,
+            writer,
         });
         Ok(())
     }

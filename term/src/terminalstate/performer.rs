@@ -26,6 +26,8 @@ use unicode_normalization::{is_nfc_quick, IsNormalized, UnicodeNormalization};
 use url::Url;
 use wezterm_bidi::ParagraphDirectionHint;
 
+use super::{ClipboardReader, ThreadedWriter};
+
 /// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
@@ -765,7 +767,26 @@ impl<'a> Performer<'a> {
                 let selection = selection_to_selection(selection);
                 self.set_clipboard_contents(selection, None).ok();
             }
-            OperatingSystemCommand::QuerySelection(_) => {}
+            OperatingSystemCommand::QuerySelection(selection) => {
+                if self.config.enable_osc52_clipboard_reading() {
+                    if let Some(clip) = self.clipboard.as_ref() {
+                        let clipboard = selection_to_selection(selection);
+                        if let Err(err) = clip.get_contents(
+                            clipboard,
+                            Box::new(Osc52ResponseSender(
+                                self.writer.get_ref().clone(),
+                                selection,
+                            )),
+                        ) {
+                            error!("failed to get clipboard in response to OSC 52: {:#?}", err);
+                        }
+                    } else {
+                        log::warn!("the clipboard is missing");
+                    }
+                } else {
+                    log::warn!("OSC52 clipboard reading is disabled");
+                }
+            }
             OperatingSystemCommand::SetSelection(selection, selection_data) => {
                 let selection = selection_to_selection(selection);
                 match self.set_clipboard_contents(selection, Some(selection_data)) {
@@ -1069,5 +1090,21 @@ fn selection_to_selection(sel: Selection) -> ClipboardSelection {
         // also use the same fallback configuration as NONE,
         // if/when we add it
         _ => ClipboardSelection::Clipboard,
+    }
+}
+
+/// Implement [`ClipboardReader`] and wrap the content in OSC 52 sequence
+/// before sending it to the [`ThreadedWriter`]
+#[derive(Debug, Clone)]
+struct Osc52ResponseSender(ThreadedWriter, Selection);
+
+impl ClipboardReader for Osc52ResponseSender {
+    fn write(&mut self, contents: String) -> Result<(), std::io::Error> {
+        // NOTE: reply should be sent in one single write. Multiple writes
+        // cause wrong interpretation of the osc sequence,
+        // for example in neovim or micro editors
+        let data = format!("{}", OperatingSystemCommand::SetSelection(self.1, contents));
+        self.0.write_all(data.as_bytes())?;
+        self.0.flush()
     }
 }
