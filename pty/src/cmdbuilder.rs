@@ -495,7 +495,7 @@ impl CommandBuilder {
     }
 
     /// Convert the CommandBuilder to a `std::process::Command` instance.
-    pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
+    pub fn as_command(&self) -> anyhow::Result<std::process::Command> {
         use std::os::unix::process::CommandExt;
 
         let home = self.get_home_dir()?;
