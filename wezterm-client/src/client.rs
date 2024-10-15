@@ -297,7 +297,7 @@ fn process_unilateral(
             .detach();
             return Ok(());
         }
-        Pdu::TabResized(_) | Pdu::TabAddedToWindow(_) => {
+        Pdu::TabReflowed(_) | Pdu::TabAddedToWindow(_) => {
             log::trace!("resync due to {:?}", decoded.pdu);
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
@@ -1354,6 +1354,12 @@ impl Client {
     rpc!(resize, Resize, UnitResponse);
     rpc!(set_zoomed, SetPaneZoomed, UnitResponse);
     rpc!(activate_pane_direction, ActivatePaneDirection, UnitResponse);
+    rpc!(
+        swap_active_pane_with_index,
+        SwapActivePaneWithIndex,
+        UnitResponse
+    );
+    rpc!(rotate_panes, RotatePanes, UnitResponse);
     rpc!(
         get_pane_render_changes,
         GetPaneRenderChanges,

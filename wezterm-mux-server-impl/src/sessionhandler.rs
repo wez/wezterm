@@ -1,6 +1,7 @@
 use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
+use config::keyassignment::RotationDirection;
 use config::TermConfig;
 use mux::client::ClientId;
 use mux::domain::SplitSource;
@@ -630,6 +631,57 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::SwapActivePaneWithIndex(SwapActivePaneWithIndex {
+                active_pane_id,
+                with_pane_index,
+                keep_focus,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let (_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(active_pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", active_pane_id))?;
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.local_swap_active_with_index(with_pane_index, keep_focus);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
+            Pdu::RotatePanes(RotatePanes { pane_id, direction }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let (_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+
+                            match direction {
+                                RotationDirection::Clockwise => tab.local_rotate_clockwise(),
+                                RotationDirection::CounterClockwise => {
+                                    tab.local_rotate_counter_clockwise()
+                                }
+                            };
+
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::Resize(Resize {
                 containing_tab_id,
                 pane_id,
@@ -1005,7 +1057,7 @@ impl SessionHandler {
             | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
             | Pdu::PaneFocused { .. }
-            | Pdu::TabResized { .. }
+            | Pdu::TabReflowed { .. }
             | Pdu::GetImageCellResponse { .. }
             | Pdu::MovePaneToNewTabResponse { .. }
             | Pdu::TabAddedToWindow { .. }
