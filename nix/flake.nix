@@ -73,7 +73,7 @@
           xorg.xcbutilwm # contains xcb-ewmh among others
         ]
         ++ lib.optionals stdenv.isDarwin (
-          (with pkgs.darwin.apple_sdk.frameworks; [
+          (with pkgs.darwin.apple_sdk_12_3.frameworks; [
             Cocoa
             CoreGraphics
             Foundation
