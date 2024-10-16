@@ -68,6 +68,15 @@ impl RepoSpec {
         })
     }
 
+    fn add_alias(&mut self, alias: &str) -> anyhow::Result<()> {
+        if alias != compute_repo_dir(alias) {
+            anyhow::bail!("Invalid alias: {alias}");
+        }
+
+        self.component = alias.to_string();
+        Ok(())
+    }
+
     fn load_from_dir(path: PathBuf) -> anyhow::Result<Self> {
         let component = path
             .file_name()
@@ -205,6 +214,28 @@ fn require_plugin(lua: &Lua, url: String) -> anyhow::Result<Value> {
     }
 }
 
+fn require_plugin_with_alias(lua: &Lua, url: String, alias: String) -> anyhow::Result<Value> {
+    let mut spec = RepoSpec::parse(url)?;
+    spec.add_alias(&alias)?;
+
+    if !spec.is_checked_out() {
+        spec.check_out()?;
+    }
+
+    let require: mlua::Function = lua.globals().get("require")?;
+    match require.call::<_, Value>(alias) {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            log::error!(
+                "Failed to require {} which is stored in {:?}: {err:#}",
+                spec.component,
+                spec.checkout_path()
+            );
+            Err(err.into())
+        }
+    }
+}
+
 fn list_plugins() -> anyhow::Result<Vec<RepoSpec>> {
     let mut plugins = vec![];
 
@@ -228,6 +259,19 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         lua.create_function(|lua: &Lua, repo_spec: String| {
             require_plugin(lua, repo_spec).map_err(|e| mlua::Error::external(format!("{e:#}")))
         })?,
+    )?;
+
+    plugin_mod.set(
+        "require_as_alias",
+        lua.create_function(|lua: &Lua, (repo_spec, alias): (String, String)| {
+            require_plugin_with_alias(lua, repo_spec, alias)
+                .map_err(|e| mlua::Error::external(format!("{e:#}")))
+        })?,
+    )?;
+
+    plugin_mod.set(
+        "plugin_dir",
+        lua.create_function(|lua: &Lua, _: ()| to_lua(lua, RepoSpec::plugins_dir()))?,
     )?;
 
     plugin_mod.set(
