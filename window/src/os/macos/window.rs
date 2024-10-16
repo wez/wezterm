@@ -749,6 +749,13 @@ impl WindowOps for Window {
         });
     }
 
+    fn hide_other_apps(&self) {
+        Connection::with_window_inner(self.id, |inner| {
+            inner.hide_other_apps();
+            Ok(())
+        });
+    }
+
     fn hide(&self) {
         Connection::with_window_inner(self.id, |inner| {
             inner.hide();
@@ -1152,6 +1159,11 @@ impl WindowInner {
         unsafe {
             self.window.makeKeyAndOrderFront_(nil);
         }
+    }
+
+    fn hide_other_apps(&mut self) {
+        let current_app = unsafe { NSApplication::sharedApplication(nil) };
+        unsafe { msg_send![current_app, hideOtherApplications: 0] }
     }
 
     fn hide(&mut self) {

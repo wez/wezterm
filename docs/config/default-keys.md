@@ -67,6 +67,7 @@ in a form that you can copy and paste into your own configuration.
 | `SUPER`          | `r`    | `ReloadConfiguration` |
 | `CTRL+SHIFT`     | `R`    | `ReloadConfiguration` |
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
+| `SUPER+ALT(OPT)`      | `h`    | `HideOtherApplications` (macOS only) |
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` {{since('20210814-124438-54e29167', inline=True)}}|

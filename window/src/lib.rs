@@ -264,6 +264,9 @@ pub trait WindowOps {
         Ok(())
     }
 
+    /// Hide other app windows
+    fn hide_other_apps(&self);
+
     /// Hide a visible window
     fn hide(&self);
 
