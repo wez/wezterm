@@ -1670,7 +1670,7 @@ pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         // and include terminating ), / or - characters, if any
         hyperlink::Rule::new(r"\b\w+://\S+[)/a-zA-Z0-9-]+", "$0").unwrap(),
         // implicit mailto link
-        hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+        hyperlink::Rule::new(r"\b[\w\.-]+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
 }
 
