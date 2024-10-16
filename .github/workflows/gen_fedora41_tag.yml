@@ -1,4 +1,4 @@
-name: fedora38_tag
+name: fedora41_tag
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:38"
+    container: "fedora:41"
     env:
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
@@ -72,7 +72,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora38"
+          cache-key: "fedora41"
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
@@ -85,7 +85,7 @@ jobs:
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: "fedora38"
+          name: "fedora41"
           path: "wezterm-*.rpm"
 
   upload:
@@ -101,7 +101,7 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v4
         with:
-          name: "fedora38"
+          name: "fedora41"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
