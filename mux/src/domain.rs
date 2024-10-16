@@ -127,7 +127,17 @@ pub trait Domain: Downcast + Send + Sync {
             }
         };
 
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
+        // pane_index may have changed if src_pane was also in the same tab
+        let final_pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        tab.split_and_insert(final_pane_index, split_request, Arc::clone(&pane))?;
         Ok(pane)
     }
 
