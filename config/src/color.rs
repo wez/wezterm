@@ -649,14 +649,14 @@ impl Default for WindowFrameConfig {
 impl Default for FloatingPaneBorderConfig {
     fn default() -> Self {
         Self {
-            left_width: default_zero_pixel(),
-            right_width: default_zero_pixel(),
-            top_height: default_zero_pixel(),
-            bottom_height: default_zero_pixel(),
-            left_color: None,
-            right_color: None,
-            top_color: None,
-            bottom_color: None,
+            left_width: Dimension::Pixels(3.),
+            right_width: Dimension::Pixels(3.),
+            top_height: Dimension::Pixels(3.),
+            bottom_height: Dimension::Pixels(3.),
+            left_color: Some(default_active_titlebar_bg()),
+            right_color: Some(default_active_titlebar_bg()),
+            top_color: Some(default_active_titlebar_bg()),
+            bottom_color: Some(default_active_titlebar_bg()),
         }
     }
 }

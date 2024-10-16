@@ -841,9 +841,6 @@ impl Domain for ClientDomain {
         Ok(true)
     }
 
-    /// Forward the request to the remote; we need to translate the local ids
-    /// to those that match the remote for the request, resync the changed
-    /// structure, and then translate the results back to local
     async fn move_floating_pane_to_split(
         &self,
         pane_id: PaneId,
@@ -856,6 +853,7 @@ impl Domain for ClientDomain {
         let local_pane = Mux::get()
             .get_pane(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+
         let pane = local_pane
             .downcast_ref::<ClientPane>()
             .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
