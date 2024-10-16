@@ -237,6 +237,8 @@ impl ParsedConfigFile {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
+            // Only `Match` and `ProxyJump` options seem to allow inline comments.
+            // The latter is not handled.
 
             if let Some(sep) = line.find(|c: char| c == '=' || c.is_whitespace()) {
                 let (k, v) = line.split_at(sep);
@@ -293,7 +295,14 @@ impl ParsedConfigFile {
                     let mut criteria = vec![];
                     let mut context = Context::FirstPass;
 
-                    let mut tokens = v.split_ascii_whitespace();
+                    let mut tokens = v.split_ascii_whitespace().map_while(|tok| {
+                        // This is for compatability, see `match_cfg_line` in openssh's `readconf.c`.
+                        if tok.starts_with("#") {
+                            None
+                        } else {
+                            Some(tok)
+                        }
+                    });
 
                     while let Some(cname) = tokens.next() {
                         match cname.to_lowercase().as_str() {
@@ -1080,7 +1089,7 @@ Config {
         Something first
         # the prior Something takes precedence
         Something ignored
-        Match Host 192.168.1.8,wopr
+        Match Host 192.168.1.8,wopr # fun games
             FowardAgent yes
             IdentityFile "%d/.ssh/id_pub.dsa"
 
