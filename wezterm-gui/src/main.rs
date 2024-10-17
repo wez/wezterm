@@ -886,6 +886,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     let unicode_version = UnicodeVersion {
         version: config.unicode_version,
         ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
+        cellwidths: config.cellwidths.clone(),
     };
 
     let text = match (&cmd.text, &cmd.codepoints) {

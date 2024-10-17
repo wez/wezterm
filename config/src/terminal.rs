@@ -105,6 +105,7 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         UnicodeVersion {
             version: config.unicode_version,
             ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
+            cellwidths: config.cellwidths.clone()
         }
     }
 
