@@ -18,6 +18,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, UnknownFieldAction, Value};
+use wezterm_term::UnicodeVersion;
 
 mod background;
 mod bell;
@@ -41,6 +42,7 @@ mod unix;
 mod version;
 pub mod window;
 mod wsl;
+mod cell;
 
 pub use crate::config::*;
 pub use background::*;
@@ -59,6 +61,7 @@ pub use units::*;
 pub use unix::*;
 pub use version::*;
 pub use wsl::*;
+pub use cell::*;
 
 type ErrorCallback = fn(&str);
 
@@ -792,6 +795,14 @@ impl ConfigHandle {
         Self {
             config: Arc::new(Config::default_config()),
             generation: 0,
+        }
+    }
+
+    pub fn unicode_version(&self) -> UnicodeVersion {
+        UnicodeVersion {
+            version: self.config.unicode_version,
+            ambiguous_are_wide: self.config.treat_east_asian_ambiguous_width_as_wide,
+            cellwidths: CellWidth::compile_to_map(self.config.cellwidths.clone()),
         }
     }
 }

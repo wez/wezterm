@@ -38,6 +38,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use termwiz::hyperlink;
+use crate::CellWidth;
 use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
@@ -815,6 +816,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub treat_east_asian_ambiguous_width_as_wide: bool,
+
+    #[dynamic(default)]
+    pub cellwidths: Option<Vec<CellWidth>>,
 
     #[dynamic(default = "default_true")]
     pub allow_download_protocols: bool,

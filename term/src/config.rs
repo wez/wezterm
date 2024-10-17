@@ -191,6 +191,7 @@ pub trait TerminalConfiguration: Downcast + std::fmt::Debug + Send + Sync {
         UnicodeVersion {
             version: 9,
             ambiguous_are_wide: false,
+            cellwidths: None,
         }
     }
 

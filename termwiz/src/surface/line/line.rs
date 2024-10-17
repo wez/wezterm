@@ -133,7 +133,7 @@ impl Line {
         s: &str,
         attrs: &CellAttributes,
         seqno: SequenceNo,
-        unicode_version: Option<UnicodeVersion>,
+        unicode_version: Option<&UnicodeVersion>,
     ) -> Line {
         let mut cells = Vec::new();
 

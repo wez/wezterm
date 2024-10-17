@@ -23,7 +23,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
-use termwiz::cell::{CellAttributes, UnicodeVersion};
+use termwiz::cell::{CellAttributes};
 use termwiz::surface::{Line, SEQ_ZERO};
 use unicode_normalization::UnicodeNormalization;
 use wezterm_bidi::Direction;
@@ -883,10 +883,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         None
     };
 
-    let unicode_version = UnicodeVersion {
-        version: config.unicode_version,
-        ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
-    };
+    let unicode_version = config.unicode_version();
 
     let text = match (&cmd.text, &cmd.codepoints) {
         (Some(text), _) => Some(text.to_string()),
@@ -916,7 +913,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             &text,
             &CellAttributes::default(),
             SEQ_ZERO,
-            Some(unicode_version),
+            Some(&unicode_version),
         );
         let cell_clusters = line.cluster(bidi_hint);
         let ft_lib = wezterm_font::ftwrap::Library::new()?;
