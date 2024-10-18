@@ -598,6 +598,23 @@ pub struct WindowFrameConfig {
     pub border_bottom_color: Option<RgbaColor>,
 }
 
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub struct FloatingPaneBorderConfig {
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub left_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub right_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub top_height: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub bottom_height: Dimension,
+
+    pub left_color: Option<RgbaColor>,
+    pub right_color: Option<RgbaColor>,
+    pub top_color: Option<RgbaColor>,
+    pub bottom_color: Option<RgbaColor>,
+}
+
 const fn default_zero_pixel() -> Dimension {
     Dimension::Pixels(0.)
 }
@@ -625,6 +642,21 @@ impl Default for WindowFrameConfig {
             border_right_color: None,
             border_top_color: None,
             border_bottom_color: None,
+        }
+    }
+}
+
+impl Default for FloatingPaneBorderConfig {
+    fn default() -> Self {
+        Self {
+            left_width: Dimension::Pixels(3.),
+            right_width: Dimension::Pixels(3.),
+            top_height: Dimension::Pixels(3.),
+            bottom_height: Dimension::Pixels(3.),
+            left_color: Some(default_active_titlebar_bg()),
+            right_color: Some(default_active_titlebar_bg()),
+            top_color: Some(default_active_titlebar_bg()),
+            bottom_color: Some(default_active_titlebar_bg()),
         }
     }
 }

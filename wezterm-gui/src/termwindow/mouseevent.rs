@@ -9,7 +9,7 @@ use ::window::{
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
 use mux::pane::{Pane, WithPaneLines};
-use mux::tab::SplitDirection;
+use mux::tab::{SplitDirection, Tab};
 use mux::Mux;
 use mux_lua::MuxPane;
 use std::convert::TryInto;
@@ -22,6 +22,7 @@ use termwiz::surface::Line;
 use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
+use window::MouseEventKind;
 
 impl super::TermWindow {
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
@@ -667,7 +668,36 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
-        for pos in self.get_panes_to_render() {
+        let panes = if let Some(floating_pane) = self.get_floating_pane_to_render() {
+            let mouse_in_floating_pane = position.column >= floating_pane.left &&
+                position.column <= floating_pane.left + floating_pane.width &&
+                position.row as usize >= floating_pane.top &&
+                position.row as usize <= floating_pane.top + floating_pane.height;
+
+            if !mouse_in_floating_pane {
+                let mux = Mux::get();
+                if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id){
+                    //Hide floating pane if mouse is clicked outside the floating pane
+                    match &event.kind {
+                        WMEK::Press(_) => {
+                            mux.set_floating_pane_visibility(tab.tab_id(), false).ok();
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Mouse events are not dispatched to the other panes when
+                // a floating pane is active, this is to prevent users from selecting one of the
+                // panes that the floating pane is on top of and encountering some weird behavior, ex.
+                // closing the last non-floating pane while the floating pane is active.
+                return;
+            }
+            vec![floating_pane]
+        } else {
+            self.get_panes_to_render()
+        };
+
+        for pos in panes {
             if !is_already_captured
                 && row >= pos.top as i64
                 && row <= (pos.top + pos.height) as i64

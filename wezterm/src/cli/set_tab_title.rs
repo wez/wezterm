@@ -28,7 +28,7 @@ impl SetTabTitle {
         let mut pane_id_to_tab_id = HashMap::new();
 
         for tabroot in panes.tabs {
-            let mut cursor = tabroot.into_tree().cursor();
+            let mut cursor = tabroot.panes.into_tree().cursor();
 
             loop {
                 if let Some(entry) = cursor.leaf_mut() {

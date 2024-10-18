@@ -1,6 +1,7 @@
 use crate::cli::CliOutputFormatKind;
 use clap::Parser;
 use serde::Serializer as _;
+use mux::tab::PaneNode;
 use tabout::{tabulate_output, Alignment, Column};
 use wezterm_client::client::Client;
 use wezterm_term::TerminalSize;
@@ -21,7 +22,7 @@ impl ListCommand {
         let panes = client.list_panes().await?;
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let mut cursor = tabroot.into_tree().cursor();
+            let mut cursor = tabroot.panes.into_tree().cursor();
 
             loop {
                 if let Some(entry) = cursor.leaf_mut() {
@@ -39,6 +40,21 @@ impl ListCommand {
                 match cursor.preorder_next() {
                     Ok(c) => cursor = c,
                     Err(_) => break,
+                }
+            }
+
+            for floating_pane in &tabroot.floating_panes {
+                if let PaneNode::Leaf(entry) = floating_pane {
+                    let window_title = panes
+                        .window_titles
+                        .get(&entry.window_id)
+                        .map(|s| s.as_str())
+                        .unwrap_or("");
+                    output_items.push(CliListResultItem::from(
+                        entry.clone(),
+                        tab_title,
+                        window_title,
+                    ));
                 }
             }
         }
@@ -138,6 +154,7 @@ struct CliListResultItem {
     window_title: String,
     is_active: bool,
     is_zoomed: bool,
+    is_floating: bool,
     tty_name: Option<String>,
 }
 
@@ -156,6 +173,7 @@ impl CliListResultItem {
             top_row,
             is_active_pane,
             is_zoomed_pane,
+            is_floating_pane,
             tty_name,
             size:
                 TerminalSize {
@@ -196,6 +214,7 @@ impl CliListResultItem {
             window_title: window_title.to_string(),
             is_active: is_active_pane,
             is_zoomed: is_zoomed_pane,
+            is_floating: is_floating_pane,
             tty_name,
         }
     }

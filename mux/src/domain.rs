@@ -7,7 +7,7 @@
 
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Context, Error};
@@ -69,6 +69,69 @@ pub trait Domain: Downcast + Send + Sync {
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
+    }
+
+    async fn add_floating_pane(
+        &self,
+        tab: TabId,
+        _pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let size = tab.compute_floating_pane_size();
+        let pane = self.spawn_pane(size, command_builder, command_dir).await?;
+        tab.add_floating_pane(size, Arc::clone(&pane))?;
+        Ok(pane)
+    }
+
+    async fn move_floating_pane_to_split(
+        &self,
+        tab: TabId,
+        direction: SplitDirection,
+    ) -> anyhow::Result<()> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let floating_pane = tab.remove_floating_pane(tab.get_active_floating_pane_index())?;
+
+        tab.set_floating_pane_visibility(false);
+
+        //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
+        let active_non_floating_pane = tab.iter_panes_ignoring_zoom()
+            .iter()
+            .nth(tab.get_active_idx())
+            .map(|p| Arc::clone(&p.pane))
+            .ok_or_else(|| anyhow::anyhow!("tab does not have a active non floating pane"))?;
+
+        let pane_id = active_non_floating_pane.pane_id();
+
+        //TODO: this is duplicated
+        let pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_request = SplitRequest {
+            direction,
+            target_is_second: true,
+            top_level: false,
+            size: Default::default(),
+        };
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane))?;
+        Ok(())
     }
 
     async fn split_pane(
@@ -149,6 +212,13 @@ pub trait Domain: Downcast + Send + Sync {
         _workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<Option<(Arc<Tab>, WindowId)>> {
         Ok(None)
+    }
+
+    async fn move_pane_to_floating_pane(
+        &self,
+        _pane_id: PaneId,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
     }
 
     /// Returns false if the `spawn` method will never succeed.

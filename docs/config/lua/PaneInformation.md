@@ -11,6 +11,7 @@ The `PaneInformation` struct contains the following fields:
 * `pane_index` - the logical position of the pane within its containing layout
 * `is_active` - is true if the pane is the active pane within its containing tab
 * `is_zoomed` - is true if the pane is in the zoomed state
+* `is_floating` - is true if the pane is in the floating state
 * `left` - the cell x coordinate of the left edge of the pane
 * `top` - the cell y coordinate of the top edge of the pane
 * `width` - the width of the pane in cells

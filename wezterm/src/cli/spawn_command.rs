@@ -32,6 +32,9 @@ pub struct SpawnCommand {
     #[arg(long)]
     new_window: bool,
 
+    #[arg(long)]
+    floating_pane: bool,
+
     /// Specify the current working directory for the initially
     /// spawned program
     #[arg(long, value_parser, value_hint=ValueHint::DirPath)]
@@ -63,7 +66,7 @@ impl SpawnCommand {
                     let panes = client.list_panes().await?;
                     let mut window_id = None;
                     'outer: for tabroot in panes.tabs {
-                        let mut cursor = tabroot.into_tree().cursor();
+                        let mut cursor = tabroot.panes.into_tree().cursor();
 
                         loop {
                             if let Some(entry) = cursor.leaf_mut() {
@@ -96,26 +99,42 @@ impl SpawnCommand {
 
         let size = config.initial_size(0, None);
 
-        let spawned = client
-            .spawn_v2(codec::SpawnV2 {
-                domain: self
-                    .domain_name
-                    .map_or(SpawnTabDomain::DefaultDomain, |name| {
-                        SpawnTabDomain::DomainName(name)
-                    }),
-                window_id,
-                command: if self.prog.is_empty() {
-                    None
-                } else {
-                    let builder = CommandBuilder::from_argv(self.prog);
-                    Some(builder)
-                },
-                command_dir: resolve_relative_cwd(self.cwd)?,
-                size,
-                workspace,
-            })
-            .await?;
-
+        let spawned = if self.floating_pane {
+            let pane_id = client.resolve_pane_id(self.pane_id).await?;
+            client
+                .add_floating_pane(codec::SpawnFloatingPane {
+                    pane_id,
+                    domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                    command: if self.prog.is_empty() {
+                        None
+                    } else {
+                        let builder = CommandBuilder::from_argv(self.prog);
+                        Some(builder)
+                    },
+                    command_dir: resolve_relative_cwd(self.cwd)?
+                })
+                .await?
+        } else {
+            client
+                .spawn_v2(codec::SpawnV2 {
+                    domain: self
+                        .domain_name
+                        .map_or(SpawnTabDomain::DefaultDomain, |name| {
+                            SpawnTabDomain::DomainName(name)
+                        }),
+                    window_id,
+                    command: if self.prog.is_empty() {
+                        None
+                    } else {
+                        let builder = CommandBuilder::from_argv(self.prog);
+                        Some(builder)
+                    },
+                    command_dir: resolve_relative_cwd(self.cwd)?,
+                    size,
+                    workspace,
+                })
+                .await?
+        };
         log::debug!("{:?}", spawned);
         println!("{}", spawned.pane_id);
         Ok(())

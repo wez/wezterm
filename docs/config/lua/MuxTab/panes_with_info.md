@@ -10,6 +10,7 @@ Each element is a lua table with the following fields:
 * `index` - the topological pane index
 * `is_active` - a boolean indicating whether this is the active pane within the tab
 * `is_zoomed` - a boolean indicating whether this pane is zoomed
+* `is_floating` - a boolean indicating whether this pane is floating
 * `left` - The offset from the top left corner of the containing tab to the top left corner of this pane, in cells.
 * `top` - The offset from the top left corner of the containing tab to the top left corner of this pane, in cells.
 * `width` - The width of this pane in cells

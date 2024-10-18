@@ -37,7 +37,7 @@ impl ZoomPane {
         let mut tab_id_to_active_zoomed_pane_id = HashMap::new();
 
         for tabroot in panes.tabs {
-            let mut cursor = tabroot.into_tree().cursor();
+            let mut cursor = tabroot.panes.into_tree().cursor();
 
             loop {
                 if let Some(entry) = cursor.leaf_mut() {
