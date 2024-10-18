@@ -515,6 +515,8 @@ impl TerminalState {
 
         let unicode_version = config.unicode_version();
 
+        log::warn!("TerminalState.new size: {size:?}");
+
         TerminalState {
             config,
             screen,
@@ -876,6 +878,9 @@ impl TerminalState {
             self.seqno,
             self.enable_conpty_quirks,
         );
+
+        log::warn!("TerminalState.resize size: {size:?}");
+
         self.top_and_bottom_margins = 0..size.rows as i64;
         self.left_and_right_margins = 0..size.cols;
         self.pixel_height = size.pixel_height;

@@ -606,6 +606,8 @@ impl Domain for LocalDomain {
         let child_result = pair.slave.spawn_command(cmd);
         let mut writer = WriterWrapper::new(pair.master.take_writer()?);
 
+        log::warn!("LocalDomain.spawn_pane size: {size:?}");
+
         let mut terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),

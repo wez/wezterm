@@ -491,6 +491,7 @@ fn apply_sizes_from_splits(tree: &Tree, size: &TerminalSize) {
             apply_sizes_from_splits(&*right, &data.second);
         }
         Tree::Leaf(pane) => {
+            log::warn!("apply_sizes_from_splits size: {size:?}");
             pane.resize(*size).ok();
         }
     }

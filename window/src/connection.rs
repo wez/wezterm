@@ -84,7 +84,7 @@ pub trait ConnectionOps {
     fn resolve_geometry(&self, geometry: RequestedWindowGeometry) -> ResolvedGeometry {
         let bounds = match self.screens() {
             Ok(screens) => {
-                log::trace!("{screens:?}");
+                log::warn!("ConnectionOps.resolve_geometry {screens:?}");
 
                 match geometry.origin {
                     GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
