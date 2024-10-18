@@ -38,6 +38,7 @@ pub enum OperatingSystemCommand {
     QuerySelection(Selection),
     SetSelection(Selection, String),
     SystemNotification(String),
+    SetMouseCursorShape(String),
     ITermProprietary(ITermProprietary),
     FinalTermSemanticPrompt(FinalTermSemanticPrompt),
     ChangeColorNumber(Vec<ChangeColorPair>),
@@ -312,6 +313,7 @@ impl OperatingSystemCommand {
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
+            SetMouseCursorShape => single_string!(SetMouseCursorShape),
             SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
@@ -419,6 +421,7 @@ osc_entries!(
     SetHighlightBackgroundColor = "17",
     SetTektronixCursorColor = "18",
     SetHighlightForegroundColor = "19",
+    SetMouseCursorShape = "22",
     SetLogFileName = "46",
     SetFont = "50",
     EmacsShell = "51",
@@ -509,6 +512,7 @@ impl Display for OperatingSystemCommand {
             QuerySelection(s) => write!(f, "52;{};?", s)?,
             SetSelection(s, val) => write!(f, "52;{};{}", s, base64_encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
+            SetMouseCursorShape(s) => write!(f, "22;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
             FinalTermSemanticPrompt(i) => i.fmt(f)?,
             ResetColors(colors) => {

@@ -143,6 +143,7 @@ impl GuiFrontEnd {
                     alert:
                         Alert::OutputSinceFocusLost
                         | Alert::PaletteChanged
+                        | Alert::MouseCursorShapeChanged
                         | Alert::CurrentWorkingDirectoryChanged
                         | Alert::WindowTitleChanged(_)
                         | Alert::TabTitleChanged(_)

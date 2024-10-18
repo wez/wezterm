@@ -16,6 +16,8 @@ pub mod os;
 pub mod screen;
 mod spawn;
 
+use wezterm_term::MouseCursor;
+
 pub use raw_window_handle;
 
 #[cfg(target_os = "macos")]
@@ -63,15 +65,6 @@ pub type RectF = euclid::Rect<f32, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
 pub type SizeF = euclid::Size2D<f32, PixelUnit>;
 pub type ScreenRect = euclid::Rect<isize, ScreenPixelUnit>;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MouseCursor {
-    Arrow,
-    Hand,
-    Text,
-    SizeUpDown,
-    SizeLeftRight,
-}
 
 /// Represents the preferred appearance of the windowing
 /// environment.
