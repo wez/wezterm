@@ -553,6 +553,10 @@ mod test {
     }
 
     impl Pane for FakePane {
+        fn get_mouse_cursor_shape(&self) -> MouseCursor {
+            unimplemented!()
+        }
+
         fn pane_id(&self) -> PaneId {
             unimplemented!()
         }
