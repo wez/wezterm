@@ -844,7 +844,6 @@ impl super::TermWindow {
         }));
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
-            // let pane = self.get_active_pane_no_overlay().unwrap();
             context.set_cursor(Some(pane.get_mouse_cursor_shape()));
         }
 
