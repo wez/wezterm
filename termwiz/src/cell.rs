@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
+use std::collections::HashMap;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -881,10 +882,32 @@ impl Cell {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, FromDynamic, ToDynamic)]
+pub struct CellWidth {
+    pub first: u32,
+    pub last: u32,
+    pub width: u8,
+}
+
+pub fn setcellwidths(cellwidths: Option<Vec<CellWidth>>) -> Option<HashMap<u32, u8>> {
+    if let Some(ref cellwidths) = cellwidths {
+        let mut map: HashMap<u32, u8> = HashMap::new();
+        for cellwidth in cellwidths {
+            for i in cellwidth.first..cellwidth.last+1 {
+                map.insert(i, cellwidth.width);
+            }
+        }
+        return Some(map);
+    } else {
+        return None;
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnicodeVersion {
     pub version: u8,
     pub ambiguous_are_wide: bool,
+    pub cellwidths: Option<HashMap<u32, u8>>,
 }
 
 impl UnicodeVersion {
@@ -892,6 +915,7 @@ impl UnicodeVersion {
         Self {
             version,
             ambiguous_are_wide: false,
+            cellwidths: None,
         }
     }
 
@@ -912,6 +936,16 @@ impl UnicodeVersion {
     }
 
     #[inline]
+    fn wcwidth(&self, c: char) -> usize {
+        if let Some(ref cellwidths) = self.cellwidths {
+            if let Some(width) = cellwidths.get(&(c as u32)) {
+                return (*width).into()
+            }
+        }
+        self.width(WCWIDTH_TABLE.classify(c))
+    }
+
+    #[inline]
     pub fn idx(&self) -> usize {
         (if self.version > 9 { 2 } else { 0 }) | (if self.ambiguous_are_wide { 1 } else { 0 })
     }
@@ -920,6 +954,7 @@ impl UnicodeVersion {
 pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
     version: 14,
     ambiguous_are_wide: false,
+    cellwidths: None,
 };
 
 /// Returns the number of cells visually occupied by a sequence
@@ -928,7 +963,7 @@ pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
 /// and sums up the length.
 pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
     Graphemes::new(s)
-        .map(|g| grapheme_column_width(g, version))
+        .map(|g| grapheme_column_width(g, version.clone()))
         .sum()
 }
 
@@ -977,13 +1012,11 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
     // cannot be a sequence with a variation selector, so we don't
     // need to requested `Presentation` for it.
     if s.len() == 1 {
-        let c = WCWIDTH_TABLE.classify(s.as_bytes()[0] as char);
-        return version.width(c);
+        return version.wcwidth(s.as_bytes()[0] as char);
     }
 
     // Slow path: `s.chars()` will dominate and pull up the minimum
     // runtime to ~20ns
-
     if version.version >= 14 {
         // Lookup the grapheme to see if the presentation of
         // the grapheme forces the width. We can bypass
@@ -999,8 +1032,7 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
     // Otherwise, classify and sum up
     let mut width = 0;
     for c in s.chars() {
-        let c = WCWIDTH_TABLE.classify(c);
-        width += version.width(c);
+        width += version.wcwidth(c);
     }
 
     width.min(2)
