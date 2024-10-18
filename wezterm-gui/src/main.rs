@@ -33,6 +33,7 @@ use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::*;
 use wezterm_mux_server_impl::update_mux_domains;
 use wezterm_toast_notification::*;
+use termwiz::cell::setcellwidths;
 
 mod colorease;
 mod commands;
@@ -886,7 +887,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     let unicode_version = UnicodeVersion {
         version: config.unicode_version,
         ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
-        cellwidths: config.cellwidths.clone(),
+        cellwidths: setcellwidths(config.cellwidths.clone()),
     };
 
     let text = match (&cmd.text, &cmd.codepoints) {

@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
+use std::collections::HashMap;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -888,11 +889,25 @@ pub struct CellWidth {
     pub width: u8,
 }
 
+pub fn setcellwidths(cellwidths: Option<Vec<CellWidth>>) -> Option<HashMap<u32, u8>> {
+    if let Some(ref cellwidths) = cellwidths {
+        let mut map: HashMap<u32, u8> = HashMap::new();
+        for cellwidth in cellwidths {
+            for i in cellwidth.first..cellwidth.last+1 {
+                map.insert(i, cellwidth.width);
+            }
+        }
+        return Some(map);
+    } else {
+        return None;
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnicodeVersion {
     pub version: u8,
     pub ambiguous_are_wide: bool,
-    pub cellwidths: Option<Vec<CellWidth>>,
+    pub cellwidths: Option<HashMap<u32, u8>>,
 }
 
 impl UnicodeVersion {
@@ -923,10 +938,8 @@ impl UnicodeVersion {
     #[inline]
     fn wcwidth(&self, c: char) -> usize {
         if let Some(ref cellwidths) = self.cellwidths {
-            for cellwidth in cellwidths {
-                if cellwidth.first <= c as u32 && c as u32 <= cellwidth.last {
-                    return cellwidth.width.into()
-                }
+            if let Some(width) = cellwidths.get(&(c as u32)) {
+                return (*width).into()
             }
         }
         self.width(WCWIDTH_TABLE.classify(c))
