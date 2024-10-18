@@ -3535,6 +3535,15 @@ impl TermWindow {
             None => return None,
         };
 
+        if self
+            .tab_state(tab.tab_id())
+            .overlay
+            .as_ref()
+            .map(|overlay| overlay.pane.clone())
+        {
+            return None;
+        }
+
         if !tab.floating_pane_is_visible() {
             return None;
         }
