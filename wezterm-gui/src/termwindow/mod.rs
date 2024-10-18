@@ -3539,7 +3539,14 @@ impl TermWindow {
             return None;
         }
 
-        tab.get_active_floating_pane()
+        let mut pos = tab.get_active_floating_pane();
+        if let Some(ref mut pos) = pos {
+            if let Some(overlay) = self.pane_state(pos.pane.pane_id()).overlay.as_ref() {
+                pos.pane = Arc::clone(&overlay.pane);
+            }
+        }
+
+        pos
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.
