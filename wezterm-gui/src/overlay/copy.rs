@@ -27,8 +27,8 @@ use unicode_segmentation::*;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, SemanticType,
-    StableRowIndex, TerminalSize,
+    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseCursor, MouseEvent,
+    SemanticType, StableRowIndex, TerminalSize,
 };
 use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
 
@@ -1101,6 +1101,10 @@ impl CopyRenderable {
 }
 
 impl Pane for CopyOverlay {
+    fn get_mouse_cursor_shape(&self) -> MouseCursor {
+        MouseCursor::Arrow
+    }
+
     fn pane_id(&self) -> PaneId {
         self.delegate.pane_id()
     }

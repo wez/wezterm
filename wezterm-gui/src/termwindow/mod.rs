@@ -1210,6 +1210,13 @@ impl TermWindow {
                     self.update_title();
                 }
                 MuxNotification::Alert {
+                    alert: Alert::MouseCursorShapeChanged,
+                    pane_id,
+                } => {
+                    // FIXME: Is there a cache that needs to be invalidated like for PaletteChanged?
+                    self.mux_pane_output_event(pane_id);
+                }
+                MuxNotification::Alert {
                     alert: Alert::PaletteChanged,
                     pane_id,
                 } => {
@@ -1515,6 +1522,12 @@ impl TermWindow {
             | MuxNotification::WindowWorkspaceChanged(_) => return true,
             MuxNotification::Alert {
                 alert: Alert::PaletteChanged { .. },
+                ..
+            } => {
+                // fall through
+            }
+            MuxNotification::Alert {
+                alert: Alert::MouseCursorShapeChanged { .. },
                 ..
             } => {
                 // fall through

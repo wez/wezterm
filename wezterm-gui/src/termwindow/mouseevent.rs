@@ -3,8 +3,8 @@ use crate::termwindow::{
     GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
 };
 use ::window::{
-    MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
-    WindowDecorations, WindowOps, WindowState,
+    MouseButtons as WMB, MouseEvent, MouseEventKind as WMEK, MousePress, WindowDecorations,
+    WindowOps, WindowState,
 };
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
@@ -21,7 +21,7 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
 use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
-use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
+use wezterm_term::{ClickPosition, LastMouseClick, MouseCursor, StableRowIndex};
 
 impl super::TermWindow {
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
@@ -842,6 +842,11 @@ impl super::TermWindow {
         } else {
             MouseCursor::Text
         }));
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            // let pane = self.get_active_pane_no_overlay().unwrap();
+            context.set_cursor(Some(pane.get_mouse_cursor_shape()));
+        }
 
         let event_trigger_type = match &event.kind {
             WMEK::Press(press) => {

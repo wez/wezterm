@@ -46,6 +46,7 @@ wezterm-bidi = { path = "../bidi" }
 wezterm-color-types = { path = "../color-types" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
+wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
 clipboard-win = "2.2"

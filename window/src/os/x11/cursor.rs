@@ -1,6 +1,5 @@
 use crate::os::x11::xcb_util::*;
 use crate::x11::XConnection;
-use crate::MouseCursor;
 use anyhow::{ensure, Context};
 use config::ConfigHandle;
 use std::collections::{HashMap, HashSet};
@@ -10,6 +9,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
+use wezterm_term::MouseCursor;
 use xcb::x::Cursor;
 use xcb::Xid;
 

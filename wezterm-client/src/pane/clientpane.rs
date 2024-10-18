@@ -27,7 +27,7 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseCursor, MouseEvent, StableRowIndex,
     TerminalConfiguration, TerminalSize,
 };
 
@@ -245,6 +245,10 @@ impl ClientPane {
 
 #[async_trait(?Send)]
 impl Pane for ClientPane {
+    fn get_mouse_cursor_shape(&self) -> MouseCursor {
+        MouseCursor::Arrow
+    }
+
     fn pane_id(&self) -> PaneId {
         self.local_pane_id
     }
