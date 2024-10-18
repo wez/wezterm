@@ -1,5 +1,6 @@
 use clap::Parser;
 use mux::pane::PaneId;
+use mux::tab::PaneNode::Leaf;
 use mux::window::WindowId;
 use wezterm_client::client::Client;
 
@@ -41,6 +42,15 @@ impl MovePaneToNewTab {
                     let panes = client.list_panes().await?;
                     let mut window_id = None;
                     'outer_move: for tabroot in panes.tabs {
+                        for floating_pane in tabroot.floating_panes {
+                            if let Leaf(floating_pane) = floating_pane {
+                                if floating_pane.pane_id == pane_id {
+                                    window_id.replace(floating_pane.window_id);
+                                    break 'outer_move;
+                                }
+                            }
+                        }
+
                         let mut cursor = tabroot.panes.into_tree().cursor();
 
                         loop {

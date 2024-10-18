@@ -3540,6 +3540,7 @@ impl TermWindow {
             .overlay
             .as_ref()
             .map(|overlay| overlay.pane.clone())
+            .is_some()
         {
             return None;
         }

@@ -587,7 +587,7 @@ impl Tab {
         self.inner.lock().floating_pane_is_visible()
     }
 
-    pub fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
+    pub fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<(usize, Arc<dyn Pane>)> {
         self.inner.lock().get_floating_pane_by_pane_id(pane_id)
     }
 
@@ -1072,10 +1072,10 @@ impl TabInner {
         self.iter_panes_impl(true)
     }
 
-    fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
-        for pane in &self.floating_panes {
+    fn get_floating_pane_by_pane_id(&self, pane_id: PaneId) -> Option<(usize, Arc<dyn Pane>)> {
+        for (i, pane) in self.floating_panes.iter().enumerate() {
             if pane.pane_id() == pane_id {
-                return Some(Arc::clone(&pane))
+                return Some((i, Arc::clone(&pane)))
             }
         }
         return None

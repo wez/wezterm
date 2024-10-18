@@ -1075,7 +1075,7 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
-            if let Some(floating_pane) = tab.get_floating_pane_by_pane_id(pane_id){
+            if let Some((index, floating_pane)) = tab.get_floating_pane_by_pane_id(pane_id){
                 ids = Some((tab.tab_id(), floating_pane.domain_id()));
                 break;
             }
@@ -1376,9 +1376,13 @@ impl Mux {
             (*window_builder, src_tab.get_size())
         };
 
-        let pane = src_tab
-            .remove_pane(pane_id)
-            .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
+        let pane = if let Some((i, _)) = src_tab.get_floating_pane_by_pane_id(pane_id) {
+            src_tab.remove_floating_pane(i)?
+        } else {
+            src_tab
+                .remove_pane(pane_id)
+                .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?
+        };
 
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
