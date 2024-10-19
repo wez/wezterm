@@ -2533,9 +2533,7 @@ impl TermWindow {
 
         if self.is_floating_pane_active() {
             match assignment {
-                ActivatePaneByIndex(..) |
                 SplitPane(..) |
-                SpawnTab(..) |
                 PaneSelect(..) => {
                     return Ok(PerformAssignmentResult::Handled);
                 },
@@ -2908,6 +2906,10 @@ impl TermWindow {
                 };
 
                 let tab_id = tab.tab_id();
+
+                if tab.floating_pane_is_visible() {
+                    tab.set_floating_pane_visibility(false);
+                }
 
                 if self.tab_state(tab_id).overlay.is_none() {
                     let panes = tab.iter_panes();
