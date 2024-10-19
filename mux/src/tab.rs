@@ -881,7 +881,6 @@ impl TabInner {
 
         self.active_floating_pane = root.active_floating_pane_index;
         self.floating_pane_visible = root.floating_pane_visible;
-        //TODO: we are in a lock this should be safe?  is it needed?
         self.floating_panes.clear();
         for pane_node in root.floating_panes {
             if let PaneNode::Leaf(entry) = pane_node {

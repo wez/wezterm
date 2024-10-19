@@ -1291,30 +1291,13 @@ impl Mux {
 
         tab.set_floating_pane_visibility(false);
 
-        let active_non_floating_pane = tab.iter_panes_ignoring_zoom()
-            .iter()
-            .nth(tab.get_active_idx())
-            .map(|p| Arc::clone(&p.pane))
-            .ok_or_else(|| anyhow::anyhow!("tab does not have a active non floating pane"))?;
-
-        let pane_id = active_non_floating_pane.pane_id();
-
-        let pane_index = match tab
-            .iter_panes_ignoring_zoom()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
         let split_request = SplitRequest {
             direction,
             target_is_second: true,
             top_level: false,
             size: Default::default(),
         };
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane))?;
+        tab.split_and_insert(tab.get_active_idx(), split_request, Arc::clone(&floating_pane))?;
 
         Ok(())
     }
