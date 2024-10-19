@@ -3541,13 +3541,13 @@ impl TermWindow {
         }
     }
 
-    fn parse_mouse_cursor_shape_string(
-        &self,
-        mouse_cursor_shape_string: Option<String>,
-    ) -> Option<MouseCursor> {
-        match mouse_cursor_shape_string.as_deref()? {
-            "pointer" => Some(MouseCursor::Hand),
-            _ => None,
+    fn parse_mouse_cursor_shape(&self, mouse_cursor_shape: &str) -> MouseCursor {
+        match mouse_cursor_shape {
+            "pointer" => MouseCursor::Hand,
+            "text" => MouseCursor::Text,
+            "row-resize" | "ns-resize" => MouseCursor::SizeUpDown,
+            "col-resize" | "ew-resize" => MouseCursor::SizeLeftRight,
+            _ => MouseCursor::Arrow,
         }
     }
 }

@@ -839,13 +839,11 @@ impl super::TermWindow {
             MouseCursor::Hand
         } else if pane.is_mouse_grabbed() || outside_window {
             MouseCursor::Arrow
+        } else if let Some(shape) = pane.get_mouse_cursor_shape() {
+            self.parse_mouse_cursor_shape(shape.as_str())
         } else {
             MouseCursor::Text
         }));
-
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            context.set_cursor(self.parse_mouse_cursor_shape_string(pane.get_mouse_cursor_shape()));
-        }
 
         let event_trigger_type = match &event.kind {
             WMEK::Press(press) => {
