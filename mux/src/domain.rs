@@ -94,44 +94,8 @@ pub trait Domain: Downcast + Send + Sync {
         &self,
         tab: TabId,
         direction: SplitDirection,
-    ) -> anyhow::Result<()> {
-        let mux = Mux::get();
-        let tab = match mux.get_tab(tab) {
-            Some(t) => t,
-            None => anyhow::bail!("Invalid tab id {}", tab),
-        };
-
-        let floating_pane = tab.remove_floating_pane(tab.get_active_floating_pane_index())?;
-
-        tab.set_floating_pane_visibility(false);
-
-        //TODO: Figure out if all floating pane stuff should be removed from tab.get_active_pane
-        let active_non_floating_pane = tab.iter_panes_ignoring_zoom()
-            .iter()
-            .nth(tab.get_active_idx())
-            .map(|p| Arc::clone(&p.pane))
-            .ok_or_else(|| anyhow::anyhow!("tab does not have a active non floating pane"))?;
-
-        let pane_id = active_non_floating_pane.pane_id();
-
-        //TODO: this is duplicated
-        let pane_index = match tab
-            .iter_panes_ignoring_zoom()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let split_request = SplitRequest {
-            direction,
-            target_is_second: true,
-            top_level: false,
-            size: Default::default(),
-        };
-        tab.split_and_insert(pane_index, split_request, Arc::clone(&floating_pane))?;
-        Ok(())
+    ) -> anyhow::Result<bool> {
+        Ok(false)
     }
 
     async fn split_pane(

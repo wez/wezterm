@@ -845,7 +845,7 @@ impl Domain for ClientDomain {
         &self,
         pane_id: PaneId,
         split_direction: SplitDirection,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -868,7 +868,7 @@ impl Domain for ClientDomain {
 
         self.resync().await?;
 
-        Ok(())
+        Ok(true)
     }
 
     /// Forward the request to the remote; we need to translate the local ids
