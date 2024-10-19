@@ -16,7 +16,6 @@ use termwiz::surface::{Line, SequenceNo};
 use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
-pub use wezterm_term::MouseCursor;
 use wezterm_term::{
     Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
     TerminalConfiguration, TerminalSize,
@@ -232,7 +231,7 @@ pub trait Pane: Downcast + Send + Sync {
     /// Returns render related dimensions
     fn get_dimensions(&self) -> RenderableDimensions;
 
-    fn get_mouse_cursor_shape(&self) -> MouseCursor;
+    fn get_mouse_cursor_shape(&self) -> Option<String>;
 
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
@@ -553,7 +552,7 @@ mod test {
     }
 
     impl Pane for FakePane {
-        fn get_mouse_cursor_shape(&self) -> MouseCursor {
+        fn get_mouse_cursor_shape(&self) -> Option<String> {
             unimplemented!()
         }
 

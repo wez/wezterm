@@ -62,15 +62,6 @@ pub(crate) enum MouseEncoding {
     SgrPixels,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MouseCursor {
-    Arrow,
-    Hand,
-    Text,
-    SizeUpDown,
-    SizeLeftRight,
-}
-
 impl TabStop {
     fn new(screen_width: usize, tab_width: usize) -> Self {
         let mut tabs = Vec::with_capacity(screen_width);
@@ -352,7 +343,7 @@ pub struct TerminalState {
     palette: Option<ColorPalette>,
 
     /// The mouse cursor shape (OSC 22)
-    mouse_cursor_shape: String,
+    mouse_cursor_shape: Option<String>,
 
     pixel_width: usize,
     pixel_height: usize,
@@ -559,7 +550,7 @@ impl TerminalState {
             any_event_mouse: false,
             button_event_mouse: false,
             mouse_tracking: false,
-            mouse_cursor_shape: String::from(""),
+            mouse_cursor_shape: None,
             last_mouse_move: None,
             cursor_visible: true,
             g0_charset: CharSet::Ascii,
@@ -679,23 +670,11 @@ impl TerminalState {
     }
 
     /// Returns a copy of the current mouse cursor shape.
-    pub fn get_mouse_cursor_shape(&self) -> MouseCursor {
+    pub fn get_mouse_cursor_shape(&self) -> Option<String> {
         // FIXME: The log here is clearing a cache somewhere causing the mouse shape
         //        to be updated correctly. Not sure what I need to change.
-        log::info!("Mouse cursor shape: {}", self.mouse_cursor_shape);
-        if self.mouse_cursor_shape == "pointer" {
-            MouseCursor::Hand
-        } else if self.mouse_cursor_shape == "text" {
-            MouseCursor::Text
-        } else if self.mouse_cursor_shape == "row-resize" || self.mouse_cursor_shape == "ns-resize"
-        {
-            MouseCursor::SizeUpDown
-        } else if self.mouse_cursor_shape == "col-resize" || self.mouse_cursor_shape == "ew-resize"
-        {
-            MouseCursor::SizeLeftRight
-        } else {
-            MouseCursor::Arrow
-        }
+        // log::info!("Mouse cursor shape: {}", self.mouse_cursor_shape);
+        self.mouse_cursor_shape.clone()
     }
 
     /// Called in response to dynamic color scheme escape sequences.

@@ -31,8 +31,8 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseCursor,
-    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
+    Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent,
+    SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
 
 const PROC_INFO_CACHE_TTL: Duration = Duration::from_millis(300);
@@ -137,7 +137,7 @@ pub struct LocalPane {
 
 #[async_trait(?Send)]
 impl Pane for LocalPane {
-    fn get_mouse_cursor_shape(&self) -> MouseCursor {
+    fn get_mouse_cursor_shape(&self) -> Option<String> {
         self.terminal.lock().get_mouse_cursor_shape()
     }
 

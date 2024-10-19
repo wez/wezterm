@@ -3,10 +3,10 @@ use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseEvent, MouseEventKind,
-    MousePress, Point, Rect, RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry,
-    ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ResolvedGeometry, ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -26,7 +26,6 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{KeyCode, KeyEvent, KeyboardLedStatus, Modifiers};
-use wezterm_term::MouseCursor;
 use xcb::x::{Atom, PropMode};
 use xcb::{Event, Xid};
 

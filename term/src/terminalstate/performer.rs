@@ -678,7 +678,7 @@ impl<'a> Performer<'a> {
                 self.focus_tracking = false;
                 self.mouse_tracking = false;
                 self.mouse_encoding = MouseEncoding::X10;
-                self.mouse_cursor_shape = String::from("");
+                self.mouse_cursor_shape = None;
                 self.keyboard_encoding = KeyboardEncoding::Xterm;
                 self.sixel_scrolls_right = false;
                 self.any_event_mouse = false;
@@ -721,7 +721,7 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match osc {
             OperatingSystemCommand::SetMouseCursorShape(mouse_shape) => {
-                self.mouse_cursor_shape = mouse_shape;
+                self.mouse_cursor_shape = Some(mouse_shape);
                 self.mouse_cursor_shape_did_change();
             }
             OperatingSystemCommand::SetIconNameSun(title)

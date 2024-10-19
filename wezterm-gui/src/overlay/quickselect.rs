@@ -19,7 +19,7 @@ use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, KeyCode, KeyModifiers, Line, MouseCursor, MouseEvent, StableRowIndex, TerminalSize,
+    Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
 };
 use window::WindowOps;
 
@@ -317,8 +317,8 @@ impl QuickSelectOverlay {
 }
 
 impl Pane for QuickSelectOverlay {
-    fn get_mouse_cursor_shape(&self) -> MouseCursor {
-        MouseCursor::Arrow
+    fn get_mouse_cursor_shape(&self) -> Option<String> {
+        None
     }
 
     fn pane_id(&self) -> PaneId {

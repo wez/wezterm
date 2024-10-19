@@ -2222,7 +2222,7 @@ mod test {
     }
 
     impl Pane for FakePane {
-        fn get_mouse_cursor_shape(&self) -> MouseCursor {
+        fn get_mouse_cursor_shape(&self) -> Option<String> {
             unimplemented!();
         }
 

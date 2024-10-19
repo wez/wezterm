@@ -9,8 +9,8 @@ use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::screen::Screens;
 use crate::{
-    Appearance, Clipboard, Rect, RequestedWindowGeometry, ResizeIncrement, ScreenPoint,
-    WindowEvent, WindowOps,
+    Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ScreenPoint, WindowEvent, WindowOps,
 };
 use async_trait::async_trait;
 use config::ConfigHandle;
@@ -21,7 +21,6 @@ use raw_window_handle::{
 use std::any::Any;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
-use wezterm_term::MouseCursor;
 
 pub enum Connection {
     X11(Rc<XConnection>),
