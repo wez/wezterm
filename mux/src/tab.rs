@@ -1004,6 +1004,10 @@ impl TabInner {
         let mut count = 0;
         let mut cursor = self.pane.take().unwrap().cursor();
 
+        for pane in &self.floating_panes {
+            count += 1;
+        }
+
         loop {
             if cursor.is_leaf() {
                 count += 1;
