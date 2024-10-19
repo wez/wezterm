@@ -904,7 +904,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                    }) => CommandDef {
             brief: "Move a pane to floating pane".into(),
             doc: "Activates the pane selection UI".into(),
-            keys: vec![], // FIXME: find a new assignment
+            keys: vec![],
             args: &[ArgType::ActivePane],
             menubar: &["Window"],
             icon: Some("cod_multiple_windows"),
@@ -1652,7 +1652,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         ToggleFloatingPane => CommandDef {
             brief: "Toggle floating pane".into(),
             doc: "Toggles the visibility state for the current pane".into(),
-            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "e".into())],
+            keys: vec![],
             args: &[ArgType::ActivePane],
             menubar: &["Window"],
             icon: Some("md_fullscreen"),
