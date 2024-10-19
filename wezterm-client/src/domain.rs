@@ -525,33 +525,32 @@ impl ClientDomain {
         }
     }
 
-    pub fn process_remote_tab_title_change(&self, remote_tab_id: TabId, title: String) {
+    fn get_local_tab(&self, remote_tab_id: TabId) -> Option<Arc<Tab>> {
         if let Some(inner) = self.inner() {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
-                    tab.set_title(&title);
+                    return Some(tab)
                 }
             }
+        }
+        None
+    }
+
+    pub fn process_remote_tab_title_change(&self, remote_tab_id: TabId, title: String) {
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_title(&title);
         }
     }
 
     pub fn set_floating_pane_visibility(&self, remote_tab_id: TabId, visible: bool) {
-        if let Some(inner) = self.inner() {
-            if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
-                if let Some(tab) = Mux::get().get_tab(local_tab_id) {
-                    tab.set_floating_pane_visibility(visible);
-                }
-            }
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_floating_pane_visibility(visible);
         }
     }
 
     pub fn set_active_floating_pane(&self, index: usize, remote_tab_id: TabId) {
-        if let Some(inner) = self.inner() {
-            if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
-                if let Some(tab) = Mux::get().get_tab(local_tab_id) {
-                    tab.set_active_floating_pane(index);
-                }
-            }
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_active_floating_pane(index);
         }
     }
 
