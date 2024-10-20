@@ -686,10 +686,9 @@ impl super::TermWindow {
                     }
                 }
 
-                // Mouse events are not dispatched to the other panes when
-                // a floating pane is active, this is to prevent users from selecting one of the
-                // panes that the floating pane is on top of and encountering some weird behavior, ex.
-                // closing the last non-floating pane while the floating pane is active.
+                // Non click mouse events are not dispatched to the other panes when a floating
+                // pane is active. This is to prevent users from triggering unexpected
+                // behavior on one of the non-floating panes.
                 return;
             }
             vec![floating_pane]
