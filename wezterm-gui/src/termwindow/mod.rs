@@ -3540,15 +3540,15 @@ impl TermWindow {
             }
         }
     }
+}
 
-    fn parse_mouse_cursor_shape(&self, mouse_cursor_shape: &str) -> MouseCursor {
-        match mouse_cursor_shape {
-            "pointer" => MouseCursor::Hand,
-            "text" => MouseCursor::Text,
-            "row-resize" | "ns-resize" => MouseCursor::SizeUpDown,
-            "col-resize" | "ew-resize" => MouseCursor::SizeLeftRight,
-            _ => MouseCursor::Arrow,
-        }
+fn parse_mouse_cursor_shape(mouse_cursor_shape: &str) -> MouseCursor {
+    match mouse_cursor_shape {
+        "pointer" => MouseCursor::Hand,
+        "text" => MouseCursor::Text,
+        "row-resize" | "ns-resize" => MouseCursor::SizeUpDown,
+        "col-resize" | "ew-resize" => MouseCursor::SizeLeftRight,
+        _ => MouseCursor::Arrow,
     }
 }
 

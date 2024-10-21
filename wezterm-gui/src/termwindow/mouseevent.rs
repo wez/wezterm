@@ -1,6 +1,7 @@
 use crate::tabbar::TabBarItem;
 use crate::termwindow::{
-    GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
+    parse_mouse_cursor_shape, GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif,
+    UIItem, UIItemType, TMB,
 };
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
@@ -840,7 +841,7 @@ impl super::TermWindow {
         } else if pane.is_mouse_grabbed() || outside_window {
             MouseCursor::Arrow
         } else if let Some(shape) = pane.get_mouse_cursor_shape() {
-            self.parse_mouse_cursor_shape(shape.as_str())
+            parse_mouse_cursor_shape(shape.as_str())
         } else {
             MouseCursor::Text
         }));
