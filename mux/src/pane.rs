@@ -232,6 +232,7 @@ pub trait Pane: Downcast + Send + Sync {
     fn get_dimensions(&self) -> RenderableDimensions;
 
     fn get_mouse_cursor_shape(&self) -> Option<String>;
+    fn clear_mouse_cursor_shape(&self);
 
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
@@ -554,6 +555,10 @@ mod test {
     impl Pane for FakePane {
         fn get_mouse_cursor_shape(&self) -> Option<String> {
             unimplemented!()
+        }
+
+        fn clear_mouse_cursor_shape(&self) {
+            unimplemented!();
         }
 
         fn pane_id(&self) -> PaneId {

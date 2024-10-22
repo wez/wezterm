@@ -249,6 +249,8 @@ impl Pane for ClientPane {
         None
     }
 
+    fn clear_mouse_cursor_shape(&self) {}
+
     fn pane_id(&self) -> PaneId {
         self.local_pane_id
     }

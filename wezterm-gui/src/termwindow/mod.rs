@@ -1213,8 +1213,6 @@ impl TermWindow {
                     alert: Alert::MouseCursorShapeChanged,
                     pane_id,
                 } => {
-                    // FIXME: Is there a cache that needs to be invalidated like for PaletteChanged?
-                    // Maybe trigger the terminal mouse event manually from here?
                     self.mux_pane_output_event(pane_id);
                 }
                 MuxNotification::Alert {

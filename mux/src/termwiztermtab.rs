@@ -130,6 +130,8 @@ impl Pane for TermWizTerminalPane {
         None
     }
 
+    fn clear_mouse_cursor_shape(&self) {}
+
     fn pane_id(&self) -> PaneId {
         self.pane_id
     }

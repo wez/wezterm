@@ -321,6 +321,8 @@ impl Pane for QuickSelectOverlay {
         None
     }
 
+    fn clear_mouse_cursor_shape(&self) {}
+
     fn pane_id(&self) -> PaneId {
         self.delegate.pane_id()
     }

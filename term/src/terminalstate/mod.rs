@@ -671,10 +671,12 @@ impl TerminalState {
 
     /// Returns a copy of the current mouse cursor shape.
     pub fn get_mouse_cursor_shape(&self) -> Option<String> {
-        // FIXME: The log here is clearing a cache somewhere causing the mouse shape
-        //        to be updated correctly. Not sure what I need to change.
-        // log::info!("Mouse cursor shape: {}", self.mouse_cursor_shape);
         self.mouse_cursor_shape.clone()
+    }
+
+    /// Clears the mouse cursor shape.
+    pub fn clear_mosue_cursor_shape(&mut self) {
+        self.mouse_cursor_shape = None;
     }
 
     /// Called in response to dynamic color scheme escape sequences.

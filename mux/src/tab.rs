@@ -2226,6 +2226,10 @@ mod test {
             unimplemented!();
         }
 
+        fn clear_mouse_cursor_shape(&self) {
+            unimplemented!();
+        }
+
         fn pane_id(&self) -> PaneId {
             self.id
         }

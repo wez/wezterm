@@ -141,6 +141,10 @@ impl Pane for LocalPane {
         self.terminal.lock().get_mouse_cursor_shape()
     }
 
+    fn clear_mouse_cursor_shape(&self) {
+        self.terminal.lock().clear_mosue_cursor_shape();
+    }
+
     fn pane_id(&self) -> PaneId {
         self.pane_id
     }
