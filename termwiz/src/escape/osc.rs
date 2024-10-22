@@ -1367,6 +1367,24 @@ mod test {
     }
 
     #[test]
+    fn mouse_cursor_shape() {
+        assert_eq!(
+            parse(&["22", "pointer"], "\x1b]22;pointer\x1b\\"),
+            OperatingSystemCommand::SetMouseCursorShape("pointer".into())
+        );
+
+        assert_eq!(
+            parse(&["22", "default"], "\x1b]22;default\x1b\\"),
+            OperatingSystemCommand::SetMouseCursorShape("default".into())
+        );
+
+        assert_eq!(
+            parse(&["22", ""], "\x1b]22;\x1b\\"),
+            OperatingSystemCommand::SetMouseCursorShape("".into())
+        );
+    }
+
+    #[test]
     fn hyperlink() {
         assert_eq!(
             parse(
