@@ -10,7 +10,7 @@ tags:
 {{since('20210314-114017-04b7cedd')}}
 
 This function logs the provided message string through wezterm's logging layer
-at 'WARN' level.  If you started wezterm from a terminal that text will print
+at 'WARN' level, which can be displayed via [ShowDebugOverlay](../keyassignment/ShowDebugOverlay.md) action.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
 server then it will be logged to the daemon output path.
 
