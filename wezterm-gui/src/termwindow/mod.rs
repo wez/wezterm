@@ -2326,7 +2326,13 @@ impl TermWindow {
     }
 
     fn show_tab_navigator(&mut self) {
-        self.show_launcher_impl("Tab Navigator", LauncherFlags::TABS);
+        let mux_window_id = self.mux_window_id;
+        let mux = Mux::get();
+        let active_tab_idx = match mux.get_window(mux_window_id) {
+            Some(mux_window) => mux_window.get_active_idx(),
+            None => return,
+        };
+        self.show_launcher_impl("Tab Navigator", LauncherFlags::TABS, active_tab_idx);
     }
 
     fn show_launcher(&mut self) {
@@ -2337,10 +2343,11 @@ impl TermWindow {
                 | LauncherFlags::DOMAINS
                 | LauncherFlags::KEY_ASSIGNMENTS
                 | LauncherFlags::COMMANDS,
+            0,
         );
     }
 
-    fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags) {
+    fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags, initial_choice_idx: usize) {
         let mux_window_id = self.mux_window_id;
         let window = self.window.as_ref().unwrap().clone();
 
@@ -2380,7 +2387,7 @@ impl TermWindow {
                     let window = window.clone();
                     let (overlay, future) =
                         start_overlay(term_window, &tab, move |_tab_id, term| {
-                            launcher(args, term, window)
+                            launcher(args, term, window, initial_choice_idx)
                         });
 
                     term_window.assign_overlay(tab_id, overlay);
@@ -2704,7 +2711,7 @@ impl TermWindow {
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
             ShowLauncherArgs(args) => {
-                self.show_launcher_impl(args.title.as_deref().unwrap_or("Launcher"), args.flags)
+                self.show_launcher_impl(args.title.as_deref().unwrap_or("Launcher"), args.flags, 0)
             }
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");

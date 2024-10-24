@@ -593,11 +593,12 @@ pub fn launcher(
     args: LauncherArgs,
     mut term: TermWizTerminal,
     window: ::window::Window,
+    initial_choice_idx: usize,
 ) -> anyhow::Result<()> {
     let size = term.get_screen_size()?;
     let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
     let mut state = LauncherState {
-        active_idx: 0,
+        active_idx: initial_choice_idx,
         max_items,
         pane_id: args.pane_id,
         top_row: 0,
