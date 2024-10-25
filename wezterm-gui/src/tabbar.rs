@@ -550,6 +550,8 @@ impl TabBarState {
             Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
+        line.reverse_cells(SEQ_ZERO);
+
         Self { line, items }
     }
 

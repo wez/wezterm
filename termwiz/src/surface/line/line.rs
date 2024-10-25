@@ -877,6 +877,21 @@ impl Line {
         }
     }
 
+    pub fn reverse_cells(&mut self, seqno: SequenceNo) {
+        let cells = self.coerce_vec_storage();
+        // TODO: This is one way of allowing for right alignment.
+        // It comes with its own set of problems
+        // 1. We need to preserve the left and right status line cells. :done:
+        // 2. The add new tab button being on the left side.
+        // 3. Anything else I am missing that might conflict with this design choice?
+        cells.reverse();
+        let len = cells.len() - 1;
+        cells.swap(0, len);
+
+        self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
+    }
+
     pub fn insert_cell(&mut self, x: usize, cell: Cell, right_margin: usize, seqno: SequenceNo) {
         self.invalidate_implicit_hyperlinks(seqno);
 
