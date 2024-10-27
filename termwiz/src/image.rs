@@ -30,7 +30,7 @@ where
 }
 
 #[cfg(feature = "use_serde")]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn serialize_notnan<S>(value: &NotNan<f32>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -344,7 +344,7 @@ impl ImageDataType {
     pub fn dimensions(&self) -> Result<(u32, u32), InternalError> {
         fn dimensions_for_data(data: &[u8]) -> image::ImageResult<(u32, u32)> {
             let reader =
-                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+                image::ImageReader::new(std::io::Cursor::new(data)).with_guessed_format()?;
             let (width, height) = reader.into_dimensions()?;
 
             Ok((width, height))

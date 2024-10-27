@@ -6,6 +6,7 @@ use std::io::Read;
 use std::num::NonZeroU32;
 use std::os::fd::AsRawFd;
 use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -16,8 +17,8 @@ use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
 use raw_window_handle::{
-    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
-    WaylandDisplayHandle, WaylandWindowHandle,
+    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawWindowHandle,
+    WaylandWindowHandle, WindowHandle,
 };
 use smithay_client_toolkit::compositor::{CompositorHandler, SurfaceData, SurfaceDataExt};
 use smithay_client_toolkit::data_device_manager::ReadPipe;
@@ -250,14 +251,13 @@ impl WaylandWindow {
         }
 
         window.set_min_size(Some((32, 32)));
-        let (w, h) = window_frame.add_borders(
-            dimensions.pixel_width as u32,
-            dimensions.pixel_height as u32,
-        );
         let (x, y) = window_frame.location();
-        window
-            .xdg_surface()
-            .set_window_geometry(x, y, w as i32, h as i32);
+        window.xdg_surface().set_window_geometry(
+            x,
+            y,
+            dimensions.pixel_width as i32,
+            dimensions.pixel_height as i32,
+        );
         window.commit();
 
         let copy_and_paste = CopyAndPaste::create();
@@ -359,7 +359,10 @@ impl WindowOps for WaylandWindow {
     }
 
     fn hide(&self) {
-        todo!()
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.window.as_ref().unwrap().set_minimized();
+            Ok(())
+        });
     }
 
     fn close(&self) {
@@ -449,6 +452,17 @@ impl WindowOps for WaylandWindow {
                 .lock()
                 .unwrap()
                 .set_clipboard_data(clipboard, text);
+            Ok(())
+        });
+    }
+
+    fn toggle_fullscreen(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            if inner.window_state.contains(WindowState::FULL_SCREEN) {
+                inner.window.as_ref().unwrap().unset_fullscreen();
+            } else {
+                inner.window.as_ref().unwrap().set_fullscreen(None);
+            }
             Ok(())
         });
     }
@@ -825,23 +839,20 @@ impl WaylandWindowInner {
                 }
 
                 log::trace!("Resizing frame");
-                let (width, height) = self.window_frame.subtract_borders(
-                    NonZeroU32::new(pixel_width as u32).unwrap(),
-                    NonZeroU32::new(pixel_height as u32).unwrap(),
-                );
-                // Clamp the size to at least one pixel.
-                let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
-                let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
                 if !self.window_frame.is_hidden() {
+                    // Clamp the size to at least one pixel.
+                    let width =
+                        NonZeroU32::new(pixel_width as u32).unwrap_or(NonZeroU32::new(1).unwrap());
+                    let height =
+                        NonZeroU32::new(pixel_height as u32).unwrap_or(NonZeroU32::new(1).unwrap());
                     self.window_frame.resize(width, height);
                 }
                 let (x, y) = self.window_frame.location();
-                let outer_size = self.window_frame.add_borders(width.get(), height.get());
                 self.window
                     .as_mut()
                     .unwrap()
                     .xdg_surface()
-                    .set_window_geometry(x, y, outer_size.0 as i32, outer_size.1 as i32);
+                    .set_window_geometry(x, y, pixel_width, pixel_height);
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
@@ -1212,6 +1223,7 @@ impl WaylandState {
             .window_by_id(window_id)
             .expect("Inner Window should exist");
 
+        let is_frame_hidden = window_inner.borrow().window_frame.is_hidden();
         let p = window_inner.borrow().pending_event.clone();
         let mut pending_event = p.lock().unwrap();
 
@@ -1244,15 +1256,35 @@ impl WaylandState {
                 if configure.state.contains(SCTKWindowState::FULLSCREEN) {
                     state |= WindowState::FULL_SCREEN;
                 }
-                let fs_bits = SCTKWindowState::MAXIMIZED
-                    | SCTKWindowState::TILED_LEFT
-                    | SCTKWindowState::TILED_RIGHT
-                    | SCTKWindowState::TILED_TOP
-                    | SCTKWindowState::TILED_BOTTOM;
-                if !((configure.state & fs_bits).is_empty()) {
+                if configure.state.contains(SCTKWindowState::MAXIMIZED) {
                     state |= WindowState::MAXIMIZED;
                 }
 
+                // For MAXIMIZED and FULL_SCREEN window configure contains Windowed size.
+                // Replacing it with Wayland suggested bounds.
+                if state.intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN) {
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w, h));
+                    }
+                } else if configure
+                    .state
+                    .contains(SCTKWindowState::TILED_TOP | SCTKWindowState::TILED_BOTTOM)
+                    && is_frame_hidden
+                {
+                    // Tiled window without borders will take exactly half of the screen.
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w / 2, h));
+                    }
+                } else if configure
+                    .state
+                    .contains(SCTKWindowState::TILED_LEFT | SCTKWindowState::TILED_RIGHT)
+                    && is_frame_hidden
+                {
+                    // Tiled window without borders will take exactly half of the screen.
+                    if let Some((w, h)) = configure.suggested_bounds {
+                        pending_event.configure.replace((w, h / 2));
+                    }
+                }
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
                     pending_event.window_state,
@@ -1314,6 +1346,24 @@ impl CompositorHandler for WaylandState {
     ) {
         // TODO: do we need to do anything here?
     }
+
+    fn surface_enter(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _output: &wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
+
+    fn surface_leave(
+        &mut self,
+        _conn: &WConnection,
+        _qh: &wayland_client::QueueHandle<Self>,
+        _surface: &wayland_client::protocol::wl_surface::WlSurface,
+        _output: &wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
 }
 
 impl WindowHandler for WaylandState {
@@ -1359,26 +1409,35 @@ impl SurfaceDataExt for SurfaceUserData {
     }
 }
 
-unsafe impl HasRawWindowHandle for WaylandWindowInner {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let mut handle = WaylandWindowHandle::empty();
-        let surface = self.surface();
-        handle.surface = surface.id().as_ptr() as *mut _;
-        RawWindowHandle::Wayland(handle)
-    }
-}
-
-unsafe impl HasRawDisplayHandle for WaylandWindow {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        let mut handle = WaylandDisplayHandle::empty();
+impl HasDisplayHandle for WaylandWindowInner {
+    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
         let conn = WaylandConnection::get().unwrap().wayland();
-        handle.display = conn.connection.backend().display_ptr() as *mut _;
-        RawDisplayHandle::Wayland(handle)
+        let backend = conn.connection.backend();
+        let handle = backend.display_handle()?;
+        Ok(unsafe { DisplayHandle::borrow_raw(handle.as_raw()) })
     }
 }
 
-unsafe impl HasRawWindowHandle for WaylandWindow {
-    fn raw_window_handle(&self) -> RawWindowHandle {
+impl HasWindowHandle for WaylandWindowInner {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+        let handle = WaylandWindowHandle::new(
+            NonNull::new(self.surface().id().as_ptr() as _).expect("non-null"),
+        );
+        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::Wayland(handle))) }
+    }
+}
+
+impl HasDisplayHandle for WaylandWindow {
+    fn display_handle(&self) -> Result<DisplayHandle, HandleError> {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let backend = conn.connection.backend();
+        let handle = backend.display_handle()?;
+        Ok(unsafe { DisplayHandle::borrow_raw(handle.as_raw()) })
+    }
+}
+
+impl HasWindowHandle for WaylandWindow {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
         let conn = Connection::get().expect("raw_window_handle only callable on main thread");
         let handle = conn
             .wayland()
@@ -1386,6 +1445,7 @@ unsafe impl HasRawWindowHandle for WaylandWindow {
             .expect("window handle invalid!?");
 
         let inner = handle.borrow();
-        inner.raw_window_handle()
+        let handle = inner.window_handle()?;
+        unsafe { Ok(WindowHandle::borrow_raw(handle.as_raw())) }
     }
 }

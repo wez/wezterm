@@ -1,6 +1,6 @@
 //! Colors for attributes
 // for FromPrimitive
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
+#![allow(clippy::useless_attribute)]
 
 use num_derive::*;
 #[cfg(feature = "use_serde")]

@@ -185,7 +185,10 @@ pub struct Config {
     pub color_schemes: HashMap<String, Palette>,
 
     /// How many lines of scrollback you want to retain
-    #[dynamic(default = "default_scrollback_lines")]
+    #[dynamic(
+        default = "default_scrollback_lines",
+        validate = "validate_scrollback_lines"
+    )]
     pub scrollback_lines: usize,
 
     /// If no `prog` is specified on the command line, use this
@@ -468,6 +471,9 @@ pub struct Config {
 
     #[dynamic(default = "default_true")]
     pub show_new_tab_button_in_tab_bar: bool,
+
+    #[dynamic(default = "default_true")]
+    pub show_close_tab_button_in_tabs: bool,
 
     /// If true, show_tab_index_in_tab_bar uses a zero-based index.
     /// The default is false and the tab shows a one-based index.
@@ -1635,6 +1641,16 @@ fn default_scrollback_lines() -> usize {
     3500
 }
 
+const MAX_SCROLLBACK_LINES: usize = 999_999_999;
+fn validate_scrollback_lines(value: &usize) -> Result<(), String> {
+    if *value > MAX_SCROLLBACK_LINES {
+        return Err(format!(
+            "Illegal value {value} for scrollback_lines; it must be <= {MAX_SCROLLBACK_LINES}!"
+        ));
+    }
+    Ok(())
+}
+
 fn default_initial_rows() -> u16 {
     24
 }
@@ -1671,6 +1687,14 @@ fn default_term() -> String {
 
 fn default_font_size() -> f64 {
     12.0
+}
+
+pub(crate) fn compute_cache_dir() -> anyhow::Result<PathBuf> {
+    if let Some(runtime) = dirs_next::cache_dir() {
+        return Ok(runtime.join("wezterm"));
+    }
+
+    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
 }
 
 pub(crate) fn compute_data_dir() -> anyhow::Result<PathBuf> {
@@ -1742,6 +1766,7 @@ fn default_tiling_desktop_environments() -> Vec<String> {
         "X11 bspwm",
         "X11 dwm",
         "X11 i3",
+        "X11 xmonad",
     ]
     .iter()
     .map(|s| s.to_string())

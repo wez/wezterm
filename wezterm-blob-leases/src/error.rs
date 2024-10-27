@@ -1,4 +1,5 @@
 use crate::ContentId;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,4 +18,7 @@ pub enum Error {
 
     #[error("Storage has not been initialized")]
     StorageNotInit,
+
+    #[error("Storage location {0} may be corrupt: {1}")]
+    StorageDirIoError(PathBuf, std::io::Error),
 }

@@ -7,7 +7,7 @@ hide:
 
 * Runs on Linux, macOS, Windows 10 and FreeBSD
 * [Multiplex terminal panes, tabs and windows on local and remote hosts, with native mouse and scrollback](multiplexing.md)
-* <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](config/appearance.md#colors).
+* <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](config/appearance.md).
 * [Hyperlinks](hyperlinks.md)
 * [Searchable Scrollback](scrollback.md) (use mouse wheel and `Shift-PageUp` and `Shift PageDown` to navigate, Ctrl-Shift-F to activate search mode)
 * xterm style selection of text with mouse; paste selection via `Shift-Insert` (bracketed paste is supported!)

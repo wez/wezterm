@@ -278,7 +278,7 @@ end
         "#,
         )
         .set_name("=searcher")
-        .eval()
+        .eval::<()>()
         .context("replace package.searchers")?;
 
         wezterm_mod.set(

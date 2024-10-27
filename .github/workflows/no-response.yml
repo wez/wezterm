@@ -1,20 +1,39 @@
 name: No Response
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 # Both `issue_comment` and `scheduled` event types are required for this Action
 # to work properly.
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
   schedule:
     # Schedule for five minutes after the hour, every hour
     - cron: '5 * * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/no-response.yml'
 
 jobs:
   noResponse:
     runs-on: ubuntu-latest
     steps:
-      - uses: lee-dohm/no-response@v0.5.0
+      - uses: actions/stale@v9.0.0
         with:
-          token: ${{ github.token }}
-          responseRequiredLabel: waiting-on-op
-
+          only-labels: waiting-on-op
+          days-before-stale: -1
+          days-before-close: -1
+          days-before-issue-stale: 14
+          days-before-issue-close: 0
+          close-issue-message: >
+            This issue has been automatically closed because there has been no response
+            to our request for more information from the original author. With only the
+            information that is currently in the issue, we don't have enough information
+            to take action. Please reach out if you have or find the answers we need so
+            that we can investigate further.

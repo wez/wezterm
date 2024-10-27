@@ -1,6 +1,10 @@
 use anyhow::{anyhow, Context as _};
+#[cfg(unix)]
+use libc::{AF_UNSPEC, AI_CANONNAME, SOCK_DGRAM};
 use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
 use std::path::PathBuf;
+#[cfg(windows)]
+use winapi::shared::ws2def::{AF_UNSPEC, AI_CANONNAME, SOCK_DGRAM};
 
 /// A helper for managing keys for the TLS server component.
 /// Each time the server is started, a new CA is generated
@@ -22,14 +26,35 @@ impl Pki {
     pub fn init() -> anyhow::Result<Self> {
         let pki_dir = config::pki_dir()?;
         std::fs::create_dir_all(&pki_dir)?;
-        log::error!("runtime dir is {}", pki_dir.display());
+        log::debug!("pki dir is {}", pki_dir.display());
 
-        let alt_names = vec![
-            hostname::get()?
-                .into_string()
-                .map_err(|_| anyhow!("hostname is not representable as unicode"))?,
-            "localhost".to_owned(),
-        ];
+        let hostname = hostname::get()?
+            .into_string()
+            .map_err(|_| anyhow!("hostname is not representable as unicode"))?;
+
+        let mut alt_names = vec![hostname.clone(), "localhost".to_owned()];
+
+        let hints = dns_lookup::AddrInfoHints {
+            flags: AI_CANONNAME,
+            address: AF_UNSPEC,
+            socktype: SOCK_DGRAM,
+            protocol: 0,
+        };
+
+        if let Ok(iter) = dns_lookup::getaddrinfo(Some(&hostname), None, Some(hints)) {
+            for entry in iter {
+                if let Ok(entry) = entry {
+                    if let Some(canon) = entry.canonname {
+                        alt_names.push(canon);
+                    }
+                }
+            }
+        }
+
+        alt_names.sort();
+        alt_names.dedup();
+        log::debug!("generating cert with alt_names={alt_names:?}");
+
         let unix_name = config::username_from_env()?;
 
         // Create the CA certificate

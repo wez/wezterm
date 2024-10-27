@@ -7,7 +7,7 @@ tags:
 
 {{since('20200503-171512-b13ef15f')}}
 
-You can define your own entries for the [Launcher Menu](../../launch.md)
+You can define your own entries for the [Launcher Menu](../../launch.md#the-launcher-menu)
 using this configuration setting.  The snippet below adds two new entries to
 the menu; one that runs the `top` program to monitor process activity and a
 second one that explicitly launches the `bash` shell.

@@ -1748,6 +1748,12 @@ impl TabInner {
     }
 
     fn set_active_pane(&mut self, pane: &Arc<dyn Pane>) {
+        let prior = self.get_active_pane();
+
+        if is_pane(pane, &prior.as_ref()) {
+            return;
+        }
+
         if self.zoomed.is_some() {
             if !configuration().unzoom_on_switch_pane {
                 return;
@@ -1760,7 +1766,6 @@ impl TabInner {
             .iter()
             .find(|p| p.pane.pane_id() == pane.pane_id())
         {
-            let prior = self.get_active_pane();
             self.active = item.index;
             self.recency.tag(item.index);
             self.advise_focus_change(prior);

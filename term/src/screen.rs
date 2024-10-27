@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
+#![allow(clippy::range_plus_one)]
 use super::*;
 use crate::config::BidiMode;
 use log::debug;
@@ -724,7 +724,7 @@ impl Screen {
             self.lines.remove(remove_idx);
         }
 
-        if remove_idx == 0 {
+        if remove_idx == 0 && self.allow_scrollback {
             self.stable_row_index_offset += lines_removed;
         }
 
@@ -754,7 +754,9 @@ impl Screen {
         let to_clear = len - self.physical_rows;
         for _ in 0..to_clear {
             self.lines.pop_front();
-            self.stable_row_index_offset += 1;
+            if self.allow_scrollback {
+                self.stable_row_index_offset += 1;
+            }
         }
     }
 

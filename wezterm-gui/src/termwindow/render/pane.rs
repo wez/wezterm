@@ -537,7 +537,6 @@ impl crate::TermWindow {
                     let quad_value = LineQuadCacheValue {
                         layers: buf,
                         expires,
-                        line: (*line).clone(),
                         invalidate_on_hover_change: render_result.invalidate_on_hover_change,
                         current_highlight: if render_result.invalidate_on_hover_change {
                             self.term_window.current_highlight.clone()

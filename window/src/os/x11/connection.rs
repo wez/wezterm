@@ -19,6 +19,34 @@ use x11::xlib;
 use xcb::x::Atom;
 use xcb::{dri2, Raw, Xid};
 
+enum ScreenResources {
+    Current(xcb::randr::GetScreenResourcesCurrentReply),
+    All(xcb::randr::GetScreenResourcesReply),
+}
+
+impl ScreenResources {
+    fn outputs(&self) -> &[xcb::randr::Output] {
+        match self {
+            Self::Current(cur) => cur.outputs(),
+            Self::All(all) => all.outputs(),
+        }
+    }
+
+    fn config_timestamp(&self) -> xcb::x::Timestamp {
+        match self {
+            Self::Current(cur) => cur.config_timestamp(),
+            Self::All(all) => all.config_timestamp(),
+        }
+    }
+
+    pub fn modes(&self) -> &[xcb::randr::ModeInfo] {
+        match self {
+            Self::Current(cur) => cur.modes(),
+            Self::All(all) => all.modes(),
+        }
+    }
+}
+
 pub struct XConnection {
     pub conn: xcb::Connection,
     default_dpi: RefCell<f64>,
@@ -236,9 +264,24 @@ impl ConnectionOps for XConnection {
 
         let config = config::configuration();
 
-        let res = self
-            .send_and_wait_request(&xcb::randr::GetScreenResources { window: self.root })
-            .context("get_screen_resources")?;
+        // NOTE: GetScreenResourcesCurrent is fast, but may sometimes return nothing. In this case,
+        // fallback to slow GetScreenResources.
+        //
+        // references:
+        // - https://github.com/qt/qtbase/blob/c234700c836777d08db6229fdc997cc7c99e45fb/src/plugins/platforms/xcb/qxcbscreen.cpp#L963
+        // - https://github.com/qt/qtbase/blob/c234700c836777d08db6229fdc997cc7c99e45fb/src/plugins/platforms/xcb/qxcbconnection_screens.cpp#L390
+        //
+        // related issue: https://github.com/wez/wezterm/issues/5802
+        let res = match self
+            .send_and_wait_request(&xcb::randr::GetScreenResourcesCurrent { window: self.root })
+            .context("get_screen_resources_current")
+        {
+            Ok(cur) if cur.outputs().len() > 0 => ScreenResources::Current(cur),
+            _ => ScreenResources::All(
+                self.send_and_wait_request(&xcb::randr::GetScreenResources { window: self.root })
+                    .context("get_screen_resources")?,
+            ),
+        };
 
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
         let mut by_name = HashMap::new();

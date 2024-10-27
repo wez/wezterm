@@ -102,12 +102,9 @@ impl CopyAndPaste {
 impl WaylandState {
     pub(super) fn resolve_copy_and_paste(&mut self) -> Option<Arc<Mutex<CopyAndPaste>>> {
         let active_surface_id = self.active_surface_id.borrow();
-        let active_surface_id = active_surface_id.as_ref().unwrap();
-        if let Some(pending) = self.surface_to_pending.get(&active_surface_id) {
-            Some(Arc::clone(&pending.lock().unwrap().copy_and_paste))
-        } else {
-            None
-        }
+        let active_surface_id = active_surface_id.as_ref()?;
+        let pending = self.surface_to_pending.get(&active_surface_id)?;
+        Some(Arc::clone(&pending.lock().unwrap().copy_and_paste))
     }
 }
 

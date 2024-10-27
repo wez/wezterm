@@ -457,9 +457,19 @@ pub struct QuickSelectArguments {
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct PromptInputLine {
     pub action: Box<KeyAssignment>,
+    /// Optional label to pre-fill the input line with
+    #[dynamic(default)]
+    pub initial_value: Option<String>,
     /// Descriptive text to show ahead of prompt
     #[dynamic(default)]
     pub description: String,
+    /// Text to show for prompt
+    #[dynamic(default = "default_prompt")]
+    pub prompt: String,
+}
+
+fn default_prompt() -> String {
+    "> ".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]

@@ -7,17 +7,16 @@
 //! menus.
 use crate::commands::derive_command_from_key_assignment;
 use crate::inputmap::InputMap;
+use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::TermWindowNotif;
 use config::configuration;
 use config::keyassignment::{KeyAssignment, SpawnCommand, SpawnTabDomain};
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::PaneId;
-use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
@@ -37,7 +36,6 @@ struct Entry {
 
 pub struct LauncherTabEntry {
     pub title: String,
-    pub tab_id: TabId,
     pub tab_idx: usize,
     pub pane_count: Option<usize>,
 }
@@ -102,7 +100,6 @@ impl LauncherArgs {
                     };
                     LauncherTabEntry {
                         title,
-                        tab_id: tab.tab_id(),
                         tab_idx,
                         pane_count: tab.count_panes(),
                     }
@@ -186,19 +183,19 @@ impl LauncherState {
 
         self.filtered_entries.clear();
 
-        let matcher = SkimMatcherV2::default();
+        let pattern = matcher_pattern(&self.filter_term);
 
         struct MatchResult {
             row_idx: usize,
-            score: i64,
+            score: u32,
         }
 
         let mut scores: Vec<MatchResult> = self
             .entries
-            .iter()
+            .par_iter()
             .enumerate()
             .filter_map(|(row_idx, entry)| {
-                let score = matcher.fuzzy_match(&entry.label, &self.filter_term)?;
+                let score = matcher_score(&pattern, &entry.label)?;
                 Some(MatchResult { row_idx, score })
             })
             .collect();

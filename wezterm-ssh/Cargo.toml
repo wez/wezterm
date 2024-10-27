@@ -40,6 +40,9 @@ wezterm-uds = { path = "../wezterm-uds" }
 # Not used directly, but is used to centralize the openssl vendor feature selection
 async_ossl = { path = "../async_ossl" }
 
+[target.'cfg(unix)'.dependencies]
+passfd = "0.1.6"
+
 [dev-dependencies]
 assert_fs = "1.0.4"
 clap = {version="4.0", features=["derive"]}

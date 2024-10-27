@@ -1,4 +1,5 @@
 use crate::commands::{CommandDef, ExpandedCommand};
+use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::box_model::*;
 use crate::termwindow::modal::Modal;
 use crate::termwindow::render::corners::{
@@ -10,10 +11,9 @@ use crate::utilsprites::RenderMetrics;
 use config::keyassignment::KeyAssignment;
 use config::Dimension;
 use frecency::Frecency;
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use luahelper::{from_lua_value_dynamic, impl_lua_conversion_dynamic};
 use mux_lua::MuxPane;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
@@ -172,18 +172,18 @@ fn build_commands(
 #[derive(Debug)]
 struct MatchResult {
     row_idx: usize,
-    score: i64,
+    score: u32,
 }
 
 impl MatchResult {
-    fn new(row_idx: usize, score: i64, selection: &str, commands: &[ExpandedCommand]) -> Self {
+    fn new(row_idx: usize, score: u32, selection: &str, commands: &[ExpandedCommand]) -> Self {
         Self {
             row_idx,
             score: if commands[row_idx].brief == selection {
                 // Pump up the score for an exact match, otherwise
                 // the order may be undesirable if there are a lot
                 // of candidates with the same score
-                i64::max_value()
+                u32::max_value()
             } else {
                 score
             },
@@ -195,17 +195,16 @@ fn compute_matches(selection: &str, commands: &[ExpandedCommand]) -> Vec<usize> 
     if selection.is_empty() {
         commands.iter().enumerate().map(|(idx, _)| idx).collect()
     } else {
-        let matcher = SkimMatcherV2::default();
+        let pattern = matcher_pattern(selection);
 
         let start = std::time::Instant::now();
         let mut scores: Vec<MatchResult> = commands
-            .iter()
+            .par_iter()
             .enumerate()
             .filter_map(|(row_idx, entry)| {
                 let group = entry.menubar.join(" ");
                 let text = format!("{group}: {}. {} {:?}", entry.brief, entry.doc, entry.action);
-                matcher
-                    .fuzzy_match(&text, selection)
+                matcher_score(&pattern, &text)
                     .map(|score| MatchResult::new(row_idx, score, selection, commands))
             })
             .collect();
