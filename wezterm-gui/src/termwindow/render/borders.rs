@@ -1,7 +1,7 @@
 use crate::quad::TripleLayerQuadAllocator;
 use crate::utilsprites::RenderMetrics;
 use ::window::ULength;
-use config::{ConfigHandle, Dimension, DimensionContext, FloatingPaneBorderConfig, PixelUnit};
+use config::{ConfigHandle, Dimension, DimensionContext, FloatingPaneBorderConfig};
 use mux::tab::PositionedPane;
 use window::parameters::Border;
 
@@ -80,6 +80,21 @@ impl crate::TermWindow {
         Ok(())
     }
 
+    pub fn compute_background_rect_with_scrollbar(
+        &self,
+        pos: &PositionedPane,
+        padding_left: f32,
+        padding_top: f32,
+        border: &Border,
+        top_pixel_y: f32,
+    ) -> euclid::Rect<f32, window::PixelUnit> {
+        let mut base_rect = self.compute_background_rect(pos, padding_left, padding_top, border, top_pixel_y);
+        if pos.is_floating {
+            base_rect.size.width = base_rect.size.width + self.get_floating_pane_scroll_thumb_width() as f32;
+        };
+        base_rect
+    }
+
     pub fn compute_background_rect(
         &self,
         pos: &PositionedPane,
@@ -87,9 +102,10 @@ impl crate::TermWindow {
         padding_top: f32,
         border: &Border,
         top_pixel_y: f32,
-        cell_width: f32,
-        cell_height: f32,
     ) -> euclid::Rect<f32, window::PixelUnit> {
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+
         let (x, width_delta) = if pos.left == 0 {
             (
                 0.,
@@ -154,12 +170,10 @@ impl crate::TermWindow {
         } else {
             (tab_bar_height, 0.0)
         };
-        let top_pixel_y = top_bar_height + padding_top + os_border.top.get() as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
-        let cell_width = self.render_metrics.cell_size.width as f32;
 
-        let background_rect = self.compute_background_rect(&pos,
-            padding_left, padding_top, &os_border, top_pixel_y, cell_width, cell_height);
+        let top_pixel_y = top_bar_height + padding_top + os_border.top.get() as f32;
+        let background_rect = self.compute_background_rect_with_scrollbar(&pos,
+            padding_left, padding_top, &os_border, top_pixel_y);
 
         let pos_y = background_rect.origin.y - floating_pane_border.top.get() as f32;
         let pos_x = background_rect.origin.x - floating_pane_border.left.get() as f32;
@@ -303,7 +317,7 @@ impl crate::TermWindow {
         border
     }
 
-    fn get_floating_pane_border(&self) -> Border {
+    pub fn get_floating_pane_border(&self) -> Border {
         Self::get_floating_pane_border_impl(
             &self.dimensions,
             &self.render_metrics,

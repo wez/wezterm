@@ -770,7 +770,7 @@ impl Tab {
     pub fn compute_floating_pane_size(
         &self,
     ) -> TerminalSize {
-        self.inner.lock().compute_floating_pane_size()
+        self.inner.lock().compute_floating_pane_size2()
     }
 
     pub fn get_active_floating_pane_index(&self) -> usize {
@@ -1003,7 +1003,7 @@ impl TabInner {
         let mut count = 0;
         let mut cursor = self.pane.take().unwrap().cursor();
 
-        for pane in &self.floating_panes {
+        for _ in &self.floating_panes {
             count += 1;
         }
 
@@ -1098,7 +1098,7 @@ impl TabInner {
         if self.floating_pane_visible && self.active_floating_pane < self.floating_panes.len() {
             let floating_pane = &self.floating_panes[self.active_floating_pane];
             let root_size = self.size;
-            let size = self.compute_floating_pane_size();
+            let size = self.compute_floating_pane_size(self.size);
 
             let cell_height = root_size.pixel_height / root_size.rows;
             let cell_width = root_size.pixel_width / root_size.cols;
@@ -1337,7 +1337,7 @@ impl TabInner {
             return;
         }
 
-        let floating_pane_size = self.compute_floating_pane_size();
+        let floating_pane_size = self.compute_floating_pane_size(size);
         for floating_pane in &self.floating_panes {
             floating_pane.resize(floating_pane_size).ok();
         }
@@ -1932,16 +1932,10 @@ impl TabInner {
         }
 
         let mut floating_pane_indices_to_remove = Vec::new();
-        let mut count_before_active = 0;
 
         for (i, floating_pane) in self.floating_panes.iter().enumerate() {
             if floating_pane.is_dead() || f(0, floating_pane) {
                 dead_panes.push(Arc::clone(floating_pane));
-
-                if i < self.active_floating_pane {
-                    count_before_active += 1;
-                }
-
                 floating_pane_indices_to_remove.push(i);
             }
         }
@@ -2209,9 +2203,11 @@ impl TabInner {
         Ok(Arc::clone(&result))
     }
 
-    fn compute_floating_pane_size(&self) -> TerminalSize {
-        let root_size = self.size;
+    fn compute_floating_pane_size2(&self) -> TerminalSize {
+        self.compute_floating_pane_size(self.size)
+    }
 
+    fn compute_floating_pane_size(&self, root_size: TerminalSize) -> TerminalSize {
         let cell_width = root_size.pixel_width as f32 / root_size.cols as f32;
         let cell_height = root_size.pixel_height as f32 / root_size.rows as f32;
         let h_context = config::DimensionContext {

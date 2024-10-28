@@ -3,7 +3,6 @@ use anyhow::Context;
 use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
 use futures::FutureExt;
-use log::log;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;

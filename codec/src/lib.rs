@@ -14,9 +14,9 @@
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
-use mux::pane::{Pane, PaneId};
+use mux::pane::{PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, Tab, TabEntry, TabId};
+use mux::tab::{SerdeUrl, SplitDirection, SplitRequest, TabEntry, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;

@@ -3530,6 +3530,13 @@ impl TermWindow {
         self.get_pos_panes_for_tab(&tab)
     }
 
+    fn get_floating_pane_scroll_thumb_width(&self) -> usize {
+        if !self.show_scroll_bar {
+            return 0
+        }
+        self.effective_right_padding(&self.config)
+    }
+
     fn get_floating_pane_to_render(&self) -> Option<PositionedPane> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {

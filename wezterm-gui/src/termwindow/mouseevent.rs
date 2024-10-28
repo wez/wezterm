@@ -9,7 +9,7 @@ use ::window::{
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
 use mux::pane::{Pane, WithPaneLines};
-use mux::tab::{SplitDirection, Tab};
+use mux::tab::{SplitDirection};
 use mux::Mux;
 use mux_lua::MuxPane;
 use std::convert::TryInto;
@@ -22,7 +22,6 @@ use termwiz::surface::Line;
 use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
-use window::MouseEventKind;
 
 impl super::TermWindow {
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
@@ -308,7 +307,19 @@ impl super::TermWindow {
         };
 
         let border = self.get_os_border();
-        let y_offset = top_bar_height + border.top.get() as f32;
+        let (y_offset, max_thumb_height) = if let Some(floating_pane) = self.get_floating_pane_to_render(){
+            let (padding_left, padding_top) = self.padding_left_top();
+            let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
+            let background_rect = self.compute_background_rect(&floating_pane,
+                padding_left, padding_top, &border, top_pixel_y);
+            (background_rect.origin.y, background_rect.height() as usize)
+        } else {
+            let y = top_bar_height + border.top.get() as f32;
+            let max_thumb_height = self.dimensions.pixel_height.saturating_sub(
+                y as usize + border.bottom.get() + bottom_bar_height as usize,
+            );
+            (y, max_thumb_height)
+        };
 
         let from_top = start_event.coords.y.saturating_sub(item.y as isize);
         let effective_thumb_top = event
@@ -323,9 +334,7 @@ impl super::TermWindow {
             effective_thumb_top,
             &*pane,
             current_viewport,
-            self.dimensions.pixel_height.saturating_sub(
-                y_offset as usize + border.bottom.get() + bottom_bar_height as usize,
-            ),
+            max_thumb_height,
             self.min_scroll_bar_height() as usize,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);

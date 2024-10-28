@@ -92,8 +92,8 @@ pub trait Domain: Downcast + Send + Sync {
 
     async fn move_floating_pane_to_split(
         &self,
-        tab: TabId,
-        direction: SplitDirection,
+        _tab: TabId,
+        _direction: SplitDirection,
     ) -> anyhow::Result<bool> {
         Ok(false)
     }

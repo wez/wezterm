@@ -48,7 +48,6 @@ mod tmux_pty;
 pub mod window;
 
 use crate::activity::Activity;
-use crate::renderable::RenderableDimensions;
 
 pub const DEFAULT_WORKSPACE: &str = "default";
 
@@ -1075,7 +1074,7 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
-            if let Some((index, floating_pane)) = tab.get_floating_pane_by_pane_id(pane_id){
+            if let Some((_, floating_pane)) = tab.get_floating_pane_by_pane_id(pane_id){
                 ids = Some((tab.tab_id(), floating_pane.domain_id()));
                 break;
             }
@@ -1192,7 +1191,7 @@ impl Mux {
         })
     }
 
-    fn apply_config_to_pane(pane: Arc<dyn Pane>, term_config: Option<Arc<dyn TerminalConfiguration>>) -> (TerminalSize) {
+    fn apply_config_to_pane(pane: Arc<dyn Pane>, term_config: Option<Arc<dyn TerminalConfiguration>>) -> TerminalSize {
         if let Some(config) = term_config {
             pane.set_config(config);
         }
@@ -1275,7 +1274,7 @@ impl Mux {
         pane_id: PaneId,
         direction: SplitDirection,
     ) -> anyhow::Result<()> {
-        let (domain, window_id, tab_id) = self.resolve_domain_from_pane_id(pane_id)?;
+        let (domain, _window_id, tab_id) = self.resolve_domain_from_pane_id(pane_id)?;
 
         if domain.move_floating_pane_to_split(tab_id, direction).await? {
             return Ok(())
