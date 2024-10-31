@@ -2326,9 +2326,8 @@ impl TermWindow {
     }
 
     fn show_tab_navigator(&mut self) {
-        let mux_window_id = self.mux_window_id;
         let mux = Mux::get();
-        let active_tab_idx = match mux.get_window(mux_window_id) {
+        let active_tab_idx = match mux.get_window(self.mux_window_id) {
             Some(mux_window) => mux_window.get_active_idx(),
             None => return,
         };
