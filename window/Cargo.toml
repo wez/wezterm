@@ -15,7 +15,7 @@ k9 = "0.12.0"
 gl_generator = "0.14"
 
 [features]
-wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols", "wayland-backend"]
 
 [dependencies]
 async-channel = "2.3"
