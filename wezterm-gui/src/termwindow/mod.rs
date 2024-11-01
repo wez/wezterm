@@ -2265,7 +2265,7 @@ impl TermWindow {
             None => return,
         };
 
-        let pane = match self.get_active_pane_or_overlay() {
+        let pane = match self.get_active_pane_no_overlay() {
             Some(pane) => pane,
             None => return,
         };
