@@ -120,6 +120,13 @@
 
           # tests are failing with: Unable to exchange encryption keys
           rm -r wezterm-ssh/tests
+
+          # hash does not work well with NixOS
+          substituteInPlace assets/shell-integration/wezterm.sh \
+            --replace-fail 'hash wezterm 2>/dev/null' 'command type -P wezterm &>/dev/null' \
+            --replace-fail 'hash base64 2>/dev/null' 'command type -P base64 &>/dev/null' \
+            --replace-fail 'hash hostname 2>/dev/null' 'command type -P hostname &>/dev/null' \
+            --replace-fail 'hash hostnamectl 2>/dev/null' 'command type -P hostnamectl &>/dev/null'
         '';
 
         preFixup = lib.optionalString stdenv.isLinux ''
@@ -154,6 +161,28 @@
         '';
 
         passthru = {
+          # the headless variant is useful when deploying wezterm's mux server on remote severs
+          headless = rustPlatform.buildRustPackage {
+            pname = "wezterm-headless";
+            inherit version src postPatch cargoLock meta;
+
+            nativeBuildInputs = [ pkgs.pkg-config ];
+
+            buildInputs = [ pkgs.openssl ];
+
+            cargoBuildFlags = [
+              "--package" "wezterm"
+              "--package" "wezterm-mux-server"
+            ];
+
+            doCheck = false;
+
+            postInstall = ''
+              install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
+              install -Dm644 ${passthru.terminfo}/share/terminfo/w/wezterm -t $out/share/terminfo/w
+            '';
+          };
+
           terminfo =
             pkgs.runCommand "wezterm-terminfo"
             {
