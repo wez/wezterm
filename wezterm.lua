@@ -10,7 +10,7 @@ config.font = wezterm.font_with_fallback({
   "Nerd Font Symbols",      -- Symbols font for developer icons
   "Noto Color Emoji",       -- Emoji support
 })
-config.font_size = 15
+config.font_size = 20
 config.window_decorations = "TITLE | RESIZE"
 config.color_scheme = "Dracula"  -- Set a popular dark theme with good color contrast
 config.window_background_opacity = 0.9
