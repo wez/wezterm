@@ -8,7 +8,7 @@ used to set a user var.
 You can use something like the following from your shell:
 
 ```bash
-printf "\033]1337;SetUserVar=%s=%s\007" foo `echo -n bar | base64`
+printf "\033]1337;SetUserVar=%s=%s\007" foo `echo -n bar | base64 -w 0`
 ```
 
 to set the user var named `foo` to the value `bar`.
