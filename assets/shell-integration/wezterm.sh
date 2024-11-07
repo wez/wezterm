@@ -510,15 +510,20 @@ __wezterm_user_vars_precmd() {
 
   # You may set WEZTERM_HOSTNAME to a name you want to use instead
   # of calling out to the hostname executable on every prompt print.
-  if [[ -z "${WEZTERM_HOSTNAME}" ]] ; then
-    if hash hostname 2>/dev/null ; then
-      __wezterm_set_user_var "WEZTERM_HOST" "$(hostname)"
-    elif hash hostnamectl 2>/dev/null ; then
-      __wezterm_set_user_var "WEZTERM_HOST" "$(hostnamectl hostname)"
-    fi
+if [[ -z "${WEZTERM_HOSTNAME}" ]]; then
+  if [[ -r /proc/sys/kernel/hostname ]]; then
+    __wezterm_set_user_var "WEZTERM_HOST" "$(cat /proc/sys/kernel/hostname)"
+  elif hash hostname 2>/dev/null; then
+    __wezterm_set_user_var "WEZTERM_HOST" "$(hostname)"
+  elif hash hostnamectl 2>/dev/null; then
+    __wezterm_set_user_var "WEZTERM_HOST" "$(hostnamectl hostname)"
   else
-    __wezterm_set_user_var "WEZTERM_HOST" "${WEZTERM_HOSTNAME}"
+    __wezterm_set_user_var "WEZTERM_HOST" "unknown"
   fi
+else
+  __wezterm_set_user_var "WEZTERM_HOST" "${WEZTERM_HOSTNAME}"
+fi
+
 }
 
 __wezterm_user_vars_preexec() {
