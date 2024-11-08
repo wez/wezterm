@@ -205,8 +205,8 @@ command like this:
 printf "\033]7;c;?\033\\"
 ```
 
-- `c` pastes to the system clipboard
-- `p` pastes to the primary selection buffer
+- `c` pastes from the system clipboard
+- `p` pastes from the primary selection buffer
 
 Note that this feature poses a potential security risk and is disabled by
 default. It requires enabling via [a configuration option](config/lua/config/enable_osc52_clipboard_reading.md).
