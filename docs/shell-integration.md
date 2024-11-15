@@ -202,7 +202,7 @@ The data can be pasted from the `System Clipboard` or `Primary Selection` with a
 command like this:
 
 ```bash
-printf "\033]7;c;?\033\\"
+printf "\033]52;c;?\033\\"
 ```
 
 - `c` pastes from the system clipboard
