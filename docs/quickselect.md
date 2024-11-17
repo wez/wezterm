@@ -23,7 +23,7 @@ do next; typing in a highlighted prefix will cause that text to be selected and
 copied to the clipboard, and quick select mode will be cancelled.
 
 Typing in the uppercase form of the prefix will copy AND paste the highlighted
-text, and cancel quick select mod.
+text, and cancel quick select mode.
 
 Pressing `ESCAPE` will cancel quick select mode.
 
