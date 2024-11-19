@@ -11,9 +11,7 @@ use crate::{
 };
 use anyhow::{ensure, Context};
 use filedescriptor::FileDescriptor;
-use serial::{
-    BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
-};
+use serial2::SerialPort;
 use std::cell::RefCell;
 use std::ffi::{OsStr, OsString};
 use std::io::{Read, Result as IoResult, Write};
@@ -22,71 +20,40 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-type Handle = Arc<Mutex<SystemPort>>;
+type Handle = Arc<Mutex<SerialPort>>;
 
 pub struct SerialTty {
     port: OsString,
-    baud: BaudRate,
-    char_size: CharSize,
-    parity: Parity,
-    stop_bits: StopBits,
-    flow_control: FlowControl,
+    baud: u32,
 }
 
 impl SerialTty {
     pub fn new<T: AsRef<OsStr> + ?Sized>(port: &T) -> Self {
         Self {
             port: port.as_ref().to_owned(),
-            baud: BaudRate::Baud9600,
-            char_size: CharSize::Bits8,
-            parity: Parity::ParityNone,
-            stop_bits: StopBits::Stop1,
-            flow_control: FlowControl::FlowSoftware,
+            baud: 9600,
         }
     }
 
-    pub fn set_baud_rate(&mut self, baud: BaudRate) {
+    pub fn set_baud_rate(&mut self, baud: u32) {
         self.baud = baud;
-    }
-
-    pub fn set_char_size(&mut self, char_size: CharSize) {
-        self.char_size = char_size;
-    }
-
-    pub fn set_parity(&mut self, parity: Parity) {
-        self.parity = parity;
-    }
-
-    pub fn set_stop_bits(&mut self, stop_bits: StopBits) {
-        self.stop_bits = stop_bits;
-    }
-
-    pub fn set_flow_control(&mut self, flow_control: FlowControl) {
-        self.flow_control = flow_control;
     }
 }
 
 impl PtySystem for SerialTty {
     fn openpty(&self, _size: PtySize) -> anyhow::Result<PtyPair> {
-        let mut port = serial::open(&self.port)
+        let mut port = SerialPort::open(&self.port, self.baud)
             .with_context(|| format!("openpty on serial port {:?}", self.port))?;
 
-        let settings = PortSettings {
-            baud_rate: self.baud,
-            char_size: self.char_size,
-            parity: self.parity,
-            stop_bits: self.stop_bits,
-            flow_control: self.flow_control,
-        };
-        log::debug!("serial settings: {:#?}", settings);
-        port.configure(&settings)?;
+        log::debug!("serial settings: {:#?}", port.get_configuration());
 
         // The timeout needs to be rather short because, at least on Windows,
         // a read with a long timeout will block a concurrent write from
         // happening.  In wezterm we tend to have a thread looping on read
         // while writes happen occasionally from the gui thread, and if we
         // make this timeout too long we can block the gui thread.
-        port.set_timeout(Duration::from_millis(50))?;
+        port.set_read_timeout(Duration::from_millis(50))?;
+        port.set_write_timeout(Duration::from_millis(50))?;
 
         let port: Handle = Arc::new(Mutex::new(port));
 
@@ -149,7 +116,7 @@ impl Child for SerialChild {
         loop {
             std::thread::sleep(Duration::from_secs(5));
 
-            let mut port = self.port.lock().unwrap();
+            let port = self.port.lock().unwrap();
             if let Err(err) = port.read_cd() {
                 log::error!("Error reading carrier detect: {:#}", err);
                 return Ok(ExitStatus::with_exit_code(1));
