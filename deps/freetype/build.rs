@@ -93,6 +93,9 @@ fn libpng() {
     cfg.define("HAVE_STDINT_H", None);
     cfg.define("HAVE_STDDEF_H", None);
     let target = env::var("TARGET").unwrap();
+    if target.contains("powerpc64") {
+        cfg.define("PNG_POWERPC_VSX_OPT", Some("0"));
+    }
     if !target.contains("windows") {
         cfg.define("_LARGEFILE64_SOURCE", Some("1"));
     }
