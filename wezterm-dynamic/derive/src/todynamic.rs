@@ -44,34 +44,34 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let tokens = match info.into {
         Some(into) => {
             quote!(
-                impl #impl_generics wezterm_dynamic::ToDynamic for #ident #ty_generics #bounded_where_clause {
-                    fn to_dynamic(&self) -> wezterm_dynamic::Value {
-                        let target: #into = self.into();
-                        target.to_dynamic()
-                    }
+            impl #impl_generics wezterm_dynamic::ToDynamic for #ident #ty_generics #bounded_where_clause {
+                fn to_dynamic(&self) -> wezterm_dynamic::Value {
+                    let target: #into = self.into();
+                    target.to_dynamic()
                 }
-                )
+            }
+            )
         }
         None => {
             quote!(
-                impl #impl_generics wezterm_dynamic::PlaceDynamic for #ident #ty_generics #bounded_where_clause {
-                    fn place_dynamic(&self, place: &mut wezterm_dynamic::Object) {
-                        #(
-                            #placements
-                        )*
-                    }
+            impl #impl_generics wezterm_dynamic::PlaceDynamic for #ident #ty_generics #bounded_where_clause {
+                fn place_dynamic(&self, place: &mut wezterm_dynamic::Object) {
+                    #(
+                        #placements
+                    )*
                 }
+            }
 
-                impl #impl_generics wezterm_dynamic::ToDynamic for #ident #ty_generics #bounded_where_clause {
-                    fn to_dynamic(&self) -> wezterm_dynamic::Value {
-                    use wezterm_dynamic::PlaceDynamic;
+            impl #impl_generics wezterm_dynamic::ToDynamic for #ident #ty_generics #bounded_where_clause {
+                fn to_dynamic(&self) -> wezterm_dynamic::Value {
+                use wezterm_dynamic::PlaceDynamic;
 
-                    let mut object = wezterm_dynamic::Object::default();
-                    self.place_dynamic(&mut object);
-                    wezterm_dynamic::Value::Object(object)
-                    }
+                let mut object = wezterm_dynamic::Object::default();
+                self.place_dynamic(&mut object);
+                wezterm_dynamic::Value::Object(object)
                 }
-                )
+            }
+            )
         }
     };
 
