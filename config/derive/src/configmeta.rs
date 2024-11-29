@@ -1,7 +1,7 @@
 use crate::{attr, bound};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse_quote, Data, DataStruct, DeriveInput, Error, Fields, FieldsNamed, Ident, Result};
+use syn::{parse_quote, Data, DataStruct, DeriveInput, Error, Fields, FieldsNamed, Result};
 
 pub fn derive(input: DeriveInput) -> Result<TokenStream> {
     match &input.data {
@@ -24,10 +24,6 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let info = attr::container_info(&input.attrs)?;
     let ident = &input.ident;
     let (impl_generics, ty_generics, _where_clause) = input.generics.split_for_impl();
-    let dummy = Ident::new(
-        &format!("_IMPL_CONFIGMETA_FOR_{}", ident),
-        Span::call_site(),
-    );
 
     let options = fields
         .named
@@ -44,17 +40,14 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let bounded_where_clause = bound::where_clause_with_bound(&input.generics, bound);
 
     let tokens = quote! {
-        #[allow(non_upper_case_globals)]
-        const #dummy: () = {
-            impl #impl_generics crate::meta::ConfigMeta for #ident #ty_generics #bounded_where_clause {
-                fn get_config_options(&self) -> &'static [crate::meta::ConfigOption]
-                {
-                    &[
-                        #( #options, )*
-                    ]
-                }
+        impl #impl_generics crate::meta::ConfigMeta for #ident #ty_generics #bounded_where_clause {
+            fn get_config_options(&self) -> &'static [crate::meta::ConfigOption]
+            {
+                &[
+                    #( #options, )*
+                ]
             }
-        };
+        }
     };
 
     if info.debug {

@@ -27,10 +27,6 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let ident = &input.ident;
     let info = attr::container_info(&input.attrs)?;
     let (impl_generics, ty_generics, _where_clause) = input.generics.split_for_impl();
-    let dummy = Ident::new(
-        &format!("_IMPL_PLACEDYNAMIC_FOR_{}", ident),
-        Span::call_site(),
-    );
 
     let placements = fields
         .named
@@ -48,23 +44,16 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let tokens = match info.into {
         Some(into) => {
             quote!(
-
-            #[allow(non_upper_case_globals)]
-            const #dummy: () = {
-
                 impl #impl_generics wezterm_dynamic::ToDynamic for #ident #ty_generics #bounded_where_clause {
                     fn to_dynamic(&self) -> wezterm_dynamic::Value {
                         let target: #into = self.into();
                         target.to_dynamic()
                     }
                 }
-            };
                 )
         }
         None => {
             quote!(
-            #[allow(non_upper_case_globals)]
-            const #dummy: () = {
                 impl #impl_generics wezterm_dynamic::PlaceDynamic for #ident #ty_generics #bounded_where_clause {
                     fn place_dynamic(&self, place: &mut wezterm_dynamic::Object) {
                         #(
@@ -82,7 +71,6 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
                     wezterm_dynamic::Value::Object(object)
                     }
                 }
-            };
                 )
         }
     };
@@ -102,21 +90,17 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
     }
 
     let ident = &input.ident;
-    let dummy = Ident::new(&format!("_IMPL_TODYNAMIC_FOR_{}", ident), Span::call_site());
     let info = attr::container_info(&input.attrs)?;
 
     let tokens = match info.into {
         Some(into) => {
             quote! {
-                #[allow(non_upper_case_globals)]
-                const #dummy: () = {
-                    impl wezterm_dynamic::ToDynamic for #ident {
-                        fn to_dynamic(&self) -> wezterm_dynamic::Value {
-                            let target : #into = self.into();
-                            target.to_dynamic()
-                        }
+                impl wezterm_dynamic::ToDynamic for #ident {
+                    fn to_dynamic(&self) -> wezterm_dynamic::Value {
+                        let target : #into = self.into();
+                        target.to_dynamic()
                     }
-                };
+                }
             }
         }
         None => {
@@ -207,19 +191,16 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
             .collect::<Result<Vec<_>>>()?;
 
             quote! {
-                #[allow(non_upper_case_globals)]
-                const #dummy: () = {
-                    impl wezterm_dynamic::ToDynamic for #ident {
-                        fn to_dynamic(&self) -> wezterm_dynamic::Value {
-                            use wezterm_dynamic::Value;
-                            match self {
-                                #(
-                                    #variants
-                                )*
-                            }
+                impl wezterm_dynamic::ToDynamic for #ident {
+                    fn to_dynamic(&self) -> wezterm_dynamic::Value {
+                        use wezterm_dynamic::Value;
+                        match self {
+                            #(
+                                #variants
+                            )*
                         }
                     }
-                };
+                }
             }
         }
     };
