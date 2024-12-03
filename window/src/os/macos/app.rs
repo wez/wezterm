@@ -70,9 +70,6 @@ extern "C" fn application_will_finish_launching(
 
 extern "C" fn application_did_finish_launching(this: &mut Object, _sel: Sel, _notif: *mut Object) {
     log::debug!("application_did_finish_launching");
-    unsafe {
-        (*this).set_ivar("launched", YES);
-    }
 }
 
 extern "C" fn application_open_untitled_file(
@@ -80,14 +77,11 @@ extern "C" fn application_open_untitled_file(
     _sel: Sel,
     _app: *mut Object,
 ) -> BOOL {
-    let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    log::debug!("application_open_untitled_file launched={launched}");
+    log::debug!("application_open_untitled_file");
     if let Some(conn) = Connection::get() {
-        if launched == YES {
-            conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
-                KeyAssignment::SpawnWindow,
-            ));
-        }
+        conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
+            KeyAssignment::SpawnWindow,
+        ));
         return YES;
     }
     NO
@@ -118,17 +112,14 @@ extern "C" fn application_open_file(
     _app: *mut Object,
     file_name: *mut Object,
 ) {
-    let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    if launched == YES {
-        let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
-        let path = std::path::Path::new(&file_name);
-        if let Some(conn) = Connection::get() {
-            log::debug!("application_open_file {file_name}");
-            if path.is_dir() {
-                conn.dispatch_app_event(ApplicationEvent::OpenDirectory(file_name));
-            } else {
-                conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
-            }
+    let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
+    let path = std::path::Path::new(&file_name);
+    if let Some(conn) = Connection::get() {
+        log::debug!("application_open_file {file_name}");
+        if path.is_dir() {
+            conn.dispatch_app_event(ApplicationEvent::OpenDirectory(file_name));
+        } else {
+            conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
         }
     }
 }
@@ -151,8 +142,6 @@ fn get_class() -> &'static Class {
     Class::get(CLS_NAME).unwrap_or_else(|| {
         let mut cls = ClassDecl::new(CLS_NAME, class!(NSWindow))
             .expect("Unable to register application class");
-
-        cls.add_ivar::<BOOL>("launched");
 
         unsafe {
             cls.add_method(
@@ -196,7 +185,6 @@ pub fn create_app_delegate() -> StrongPtr {
     unsafe {
         let delegate: *mut Object = msg_send![cls, alloc];
         let delegate: *mut Object = msg_send![delegate, init];
-        (*delegate).set_ivar("launched", NO);
         StrongPtr::new(delegate)
     }
 }
