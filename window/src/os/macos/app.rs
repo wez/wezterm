@@ -121,9 +121,14 @@ extern "C" fn application_open_file(
     let launched: BOOL = unsafe { *this.get_ivar("launched") };
     if launched == YES {
         let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
+        let path = std::path::Path::new(&file_name);
         if let Some(conn) = Connection::get() {
             log::debug!("application_open_file {file_name}");
-            conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
+            if path.is_dir() {
+                conn.dispatch_app_event(ApplicationEvent::OpenDirectory(file_name));
+            } else {
+                conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
+            }
         }
     }
 }
