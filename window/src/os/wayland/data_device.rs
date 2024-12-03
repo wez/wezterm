@@ -165,7 +165,7 @@ impl DataOfferHandler for WaylandState {
     }
 }
 
-// We seem to to ignore all events other than sending_request and cancelled
+// We seem to ignore all events other than sending_request and cancelled
 impl DataSourceHandler for WaylandState {
     fn accept_mime(
         &mut self,
