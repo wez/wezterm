@@ -118,7 +118,7 @@ extern "C" fn application_open_file(
     _sel: Sel,
     _app: *mut Object,
     file_name: *mut Object,
-) {
+) -> BOOL {
     let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
     let path = std::path::Path::new(&file_name);
     if let Some(conn) = Connection::get() {
@@ -128,7 +128,9 @@ extern "C" fn application_open_file(
         } else {
             conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
         }
+        return YES;
     }
+    NO
 }
 
 extern "C" fn application_dock_menu(
@@ -165,7 +167,7 @@ fn get_class() -> &'static Class {
             );
             cls.add_method(
                 sel!(application:openFile:),
-                application_open_file as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object),
+                application_open_file as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object) -> BOOL,
             );
             cls.add_method(
                 sel!(applicationDockMenu:),
