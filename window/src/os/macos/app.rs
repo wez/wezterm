@@ -5,6 +5,7 @@ use crate::menu::{Menu, MenuItem};
 use crate::{ApplicationEvent, Connection};
 use cocoa::appkit::NSApplicationTerminateReply;
 use cocoa::base::id;
+use cocoa::foundation::NSArray;
 use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
 use config::WindowCloseConfirmation;
@@ -68,21 +69,27 @@ extern "C" fn application_will_finish_launching(
     log::debug!("application_will_finish_launching");
 }
 
-extern "C" fn application_did_finish_launching(this: &mut Object, _sel: Sel, _notif: *mut Object) {
+extern "C" fn application_did_finish_launching(_self: &mut Object, _sel: Sel, _notif: *mut Object) {
     log::debug!("application_did_finish_launching");
 }
 
 extern "C" fn application_open_untitled_file(
-    this: &mut Object,
+    _self: &mut Object,
     _sel: Sel,
-    _app: *mut Object,
+    app: *mut Object,
 ) -> BOOL {
     log::debug!("application_open_untitled_file");
-    if let Some(conn) = Connection::get() {
-        conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
-            KeyAssignment::SpawnWindow,
-        ));
-        return YES;
+    unsafe {
+        let windows: id = msg_send![app, windows];
+        let windows_count = windows.count();
+        if windows_count == 0 {
+            if let Some(conn) = Connection::get() {
+                conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
+                    KeyAssignment::SpawnWindow,
+                ));
+                return YES;
+            }
+        }
     }
     NO
 }
@@ -107,7 +114,7 @@ extern "C" fn wezterm_perform_key_assignment(
 }
 
 extern "C" fn application_open_file(
-    this: &mut Object,
+    _self: &mut Object,
     _sel: Sel,
     _app: *mut Object,
     file_name: *mut Object,
