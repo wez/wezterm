@@ -237,7 +237,7 @@ impl LocalDomain {
         let port = serial_domain.port.as_ref().unwrap_or(&serial_domain.name);
         let mut serial = portable_pty::serial::SerialTty::new(&port);
         if let Some(baud) = serial_domain.baud {
-            serial.set_baud_rate(serial::BaudRate::from_speed(baud));
+            serial.set_baud_rate(baud as u32);
         }
         let pty_system = Box::new(serial);
         Ok(Self::with_pty_system(&serial_domain.name, pty_system))
