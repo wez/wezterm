@@ -46,6 +46,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved startup performance on X11. Thanks to @blukai! #5923 #5802
 * There is now an upper bound of 999,999,999 for `scrollback_lines`. Thanks to
   @x3ro! #5996
+* Migrated serial support to the `serial2` rust crate. This opens the door
+  to more convenient serial support going forward. Thanks to @jeevithakannan2!
+  #6411 #6460
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
