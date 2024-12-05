@@ -4119,7 +4119,7 @@ checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
 
 [[package]]
 name = "portable-pty"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
