@@ -22,6 +22,11 @@ pdf = []
 svg = []
 ps = []
 script = []
+win32-surface = []
+xlib = []
+xcb = []
+freetype = []
+use_glib = []
 
 [dependencies]
 libc = "0.2"

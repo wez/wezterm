@@ -55,6 +55,10 @@ All other options are parsed but have no effect.  Notably, neither `Match` or
 
 `Include` is now supported.
 
+{{since('nightly')}}
+
+`ProxyUseFDpass` is now supported. (But not on Microsoft Windows).
+
 ### CLI Overrides
 
 `wezterm ssh` CLI allows overriding config settings via the command line.  This

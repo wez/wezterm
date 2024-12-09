@@ -320,7 +320,11 @@ impl FileDescriptor {
         };
 
         let std_original = FileDescriptor::dup(&std_descriptor)?;
-        unsafe { FileDescriptor::dup2(f, std_descriptor) }?.into_raw_fd();
+        // Assign f into std_descriptor, then convert to an fd so that
+        // we don't close it when the returned FileDescriptor is dropped.
+        // Then we discard/ignore the fd because it is nominally owned by
+        // the stdio machinery for the process
+        let _ = unsafe { FileDescriptor::dup2(f, std_descriptor) }?.into_raw_fd();
         Self::no_cloexec(std_descriptor)?;
 
         Ok(std_original)

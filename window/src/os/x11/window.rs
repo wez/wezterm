@@ -13,12 +13,14 @@ use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
 use raw_window_handle::{
-    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle, XcbDisplayHandle,
-    XcbWindowHandle,
+    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle,
+    RawWindowHandle, WindowHandle, XcbDisplayHandle, XcbWindowHandle,
 };
 use std::any::Any;
 use std::convert::TryInto;
+use std::num::NonZeroU32;
 use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -134,24 +136,24 @@ impl Drop for XWindowInner {
     }
 }
 
-unsafe impl HasRawDisplayHandle for XWindowInner {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        let mut handle = XcbDisplayHandle::empty();
+impl HasDisplayHandle for XWindowInner {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, HandleError> {
         if let Some(conn) = self.conn.upgrade() {
-            handle.connection = conn.conn.get_raw_conn() as _;
-            handle.screen = conn.screen_num;
+            let handle =
+                XcbDisplayHandle::new(NonNull::new(conn.conn.get_raw_conn() as _), conn.screen_num);
+            unsafe { Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Xcb(handle))) }
+        } else {
+            Err(HandleError::Unavailable)
         }
-
-        RawDisplayHandle::Xcb(handle)
     }
 }
 
-unsafe impl HasRawWindowHandle for XWindowInner {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let mut handle = XcbWindowHandle::empty();
-        handle.window = self.child_id.resource_id();
-        handle.visual_id = self.conn.upgrade().unwrap().visual.visual_id();
-        RawWindowHandle::Xcb(handle)
+impl HasWindowHandle for XWindowInner {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
+        let mut handle =
+            XcbWindowHandle::new(NonZeroU32::new(self.child_id.resource_id()).expect("non-zero"));
+        handle.visual_id = NonZeroU32::new(self.conn.upgrade().unwrap().visual.visual_id());
+        unsafe { Ok(WindowHandle::borrow_raw(RawWindowHandle::Xcb(handle))) }
     }
 }
 
@@ -795,13 +797,21 @@ impl XWindowInner {
                 conn.child_to_parent_id.borrow_mut().remove(&self.child_id);
             }
             Event::X(xcb::x::Event::SelectionClear(e)) => {
-                self.selection_clear(e)?;
+                if let Err(err) = self.selection_clear(e) {
+                    log::error!("Error handling SelectionClear: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::SelectionRequest(e)) => {
-                self.selection_request(e)?;
+                if let Err(err) = self.selection_request(e) {
+                    // Don't propagate this, as it is not worth exiting the program over it.
+                    // <https://github.com/wez/wezterm/pull/6135>
+                    log::error!("Error handling SelectionRequest: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::SelectionNotify(e)) => {
-                self.selection_notify(e)?;
+                if let Err(err) = self.selection_notify(e) {
+                    log::error!("Error handling SelectionNotify: {err:#}");
+                }
             }
             Event::X(xcb::x::Event::PropertyNotify(msg)) => {
                 let atom_name = conn.atom_name(msg.atom());
@@ -1909,29 +1919,28 @@ impl XWindowInner {
     }
 }
 
-unsafe impl HasRawDisplayHandle for XWindow {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
+impl HasDisplayHandle for XWindow {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, HandleError> {
         let conn = Connection::get()
-            .expect("raw_window_handle only callable on main thread")
+            .expect("display_handle only callable on main thread")
             .x11();
-        let mut handle = XcbDisplayHandle::empty();
-        handle.connection = conn.get_raw_conn() as _;
-        handle.screen = conn.screen_num;
+        let handle = XcbDisplayHandle::new(NonNull::new(conn.get_raw_conn() as _), conn.screen_num);
 
-        RawDisplayHandle::Xcb(handle)
+        unsafe { Ok(DisplayHandle::borrow_raw(RawDisplayHandle::Xcb(handle))) }
     }
 }
 
-unsafe impl HasRawWindowHandle for XWindow {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
+impl HasWindowHandle for XWindow {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
+        let conn = Connection::get().expect("window_handle only callable on main thread");
         let handle = conn
             .x11()
             .window_by_id(self.0)
             .expect("window handle invalid!?");
 
         let inner = handle.lock().unwrap();
-        inner.raw_window_handle()
+        let handle = inner.window_handle()?;
+        unsafe { Ok(WindowHandle::borrow_raw(handle.as_raw())) }
     }
 }
 

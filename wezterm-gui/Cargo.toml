@@ -105,7 +105,7 @@ wezterm-open-url = { path = "../wezterm-open-url" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
-wgpu = "0.18"
+wgpu = "22.1"
 window = { path = "../window" }
 window-funcs = { path = "../lua-api-crates/window-funcs" }
 

@@ -205,8 +205,7 @@ impl SessionInner {
             sess.set_option(libssh_rs::SshOption::HostKeys(host_key.to_string()))?;
         }
 
-        let (sock, _child) =
-            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
+        let (sock, _child) = self.connect_to_host(&hostname, port, verbose)?;
         let raw = {
             #[cfg(unix)]
             {
@@ -288,8 +287,7 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let (sock, _child) =
-            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
+        let (sock, _child) = self.connect_to_host(&hostname, port, verbose)?;
 
         let mut sess = ssh2::Session::new()?;
         if verbose {
@@ -331,19 +329,18 @@ impl SessionInner {
         hostname: &str,
         port: u16,
         verbose: bool,
-        proxy_command: Option<&String>,
     ) -> anyhow::Result<(Socket, Option<KillOnDropChild>)> {
-        match proxy_command.map(|s| s.as_str()) {
+        match self.config.get("proxycommand").map(|s| s.as_str()) {
             Some("none") | None => {}
             Some(proxy_command) => {
                 let mut cmd;
                 if cfg!(windows) {
                     let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
                     cmd = std::process::Command::new(comspec);
-                    cmd.args(&["/c", proxy_command]);
+                    cmd.args(["/c", proxy_command]);
                 } else {
                     cmd = std::process::Command::new("sh");
-                    cmd.args(&["-c", &format!("exec {}", proxy_command)]);
+                    cmd.args(["-c", &format!("exec {}", proxy_command)]);
                 }
 
                 let (a, b) = socketpair()?;
@@ -357,11 +354,16 @@ impl SessionInner {
 
                 #[cfg(unix)]
                 unsafe {
+                    use passfd::FdPassingExt;
                     use std::os::unix::io::{FromRawFd, IntoRawFd};
-                    return Ok((
-                        Socket::from_raw_fd(a.into_raw_fd()),
-                        Some(KillOnDropChild(child)),
-                    ));
+
+                    let raw = a.into_raw_fd();
+                    let dest = match self.config.get("proxyusefdpass").map(|s| s.as_str()) {
+                        Some("yes") => raw.recv_fd()?,
+                        _ => raw,
+                    };
+
+                    return Ok((Socket::from_raw_fd(dest), Some(KillOnDropChild(child))));
                 }
                 #[cfg(windows)]
                 unsafe {
@@ -376,8 +378,7 @@ impl SessionInner {
 
         let addr = (hostname, port)
             .to_socket_addrs()?
-            .filter(|addr| self.filter_sock_addr(addr))
-            .next()
+            .find(|addr| self.filter_sock_addr(addr))
             .with_context(|| format!("resolving address for {}", hostname))?;
         if verbose {
             log::info!("resolved {hostname}:{port} -> {addr:?}");
@@ -386,8 +387,7 @@ impl SessionInner {
         if let Some(bind_addr) = self.config.get("bindaddress") {
             let bind_addr = (bind_addr.as_str(), 0)
                 .to_socket_addrs()?
-                .filter(|addr| self.filter_sock_addr(addr))
-                .next()
+                .find(|addr| self.filter_sock_addr(addr))
                 .with_context(|| format!("resolving bind address {bind_addr:?}"))?;
             if verbose {
                 log::info!("binding to {bind_addr:?}");

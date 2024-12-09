@@ -31,7 +31,7 @@ applied to the terminal display using the following rules:
 * If DEC line drawing mode is active, graphemes `j-n`, `q`, `t-x` are translated
   to equivalent line drawing graphemes and processing continues.
 * If prior output/actions require it, the cursor position may be moved to a new line
-  and the terminal display may be scrolled to make accomodate it.
+  and the terminal display may be scrolled to make accommodate it.
 * An appropriate number of cells, starting at the current cursor position,
   are allocated based on the column width of the current grapheme and are assigned
   to the grapheme.  The current current graphics rendition state (such as colors

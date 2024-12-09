@@ -185,7 +185,10 @@ pub struct Config {
     pub color_schemes: HashMap<String, Palette>,
 
     /// How many lines of scrollback you want to retain
-    #[dynamic(default = "default_scrollback_lines")]
+    #[dynamic(
+        default = "default_scrollback_lines",
+        validate = "validate_scrollback_lines"
+    )]
     pub scrollback_lines: usize,
 
     /// If no `prog` is specified on the command line, use this
@@ -1638,6 +1641,16 @@ fn default_scrollback_lines() -> usize {
     3500
 }
 
+const MAX_SCROLLBACK_LINES: usize = 999_999_999;
+fn validate_scrollback_lines(value: &usize) -> Result<(), String> {
+    if *value > MAX_SCROLLBACK_LINES {
+        return Err(format!(
+            "Illegal value {value} for scrollback_lines; it must be <= {MAX_SCROLLBACK_LINES}!"
+        ));
+    }
+    Ok(())
+}
+
 fn default_initial_rows() -> u16 {
     24
 }
@@ -1753,6 +1766,7 @@ fn default_tiling_desktop_environments() -> Vec<String> {
         "X11 bspwm",
         "X11 dwm",
         "X11 i3",
+        "X11 xmonad",
     ]
     .iter()
     .map(|s| s.to_string())

@@ -551,7 +551,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v3",
+                action="actions/upload-artifact@v4",
                 params={"name": self.name, "path": paths},
             ),
         ]
@@ -609,7 +609,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v3",
+                action="actions/upload-artifact@v4",
                 params={"name": self.name, "path": paths, "retention-days": 5},
             ),
         ]
@@ -638,7 +638,7 @@ rustup default {toolchain}
         return [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v3",
+                action="actions/download-artifact@v4",
                 params={"name": self.name},
             ),
             checksum,
@@ -673,7 +673,7 @@ rustup default {toolchain}
         return steps + [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v3",
+                action="actions/download-artifact@v4",
                 params={"name": self.name},
             ),
             checksum,
