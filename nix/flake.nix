@@ -217,5 +217,10 @@
         LD_LIBRARY_PATH = libPath;
         RUST_BACKTRACE = 1;
       };
-    });
+    })
+    // {
+      overlays.default = final: prev: {
+        wezterm = self.packages."${final.system}".default;
+      };
+    };
 }
