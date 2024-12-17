@@ -6,4 +6,4 @@ ar = "x86_64-w64-mingw32-gcc-ar"
 # and openssl-src does that based on the crt-static feature being
 # enabled for the target, so let's turn that on here.
 [target.x86_64-pc-windows-msvc]
-rustflags = "-C target-feature=+crt-static"
+rustflags = ["-C target-feature=+crt-static"]
