@@ -1353,6 +1353,9 @@ impl Mux {
             .remove_pane(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
 
+
+        let size = tab.compute_floating_pane_size();
+        pane.resize(size)?;
         tab.append_floating_pane(pane);
 
         Ok(())
