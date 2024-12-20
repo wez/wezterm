@@ -4890,6 +4890,18 @@ impl BlockKey {
                 Block::Octant7,
                 Block::Octant8,
             ]),
+            // [𜺠] RIGHT HALF LOWER ONE QUARTER BLOCK (OCTANT-8)
+            0x1cea0 => Self::Blocks(&[Block::Octant8]),
+            // [𜺣; EFT HALF LOWER ONE QUARTER BLOCK (OCTANT-7)
+            0x1cea3 => Self::Blocks(&[Block::Octant7]),
+            // [𜺨] LEFT HALF UPPER ONE QUARTER BLOCK (OCTANT-1)
+            0x1cea8 => Self::Blocks(&[Block::Octant1]),
+            // [𜺫] RIGHT HALF UPPER ONE QUARTER BLOCK (OCTANT-2)
+            0x1ceab => Self::Blocks(&[Block::Octant2]),
+            // [🯦] MIDDLE LEFT ONE QUARTER BLOCK (OCTANT-35)
+            0x1fbe6 => Self::Blocks(&[Block::Octant3, Block::Octant5]),
+            // [🯧] MIDDLE RIGHT ONE QUARTER BLOCK (OCTANT-46)
+            0x1fbe7 => Self::Blocks(&[Block::Octant4, Block::Octant6]),
             // [🬼] LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly(&[Poly {
                 path: &[
