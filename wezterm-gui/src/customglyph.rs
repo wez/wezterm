@@ -176,6 +176,24 @@ pub enum Block {
     Sextant4,
     Sextant5,
     Sextant6,
+    /// Octants by enum combination
+    // ╭───┬───╮
+    // │ 1 │ 2 │
+    // ├───┼───┤
+    // │ 3 │ 4 │
+    // ├───┼───┤
+    // │ 5 │ 6 │
+    // ├───┼───┤
+    // │ 7 │ 8 │
+    // ╰───┴───╯
+    Octant1,
+    Octant2,
+    Octant3,
+    Octant4,
+    Octant5,
+    Octant6,
+    Octant7,
+    Octant8,
 }
 
 /// Represents a Block Element glyph, decoded from
@@ -3538,6 +3556,1340 @@ impl BlockKey {
                 Block::Sextant5,
                 Block::Sextant6,
             ]),
+            // [𜴀] BLOCK OCTANT-3
+            0x1cd00 => Self::Blocks(&[Block::Octant3]),
+            // [𜴁] BLOCK OCTANT-23
+            0x1cd01 => Self::Blocks(&[Block::Octant2, Block::Octant3]),
+            // [𜴂] BLOCK OCTANT-123
+            0x1cd02 => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant3]),
+            // [𜴃] BLOCK OCTANT-4
+            0x1cd03 => Self::Blocks(&[Block::Octant4]),
+            // [𜴄] BLOCK OCTANT-14
+            0x1cd04 => Self::Blocks(&[Block::Octant1, Block::Octant4]),
+            // [𜴅] BLOCK OCTANT-124
+            0x1cd05 => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant4]),
+            // [𜴆] BLOCK OCTANT-34
+            0x1cd06 => Self::Blocks(&[Block::Octant3, Block::Octant4]),
+            // [𜴇] BLOCK OCTANT-134
+            0x1cd07 => Self::Blocks(&[Block::Octant1, Block::Octant3, Block::Octant4]),
+            // [𜴈] BLOCK OCTANT-234
+            0x1cd08 => Self::Blocks(&[Block::Octant2, Block::Octant3, Block::Octant4]),
+            // [𜴉] BLOCK OCTANT-5
+            0x1cd09 => Self::Blocks(&[Block::Octant5]),
+            // [𜴊] BLOCK OCTANT-15
+            0x1cd0a => Self::Blocks(&[Block::Octant1, Block::Octant5]),
+            // [𜴋] BLOCK OCTANT-25
+            0x1cd0b => Self::Blocks(&[Block::Octant2, Block::Octant5]),
+            // [𜴌] BLOCK OCTANT-125
+            0x1cd0c => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant5]),
+            // [𜴍] BLOCK OCTANT-135
+            0x1cd0d => Self::Blocks(&[Block::Octant1, Block::Octant3, Block::Octant5]),
+            // [𜴎] BLOCK OCTANT-235
+            0x1cd0e => Self::Blocks(&[Block::Octant2, Block::Octant3, Block::Octant5]),
+            // [𜴏] BLOCK OCTANT-1235
+            0x1cd0f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+            ]),
+            // [𜴐] BLOCK OCTANT-45
+            0x1cd10 => Self::Blocks(&[Block::Octant4, Block::Octant5]),
+            // [𜴑] BLOCK OCTANT-145
+            0x1cd11 => Self::Blocks(&[Block::Octant1, Block::Octant4, Block::Octant5]),
+            // [𜴒] BLOCK OCTANT-245
+            0x1cd12 => Self::Blocks(&[Block::Octant2, Block::Octant4, Block::Octant5]),
+            // [𜴓] BLOCK OCTANT-1245
+            0x1cd13 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+            ]),
+            // [𜴔] BLOCK OCTANT-345
+            0x1cd14 => Self::Blocks(&[Block::Octant3, Block::Octant4, Block::Octant5]),
+            // [𜴕] BLOCK OCTANT-1345
+            0x1cd15 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+            ]),
+            // [𜴖] BLOCK OCTANT-2345
+            0x1cd16 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+            ]),
+            // [𜴗] BLOCK OCTANT-12345
+            0x1cd17 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+            ]),
+            // [𜴘] BLOCK OCTANT-6
+            0x1cd18 => Self::Blocks(&[Block::Octant6]),
+            // [𜴙] BLOCK OCTANT-16
+            0x1cd19 => Self::Blocks(&[Block::Octant1, Block::Octant6]),
+            // [𜴚] BLOCK OCTANT-26
+            0x1cd1a => Self::Blocks(&[Block::Octant2, Block::Octant6]),
+            // [𜴛] BLOCK OCTANT-126
+            0x1cd1b => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant6]),
+            // [𜴜] BLOCK OCTANT-36
+            0x1cd1c => Self::Blocks(&[Block::Octant3, Block::Octant6]),
+            // [𜴝] BLOCK OCTANT-136
+            0x1cd1d => Self::Blocks(&[Block::Octant1, Block::Octant3, Block::Octant6]),
+            // [𜴞] BLOCK OCTANT-236
+            0x1cd1e => Self::Blocks(&[Block::Octant2, Block::Octant3, Block::Octant6]),
+            // [𜴟] BLOCK OCTANT-1236
+            0x1cd1f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+            ]),
+            // [𜴠] BLOCK OCTANT-146
+            0x1cd20 => Self::Blocks(&[Block::Octant1, Block::Octant4, Block::Octant6]),
+            // [𜴡] BLOCK OCTANT-246
+            0x1cd21 => Self::Blocks(&[Block::Octant2, Block::Octant4, Block::Octant6]),
+            // [𜴢] BLOCK OCTANT-1246
+            0x1cd22 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+            ]),
+            // [𜴣] BLOCK OCTANT-346
+            0x1cd23 => Self::Blocks(&[Block::Octant3, Block::Octant4, Block::Octant6]),
+            // [𜴤] BLOCK OCTANT-1346
+            0x1cd24 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+            ]),
+            // [𜴥] BLOCK OCTANT-2346
+            0x1cd25 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+            ]),
+            // [𜴦] BLOCK OCTANT-12346
+            0x1cd26 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+            ]),
+            // [𜴧] BLOCK OCTANT-56
+            0x1cd27 => Self::Blocks(&[Block::Octant5, Block::Octant6]),
+            // [𜴨] BLOCK OCTANT-156
+            0x1cd28 => Self::Blocks(&[Block::Octant1, Block::Octant5, Block::Octant6]),
+            // [𜴩] BLOCK OCTANT-256
+            0x1cd29 => Self::Blocks(&[Block::Octant2, Block::Octant5, Block::Octant6]),
+            // [𜴪] BLOCK OCTANT-1256
+            0x1cd2a => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴫] BLOCK OCTANT-356
+            0x1cd2b => Self::Blocks(&[Block::Octant3, Block::Octant5, Block::Octant6]),
+            // [𜴬] BLOCK OCTANT-1356
+            0x1cd2c => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴭] BLOCK OCTANT-2356
+            0x1cd2d => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴮] BLOCK OCTANT-12356
+            0x1cd2e => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴯] BLOCK OCTANT-456
+            0x1cd2f => Self::Blocks(&[Block::Octant4, Block::Octant5, Block::Octant6]),
+            // [𜴰] BLOCK OCTANT-1456
+            0x1cd30 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴱] BLOCK OCTANT-2456
+            0x1cd31 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴲] BLOCK OCTANT-12456
+            0x1cd32 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴳] BLOCK OCTANT-3456
+            0x1cd33 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴴] BLOCK OCTANT-13456
+            0x1cd34 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴵] BLOCK OCTANT-23456
+            0x1cd35 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+            ]),
+            // [𜴶] BLOCK OCTANT-17
+            0x1cd36 => Self::Blocks(&[Block::Octant1, Block::Octant7]),
+            // [𜴷] BLOCK OCTANT-27
+            0x1cd37 => Self::Blocks(&[Block::Octant2, Block::Octant7]),
+            // [𜴸] BLOCK OCTANT-127
+            0x1cd38 => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant7]),
+            // [𜴹] BLOCK OCTANT-37
+            0x1cd39 => Self::Blocks(&[Block::Octant3, Block::Octant7]),
+            // [𜴺] BLOCK OCTANT-137
+            0x1cd3a => Self::Blocks(&[Block::Octant1, Block::Octant3, Block::Octant7]),
+            // [𜴻] BLOCK OCTANT-237
+            0x1cd3b => Self::Blocks(&[Block::Octant2, Block::Octant3, Block::Octant7]),
+            // [𜴼] BLOCK OCTANT-1237
+            0x1cd3c => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant7,
+            ]),
+            // [𜴽] BLOCK OCTANT-47
+            0x1cd3d => Self::Blocks(&[Block::Octant4, Block::Octant7]),
+            // [𜴾] BLOCK OCTANT-147
+            0x1cd3e => Self::Blocks(&[Block::Octant1, Block::Octant4, Block::Octant7]),
+            // [𜴿] BLOCK OCTANT-247
+            0x1cd3f => Self::Blocks(&[Block::Octant2, Block::Octant4, Block::Octant7]),
+            // [𜵀] BLOCK OCTANT-1247
+            0x1cd40 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant7,
+            ]),
+            // [𜵁] BLOCK OCTANT-347
+            0x1cd41 => Self::Blocks(&[Block::Octant3, Block::Octant4, Block::Octant7]),
+            // [𜵂] BLOCK OCTANT-1347
+            0x1cd42 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+            ]),
+            // [𜵃] BLOCK OCTANT-2347
+            0x1cd43 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+            ]),
+            // [𜵄] BLOCK OCTANT-12347
+            0x1cd44 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+            ]),
+            // [𜵅] BLOCK OCTANT-157
+            0x1cd45 => Self::Blocks(&[Block::Octant1, Block::Octant5, Block::Octant7]),
+            // [𜵆] BLOCK OCTANT-257
+            0x1cd46 => Self::Blocks(&[Block::Octant2, Block::Octant5, Block::Octant7]),
+            // [𜵇] BLOCK OCTANT-1257
+            0x1cd47 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵈] BLOCK OCTANT-357
+            0x1cd48 => Self::Blocks(&[Block::Octant3, Block::Octant5, Block::Octant7]),
+            // [𜵉] BLOCK OCTANT-2357
+            0x1cd49 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵊] BLOCK OCTANT-12357
+            0x1cd4a => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵋] BLOCK OCTANT-457
+            0x1cd4b => Self::Blocks(&[Block::Octant4, Block::Octant5, Block::Octant7]),
+            // [𜵌] BLOCK OCTANT-1457
+            0x1cd4c => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵍] BLOCK OCTANT-12457
+            0x1cd4d => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵎] BLOCK OCTANT-3457
+            0x1cd4e => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵏] BLOCK OCTANT-13457
+            0x1cd4f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵐] BLOCK OCTANT-23457
+            0x1cd50 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+            ]),
+            // [𜵑] BLOCK OCTANT-67
+            0x1cd51 => Self::Blocks(&[Block::Octant6, Block::Octant7]),
+            // [𜵒] BLOCK OCTANT-167
+            0x1cd52 => Self::Blocks(&[Block::Octant1, Block::Octant6, Block::Octant7]),
+            // [𜵓] BLOCK OCTANT-267
+            0x1cd53 => Self::Blocks(&[Block::Octant2, Block::Octant6, Block::Octant7]),
+            // [𜵔] BLOCK OCTANT-1267
+            0x1cd54 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵕] BLOCK OCTANT-367
+            0x1cd55 => Self::Blocks(&[Block::Octant3, Block::Octant6, Block::Octant7]),
+            // [𜵖] BLOCK OCTANT-1367
+            0x1cd56 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵗] BLOCK OCTANT-2367
+            0x1cd57 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵘] BLOCK OCTANT-12367
+            0x1cd58 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵙] BLOCK OCTANT-467
+            0x1cd59 => Self::Blocks(&[Block::Octant4, Block::Octant6, Block::Octant7]),
+            // [𜵚] BLOCK OCTANT-1467
+            0x1cd5a => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵛] BLOCK OCTANT-2467
+            0x1cd5b => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵜] BLOCK OCTANT-12467
+            0x1cd5c => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵝] BLOCK OCTANT-3467
+            0x1cd5d => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵞] BLOCK OCTANT-13467
+            0x1cd5e => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵟] BLOCK OCTANT-23467
+            0x1cd5f => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵠] BLOCK OCTANT-123467
+            0x1cd60 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵡] BLOCK OCTANT-567
+            0x1cd61 => Self::Blocks(&[Block::Octant5, Block::Octant6, Block::Octant7]),
+            // [𜵢] BLOCK OCTANT-1567
+            0x1cd62 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵣] BLOCK OCTANT-2567
+            0x1cd63 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵤] BLOCK OCTANT-12567
+            0x1cd64 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵥] BLOCK OCTANT-3567
+            0x1cd65 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵦] BLOCK OCTANT-13567
+            0x1cd66 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵧] BLOCK OCTANT-23567
+            0x1cd67 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵨] BLOCK OCTANT-123567
+            0x1cd68 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵩] BLOCK OCTANT-4567
+            0x1cd69 => Self::Blocks(&[
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵪] BLOCK OCTANT-14567
+            0x1cd6a => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵫] BLOCK OCTANT-24567
+            0x1cd6b => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵬] BLOCK OCTANT-124567
+            0x1cd6c => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵭] BLOCK OCTANT-34567
+            0x1cd6d => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵮] BLOCK OCTANT-134567
+            0x1cd6e => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵯] BLOCK OCTANT-234567
+            0x1cd6f => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵰] BLOCK OCTANT-1234567
+            0x1cd70 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+            ]),
+            // [𜵱] BLOCK OCTANT-18
+            0x1cd71 => Self::Blocks(&[Block::Octant1, Block::Octant8]),
+            // [𜵲] BLOCK OCTANT-28
+            0x1cd72 => Self::Blocks(&[Block::Octant2, Block::Octant8]),
+            // [𜵳] BLOCK OCTANT-128
+            0x1cd73 => Self::Blocks(&[Block::Octant1, Block::Octant2, Block::Octant8]),
+            // [𜵴] BLOCK OCTANT-38
+            0x1cd74 => Self::Blocks(&[Block::Octant3, Block::Octant8]),
+            // [𜵵] BLOCK OCTANT-138
+            0x1cd75 => Self::Blocks(&[Block::Octant1, Block::Octant3, Block::Octant8]),
+            // [𜵶] BLOCK OCTANT-238
+            0x1cd76 => Self::Blocks(&[Block::Octant2, Block::Octant3, Block::Octant8]),
+            // [𜵷] BLOCK OCTANT-1238
+            0x1cd77 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant8,
+            ]),
+            // [𜵸] BLOCK OCTANT-48
+            0x1cd78 => Self::Blocks(&[Block::Octant4, Block::Octant8]),
+            // [𜵹] BLOCK OCTANT-148
+            0x1cd79 => Self::Blocks(&[Block::Octant1, Block::Octant4, Block::Octant8]),
+            // [𜵺] BLOCK OCTANT-248
+            0x1cd7a => Self::Blocks(&[Block::Octant2, Block::Octant4, Block::Octant8]),
+            // [𜵻] BLOCK OCTANT-1248
+            0x1cd7b => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant8,
+            ]),
+            // [𜵼] BLOCK OCTANT-348
+            0x1cd7c => Self::Blocks(&[Block::Octant3, Block::Octant4, Block::Octant8]),
+            // [𜵽] BLOCK OCTANT-1348
+            0x1cd7d => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant8,
+            ]),
+            // [𜵾] BLOCK OCTANT-2348
+            0x1cd7e => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant8,
+            ]),
+            // [𜵿] BLOCK OCTANT-12348
+            0x1cd7f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant8,
+            ]),
+            // [𜶀] BLOCK OCTANT-58
+            0x1cd80 => Self::Blocks(&[Block::Octant5, Block::Octant8]),
+            // [𜶁] BLOCK OCTANT-158
+            0x1cd81 => Self::Blocks(&[Block::Octant1, Block::Octant5, Block::Octant8]),
+            // [𜶂] BLOCK OCTANT-258
+            0x1cd82 => Self::Blocks(&[Block::Octant2, Block::Octant5, Block::Octant8]),
+            // [𜶃] BLOCK OCTANT-1258
+            0x1cd83 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶄] BLOCK OCTANT-358
+            0x1cd84 => Self::Blocks(&[Block::Octant3, Block::Octant5, Block::Octant8]),
+            // [𜶅] BLOCK OCTANT-1358
+            0x1cd85 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶆] BLOCK OCTANT-2358
+            0x1cd86 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶇] BLOCK OCTANT-12358
+            0x1cd87 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶈] BLOCK OCTANT-458
+            0x1cd88 => Self::Blocks(&[Block::Octant4, Block::Octant5, Block::Octant8]),
+            // [𜶉] BLOCK OCTANT-1458
+            0x1cd89 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶊] BLOCK OCTANT-2458
+            0x1cd8a => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶋] BLOCK OCTANT-12458
+            0x1cd8b => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶌] BLOCK OCTANT-3458
+            0x1cd8c => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶍] BLOCK OCTANT-13458
+            0x1cd8d => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶎] BLOCK OCTANT-23458
+            0x1cd8e => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶏] BLOCK OCTANT-123458
+            0x1cd8f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant8,
+            ]),
+            // [𜶐] BLOCK OCTANT-168
+            0x1cd90 => Self::Blocks(&[Block::Octant1, Block::Octant6, Block::Octant8]),
+            // [𜶑] BLOCK OCTANT-268
+            0x1cd91 => Self::Blocks(&[Block::Octant2, Block::Octant6, Block::Octant8]),
+            // [𜶒] BLOCK OCTANT-1268
+            0x1cd92 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶓] BLOCK OCTANT-368
+            0x1cd93 => Self::Blocks(&[Block::Octant3, Block::Octant6, Block::Octant8]),
+            // [𜶔] BLOCK OCTANT-2368
+            0x1cd94 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶕] BLOCK OCTANT-12368
+            0x1cd95 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶖] BLOCK OCTANT-468
+            0x1cd96 => Self::Blocks(&[Block::Octant4, Block::Octant6, Block::Octant8]),
+            // [𜶗] BLOCK OCTANT-1468
+            0x1cd97 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶘] BLOCK OCTANT-12468
+            0x1cd98 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶙] BLOCK OCTANT-3468
+            0x1cd99 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶚] BLOCK OCTANT-13468
+            0x1cd9a => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶛] BLOCK OCTANT-23468
+            0x1cd9b => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶜] BLOCK OCTANT-568
+            0x1cd9c => Self::Blocks(&[Block::Octant5, Block::Octant6, Block::Octant8]),
+            // [𜶝] BLOCK OCTANT-1568
+            0x1cd9d => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶞] BLOCK OCTANT-2568
+            0x1cd9e => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶟] BLOCK OCTANT-12568
+            0x1cd9f => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶠] BLOCK OCTANT-3568
+            0x1cda0 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶡] BLOCK OCTANT-13568
+            0x1cda1 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶢] BLOCK OCTANT-23568
+            0x1cda2 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶣] BLOCK OCTANT-123568
+            0x1cda3 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶤] BLOCK OCTANT-4568
+            0x1cda4 => Self::Blocks(&[
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶥] BLOCK OCTANT-14568
+            0x1cda5 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶦] BLOCK OCTANT-24568
+            0x1cda6 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶧] BLOCK OCTANT-124568
+            0x1cda7 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶨] BLOCK OCTANT-34568
+            0x1cda8 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶩] BLOCK OCTANT-134568
+            0x1cda9 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶪] BLOCK OCTANT-234568
+            0x1cdaa => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶫] BLOCK OCTANT-1234568
+            0x1cdab => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant8,
+            ]),
+            // [𜶬] BLOCK OCTANT-178
+            0x1cdac => Self::Blocks(&[Block::Octant1, Block::Octant7, Block::Octant8]),
+            // [𜶭] BLOCK OCTANT-278
+            0x1cdad => Self::Blocks(&[Block::Octant2, Block::Octant7, Block::Octant8]),
+            // [𜶮] BLOCK OCTANT-1278
+            0x1cdae => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶯] BLOCK OCTANT-378
+            0x1cdaf => Self::Blocks(&[Block::Octant3, Block::Octant7, Block::Octant8]),
+            // [𜶰] BLOCK OCTANT-1378
+            0x1cdb0 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶱] BLOCK OCTANT-2378
+            0x1cdb1 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶲] BLOCK OCTANT-12378
+            0x1cdb2 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶳] BLOCK OCTANT-478
+            0x1cdb3 => Self::Blocks(&[Block::Octant4, Block::Octant7, Block::Octant8]),
+            // [𜶴] BLOCK OCTANT-1478
+            0x1cdb4 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶵] BLOCK OCTANT-2478
+            0x1cdb5 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶶] BLOCK OCTANT-12478
+            0x1cdb6 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶷] BLOCK OCTANT-3478
+            0x1cdb7 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶸] BLOCK OCTANT-13478
+            0x1cdb8 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶹] BLOCK OCTANT-23478
+            0x1cdb9 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶺] BLOCK OCTANT-123478
+            0x1cdba => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶻] BLOCK OCTANT-578
+            0x1cdbb => Self::Blocks(&[Block::Octant5, Block::Octant7, Block::Octant8]),
+            // [𜶼] BLOCK OCTANT-1578
+            0x1cdbc => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶽] BLOCK OCTANT-2578
+            0x1cdbd => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶾] BLOCK OCTANT-12578
+            0x1cdbe => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜶿] BLOCK OCTANT-3578
+            0x1cdbf => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷀] BLOCK OCTANT-13578
+            0x1cdc0 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷁] BLOCK OCTANT-23578
+            0x1cdc1 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷂] BLOCK OCTANT-123578
+            0x1cdc2 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷃] BLOCK OCTANT-4578
+            0x1cdc3 => Self::Blocks(&[
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷄] BLOCK OCTANT-14578
+            0x1cdc4 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷅] BLOCK OCTANT-24578
+            0x1cdc5 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷆] BLOCK OCTANT-124578
+            0x1cdc6 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷇] BLOCK OCTANT-34578
+            0x1cdc7 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷈] BLOCK OCTANT-134578
+            0x1cdc8 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷉] BLOCK OCTANT-234578
+            0x1cdc9 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷊] BLOCK OCTANT-1234578
+            0x1cdca => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷋] BLOCK OCTANT-678
+            0x1cdcb => Self::Blocks(&[Block::Octant6, Block::Octant7, Block::Octant8]),
+            // [𜷌] BLOCK OCTANT-1678
+            0x1cdcc => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷍] BLOCK OCTANT-2678
+            0x1cdcd => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷎] BLOCK OCTANT-12678
+            0x1cdce => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷏] BLOCK OCTANT-3678
+            0x1cdcf => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷐] BLOCK OCTANT-13678
+            0x1cdd0 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷑] BLOCK OCTANT-23678
+            0x1cdd1 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷒] BLOCK OCTANT-123678
+            0x1cdd2 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷓] BLOCK OCTANT-4678
+            0x1cdd3 => Self::Blocks(&[
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷔] BLOCK OCTANT-14678
+            0x1cdd4 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷕] BLOCK OCTANT-24678
+            0x1cdd5 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷖] BLOCK OCTANT-124678
+            0x1cdd6 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷗] BLOCK OCTANT-34678
+            0x1cdd7 => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷘] BLOCK OCTANT-134678
+            0x1cdd8 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷙] BLOCK OCTANT-234678
+            0x1cdd9 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷚] BLOCK OCTANT-1234678
+            0x1cdda => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷛] BLOCK OCTANT-15678
+            0x1cddb => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷜] BLOCK OCTANT-25678
+            0x1cddc => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷝] BLOCK OCTANT-125678
+            0x1cddd => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷞] BLOCK OCTANT-35678
+            0x1cdde => Self::Blocks(&[
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷟] BLOCK OCTANT-235678
+            0x1cddf => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷠] BLOCK OCTANT-1235678
+            0x1cde0 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷡] BLOCK OCTANT-45678
+            0x1cde1 => Self::Blocks(&[
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷢] BLOCK OCTANT-145678
+            0x1cde2 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷣] BLOCK OCTANT-1245678
+            0x1cde3 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant2,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷤] BLOCK OCTANT-1345678
+            0x1cde4 => Self::Blocks(&[
+                Block::Octant1,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
+            // [𜷥] BLOCK OCTANT-2345678
+            0x1cde5 => Self::Blocks(&[
+                Block::Octant2,
+                Block::Octant3,
+                Block::Octant4,
+                Block::Octant5,
+                Block::Octant6,
+                Block::Octant7,
+                Block::Octant8,
+            ]),
             // [🬼] LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly(&[Poly {
                 path: &[
@@ -4785,7 +6137,8 @@ impl GlyphCache {
             BlockKey::Blocks(blocks) => {
                 let width = metrics.cell_size.width as f32;
                 let height = metrics.cell_size.height as f32;
-                let (x_half, y_half, y_third) = (width / 2., height / 2., height / 3.);
+                let (x_half, y_half, y_third, y_fourth) =
+                    (width / 2., height / 2., height / 3., height / 4.);
                 let (x_eighth, y_eighth) = (width / 8., height / 8.);
 
                 for block in blocks.iter() {
@@ -4863,6 +6216,48 @@ impl GlyphCache {
                             &mut buffer,
                             x_half..width,
                             (y_third * 2.)..height,
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant1 => {
+                            fill_rect(&mut buffer, 0.0..x_half, 0.0..y_fourth, BlockAlpha::Full)
+                        }
+                        Block::Octant2 => {
+                            fill_rect(&mut buffer, x_half..width, 0.0..y_fourth, BlockAlpha::Full)
+                        }
+                        Block::Octant3 => fill_rect(
+                            &mut buffer,
+                            0.0..x_half,
+                            y_fourth..(y_fourth * 2.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant4 => fill_rect(
+                            &mut buffer,
+                            x_half..width,
+                            y_fourth..(y_fourth * 2.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant5 => fill_rect(
+                            &mut buffer,
+                            0.0..x_half,
+                            (y_fourth * 2.)..(y_fourth * 3.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant6 => fill_rect(
+                            &mut buffer,
+                            x_half..width,
+                            (y_fourth * 2.)..(y_fourth * 3.),
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant7 => fill_rect(
+                            &mut buffer,
+                            0.0..x_half,
+                            (y_fourth * 3.)..height,
+                            BlockAlpha::Full,
+                        ),
+                        Block::Octant8 => fill_rect(
+                            &mut buffer,
+                            x_half..width,
+                            (y_fourth * 3.)..height,
                             BlockAlpha::Full,
                         ),
                     }
