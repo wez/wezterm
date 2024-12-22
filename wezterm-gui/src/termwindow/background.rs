@@ -488,16 +488,32 @@ impl crate::TermWindow {
         } else {
             ((pixel_height * aspect).floor(), pixel_height)
         };
+        
+        let computed_background_height = match layer.def.height {
+            BackgroundSize::Cover => match layer.def.width {
+                BackgroundSize::Dimension(n) => (n.evaluate_as_pixels(h_context) / aspect) as f32,
+                _ => min_aspect_height,
+            }
+            _ => min_aspect_height,
+        };
+
+        let computed_background_width = match layer.def.width {
+            BackgroundSize::Cover => match layer.def.height {
+                BackgroundSize::Dimension(n) => (n.evaluate_as_pixels(v_context) * aspect).floor(),
+                _ => min_aspect_width,
+            }
+            _ => min_aspect_width,
+        };
 
         let width = match layer.def.width {
             BackgroundSize::Contain => max_aspect_width as f32,
-            BackgroundSize::Cover => min_aspect_width as f32,
+            BackgroundSize::Cover => computed_background_width as f32,
             BackgroundSize::Dimension(n) => n.evaluate_as_pixels(h_context),
         };
 
         let height = match layer.def.height {
             BackgroundSize::Contain => max_aspect_height as f32,
-            BackgroundSize::Cover => min_aspect_height as f32,
+            BackgroundSize::Cover => computed_background_height as f32,
             BackgroundSize::Dimension(n) => n.evaluate_as_pixels(v_context),
         };
 
