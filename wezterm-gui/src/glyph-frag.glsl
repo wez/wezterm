@@ -148,7 +148,7 @@ void main() {
     // and we need to tint with the fg_color
     color = fg_color;
     if (!subpixel_aa) {
-      color.a = colorMask.a;
+      color.a *= colorMask.a;
     }
     color = apply_hsv(color, foreground_text_hsb);
   }
