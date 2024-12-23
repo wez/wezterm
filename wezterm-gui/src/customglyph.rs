@@ -192,6 +192,7 @@ pub enum BlockKey {
     },
 }
 
+// Lookup table from sextant Unicode range 0x1fb00..=0x1fb3b to sextant pattern:
 // `pattern` is a byte whose bits corresponds to elements on a 2 by 3 grid.
 // The position of a sextant for a bit position (0-indexed) is as follows:
 // ╭───┬───╮
@@ -264,6 +265,7 @@ const SEXTANT_PATTERNS: [u8; 60] = [
     0b111110, // [🬻] BLOCK SEXTANT-23456
 ];
 
+// Lookup table from octant Unicode range 0x1cd00..=0x1cde5 to octant pattern:
 // `pattern` is a byte whose bits corresponds to elements on a 2 by 4 grid.
 // The position of a octant for a bit position (0-indexed) is as follows:
 // ╭───┬───╮
@@ -3614,9 +3616,9 @@ impl BlockKey {
             // [▟] QUADRANT UPPER RIGHT AND LOWER LEFT AND LOWER RIGHT
             0x259f => Self::Blocks(&[Block::QuadrantUR, Block::QuadrantLL, Block::QuadrantLR]),
             // Sextant blocks
-            n @ 0x1fb00..=0x1fb3b => Self::Sextant((n & 0x3f) as u8),
+            n @ 0x1fb00..=0x1fb3b => Self::Sextant(SEXTANT_PATTERNS[(n & 0x3f) as usize]),
             // Octant blocks
-            n @ 0x1cd00..=0x1cde5 => Self::Octant((n & 0xff) as u8),
+            n @ 0x1cd00..=0x1cde5 => Self::Octant(OCTANT_PATTERNS[(n & 0xff) as usize]),
             // [𜺠] RIGHT HALF LOWER ONE QUARTER BLOCK (corresponds to OCTANT-8)
             0x1cea0 => Self::Octant(0b10000000),
             // [𜺣; EFT HALF LOWER ONE QUARTER BLOCK (corresponds to OCTANT-7)
@@ -5063,8 +5065,7 @@ impl GlyphCache {
                     draw(&[D!(), R!()]);
                 }
             }
-            BlockKey::Sextant(index) => {
-                let pattern = SEXTANT_PATTERNS[index as usize];
+            BlockKey::Sextant(pattern) => {
                 let width = metrics.cell_size.width as f32;
                 let height = metrics.cell_size.height as f32;
                 let (x_half, y_third) = (width / 2., height / 3.);
@@ -5082,8 +5083,7 @@ impl GlyphCache {
                     }
                 }
             }
-            BlockKey::Octant(index) => {
-                let pattern = OCTANT_PATTERNS[index as usize];
+            BlockKey::Octant(pattern) => {
                 let width = metrics.cell_size.width as f32;
                 let height = metrics.cell_size.height as f32;
                 let (x_half, y_fourth) = (width / 2., height / 4.);
