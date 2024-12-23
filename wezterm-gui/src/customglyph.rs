@@ -275,7 +275,7 @@ const SEXTANT_PATTERNS: [u8; 60] = [
 // ├───┼───┤
 // │ 6 │ 7 │
 // ╰───┴───╯
-const OCTANT_PATTERNS: [u8; 229] = [
+const OCTANT_PATTERNS: [u8; 230] = [
     0b00000100, // 1CD00;BLOCK OCTANT-3
     0b00000110, // 1CD01;BLOCK OCTANT-23
     0b00000111, // 1CD02;BLOCK OCTANT-123
@@ -503,6 +503,7 @@ const OCTANT_PATTERNS: [u8; 229] = [
     0b11110111, // 1CDE0;BLOCK OCTANT-1235678
     0b11111000, // 1CDE1;BLOCK OCTANT-45678
     0b11111001, // 1CDE2;BLOCK OCTANT-145678
+    0b11111011, // 1CDE3;BLOCK OCTANT-1245678
     0b11111101, // 1CDE4;BLOCK OCTANT-1345678
     0b11111110, // 1CDE5;BLOCK OCTANT-2345678
 ];
@@ -5089,7 +5090,7 @@ impl GlyphCache {
                 for row in 0..4 {
                     for col in 0..2 {
                         let bit = 2 * row + col;
-                        if pattern & bit != 0 {
+                        if pattern & (1u8 << bit) != 0 {
                             fill_rect(
                                 &mut buffer,
                                 col as f32 * x_half..(col + 1) as f32 * x_half,
