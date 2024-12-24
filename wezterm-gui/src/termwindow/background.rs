@@ -489,20 +489,22 @@ impl crate::TermWindow {
             ((pixel_height * aspect).floor(), pixel_height)
         };
         
-        let computed_background_height = match layer.def.height {
-            BackgroundSize::Cover => match layer.def.width {
-                BackgroundSize::Dimension(n) => (n.evaluate_as_pixels(h_context) / aspect) as f32,
-                _ => min_aspect_height,
-            }
-            _ => min_aspect_height,
+        // Compute image height preserving aspect ratio.
+        let computed_background_height = if let (
+            BackgroundSize::Cover, BackgroundSize::Dimension(width)
+        ) = (layer.def.height, layer.def.width) {
+            (width.evaluate_as_pixels(h_context) / aspect).floor()
+        } else {
+            min_aspect_height
         };
 
-        let computed_background_width = match layer.def.width {
-            BackgroundSize::Cover => match layer.def.height {
-                BackgroundSize::Dimension(n) => (n.evaluate_as_pixels(v_context) * aspect).floor(),
-                _ => min_aspect_width,
-            }
-            _ => min_aspect_width,
+        // Compute width preserving aspect ratio.
+        let computed_background_width = if let (
+            BackgroundSize::Cover, BackgroundSize::Dimension(height)
+        ) = (layer.def.width, layer.def.height) {
+            (height.evaluate_as_pixels(h_context) * aspect).floor()
+        } else {
+            min_aspect_width
         };
 
         let width = match layer.def.width {
