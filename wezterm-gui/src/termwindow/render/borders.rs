@@ -173,7 +173,7 @@ impl crate::TermWindow {
 
         let top_pixel_y = top_bar_height + padding_top + os_border.top.get() as f32;
         let background_rect = self.compute_background_rect_with_scrollbar(&pos,
-            padding_left, padding_top, &os_border, top_pixel_y);
+            padding_top, padding_left, &os_border, top_pixel_y);
 
         let pos_y = background_rect.origin.y - floating_pane_border.top.get() as f32;
         let pos_x = background_rect.origin.x - floating_pane_border.left.get() as f32;
