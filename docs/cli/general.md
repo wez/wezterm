@@ -11,9 +11,9 @@ wezterm is deployed with two major executables:
 * `wezterm-gui` (or `wezterm-gui.exe` on Windows) - for spawning wezterm from a desktop environment
 
 You will typically use `wezterm` when scripting wezterm; it knows when to
-delegate to to `wezterm-gui` under the covers.
+delegate to `wezterm-gui` under the covers.
 
-If you are are setting up a launcher for wezterm to run in the Windows GUI
+If you are setting up a launcher for wezterm to run in the Windows GUI
 environment then you will want to explicitly target `wezterm-gui` so that
 Windows itself doesn't pop up a console host for its logging output.
 

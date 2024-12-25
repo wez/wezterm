@@ -15,7 +15,7 @@ k9 = "0.12.0"
 gl_generator = "0.14"
 
 [features]
-wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols", "wayland-backend"]
 
 [dependencies]
 async-channel = "2.3"
@@ -82,7 +82,7 @@ zbus = "4.2"
 zvariant = "4.0"
 
 smithay-client-toolkit = {version = "0.19", default-features=false, optional=true}
-wayland-backend = {version="0.3.5", features=["client_system", "rwh_06"]}
+wayland-backend = {version="0.3.5", features=["client_system", "rwh_06"], optional=true}
 wayland-protocols = {version="0.32", optional=true}
 wayland-client = {version="0.31", optional=true}
 wayland-egl = {version="0.32", optional=true}

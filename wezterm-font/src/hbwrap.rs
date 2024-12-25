@@ -10,10 +10,10 @@ use cairo::Extend;
 use memmap2::{Mmap, MmapOptions};
 use std::ffi::CStr;
 use std::io::Read;
+use std::mem;
 use std::ops::Range;
 use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::sync::Arc;
-use std::{mem, slice};
 use wezterm_color_types::SrgbaPixel;
 
 extern "C" {
@@ -79,7 +79,7 @@ impl Blob {
         unsafe {
             let mut len = 0;
             let ptr = hb_blob_get_data(self.blob, &mut len);
-            std::slice::from_raw_parts(ptr as *const u8, len as usize)
+            from_raw_parts(ptr as *const u8, len as usize)
         }
     }
 
@@ -1056,7 +1056,7 @@ impl Buffer {
         unsafe {
             let mut len: u32 = 0;
             let info = hb_buffer_get_glyph_infos(self.buf, &mut len as *mut _);
-            slice::from_raw_parts(info, len as usize)
+            from_raw_parts(info, len as usize)
         }
     }
 
@@ -1066,7 +1066,7 @@ impl Buffer {
         unsafe {
             let mut len: u32 = 0;
             let pos = hb_buffer_get_glyph_positions(self.buf, &mut len as *mut _);
-            slice::from_raw_parts(pos, len as usize)
+            from_raw_parts(pos, len as usize)
         }
     }
 
@@ -1179,4 +1179,17 @@ pub fn hb_tag_to_string(tag: hb_tag_t) -> TagString {
         harfbuzz::hb_tag_to_string(tag, &mut buf as *mut u8 as *mut c_char);
     }
     TagString(buf)
+}
+
+/// Wrapper around std::slice::from_raw_parts that allows for ptr to be
+/// null. In the null ptr case, an empty slice is returned.
+/// This is necessary because harfbuzz may sometimes encode
+/// empty arrays in that way, and rust 1.78 will panic if a null
+/// ptr is passed in.
+pub(crate) unsafe fn from_raw_parts<'a, T>(ptr: *const T, size: usize) -> &'a [T] {
+    if ptr.is_null() {
+        &[]
+    } else {
+        std::slice::from_raw_parts(ptr, size)
+    }
 }

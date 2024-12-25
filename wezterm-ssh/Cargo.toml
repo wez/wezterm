@@ -27,7 +27,7 @@ filenamegen = "0.2.6"
 gethostname = "0.5"
 libc = "0.2"
 log = "0.4"
-portable-pty = { version="0.8", path = "../pty" }
+portable-pty = { version="0.9", path = "../pty" }
 regex = "1"
 smol = "2.0"
 ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}

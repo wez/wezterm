@@ -466,6 +466,14 @@ impl WindowOps for WaylandWindow {
             Ok(())
         });
     }
+
+    fn maximize(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.maximize()));
+    }
+
+    fn restore(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.restore()));
+    }
 }
 #[derive(Default, Clone, Debug)]
 pub(crate) struct PendingEvent {
@@ -1206,6 +1214,18 @@ impl WaylandWindowInner {
             }
             FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
             _ => log::warn!("unhandled FrameAction: {:?}", action),
+        }
+    }
+
+    fn maximize(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            window.set_maximized();
+        }
+    }
+
+    fn restore(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            window.unset_maximized();
         }
     }
 }

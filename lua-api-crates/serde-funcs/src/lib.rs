@@ -80,7 +80,7 @@ fn toml_decode(lua: &Lua, text: String) -> mlua::Result<LuaValue> {
     json_value_to_lua_value(lua, value)
 }
 
-fn json_value_to_lua_value<'lua>(lua: &'lua Lua, value: JValue) -> mlua::Result<LuaValue> {
+fn json_value_to_lua_value<'lua>(lua: &'lua Lua, value: JValue) -> mlua::Result<LuaValue<'lua>> {
     Ok(match value {
         JValue::Null => LuaValue::Nil,
         JValue::Bool(b) => LuaValue::Boolean(b),

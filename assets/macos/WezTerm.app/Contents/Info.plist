@@ -60,6 +60,8 @@
 	<string>An application launched via WezTerm would like to access your Downloads folder.</string>
 	<key>NSSystemAdministrationUsageDescription</key>
 	<string>An application launched via WezTerm requires elevated permission.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>An application launched via WezTerm would like to access the local network.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
