@@ -1932,12 +1932,20 @@ impl TabInner {
         }
 
         let mut floating_pane_indices_to_remove = Vec::new();
+        let mut active_floating_pane_dead = false;
 
         for (i, floating_pane) in self.floating_panes.iter().enumerate() {
             if floating_pane.is_dead() || f(0, floating_pane) {
                 dead_panes.push(Arc::clone(floating_pane));
                 floating_pane_indices_to_remove.push(i);
+                if (i == self.active_floating_pane) {
+                    active_floating_pane_dead = true;
+                }
             }
+        }
+
+        if active_floating_pane_dead {
+            self.set_floating_pane_visibility(false, false);
         }
 
         let active_floating_index = self.active_floating_pane;
@@ -1947,10 +1955,6 @@ impl TabInner {
 
         for i in floating_pane_indices_to_remove {
             self.floating_panes.remove(i);
-        }
-
-        if self.floating_panes.is_empty() {
-            self.set_floating_pane_visibility(false, false);
         }
 
         if !dead_panes.is_empty() && kill {
