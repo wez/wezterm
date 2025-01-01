@@ -8,7 +8,7 @@ use smithay_client_toolkit::seat::pointer::{
     PointerData, PointerDataExt, PointerEvent, PointerEventKind, PointerHandler,
 };
 use wayland_client::backend::ObjectId;
-use wayland_client::protocol::wl_pointer::{ButtonState, WlPointer};
+use wayland_client::protocol::wl_pointer::{AxisSource, ButtonState, WlPointer};
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::{Connection, Proxy, QueueHandle};
 use wezterm_input_types::MousePress;
@@ -157,12 +157,29 @@ impl PendingMouse {
             PointerEventKind::Axis {
                 horizontal,
                 vertical,
+                source,
                 ..
             } => {
                 let changed = self.scroll.is_none();
                 let (x, y) = self.scroll.take().unwrap_or((0., 0.));
-                self.scroll
-                    .replace((x + horizontal.absolute, y + vertical.absolute));
+
+                // Handle scroll based on the input source
+                let (scroll_x, scroll_y) = match source {
+                    // For mouse wheels, use discrete values when available
+                    Some(AxisSource::Wheel) => {
+                        if vertical.discrete != 0 {
+                            (horizontal.discrete as f64, vertical.discrete as f64)
+                        } else {
+                            // Standard wheel click is 15 degrees
+                            (horizontal.absolute / 15.0, vertical.absolute / 15.0)
+                        }
+                    }
+                    // For touchpads and other devices, use a 10x scale
+                    // This is a bit arbitrary, but it's a good starting point
+                    _ => (horizontal.absolute / 10.0, vertical.absolute / 10.0),
+                };
+
+                self.scroll.replace((x + scroll_x, y + scroll_y));
                 changed
             }
         }
