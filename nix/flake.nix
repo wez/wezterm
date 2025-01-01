@@ -92,13 +92,19 @@
         cargo = pkgs.rust-bin.stable.latest.minimal;
         rustc = pkgs.rust-bin.stable.latest.minimal;
       };
+
     in {
       packages.default = rustPlatform.buildRustPackage rec {
         inherit buildInputs nativeBuildInputs;
 
         name = "wezterm";
         src = ./..;
-        version = self.shortRev or "dev";
+        version = if self ? submodules
+          then builtins.concatStringsSep "-"
+            (builtins.match "(.{8})(.{6})" self.lastModifiedDate 
+              ++ [ (builtins.substring 0 8 self.rev or self.dirtyRev) ]
+              ++ lib.lists.optional (self ? dirtyRev) "dirty")
+          else "0-unknown";
 
         cargoLock = {
           lockFile = ../Cargo.lock;
@@ -116,7 +122,9 @@
         '';
 
         postPatch = ''
-          echo ${version} > .tag
+          if [ ! -f .tag ]; then
+            echo ${version} > .tag
+          fi
 
           # tests are failing with: Unable to exchange encryption keys
           rm -r wezterm-ssh/tests
