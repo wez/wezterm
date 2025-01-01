@@ -1,0 +1,15 @@
+[package]
+name = "procinfo-funcs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+config = { path = "../../config" }
+libc = "0.2"
+luahelper = { path = "../../luahelper" }
+procinfo = { path = "../../procinfo" }
+wezterm-dynamic = { path = "../../wezterm-dynamic" }

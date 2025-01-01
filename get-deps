@@ -1,0 +1,399 @@
+#!/bin/sh
+
+TESTING=0
+DOCS=0
+for arg in "$@"; do
+    case $arg in
+      --testing)
+        TESTING=1
+      ;;
+      --docs)
+        DOCS=1
+      ;;
+      *)
+        echo 'get-deps:'
+        echo '  --docs       include dependencies required for testing docs'
+        echo '  --testing    include dependencies required for tests'
+        exit 1
+      ;;
+    esac
+done
+
+NOTFOUND=0
+
+test_cmd() {
+  command -v $1 >/dev/null
+}
+
+test_flag() {
+  test $TESTING -eq 1
+}
+
+docs_flag() {
+  test $DOCS -eq 1
+}
+
+if test -z "$SUDO"; then
+  if test_cmd 'sudo'; then
+    SUDO="sudo"
+  elif test_cmd 'doas'; then
+    SUDO="doas"
+  fi
+fi
+
+alpine_deps() {
+  APK="$SUDO apk"
+  $APK add \
+    'alpine-sdk' \
+    'bash' \
+    'build-base' \
+    'coreutils' \
+    'fontconfig-dev' \
+    'libssh2-dev' \
+    'libx11-dev' \
+    'libxkbcommon-dev' \
+    'openssl-dev' \
+    'pkgconf' \
+    'python3' \
+    'wayland-dev' \
+    'xcb-util-dev' \
+    'xcb-util-image-dev' \
+    'xcb-util-keysyms-dev' \
+    'xcb-util-wm-dev' \
+    'zlib-dev' \
+    'zstd-dev'
+
+  if ! test_cmd 'cargo'; then
+    $APK add 'cargo'
+  fi
+
+  if test_flag; then
+    $APK add 'openssh'
+  fi
+}
+
+fedora_deps() {
+  if test_cmd 'dnf'; then
+    YUM="$SUDO dnf"
+  elif test_cmd 'yum'; then
+    YUM="$SUDO yum"
+  else
+    echo "No idea what package manager to use, sorry! (perhaps 'dnf' or 'yum' is not in \$PATH?)"
+    return 1
+  fi
+  # Fedora 33 moved some perl bits around
+  $YUM install -y 'perl-FindBin' 'perl-File-Compare' || true
+  $YUM install -y \
+    'make' \
+    'gcc' \
+    'gcc-c++' \
+    'flatpak-builder' \
+    'fontconfig-devel' \
+    'openssl-devel' \
+    'perl-interpreter' \
+    'python3' \
+    'python3-pip' \
+    'libxcb-devel' \
+    'libxkbcommon-devel' \
+    'libxkbcommon-x11-devel' \
+    'wayland-devel' \
+    'mesa-libEGL-devel' \
+    'xcb-util-devel' \
+    'xcb-util-keysyms-devel' \
+    'xcb-util-image-devel' \
+    'xcb-util-wm-devel' \
+    'rpm-build'
+
+  if test_flag; then
+    $YUM install -y 'openssh-server'
+  fi
+}
+
+suse_deps() {
+  ZYPPER="$SUDO zypper"
+  RESOLVE=""
+  if [ "${CI}" == "yes" ] ; then
+    RESOLVE="--allow-downgrade"
+  fi
+  $ZYPPER install $RESOLVE -yl \
+    'make' \
+    'gcc' \
+    'gcc-c++' \
+    'fontconfig-devel' \
+    'libopenssl-devel' \
+    'perl' \
+    'python3' \
+    'libxcb-devel' \
+    'libxkbcommon-devel' \
+    'libxkbcommon-x11-devel' \
+    'wayland-devel' \
+    'Mesa-libEGL-devel' \
+    'xcb-util-devel' \
+    'xcb-util-keysyms-devel' \
+    'xcb-util-image-devel' \
+    'xcb-util-wm-devel' \
+    'rpm-build'
+
+  if test_flag; then
+    $ZYPPER install $RESOLVE -yl 'openssh-server'
+  fi
+}
+
+debian_deps() {
+  APT="$SUDO apt-get"
+  apt-cache show 'libxcb-util-dev' > /dev/null 2>&1 && XCBUTIL="libxcb-util-dev" || XCBUTIL="libxcb-util0-dev"
+  $APT install -y \
+    'bsdutils' \
+    'cmake' \
+    'dpkg-dev' \
+    'fakeroot' \
+    'gcc' \
+    'g++' \
+    'libegl1-mesa-dev' \
+    'libssl-dev' \
+    'libfontconfig1-dev' \
+    'libwayland-dev' \
+    'libx11-xcb-dev' \
+    'libxcb-ewmh-dev' \
+    'libxcb-icccm4-dev' \
+    'libxcb-image0-dev' \
+    'libxcb-keysyms1-dev' \
+    'libxcb-randr0-dev' \
+    'libxcb-render0-dev' \
+    'libxcb-xkb-dev' \
+    'libxkbcommon-dev' \
+    'libxkbcommon-x11-dev' \
+    "$XCBUTIL" \
+    'lsb-release' \
+    'python3' \
+    'xdg-utils' \
+    'xorg-dev'
+
+  if test_flag; then
+    $APT install -y 'openssh-server'
+  fi
+  if docs_flag; then
+    $APT install -y 'python3-pip mkdocs'
+  fi
+}
+
+arch_deps() {
+  PACMAN="$SUDO pacman"
+  $PACMAN -S --noconfirm --needed \
+    'base-devel' \
+    'cargo' \
+    'cmake' \
+    'fontconfig' \
+    'git' \
+    'hicolor-icon-theme' \
+    'libx11' \
+    'libxkbcommon-x11' \
+    'pkgconf' \
+    'python3' \
+    'wayland' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+
+  if test_flag; then
+    $PACMAN -S --noconfirm --needed \
+      'openssh'
+  fi
+}
+
+bsd_deps() {
+  PKG="$SUDO pkg"
+  $PKG install -y \
+    'cmake' \
+    'curl' \
+    'egl-wayland' \
+    'expat' \
+    'fontconfig' \
+    'gcc' \
+    'gettext' \
+    'git' \
+    'gmake' \
+    'libxcb' \
+    'libxkbcommon' \
+    'mesa-devel' \
+    'openssl' \
+    'p5-ExtUtils-MakeMaker' \
+    'perl5' \
+    'pkgconf' \
+    'python3' \
+    'rust' \
+    'wayland' \
+    'libxcb' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm' \
+    'z' \
+    'zip'
+}
+
+gentoo_deps() {
+  portageq envvar USE | xargs -n 1 | grep '^X$' \
+  || (echo 'X is not found in USE flags' && exit 1)
+  EMERGE="$SUDO emerge"
+  for pkg in \
+    'cmake' \
+    'fontconfig' \
+    'openssl' \
+    'dev-vcs/git' \
+    'libX11' \
+    'libxkbcommon' \
+    'pkgconf' \
+    'python' \
+    'perl' \
+    'wayland' \
+    'mesa' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+  do
+	  equery l "$pkg" > /dev/null || $EMERGE --select $pkg
+  done
+}
+
+void_deps() {
+  XBPS="$SUDO xbps-install"
+  $XBPS -S \
+    'gcc' \
+    'pkgconf' \
+    'fontconfig-devel' \
+    'openssl-devel' \
+    'wayland-devel' \
+    'libX11-devel' \
+    'libxkbcommon-devel' \
+    'xcb-util-devel' \
+    'xcb-util-image-devel'
+
+  if ! test_cmd 'cargo'; then
+    $XBPS -S 'cargo'
+  fi
+
+  if test_flag; then
+    $XBPS -S \
+      'openssh'
+  fi
+}
+
+solus_deps() {
+  EOPKG="$SUDO eopkg"
+  $EOPKG install -y -c system.devel
+  $EOPKG install -y \
+    xcb-util-devel \
+    xcb-util-image-devel \
+    libxkbcommon-devel \
+    fontconfig-devel \
+    libx11-devel
+}
+
+fallback_method() {
+  if test -e /etc/alpine-release; then
+    alpine_deps
+  elif test -e /etc/centos-release || test -e /etc/fedora-release || test -e /etc/redhat-release; then
+    fedora_deps
+  elif test -e /etc/debian_version; then
+    debian_deps
+  elif test -e /etc/arch-release; then
+    arch_deps
+  elif test -e /etc/gentoo-release; then
+    gentoo_deps
+  elif test -e /etc/solus-release; then
+    solus_deps
+  elif test_cmd 'lsb_release' && test "$(lsb_release -si)" = "openSUSE"; then
+    suse_deps
+  fi
+
+  # OSTYPE is set by bash
+  case $OSTYPE in
+    darwin*|msys)
+      echo "skipping darwin*/msys"
+    ;;
+    freebsd*)
+      bsd_deps
+    ;;
+    ''|linux-gnu)
+      # catch and known OSTYPE
+      echo "\$OSTYPE is '$OSTYPE'"
+    ;;
+    *)
+      NOTFOUND=1
+      return 1
+    ;;
+  esac
+  return 0
+}
+
+if test -e /etc/os-release; then
+  . /etc/os-release
+fi
+
+set -e
+
+case $ID in
+  centos|fedora|rhel)
+    fedora_deps
+  ;;
+  alpine)
+    alpine_deps
+  ;;
+  *suse*)
+    suse_deps
+  ;;
+  debian|ubuntu|pop)
+    debian_deps
+  ;;
+  freebsd) # available since 13.0
+    bsd_deps
+  ;;
+  arch|artix)
+    arch_deps
+  ;;
+  gentoo)
+    gentoo_deps
+  ;;
+  void)
+    void_deps
+  ;;
+  solus)
+    solus_deps
+  ;;
+  *)
+    echo "Couldn't find OS by ID, found ID: $ID"
+    echo "Fallback to detecting '/etc/<name>-release'"
+    fallback_method
+    if ! test $? -eq 0; then
+      if ! test $NOTFOUND -eq 0; then
+        echo "Couldn't identify OS through '/etc/<name>-release'"
+      fi
+      exit 1
+    fi
+  ;;
+esac
+
+if ! test $NOTFOUND -eq 0; then
+  echo "Please contribute the commands to install the deps for:"
+  if test_cmd 'lsb_release'; then
+    lsb_release -ds
+  elif test -e /etc/os-release; then
+    cat /etc/os-release
+  else
+    echo "Couldn't recognise system"
+  fi
+  exit 1
+fi
+
+if ! test_cmd 'rustc'; then
+  echo "Rust is not installed!"
+  echo "Please see https://wezfurlong.org/wezterm/install/source.html for installation instructions"
+  exit 1
+fi
+
+if ! ./ci/check-rust-version.sh; then
+  exit 1
+fi

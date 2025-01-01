@@ -1,0 +1,50 @@
+Establish an ssh session
+
+Usage: wezterm ssh [OPTIONS] <USER_AT_HOST_AND_PORT> [PROG]...
+
+Arguments:
+  <USER_AT_HOST_AND_PORT>
+          Specifies the remote system using the form: `[username@]host[:port]`.
+          If `username@` is omitted, then your local $USER is used instead. If
+          `:port` is omitted, then the standard ssh port (22) is used instead
+
+  [PROG]...
+          Instead of executing your shell, run PROG. For example: `wezterm ssh
+          user@host -- bash -l` will spawn bash as if it were a login shell
+
+Options:
+  -o, --ssh-option <name=value>
+          Override specific SSH configuration options. `wezterm ssh` is able to
+          parse some (but not all!) options from your `~/.ssh/config` and
+          `/etc/ssh/ssh_config` files. This command line switch allows you to
+          override or otherwise specify ssh_config style options.
+          
+          For example:
+          
+          `wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host`
+
+  -v
+          Enable verbose ssh protocol tracing. The trace information is printed
+          to the stderr stream of the process
+
+      --class <CLASS>
+          Override the default windowing system class. The default is
+          "org.wezfurlong.wezterm". Under X11 and Windows this changes the
+          window class. Under Wayland this changes the app_id. This changes the
+          class for all windows spawned by this instance of wezterm, including
+          error, update and ssh authentication dialogs
+
+      --position <POSITION>
+          Override the position for the initial window launched by this process.
+          
+          --position 10,20          to set x=10, y=20 in screen coordinates
+          --position screen:10,20   to set x=10, y=20 in screen coordinates
+          --position main:10,20     to set x=10, y=20 relative to the main
+          monitor
+          --position active:10,20   to set x=10, y=20 relative to the active
+          monitor
+          --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor
+          named HDMI-1
+
+  -h, --help
+          Print help (see a summary with '-h')

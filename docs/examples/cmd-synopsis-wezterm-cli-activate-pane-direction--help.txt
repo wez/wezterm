@@ -1,0 +1,13 @@
+Activate an adjacent pane in the specified direction
+
+Usage: wezterm cli activate-pane-direction [OPTIONS] <DIRECTION>
+
+Arguments:
+  <DIRECTION>  The direction to switch to [possible values: Up, Down, Left,
+               Right, Next, Prev]
+
+Options:
+      --pane-id <PANE_ID>  Specify the current pane. The default is to use the
+                           current pane based on the environment variable
+                           WEZTERM_PANE
+  -h, --help               Print help

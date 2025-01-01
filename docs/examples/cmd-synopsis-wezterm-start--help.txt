@@ -1,0 +1,66 @@
+Start the GUI, optionally running an alternative program [aliases: -e]
+
+Usage: wezterm start [OPTIONS] [PROG]...
+
+Arguments:
+  [PROG]...
+          Instead of executing your shell, run PROG. For example: `wezterm start
+          -- bash -l` will spawn bash as if it were a login shell. [aliases: -e]
+
+Options:
+      --no-auto-connect
+          If true, do not connect to domains marked as connect_automatically in
+          your wezterm configuration file
+
+      --always-new-process
+          If enabled, don't try to ask an existing wezterm GUI instance to start
+          the command.  Instead, always start the GUI in this invocation of
+          wezterm so that you can wait for the command to complete by waiting
+          for this wezterm process to finish
+
+      --new-tab
+          When spawning into an existing GUI instance, spawn a new tab into the
+          active window rather than spawn a new window
+
+      --cwd <CWD>
+          Specify the current working directory for the initially spawned
+          program
+
+      --class <CLASS>
+          Override the default windowing system class. The default is
+          "org.wezfurlong.wezterm". Under X11 and Windows this changes the
+          window class. Under Wayland this changes the app_id. This changes the
+          class for all windows spawned by this instance of wezterm, including
+          error, update and ssh authentication dialogs
+
+      --workspace <WORKSPACE>
+          Override the default workspace with the provided name. The default is
+          "default"
+
+      --position <POSITION>
+          Override the position for the initial window launched by this process.
+          
+          --position 10,20          to set x=10, y=20 in screen coordinates
+          --position screen:10,20   to set x=10, y=20 in screen coordinates
+          --position main:10,20     to set x=10, y=20 relative to the main
+          monitor
+          --position active:10,20   to set x=10, y=20 relative to the active
+          monitor
+          --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor
+          named HDMI-1
+          
+          Note that Wayland does not allow applications to control window
+          positioning.
+
+      --domain <DOMAIN>
+          Name of the multiplexer domain section from the configuration to which
+          you'd like to connect. If omitted, the default domain will be used
+
+      --attach
+          When used with --domain, if the domain already has running panes,
+          wezterm will simply attach and will NOT spawn the specified PROG. If
+          you omit --attach when using --domain, wezterm will attach AND then
+          spawn PROG
+
+  -h, --help
+          Print help (see a summary with '-h')

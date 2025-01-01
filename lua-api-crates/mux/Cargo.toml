@@ -1,0 +1,23 @@
+[package]
+name = "mux-lua"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+config = { path = "../../config" }
+wezterm-dynamic = { path = "../../wezterm-dynamic" }
+wezterm-term = { path = "../../term" }
+libc = "0.2"
+log = "0.4"
+luahelper = { path = "../../luahelper" }
+parking_lot = "0.12"
+portable-pty = { path = "../../pty" }
+smol = "2.0"
+termwiz = { path = "../../termwiz" }
+termwiz-funcs = { path = "../termwiz-funcs" }
+mux = { path = "../../mux" }
+url-funcs = { path = "../url-funcs" }

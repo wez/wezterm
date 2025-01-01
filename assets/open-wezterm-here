@@ -1,0 +1,5 @@
+#!/bin/sh
+# This script is a helper that starts a new terminal window
+# in the cwd of the calling process, rather than using the
+# default cwd which is usually the home directory.
+exec wezterm start --cwd "$PWD" -- "$@"

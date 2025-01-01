@@ -1,0 +1,12 @@
+
+Regular
+[1mBold[0m
+[3mItalic[0m
+[1m[3mBold Italic[0m
+[2mHalf Bright[0m
+[2m[3mHalf Bright Italic[0m
+
+[5mBlink[0m
+[6mRapid Blink[0m
+
+I [1mI[0m [3mI[0m [1m[3mI[0m [2mI[0m [2m[3mI[0m

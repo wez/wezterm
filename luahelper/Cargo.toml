@@ -1,0 +1,14 @@
+[package]
+name = "luahelper"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bstr = "1.0"
+log = "0.4"
+mlua = "0.9"
+wezterm-dynamic = { path = "../wezterm-dynamic" }

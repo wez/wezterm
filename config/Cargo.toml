@@ -1,0 +1,52 @@
+[package]
+name = "config"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+env_logger = "0.11"
+
+[features]
+distro-defaults = []
+
+[dependencies]
+anyhow = "1.0"
+bitflags = "1.3"
+colorgrad = "0.6"
+dirs-next = "2.0"
+enum-display-derive = "0.1"
+hostname = "0.4"
+lazy_static = "1.4"
+libc = "0.2"
+log = "0.4"
+luahelper = { path = "../luahelper" }
+mlua = {version="0.9", features=["vendored", "lua54", "async", "send"]}
+# file change notification
+notify = "5.0.0"
+once_cell = "1.8"
+ordered-float = { version = "4.1", features = ["serde"] }
+portable-pty = { path = "../pty", features = ["serde_support"]}
+promise = { path = "../promise" }
+serde = {version="1.0", features = ["rc", "derive"]}
+serde_json = "1.0"
+shlex = "1.1"
+smol = "2.0"
+termwiz = { path = "../termwiz", features=["use_serde"] }
+toml = "0.8"
+umask = { path = "../umask" }
+wezterm-config-derive = { version="0.1", path="derive" }
+wezterm-dynamic = { path = "../wezterm-dynamic" }
+wezterm-bidi = { path = "../bidi" }
+wezterm-input-types = { path = "../wezterm-input-types" }
+wezterm-ssh = { path = "../wezterm-ssh" }
+wezterm-term = { path = "../term", features=["use_serde"] }
+
+[target."cfg(unix)".dependencies]
+nix = {version="0.28", features=["resource"]}
+
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = ["winuser"]}

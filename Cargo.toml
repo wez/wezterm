@@ -1,0 +1,34 @@
+[workspace]
+members = [
+  "bidi",
+  "bidi/generate",
+  "strip-ansi-escapes",
+  "sync-color-schemes",
+  "deps/cairo",
+  "wezterm",
+  "wezterm-blob-leases",
+  "wezterm-dynamic",
+  "wezterm-gui",
+  "wezterm-mux-server",
+  "wezterm-open-url",
+  "wezterm-ssh",
+  "wezterm-uds",
+]
+resolver = "2"
+exclude = [
+  "termwiz/codegen"
+]
+
+[profile.release]
+opt-level = 3
+# debug = 2
+
+[profile.dev]
+# https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
+# Disabled because it breaks builds on Windows
+#split-debuginfo = "unpacked"
+
+[patch.crates-io]
+# We use our own vendored cairo, which has minimal deps and should just
+# build via cargo.
+cairo-sys-rs = {path="deps/cairo", version="0.18.0"}

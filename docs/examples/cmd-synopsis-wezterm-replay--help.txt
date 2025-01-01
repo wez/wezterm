@@ -1,0 +1,13 @@
+Replay an asciicast terminal session
+
+Usage: wezterm replay [OPTIONS] <CAST_FILE>
+
+Arguments:
+  <CAST_FILE>  
+
+Options:
+      --explain       Explain what is being sent/received
+      --explain-only  Don't replay, just show the explanation
+      --cat           Just emit raw escape sequences all at once, with no timing
+                      information
+  -h, --help          Print help

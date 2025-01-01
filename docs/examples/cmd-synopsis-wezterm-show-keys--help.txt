@@ -1,0 +1,8 @@
+Show key assignments
+
+Usage: wezterm show-keys [OPTIONS]
+
+Options:
+      --lua                    Show the keys as lua config statements
+      --key-table <KEY_TABLE>  In lua mode, show only the named key table
+  -h, --help                   Print help

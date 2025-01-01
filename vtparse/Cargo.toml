@@ -1,0 +1,17 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "vtparse"
+version = "0.6.2"
+edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "Low level escape sequence parser"
+license = "MIT"
+documentation = "https://docs.rs/vtparse"
+keywords = ["terminal", "escape", "ansi", "sequence", "parser"]
+readme = "README.md"
+
+[dependencies]
+utf8parse = "0.2"
+
+[dev-dependencies]
+k9 = "0.12"

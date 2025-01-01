@@ -1,0 +1,41 @@
+split the current pane.
+Outputs the pane-id for the newly created pane on success
+
+Usage: wezterm cli split-pane [OPTIONS] [PROG]...
+
+Arguments:
+  [PROG]...  Instead of executing your shell, run PROG. For example: `wezterm
+             cli split-pane -- bash -l` will spawn bash as if it were a login
+             shell
+
+Options:
+      --pane-id <PANE_ID>
+          Specify the pane that should be split. The default is to use the
+          current pane based on the environment variable WEZTERM_PANE
+      --horizontal
+          Equivalent to `--right`. If neither this nor any other direction is
+          specified, the default is equivalent to `--bottom`
+      --left
+          Split horizontally, with the new pane on the left
+      --right
+          Split horizontally, with the new pane on the right
+      --top
+          Split vertically, with the new pane on the top
+      --bottom
+          Split vertically, with the new pane on the bottom
+      --top-level
+          Rather than splitting the active pane, split the entire window
+      --cells <CELLS>
+          The number of cells that the new split should have. If omitted, 50% of
+          the available space is used
+      --percent <PERCENT>
+          Specify the number of cells that the new split should have, expressed
+          as a percentage of the available space
+      --cwd <CWD>
+          Specify the current working directory for the initially spawned
+          program
+      --move-pane-id <MOVE_PANE_ID>
+          Instead of spawning a new command, move the specified pane into the
+          newly created split
+  -h, --help
+          Print help

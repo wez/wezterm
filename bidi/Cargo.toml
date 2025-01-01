@@ -1,0 +1,20 @@
+[package]
+name = "wezterm-bidi"
+version = "0.2.3"
+edition = "2021"
+repository = "https://github.com/wez/wezterm"
+description = "The Unicode Bidi Algorithm (UBA)"
+license = "MIT AND Unicode-DFS-2016"
+exclude = ["/data", "/tests"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+
+[dependencies]
+log = "0.4"
+wezterm-dynamic = { version = "0.2", path = "../wezterm-dynamic" }
+
+[dev-dependencies]
+k9 = "0.12.0"
+env_logger = "0.11"

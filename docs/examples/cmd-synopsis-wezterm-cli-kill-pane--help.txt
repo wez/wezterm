@@ -1,0 +1,9 @@
+Kill a pane
+
+Usage: wezterm cli kill-pane [OPTIONS]
+
+Options:
+      --pane-id <PANE_ID>  Specify the target pane. The default is to use the
+                           current pane based on the environment variable
+                           WEZTERM_PANE
+  -h, --help               Print help

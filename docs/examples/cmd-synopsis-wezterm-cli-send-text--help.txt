@@ -1,0 +1,15 @@
+Send text to a pane as though it were pasted. If bracketed paste mode is enabled
+in the pane, then the text will be sent as a bracketed paste
+
+Usage: wezterm cli send-text [OPTIONS] [TEXT]
+
+Arguments:
+  [TEXT]  The text to send. If omitted, will read the text from stdin
+
+Options:
+      --pane-id <PANE_ID>  Specify the target pane. The default is to use the
+                           current pane based on the environment variable
+                           WEZTERM_PANE
+      --no-paste           Send the text directly, rather than as a bracketed
+                           paste
+  -h, --help               Print help

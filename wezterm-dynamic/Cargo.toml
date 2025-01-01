@@ -1,0 +1,17 @@
+[package]
+name = "wezterm-dynamic"
+version = "0.2.0"
+edition = "2021"
+repository = "https://github.com/wez/wezterm"
+description = "config serialization for wezterm via dynamic json-like data values"
+license = "MIT"
+
+[dependencies]
+wezterm-dynamic-derive = { version="0.1", path="derive" }
+ordered-float = "4.1"
+thiserror = "1.0"
+strsim = "0.11"
+log = "0.4"
+
+[dev-dependencies]
+maplit = "1.0"

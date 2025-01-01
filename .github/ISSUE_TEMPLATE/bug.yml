@@ -1,0 +1,100 @@
+name: Bug Report Form
+description: Create a report to help us improve
+labels: bug
+assignees: []
+body:
+  - type: dropdown
+    id: os
+    attributes:
+      label: What Operating System(s) are you seeing this problem on?
+      multiple: true
+      options:
+        - Windows
+        - Linux X11
+        - Linux Wayland
+        - macOS
+        - FreeBSD X11
+        - FreeBSD Wayland
+    validations:
+      required: true
+  - type: textarea
+    id: window_manager
+    attributes:
+      label: Which Wayland compositor or X11 Window manager(s) are you using?
+      description: |
+        If running on a unix system, please include the name and version of the compositor/WM.
+        Windows and macOS typically can leave this blank, but if you are using additional window
+        management software on top of the standard for those systems, please indicate that here.
+      placeholder: "ex: Sway, Mutter, wayfire, i3."
+  - type: input
+    id: version
+    attributes:
+      label: WezTerm version
+      description: |
+        Please run `wezterm -V` and include its output here.
+        If you installed the flatpak version of wezterm, please consider trying
+        the native package format for your system and comparing the behavior,
+        as flatpak runs in an isolated sandbox that can prevent some functionality
+        from working fully.
+      placeholder: "ex: 20210816-085256-935c1f48"
+    validations:
+      required: true
+  - type: dropdown
+    id: triednightly
+    attributes:
+      label: Did you try the latest nightly build to see if the issue is better (or worse!) than your current version?
+      options:
+        - Yes, and I updated the version box above to show the version of the nightly that I tried
+        - No, and I'll explain why below
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is
+      placeholder: Tell us what happened
+    validations:
+      required: true
+  - type: textarea
+    id: to_repro
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        Please include as much information as possible that can help to reproduce and
+        understand the issue.
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: |
+        Please include the relevant section(s) of your `wezterm.lua` configuration file.
+        You can enter "no config" if the issue happens without you having made a config file.    
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        If possible, activate the Debug Overlay by pressing CTRL-SHIFT-L and then copy
+        and paste the log lines in here.  If you launched wezterm from
+        the command line, copy and paste that output here.
+        You can also find log files in `$XDG_RUNTIME_DIR/wezterm` on unix systems,
+        or `$HOME/.local/share/wezterm` on macOS and Windows systems.
+      placeholder: |
+        09:27:26.703 INFO wezterm_gui::termwindow > OpenGL initialized! NVIDIA GeForce GT 1030/PCIe/SSE2 4.6.0 NVIDIA 470.57.02 is_context_loss_possible=false wezterm version: 20210816-085256-935c1f48
+  - type: textarea
+    id: other
+    attributes:
+      label: Anything else?
+      description: |
+        Add any other context about the problem here.  You can attach screenshots by clicking
+        this area to highlight it and then drag the files in, or just paste the image from
+        the clipboard to upload it.

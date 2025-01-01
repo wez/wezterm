@@ -1,0 +1,5 @@
+theme: jekyll-theme-hacker
+plugins:
+  - jekyll-octicons
+  - jekyll-sitemap
+  - jekyll-avatar

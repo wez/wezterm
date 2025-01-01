@@ -1,0 +1,21 @@
+Retrieves the textual content of a pane and output it to stdout
+
+Usage: wezterm cli get-text [OPTIONS]
+
+Options:
+      --pane-id <PANE_ID>
+          Specify the target pane. The default is to use the current pane based
+          on the environment variable WEZTERM_PANE
+      --start-line <START_LINE>
+          The starting line number. 0 is the first line of terminal screen.
+          Negative numbers proceed backwards into the scrollback. The default
+          value is unspecified is 0, the first line of the terminal screen
+      --end-line <END_LINE>
+          The ending line number. 0 is the first line of terminal screen.
+          Negative numbers proceed backwards into the scrollback. The default
+          value if unspecified is the bottom of the the terminal screen
+      --escapes
+          Include escape sequences that color and style the text. If omitted,
+          unattributed text will be returned
+  -h, --help
+          Print help

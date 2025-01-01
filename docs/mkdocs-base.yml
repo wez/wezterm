@@ -1,0 +1,137 @@
+copyright: Copyright &copy; 2018-Present Wez Furlong
+use_directory_urls: false
+site_name: Wez's Terminal Emulator
+site_url: https://wezfurlong.org/wezterm/
+site_description: Wez's Terminal Emulator
+repo_url: https://github.com/wez/wezterm
+repo_name: wez/wezterm
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: gh_pages
+strict: true
+theme:
+  name: material
+  logo: favicon.svg
+  favicon: favicon.png
+  custom_dir: docs/overrides
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - content.tabs.link
+    - navigation.footer
+    - navigation.indexes
+    #- navigation.instant - breaks colorscheme preview
+    #- navigation.expand
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+plugins:
+  - include-markdown
+  - tags:
+      tags_file: tags.md
+  - macros:
+      module_name: mkdocs_macros
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])'
+  - social:
+      cards: !ENV [CARDS, false]
+  #- git-revision-date-localized:
+  #    enable_creation_date: true
+  #    type: timeago
+  - exclude:
+      glob:
+        - "**/_index.md"
+        - "**/*.markdown"
+        - "generate_toc.py"
+        - "README.markdown"
+        - "build.sh"
+        - "SUMMARY.md"
+        - "book.toml"
+        - "overrides/**"
+
+exclude_docs: |
+  **/_index.md
+  **/*.markdown
+  generate_toc.py
+  README.markdown
+  build.sh
+  SUMMARY.md
+  book.toml
+  overrides/**
+
+not_in_nav: |
+  tags.md
+
+extra_css:
+  - style.css
+  - colorschemes/scheme.css
+  - asciinema-player.css
+extra_javascript:
+  - asciinema-player.min.js
+  - javascript/fix-codeblock-console-copy-button.js
+  - colorschemes/scheme.js
+
+markdown_extensions:
+  - admonition
+  - pymdownx.saneheaders
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: wez
+      repo: wezterm
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - def_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.pathconverter:
+      base_path: "./docs"
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/wez/wezterm
+    - icon: fontawesome/brands/mastodon
+      link: https://fosstodon.org/@wez
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/wezfurlong

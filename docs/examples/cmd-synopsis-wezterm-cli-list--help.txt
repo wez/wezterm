@@ -1,0 +1,8 @@
+list windows, tabs and panes
+
+Usage: wezterm cli list [OPTIONS]
+
+Options:
+      --format <FORMAT>  Controls the output format. "table" and "json" are
+                         possible formats [default: table]
+  -h, --help             Print help

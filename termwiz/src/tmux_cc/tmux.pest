@@ -1,0 +1,50 @@
+number = { ASCII_DIGIT+ }
+any_text = { ANY* }
+word = { (ASCII_ALPHANUMERIC | "/")+ }
+
+pane_id = { "%" ~ number }
+window_id = { "@" ~ number }
+session_id = { "$" ~ number }
+client_name = { word }
+window_layout = { word ~ "," ~ number ~ "x" ~ number ~ "," ~ number ~ "," ~ number ~ "," ~ number }
+
+begin = { "%begin " ~ number ~ " " ~ number ~ " " ~ number }
+end = { "%end " ~ number ~ " " ~ number ~ " " ~ number }
+error = { "%error " ~ number ~ " " ~ number ~ " " ~ number }
+
+client_session_changed = { "%client-session-changed " ~ client_name ~ " " ~ session_id ~ " " ~any_text }
+client_detached = { "%client-detached " ~ client_name }
+output = { "%output " ~ pane_id ~ " " ~ any_text }
+exit = { "%exit" ~ (" " ~ any_text)? }
+sessions_changed = { "%sessions-changed" }
+pane_mode_changed = { "%pane-mode-changed " ~ pane_id }
+window_add = { "%window-add " ~ window_id }
+window_close = { "%window-close " ~ window_id }
+window_pane_changed = { "%window-pane-changed " ~ window_id ~ " " ~ pane_id }
+window_renamed = { "%window-renamed " ~ window_id ~ " " ~ any_text }
+session_changed = { "%session-changed " ~ session_id ~ " " ~ any_text }
+session_renamed = { "%session-renamed " ~ any_text }
+session_window_changed = { "%session-window-changed " ~ session_id ~ " " ~ window_id }
+layout_change = { "%layout-change " ~ window_id ~ " " ~ (window_layout ~ " " ~ window_layout ~ " " ~any_text | window_layout) }
+
+line = _{ (
+  client_session_changed |
+  client_detached |
+  begin |
+  end |
+  error |
+  exit |
+  output |
+  pane_mode_changed |
+  session_changed |
+  session_renamed |
+  session_window_changed |
+  sessions_changed |
+  window_add |
+  window_close |
+  window_pane_changed |
+  window_renamed |
+  layout_change
+) }
+
+line_entire = _{ SOI ~ line ~ EOI }

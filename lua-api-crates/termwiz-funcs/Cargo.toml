@@ -1,0 +1,18 @@
+[package]
+name = "termwiz-funcs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+config = { path = "../../config" }
+finl_unicode = "1.2"
+terminfo = "0.9"
+wezterm-dynamic = { path = "../../wezterm-dynamic" }
+wezterm-input-types = { path = "../../wezterm-input-types" }
+luahelper = { path = "../../luahelper" }
+termwiz = { path = "../../termwiz", features=["use_serde"] }
+lazy_static = "1.4"

@@ -1,0 +1,45 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "wezterm-term"
+version = "0.1.0"
+edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "The Virtual Terminal Emulator core from wezterm; helpful for implementing terminal emulators"
+license = "MIT"
+documentation = "https://docs.rs/wezterm-term"
+keywords = ["terminal", "emulator", "vte"]
+readme = "README.md"
+
+[features]
+use_serde = ["termwiz/use_serde"]
+
+[dependencies]
+anyhow = "1.0"
+bitflags = "1.3"
+csscolorparser = "0.6"
+downcast-rs = "1.0"
+humansize = "2.1"
+miniz_oxide = "0.7"
+finl_unicode = "1.2"
+hex = "0.4"
+image = "0.25"
+lazy_static = "1.4"
+log = "0.4"
+lru = "0.12"
+num-traits = "0.2"
+ordered-float = "4.1"
+serde = {version="1.0", features = ["rc"]}
+terminfo = "0.9"
+unicode-normalization = "0.1.21"
+url = "2"
+wezterm-bidi = { path = "../bidi" }
+wezterm-dynamic = { path = "../wezterm-dynamic" }
+
+[dev-dependencies]
+env_logger = "0.11"
+k9 = "0.12.0"
+
+[dependencies.termwiz]
+version = "0.22"
+path = "../termwiz"
+features = ["use_image"]

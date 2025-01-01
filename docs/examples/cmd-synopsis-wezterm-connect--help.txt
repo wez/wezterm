@@ -1,0 +1,43 @@
+Connect to wezterm multiplexer
+
+Usage: wezterm connect [OPTIONS] <DOMAIN_NAME> [PROG]...
+
+Arguments:
+  <DOMAIN_NAME>
+          Name of the multiplexer domain section from the configuration to which
+          you'd like to connect
+
+  [PROG]...
+          Instead of executing your shell, run PROG. For example: `wezterm start
+          -- bash -l` will spawn bash as if it were a login shell
+
+Options:
+      --new-tab
+          When spawning into an existing GUI instance, spawn a new tab into the
+          active window rather than spawn a new window
+
+      --class <CLASS>
+          Override the default windowing system class. The default is
+          "org.wezfurlong.wezterm". Under X11 and Windows this changes the
+          window class. Under Wayland this changes the app_id. This changes the
+          class for all windows spawned by this instance of wezterm, including
+          error, update and ssh authentication dialogs
+
+      --workspace <WORKSPACE>
+          Override the default workspace with the provided name. The default is
+          "default"
+
+      --position <POSITION>
+          Override the position for the initial window launched by this process.
+          
+          --position 10,20          to set x=10, y=20 in screen coordinates
+          --position screen:10,20   to set x=10, y=20 in screen coordinates
+          --position main:10,20     to set x=10, y=20 relative to the main
+          monitor
+          --position active:10,20   to set x=10, y=20 relative to the active
+          monitor
+          --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor
+          named HDMI-1
+
+  -h, --help
+          Print help (see a summary with '-h')

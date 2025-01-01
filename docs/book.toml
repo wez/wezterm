@@ -1,0 +1,31 @@
+[book]
+title = "Wez's Terminal Emulator"
+author = "Wez Furlong"
+src = "."
+
+[build]
+build-dir = "../gh_pages"
+create-missing = false
+
+[output.html]
+additional-css = ["custom.css", "asciinema-player.css", "mdbook-admonish.css"]
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/wez/wezterm"
+additional-js = ["mermaid.min.js", "mermaid-init.js", "asciinema-player.min.js"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.linkcheck]
+traverse-parent-directories = false
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[preprocessor.admonish]
+command = "mdbook-admonish"
+assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`

@@ -1,0 +1,17 @@
+Display information about fonts
+
+Usage: wezterm ls-fonts [OPTIONS]
+
+Options:
+      --list-system
+          Whether to list all fonts available to the system
+      --text <TEXT>
+          Explain which fonts are used to render the supplied text string
+      --codepoints <CODEPOINTS>
+          Explain which fonts are used to render the specified unicode code
+          point sequence. Code points are comma separated hex values
+      --rasterize-ascii
+          Show rasterized glyphs for the text in --text or --codepoints using
+          ascii blocks
+  -h, --help
+          Print help

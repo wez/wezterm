@@ -1,0 +1,35 @@
+Activate a tab
+
+Usage: wezterm cli activate-tab [OPTIONS]
+
+Options:
+      --tab-id <TAB_ID>
+          Specify the target tab by its id
+
+      --tab-index <TAB_INDEX>
+          Specify the target tab by its index within the window that holds the
+          current pane. Indices are 0-based, with 0 being the left-most tab.
+          Negative numbers can be used to reference the right-most tab, so -1 is
+          the right-most tab, -2 is the penultimate tab and so on
+
+      --tab-relative <TAB_RELATIVE>
+          Specify the target tab by its relative offset. -1 selects the tab to
+          the left. -2 two tabs to the left. 1 is one tab to the right and so
+          on.
+          
+          Unless `--no-wrap` is specified, relative moves wrap around from the
+          left-most to right-most and vice versa.
+
+      --no-wrap
+          When used with tab-relative, prevents wrapping around and will instead
+          clamp to the left-most when moving left or right-most when moving
+          right
+
+      --pane-id <PANE_ID>
+          Specify the current pane. The default is to use the current pane based
+          on the environment variable WEZTERM_PANE.
+          
+          The pane is used to figure out which window contains appropriate tabs
+
+  -h, --help
+          Print help (see a summary with '-h')

@@ -1,0 +1,16 @@
+[package]
+name = "plugin"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+config = { path = "../../config" }
+git2 = { version = "0.18", default-features = false, features = ["https"] }
+log = "0.4"
+luahelper = { path = "../../luahelper" }
+tempfile = "3.3"
+wezterm-dynamic = { path = "../../wezterm-dynamic" }

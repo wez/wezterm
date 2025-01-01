@@ -1,0 +1,35 @@
+[package]
+name = "wezterm-mux-server"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+resolver = "2"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+async_ossl = { path = "../async_ossl" }
+clap = {version="4.0", features=["derive"]}
+config = { path = "../config" }
+env-bootstrap = { path = "../env-bootstrap" }
+libc = "0.2"
+log = "0.4"
+mux = { path = "../mux" }
+mlua = "0.9"
+openssl = "0.10"
+portable-pty = { path = "../pty", features = ["serde_support"]}
+promise = { path = "../promise" }
+umask = { path = "../umask" }
+wezterm-blob-leases = { path = "../wezterm-blob-leases", version="0.1", features=["simple_tempdir"] }
+wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
+wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
+wezterm-term = { path = "../term" }
+
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = [ "winuser" ]}
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.7"
+cc = "1.0"

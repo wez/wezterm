@@ -1,0 +1,35 @@
+Open a serial port
+
+Usage: wezterm serial [OPTIONS] <PORT>
+
+Arguments:
+  <PORT>
+          Specifies the serial device name. On Windows systems this can be a
+          name like `COM0`. On posix systems this will be something like
+          `/dev/ttyUSB0`
+
+Options:
+      --baud <BAUD>
+          Set the baud rate.  The default is 9600 baud
+
+      --class <CLASS>
+          Override the default windowing system class. The default is
+          "org.wezfurlong.wezterm". Under X11 and Windows this changes the
+          window class. Under Wayland this changes the app_id. This changes the
+          class for all windows spawned by this instance of wezterm, including
+          error, update and ssh authentication dialogs
+
+      --position <POSITION>
+          Override the position for the initial window launched by this process.
+          
+          --position 10,20          to set x=10, y=20 in screen coordinates
+          --position screen:10,20   to set x=10, y=20 in screen coordinates
+          --position main:10,20     to set x=10, y=20 relative to the main
+          monitor
+          --position active:10,20   to set x=10, y=20 relative to the active
+          monitor
+          --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor
+          named HDMI-1
+
+  -h, --help
+          Print help (see a summary with '-h')

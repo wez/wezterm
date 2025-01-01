@@ -1,0 +1,34 @@
+[package]
+name = "wezterm-toast-notification"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+build = "build.rs"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wezterm-open-url = { path = "../wezterm-open-url" }
+log = "0.4"
+
+[target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
+serde = {version="1.0", features = ["derive"]}
+zbus = "4.2"
+zvariant = "4.0"
+async-io = "2.3"
+futures-util = "0.3"
+
+[target.'cfg(target_os="macos")'.dependencies]
+cocoa = "0.25"
+core-foundation = "0.9"
+objc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version="0.33.0", features = [
+    "Data_Xml_Dom",
+    "Foundation",
+    "UI_Notifications",
+    "Win32_Foundation",
+]}
+xml-rs = "0.8"

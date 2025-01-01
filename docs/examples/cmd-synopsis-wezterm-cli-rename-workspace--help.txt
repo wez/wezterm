@@ -1,0 +1,20 @@
+Rename a workspace
+
+Usage: wezterm cli rename-workspace [OPTIONS] <NEW_WORKSPACE>
+
+Arguments:
+  <NEW_WORKSPACE>
+          The new name for the workspace
+
+Options:
+      --workspace <WORKSPACE>
+          Specify the workspace to rename
+
+      --pane-id <PANE_ID>
+          Specify the current pane. The default is to use the current pane based
+          on the environment variable WEZTERM_PANE.
+          
+          The pane is used to figure out which workspace should be renamed.
+
+  -h, --help
+          Print help (see a summary with '-h')

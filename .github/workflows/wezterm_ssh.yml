@@ -1,0 +1,70 @@
+name: wezterm-ssh
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "wezterm-ssh/**"
+      - "filedescriptor/**"
+      - "pty/**"
+      - "async_ossl/**"
+      - "termwiz/**"
+      - ".github/workflows/wezterm_ssh.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "wezterm-ssh/**"
+      - "filedescriptor/**"
+      - "pty/**"
+      - "async_ossl/**"
+      - "termwiz/**"
+      - ".github/workflows/wezterm_ssh.yml"
+
+jobs:
+  build-wezterm-ssh-feature-libssh-rs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: "Install Rust"
+        uses: dtolnay/rust-toolchain@stable
+      - name: "Cache cargo"
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            wezterm-ssh
+          key: "wezterm-ssh-libssh-rs-${{ runner.os }}"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          cargo build -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
+          cargo nextest run --no-fail-fast -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
+  build-wezterm-ssh-feature-ssh2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: "Install Rust"
+        uses: dtolnay/rust-toolchain@stable
+      - name: "Cache cargo"
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            wezterm-ssh
+          key: "wezterm-ssh-ssh2-${{ runner.os }}"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          cargo build -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
+          cargo nextest run --no-fail-fast -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
+
