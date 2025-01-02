@@ -29,7 +29,7 @@
       flake = false;
     };
     libpng = {
-      url = "github:glennrp/libpng/8439534daa1d3a5705ba92e653eda9251246dd61";
+      url = "github:pnggroup/libpng/v1.6.44";
       flake = false;
     };
     zlib = {
@@ -120,17 +120,6 @@
             cp -r ${inputs.zlib}/* deps/freetype/zlib
             cp -r ${inputs.harfbuzz}/* deps/harfbuzz/harfbuzz
           '';
-
-          patches = [
-            # Fix platform check in vendored libpng with clang 19 on Darwin.
-            (pkgs.fetchpatch2 {
-              url = "https://github.com/pnggroup/libpng/commit/893b8113f04d408cc6177c6de19c9889a48faa24.patch?full_index=1";
-              extraPrefix = "deps/freetype/libpng/";
-              stripLen = 1;
-              excludes = [ "deps/freetype/libpng/AUTHORS" ];
-              hash = "sha256-zW/oUo2EGcnsxAfbbbhTKGui/lwCqovyrvUnylfRQzc=";
-            })
-          ];
 
           postPatch = ''
             echo ${version} > .tag
