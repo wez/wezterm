@@ -38,198 +38,219 @@
     };
   };
 
-  outputs = inputs @ {self, ...}:
-    inputs.flake-utils.lib.eachDefaultSystem (system: let
-      overlays = [(import inputs.rust-overlay)];
-      pkgs = import (inputs.nixpkgs) {inherit system overlays;};
+  outputs =
+    inputs@{ self, ... }:
+    inputs.flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        overlays = [ (import inputs.rust-overlay) ];
+        pkgs = import (inputs.nixpkgs) { inherit system overlays; };
 
-      inherit (inputs.nixpkgs) lib;
-      inherit (pkgs) stdenv;
+        inherit (inputs.nixpkgs) lib;
+        inherit (pkgs) stdenv;
 
-      nativeBuildInputs = with pkgs;
-        [
-          installShellFiles
-          ncurses # tic for terminfo
-          pkg-config
-          python3
-        ]
-        ++ lib.optional stdenv.isDarwin perl;
-
-      buildInputs = with pkgs;
-        [
-          fontconfig
-          zlib
-        ]
-        ++ lib.optionals stdenv.isLinux [
-          libxkbcommon
-          openssl
-          wayland
-
-          xorg.libX11
-          xorg.libxcb
-          xorg.xcbutil
-          xorg.xcbutilimage
-          xorg.xcbutilkeysyms
-          xorg.xcbutilwm # contains xcb-ewmh among others
-        ]
-        ++ lib.optionals stdenv.isDarwin (
+        nativeBuildInputs =
+          with pkgs;
           [
+            installShellFiles
+            ncurses # tic for terminfo
+            pkg-config
+            python3
+          ]
+          ++ lib.optional stdenv.isDarwin perl;
+
+        buildInputs =
+          with pkgs;
+          [
+            fontconfig
+            zlib
+          ]
+          ++ lib.optionals stdenv.isLinux [
+            libxkbcommon
+            openssl
+            wayland
+
+            xorg.libX11
+            xorg.libxcb
+            xorg.xcbutil
+            xorg.xcbutilimage
+            xorg.xcbutilkeysyms
+            xorg.xcbutilwm # contains xcb-ewmh among others
+          ]
+          ++ lib.optionals stdenv.isDarwin ([
             libiconv
+          ]);
+
+        libPath = lib.makeLibraryPath (
+          with pkgs;
+          [
+            xorg.xcbutilimage
+            libGL
+            vulkan-loader
           ]
         );
 
-      libPath = lib.makeLibraryPath (with pkgs; [
-        xorg.xcbutilimage
-        libGL
-        vulkan-loader
-      ]);
-
-      rustPlatform = pkgs.makeRustPlatform {
-        cargo = pkgs.rust-bin.stable.latest.minimal;
-        rustc = pkgs.rust-bin.stable.latest.minimal;
-      };
-    in {
-      packages.default = rustPlatform.buildRustPackage rec {
-        inherit buildInputs nativeBuildInputs;
-
-        name = "wezterm";
-        src = ./..;
-        version = self.shortRev or "dev";
-
-        cargoLock = {
-          lockFile = ../Cargo.lock;
-          allowBuiltinFetchGit = true;
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = pkgs.rust-bin.stable.latest.minimal;
+          rustc = pkgs.rust-bin.stable.latest.minimal;
         };
+      in
+      {
+        packages.default = rustPlatform.buildRustPackage rec {
+          inherit buildInputs nativeBuildInputs;
 
-        env.NIX_CFLAGS_COMPILE = toString [ "-Wno-macro-redefined" ];
+          name = "wezterm";
+          src = ./..;
+          version = self.shortRev or "dev";
 
-        prePatch = ''
-          rm -rf deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
-
-          mkdir -p deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
-
-          cp -r ${inputs.freetype2}/* deps/freetype/freetype2
-          cp -r ${inputs.libpng}/* deps/freetype/libpng
-          cp -r ${inputs.zlib}/* deps/freetype/zlib
-          cp -r ${inputs.harfbuzz}/* deps/harfbuzz/harfbuzz
-        '';
-
-        patches = [
-          # Remove unused `fdopen` in vendored zlib, which causes compilation failures with clang 19 on Darwin.
-          # Ref: https://github.com/madler/zlib/commit/4bd9a71f3539b5ce47f0c67ab5e01f3196dc8ef9
-          ./zlib-fdopen.patch
-
-          # Fix platform check in vendored libpng with clang 19 on Darwin.
-          (pkgs.fetchpatch2 {
-            url = "https://github.com/pnggroup/libpng/commit/893b8113f04d408cc6177c6de19c9889a48faa24.patch?full_index=1";
-            extraPrefix = "deps/freetype/libpng/";
-            stripLen = 1;
-            excludes = [ "deps/freetype/libpng/AUTHORS" ];
-            hash = "sha256-zW/oUo2EGcnsxAfbbbhTKGui/lwCqovyrvUnylfRQzc=";
-          })
-        ];
-
-        postPatch = ''
-          echo ${version} > .tag
-
-          # tests are failing with: Unable to exchange encryption keys
-          rm -r wezterm-ssh/tests
-
-          # hash does not work well with NixOS
-          substituteInPlace assets/shell-integration/wezterm.sh \
-            --replace-fail 'hash wezterm 2>/dev/null' 'command type -P wezterm &>/dev/null' \
-            --replace-fail 'hash base64 2>/dev/null' 'command type -P base64 &>/dev/null' \
-            --replace-fail 'hash hostname 2>/dev/null' 'command type -P hostname &>/dev/null' \
-            --replace-fail 'hash hostnamectl 2>/dev/null' 'command type -P hostnamectl &>/dev/null'
-        '';
-
-        preFixup = lib.optionalString stdenv.isLinux ''
-          patchelf \
-            --add-needed "${pkgs.libGL}/lib/libEGL.so.1" \
-            --add-needed "${pkgs.vulkan-loader}/lib/libvulkan.so.1" \
-            $out/bin/wezterm-gui
-        '' + lib.optionalString stdenv.isDarwin ''
-            mkdir -p "$out/Applications"
-            OUT_APP="$out/Applications/WezTerm.app"
-            cp -r assets/macos/WezTerm.app "$OUT_APP"
-            rm $OUT_APP/*.dylib
-            cp -r assets/shell-integration/* "$OUT_APP"
-            ln -s $out/bin/{wezterm,wezterm-mux-server,wezterm-gui,strip-ansi-escapes} "$OUT_APP"
-        '';
-
-        postInstall = ''
-          mkdir -p $out/nix-support
-          echo "${passthru.terminfo}" >> $out/nix-support/propagated-user-env-packages
-
-          install -Dm644 assets/icon/terminal.png $out/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
-          install -Dm644 assets/wezterm.desktop $out/share/applications/org.wezfurlong.wezterm.desktop
-          install -Dm644 assets/wezterm.appdata.xml $out/share/metainfo/org.wezfurlong.wezterm.appdata.xml
-
-          install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
-          installShellCompletion --cmd wezterm \
-            --bash assets/shell-completion/bash \
-            --fish assets/shell-completion/fish \
-            --zsh assets/shell-completion/zsh
-
-          install -Dm644 assets/wezterm-nautilus.py -t $out/share/nautilus-python/extensions
-        '';
-
-        passthru = {
-          # the headless variant is useful when deploying wezterm's mux server on remote severs
-          headless = rustPlatform.buildRustPackage {
-            pname = "wezterm-headless";
-            inherit version src postPatch cargoLock meta;
-
-            nativeBuildInputs = [ pkgs.pkg-config ];
-
-            buildInputs = [ pkgs.openssl ];
-
-            cargoBuildFlags = [
-              "--package" "wezterm"
-              "--package" "wezterm-mux-server"
-            ];
-
-            doCheck = false;
-
-            postInstall = ''
-              install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
-              install -Dm644 ${passthru.terminfo}/share/terminfo/w/wezterm -t $out/share/terminfo/w
-            '';
+          cargoLock = {
+            lockFile = ../Cargo.lock;
+            allowBuiltinFetchGit = true;
           };
 
-          terminfo =
-            pkgs.runCommand "wezterm-terminfo"
-            {
-              nativeBuildInputs = [pkgs.ncurses];
-            } ''
-              mkdir -p $out/share/terminfo $out/nix-support
-              tic -x -o $out/share/terminfo ${src}/termwiz/data/wezterm.terminfo
+          env.NIX_CFLAGS_COMPILE = toString [ "-Wno-macro-redefined" ];
+
+          prePatch = ''
+            rm -rf deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
+
+            mkdir -p deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
+
+            cp -r ${inputs.freetype2}/* deps/freetype/freetype2
+            cp -r ${inputs.libpng}/* deps/freetype/libpng
+            cp -r ${inputs.zlib}/* deps/freetype/zlib
+            cp -r ${inputs.harfbuzz}/* deps/harfbuzz/harfbuzz
+          '';
+
+          patches = [
+            # Remove unused `fdopen` in vendored zlib, which causes compilation failures with clang 19 on Darwin.
+            # Ref: https://github.com/madler/zlib/commit/4bd9a71f3539b5ce47f0c67ab5e01f3196dc8ef9
+            ./zlib-fdopen.patch
+
+            # Fix platform check in vendored libpng with clang 19 on Darwin.
+            (pkgs.fetchpatch2 {
+              url = "https://github.com/pnggroup/libpng/commit/893b8113f04d408cc6177c6de19c9889a48faa24.patch?full_index=1";
+              extraPrefix = "deps/freetype/libpng/";
+              stripLen = 1;
+              excludes = [ "deps/freetype/libpng/AUTHORS" ];
+              hash = "sha256-zW/oUo2EGcnsxAfbbbhTKGui/lwCqovyrvUnylfRQzc=";
+            })
+          ];
+
+          postPatch = ''
+            echo ${version} > .tag
+
+            # tests are failing with: Unable to exchange encryption keys
+            rm -r wezterm-ssh/tests
+
+            # hash does not work well with NixOS
+            substituteInPlace assets/shell-integration/wezterm.sh \
+              --replace-fail 'hash wezterm 2>/dev/null' 'command type -P wezterm &>/dev/null' \
+              --replace-fail 'hash base64 2>/dev/null' 'command type -P base64 &>/dev/null' \
+              --replace-fail 'hash hostname 2>/dev/null' 'command type -P hostname &>/dev/null' \
+              --replace-fail 'hash hostnamectl 2>/dev/null' 'command type -P hostnamectl &>/dev/null'
+          '';
+
+          preFixup =
+            lib.optionalString stdenv.isLinux ''
+              patchelf \
+                --add-needed "${pkgs.libGL}/lib/libEGL.so.1" \
+                --add-needed "${pkgs.vulkan-loader}/lib/libvulkan.so.1" \
+                $out/bin/wezterm-gui
+            ''
+            + lib.optionalString stdenv.isDarwin ''
+              mkdir -p "$out/Applications"
+              OUT_APP="$out/Applications/WezTerm.app"
+              cp -r assets/macos/WezTerm.app "$OUT_APP"
+              rm $OUT_APP/*.dylib
+              cp -r assets/shell-integration/* "$OUT_APP"
+              ln -s $out/bin/{wezterm,wezterm-mux-server,wezterm-gui,strip-ansi-escapes} "$OUT_APP"
             '';
+
+          postInstall = ''
+            mkdir -p $out/nix-support
+            echo "${passthru.terminfo}" >> $out/nix-support/propagated-user-env-packages
+
+            install -Dm644 assets/icon/terminal.png $out/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
+            install -Dm644 assets/wezterm.desktop $out/share/applications/org.wezfurlong.wezterm.desktop
+            install -Dm644 assets/wezterm.appdata.xml $out/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+
+            install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
+            installShellCompletion --cmd wezterm \
+              --bash assets/shell-completion/bash \
+              --fish assets/shell-completion/fish \
+              --zsh assets/shell-completion/zsh
+
+            install -Dm644 assets/wezterm-nautilus.py -t $out/share/nautilus-python/extensions
+          '';
+
+          passthru = {
+            # the headless variant is useful when deploying wezterm's mux server on remote severs
+            headless = rustPlatform.buildRustPackage {
+              pname = "wezterm-headless";
+              inherit
+                version
+                src
+                postPatch
+                cargoLock
+                meta
+                ;
+
+              nativeBuildInputs = [ pkgs.pkg-config ];
+
+              buildInputs = [ pkgs.openssl ];
+
+              cargoBuildFlags = [
+                "--package"
+                "wezterm"
+                "--package"
+                "wezterm-mux-server"
+              ];
+
+              doCheck = false;
+
+              postInstall = ''
+                install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
+                install -Dm644 ${passthru.terminfo}/share/terminfo/w/wezterm -t $out/share/terminfo/w
+              '';
+            };
+
+            terminfo =
+              pkgs.runCommand "wezterm-terminfo"
+                {
+                  nativeBuildInputs = [ pkgs.ncurses ];
+                }
+                ''
+                  mkdir -p $out/share/terminfo $out/nix-support
+                  tic -x -o $out/share/terminfo ${src}/termwiz/data/wezterm.terminfo
+                '';
+          };
+
+          meta.mainProgram = "wezterm";
         };
 
-        meta.mainProgram = "wezterm";
-      };
+        devShell = pkgs.mkShell {
+          name = "wezterm-shell";
+          inherit nativeBuildInputs;
 
-      devShell = pkgs.mkShell {
-        name = "wezterm-shell";
-        inherit nativeBuildInputs;
+          buildInputs =
+            buildInputs
+            ++ (with pkgs.rust-bin; [
+              (stable.latest.minimal.override {
+                extensions = [
+                  "clippy"
+                  "rust-src"
+                ];
+              })
 
-        buildInputs =
-          buildInputs
-          ++ (with pkgs.rust-bin; [
-            (stable.latest.minimal.override {
-              extensions = [
-                "clippy"
-                "rust-src"
-              ];
-            })
+              nightly.latest.rustfmt
+              nightly.latest.rust-analyzer
+            ]);
 
-            nightly.latest.rustfmt
-            nightly.latest.rust-analyzer
-          ]);
+          LD_LIBRARY_PATH = libPath;
+          RUST_BACKTRACE = 1;
+        };
 
-        LD_LIBRARY_PATH = libPath;
-        RUST_BACKTRACE = 1;
-      };
-    });
+        formatter = pkgs.nixfmt-rfc-style;
+      }
+    );
 }
