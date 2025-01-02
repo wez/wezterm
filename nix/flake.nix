@@ -58,7 +58,7 @@
       buildInputs = with pkgs;
         [
           fontconfig
-          pkgs.zlib
+          zlib
         ]
         ++ lib.optionals stdenv.isLinux [
           libxkbcommon
@@ -73,13 +73,9 @@
           xorg.xcbutilwm # contains xcb-ewmh among others
         ]
         ++ lib.optionals stdenv.isDarwin (
-          (with pkgs.darwin.apple_sdk_12_3.frameworks; [
-            Cocoa
-            CoreGraphics
-            Foundation
-            UserNotifications
-          ])
-          ++ [pkgs.libiconv]
+          [
+            libiconv
+          ]
         );
 
       libPath = lib.makeLibraryPath (with pkgs; [
@@ -105,15 +101,33 @@
           allowBuiltinFetchGit = true;
         };
 
-        preConfigure = ''
-          rm -rf deps/freetype/freetype2 deps/freetype/libpng \
-            deps/freetype/zlib deps/harfbuzz/harfbuzz
+        env.NIX_CFLAGS_COMPILE = toString [ "-Wno-macro-redefined" ];
 
-          ln -s ${inputs.freetype2} deps/freetype/freetype2
-          ln -s ${inputs.libpng} deps/freetype/libpng
-          ln -s ${inputs.zlib} deps/freetype/zlib
-          ln -s ${inputs.harfbuzz} deps/harfbuzz/harfbuzz
+        prePatch = ''
+          rm -rf deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
+
+          mkdir -p deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
+
+          cp -r ${inputs.freetype2}/* deps/freetype/freetype2
+          cp -r ${inputs.libpng}/* deps/freetype/libpng
+          cp -r ${inputs.zlib}/* deps/freetype/zlib
+          cp -r ${inputs.harfbuzz}/* deps/harfbuzz/harfbuzz
         '';
+
+        patches = [
+          # Remove unused `fdopen` in vendored zlib, which causes compilation failures with clang 19 on Darwin.
+          # Ref: https://github.com/madler/zlib/commit/4bd9a71f3539b5ce47f0c67ab5e01f3196dc8ef9
+          ./zlib-fdopen.patch
+
+          # Fix platform check in vendored libpng with clang 19 on Darwin.
+          (pkgs.fetchpatch2 {
+            url = "https://github.com/pnggroup/libpng/commit/893b8113f04d408cc6177c6de19c9889a48faa24.patch?full_index=1";
+            extraPrefix = "deps/freetype/libpng/";
+            stripLen = 1;
+            excludes = [ "deps/freetype/libpng/AUTHORS" ];
+            hash = "sha256-zW/oUo2EGcnsxAfbbbhTKGui/lwCqovyrvUnylfRQzc=";
+          })
+        ];
 
         postPatch = ''
           echo ${version} > .tag
