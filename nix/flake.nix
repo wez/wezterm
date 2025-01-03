@@ -21,7 +21,7 @@
     # (note: `git submodule status` in wezterm repo will show the `git describe` result for each
     # submodule, can help finding a tag if any)
     freetype2 = {
-      url = "github:wez/freetype2/e4586d960f339cf75e2e0b34aee30a0ed8353c0d";
+      url = "github:freetype/freetype/VER-2-13-3";
       flake = false;
     };
     harfbuzz = {
