@@ -108,17 +108,13 @@
             allowBuiltinFetchGit = true;
           };
 
-          env.NIX_CFLAGS_COMPILE = toString [ "-Wno-macro-redefined" ];
-
           prePatch = ''
             rm -rf deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
 
-            mkdir -p deps/freetype/{freetype2,libpng,zlib} deps/harfbuzz/harfbuzz
-
-            cp -r ${inputs.freetype2}/* deps/freetype/freetype2
-            cp -r ${inputs.libpng}/* deps/freetype/libpng
-            cp -r ${inputs.zlib}/* deps/freetype/zlib
-            cp -r ${inputs.harfbuzz}/* deps/harfbuzz/harfbuzz
+            ln -s ${inputs.freetype2} deps/freetype/freetype2
+            ln -s ${inputs.libpng} deps/freetype/libpng
+            ln -s ${inputs.zlib} deps/freetype/zlib
+            ln -s ${inputs.harfbuzz} deps/harfbuzz/harfbuzz
           '';
 
           postPatch = ''
