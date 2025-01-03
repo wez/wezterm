@@ -932,6 +932,10 @@ impl WaylandWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        if !PendingMouse::in_window(&self.pending_mouse) {
+            return;
+        }
+
         let conn = Connection::get().unwrap().wayland();
         let state = conn.wayland_state.borrow_mut();
         let pointer = match &state.pointer {
