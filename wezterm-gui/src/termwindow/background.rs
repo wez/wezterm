@@ -471,7 +471,7 @@ impl crate::TermWindow {
             }
         } else {
             // Height is the longest side
-            let target_width = pixel_height / aspect;
+            let target_width = pixel_height * aspect;
             if target_width > pixel_width {
                 (
                     pixel_width,
