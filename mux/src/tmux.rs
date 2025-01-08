@@ -82,7 +82,7 @@ impl TmuxDomainState {
                         let domain_id = self.domain_id;
                         *self.state.lock() = State::Idle;
                         let resp = response.clone();
-                        promise::spawn::spawn(async move {
+                        promise::spawn::spawn_into_main_thread(async move {
                             if let Err(err) = cmd.process_result(domain_id, &resp) {
                                 log::error!("Tmux processing command result error: {}", err);
                             }
