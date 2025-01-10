@@ -9,4 +9,4 @@
 	url = https://github.com/madler/zlib.git
 [submodule "freetype2"]
 	path = deps/freetype/freetype2
-	url = https://github.com/wez/freetype2.git
+	url = https://github.com/freetype/freetype2.git
