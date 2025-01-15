@@ -253,8 +253,6 @@ impl crate::TermWindow {
 
         let mut floating_pane_layers = float_layer.quad_allocator();
         for pos in panes {
-            //This feels like technical debt, the floating panes should probably update the normal
-            //panes that they are not active or something similar
             if !self.is_floating_pane_active() {
                 if pos.is_active {
                     self.update_text_cursor(&pos);
@@ -268,6 +266,7 @@ impl crate::TermWindow {
         }
 
         if let Some(floating_pane) = self.get_floating_pane_to_render(){
+            mux::Mux::get().record_focus_for_current_identity(floating_pane.pane.pane_id());
             self.paint_pane(&floating_pane, &mut floating_pane_layers).context("paint_pane")?;
             self.paint_floating_pane_border(floating_pane, &mut floating_pane_layers).context("paint_floating_pane_border")?;
         }
