@@ -1,7 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
 use crate::tab::TabId;
-use crate::tmux_commands::{ListAllPanes, TmuxCommand};
+use crate::tmux_commands::{ListAllWindows, TmuxCommand};
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
@@ -107,6 +107,11 @@ impl TmuxDomainState {
                 }
                 Event::SessionChanged { session, name: _ } => {
                     *self.tmux_session.lock() = Some(*session);
+                    let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                    cmd_queue.push_back(Box::new(ListAllWindows {
+                        session_id: *session,
+                        window_id: None,
+                    }));
                     log::info!("tmux session changed:{}", session);
                 }
                 Event::Exit { reason: _ } => {
@@ -182,8 +187,7 @@ impl TmuxDomainState {
 impl TmuxDomain {
     pub fn new(pane_id: PaneId) -> Self {
         let domain_id = alloc_domain_id();
-        let mut cmd_queue = VecDeque::<Box<dyn TmuxCommand>>::new();
-        cmd_queue.push_back(Box::new(ListAllPanes));
+        let cmd_queue = VecDeque::<Box<dyn TmuxCommand>>::new();
         let inner = Arc::new(TmuxDomainState {
             domain_id,
             pane_id,

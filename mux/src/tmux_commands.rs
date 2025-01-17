@@ -1,11 +1,12 @@
 use crate::domain::{DomainId, WriterWrapper};
 use crate::localpane::LocalPane;
 use crate::pane::alloc_pane_id;
-use crate::tab::{Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
 use crate::tmux::{TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
 use crate::tmux_pty::{TmuxChild, TmuxPty};
 use crate::{Mux, Pane};
 use anyhow::{anyhow, Context};
+use fancy_regex::Regex;
 use parking_lot::{Condvar, Mutex};
 use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
@@ -20,7 +21,7 @@ pub(crate) trait TmuxCommand: Send + Debug {
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PaneItem {
     session_id: TmuxSessionId,
     window_id: TmuxWindowId,
@@ -32,6 +33,24 @@ pub(crate) struct PaneItem {
     pane_height: u64,
     pane_left: u64,
     pane_top: u64,
+    _pane_active: bool,
+}
+
+#[derive(Debug)]
+enum TmuxLayout {
+    SplitVertical(Vec<PaneItem>),
+    SplitHorizontal(Vec<PaneItem>),
+    SinglePane(PaneItem),
+}
+
+#[derive(Debug)]
+struct WindowItem {
+    session_id: TmuxSessionId,
+    window_id: TmuxWindowId,
+    window_width: u64,
+    window_height: u64,
+    window_active: bool,
+    layout: Vec<TmuxLayout>,
 }
 
 impl TmuxDomainState {
@@ -86,116 +105,249 @@ impl TmuxDomainState {
         }
     }
 
+    fn create_pane(&self, pane: &PaneItem) -> anyhow::Result<Arc<dyn Pane>> {
+        let local_pane_id = alloc_pane_id();
+        let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
+        let (output_read, output_write) = filedescriptor::socketpair()?;
+        let ref_pane = Arc::new(Mutex::new(TmuxRemotePane {
+            local_pane_id,
+            output_write,
+            active_lock: active_lock.clone(),
+            session_id: 0,
+            window_id: pane.window_id,
+            pane_id: pane.pane_id,
+            cursor_x: pane.cursor_x,
+            cursor_y: pane.cursor_y,
+            pane_width: pane.pane_width,
+            pane_height: pane.pane_height,
+            pane_left: pane.pane_left,
+            pane_top: pane.pane_top,
+        }));
+
+        {
+            let mut pane_map = self.remote_panes.lock();
+            pane_map.insert(pane.pane_id, ref_pane.clone());
+        }
+
+        let pane_pty = TmuxPty {
+            domain_id: self.domain_id,
+            reader: output_read,
+            cmd_queue: self.cmd_queue.clone(),
+            master_pane: ref_pane,
+        };
+
+        let writer = WriterWrapper::new(pane_pty.take_writer()?);
+
+        let size = TerminalSize {
+            rows: pane.pane_height as usize,
+            cols: pane.pane_width as usize,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 0,
+        };
+
+        let child = TmuxChild {
+            active_lock: active_lock.clone(),
+        };
+
+        let terminal = wezterm_term::Terminal::new(
+            size,
+            std::sync::Arc::new(config::TermConfig::new()),
+            "WezTerm",
+            config::wezterm_version(),
+            Box::new(writer.clone()),
+        );
+
+        Ok(Arc::new(LocalPane::new(
+            local_pane_id,
+            terminal,
+            Box::new(child),
+            Box::new(pane_pty),
+            Box::new(writer),
+            self.domain_id,
+            "tmux pane".to_string(),
+        )))
+    }
+
     fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
-        // TODO:
-        // 1) iter over current session panes
-        // 2) create pane if not exist
-        // 3) fetch scroll buffer if new created
-        // 4) update pane state if exist
         let current_session = self.tmux_session.lock().unwrap_or(0);
+        let mux = Mux::get();
+
         for pane in panes.iter() {
-            if pane.session_id != current_session || self.check_pane_attached(&pane) {
+            if pane.session_id != current_session || !self.check_pane_attached(&pane) {
                 continue;
             }
 
-            let local_pane_id = alloc_pane_id();
-            let (output_read, output_write) = filedescriptor::socketpair()?;
-            let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
+            // We now have the cursor information, fix the cursor position
+            let pane_map = self.remote_panes.lock();
+            let local_pane_id = pane_map.get(&pane.pane_id).unwrap().lock().local_pane_id;
+            let local_pane = mux.get_pane(local_pane_id).unwrap();
+            local_pane.set_cursor_position(pane.cursor_x as usize, pane.cursor_y as usize);
 
-            let ref_pane = Arc::new(Mutex::new(TmuxRemotePane {
-                local_pane_id,
-                output_write,
-                active_lock: active_lock.clone(),
-                session_id: pane.session_id,
-                window_id: pane.window_id,
-                pane_id: pane.pane_id,
-                cursor_x: pane.cursor_x,
-                cursor_y: pane.cursor_y,
-                pane_width: pane.pane_width,
-                pane_height: pane.pane_height,
-                pane_left: pane.pane_left,
-                pane_top: pane.pane_top,
-            }));
+            // TODO: Set active pane
+            log::info!("new pane synced, id: {}", pane.pane_id);
+        }
+        Ok(())
+    }
 
-            {
-                let mut pane_map = self.remote_panes.lock();
-                pane_map.insert(pane.pane_id, ref_pane.clone());
+    fn sync_window_state(&self, windows: &[WindowItem]) -> anyhow::Result<()> {
+        let current_session = self.tmux_session.lock().unwrap_or(0);
+        let mux = Mux::get();
+
+        self.create_gui_window();
+        let mut gui_window = self.gui_window.lock();
+        let gui_window_id = match gui_window.as_mut() {
+            Some(x) => x,
+            None => {
+                anyhow::bail!("No tmux gui created");
+            }
+        };
+
+        let mut session_id = 0;
+        let mut active_tab_id = None;
+        for window in windows.iter() {
+            if window.session_id != current_session {
+                continue;
             }
 
-            let pane_pty = TmuxPty {
-                domain_id: self.domain_id,
-                reader: output_read,
-                cmd_queue: self.cmd_queue.clone(),
-                master_pane: ref_pane,
-            };
-            let writer = WriterWrapper::new(pane_pty.take_writer()?);
-            let mux = Mux::get();
             let size = TerminalSize {
-                rows: pane.pane_height as usize,
-                cols: pane.pane_width as usize,
+                rows: window.window_height as usize,
+                cols: window.window_width as usize,
                 pixel_width: 0,
                 pixel_height: 0,
                 dpi: 0,
             };
 
-            let child = TmuxChild {
-                active_lock: active_lock.clone(),
-            };
-
-            let terminal = wezterm_term::Terminal::new(
-                size,
-                std::sync::Arc::new(config::TermConfig::new()),
-                "WezTerm",
-                config::wezterm_version(),
-                Box::new(writer.clone()),
-            );
-
-            let local_pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
-                local_pane_id,
-                terminal,
-                Box::new(child),
-                Box::new(pane_pty),
-                Box::new(writer),
-                self.domain_id,
-                "tmux pane".to_string(),
-            ));
-
             let tab = Arc::new(Tab::new(&size));
-            tab.assign_pane(&local_pane);
+            tab.set_title(&format!("Tmux window: {}", window.window_id));
+            mux.add_tab_no_panes(&tab);
 
-            self.create_gui_window();
-            let mut gui_window = self.gui_window.lock();
-            let gui_window_id = match gui_window.as_mut() {
-                Some(x) => x,
-                None => {
-                    anyhow::bail!("No tmux gui created");
+            if window.window_active {
+                active_tab_id = Some(tab.tab_id());
+            }
+
+            let mut split_stack;
+            let mut split_direction;
+
+            let mut split_pane_index = 1;
+            for l in &window.layout {
+                match l {
+                    TmuxLayout::SinglePane(p) => {
+                        let local_pane = self.create_pane(&p).unwrap();
+                        tab.assign_pane(&local_pane);
+                        self.add_attached_pane(&p, &tab.tab_id())?;
+                        let _ = mux.add_pane(&local_pane);
+                        self.cmd_queue
+                            .lock()
+                            .push_back(Box::new(CapturePane(p.pane_id)));
+                        TmuxDomainState::schedule_send_next_command(self.domain_id);
+                        break;
+                    }
+
+                    TmuxLayout::SplitHorizontal(x) => {
+                        split_direction = SplitDirection::Horizontal;
+                        split_stack = x;
+                    }
+
+                    TmuxLayout::SplitVertical(x) => {
+                        split_direction = SplitDirection::Vertical;
+                        split_stack = x;
+                    }
                 }
-            };
 
-            mux.add_tab_and_active_pane(&tab)?;
+                for p in split_stack {
+                    let local_pane;
+                    if !self.check_pane_attached(&p) {
+                        local_pane = self.create_pane(&p).unwrap();
+                        self.add_attached_pane(&p, &tab.tab_id())?;
+                        let _ = mux.add_pane(&local_pane);
+                        if let None = tab.get_active_pane() {
+                            tab.assign_pane(&local_pane);
+                            split_pane_index = tab.get_active_idx();
+                            self.cmd_queue
+                                .lock()
+                                .push_back(Box::new(CapturePane(p.pane_id)));
+                            TmuxDomainState::schedule_send_next_command(self.domain_id);
+                            continue;
+                        }
+
+                        split_pane_index = tab.split_and_insert(
+                            split_pane_index,
+                            SplitRequest {
+                                direction: split_direction,
+                                target_is_second: false,
+                                top_level: false,
+                                size: SplitSize::Cells(
+                                    if split_direction == SplitDirection::Horizontal {
+                                        p.pane_width as usize
+                                    } else {
+                                        p.pane_height as usize
+                                    },
+                                ),
+                            },
+                            local_pane.clone(),
+                        )? + 1;
+
+                        self.cmd_queue
+                            .lock()
+                            .push_back(Box::new(CapturePane(p.pane_id)));
+                        TmuxDomainState::schedule_send_next_command(self.domain_id);
+                    } else {
+                        let pane_map = self.remote_panes.lock();
+                        let local_pane_id = pane_map.get(&p.pane_id).unwrap().lock().local_pane_id;
+                        split_pane_index = match tab
+                            .iter_panes_ignoring_zoom()
+                            .iter()
+                            .find(|x| x.pane.pane_id() == local_pane_id)
+                        {
+                            Some(x) => x.index,
+                            None => anyhow::bail!("invalid pane id {}", local_pane_id),
+                        };
+                        continue;
+                    }
+                }
+            }
+
             mux.add_tab_to_window(&tab, **gui_window_id)?;
             gui_window_id.notify();
 
-            self.cmd_queue
-                .lock()
-                .push_back(Box::new(CapturePane(pane.pane_id)));
-            TmuxDomainState::schedule_send_next_command(self.domain_id);
+            session_id = window.session_id;
 
-            self.add_attached_pane(&pane, &tab.tab_id())?;
-            log::info!("new pane attached");
+            self.cmd_queue.lock().push_back(Box::new(ListAllPanes {
+                window_id: window.window_id,
+            }));
+            TmuxDomainState::schedule_send_next_command(self.domain_id);
         }
+
+        if let Some(mut window) = mux.get_window_mut(**gui_window_id) {
+            window.set_title(&format!("Tmux Session: {session_id}"));
+
+            if let Some(idx) = active_tab_id {
+                let tab_idx = window
+                    .idx_by_id(idx)
+                    .ok_or_else(|| anyhow::anyhow!("tab {idx} not in {}", **gui_window_id))?;
+                window.save_and_then_set_active(tab_idx);
+            }
+        }
+
         Ok(())
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct ListAllPanes;
+pub(crate) struct ListAllPanes {
+    window_id: TmuxWindowId,
+}
+
 impl TmuxCommand for ListAllPanes {
     fn get_command(&self) -> String {
-        "list-panes -aF '#{session_id} #{window_id} #{pane_id} \
-            #{pane_index} #{cursor_x} #{cursor_y} #{pane_width} #{pane_height} \
-            #{pane_left} #{pane_top}'\n"
-            .to_owned()
+        format!(
+            "list-panes -F '#{{session_id}} #{{window_id}} #{{pane_id}} \
+            #{{pane_index}} #{{cursor_x}} #{{cursor_y}} #{{pane_width}} #{{pane_height}} \
+            #{{pane_left}} #{{pane_top}} #{{pane_active}}' -t @{}\n",
+            self.window_id
+        )
+        .to_owned()
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -237,12 +389,17 @@ impl TmuxCommand for ListAllPanes {
                 .next()
                 .ok_or_else(|| anyhow!("missing pane_top"))?
                 .parse()?;
+            let pane_active = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing pane_active"))?
+                .parse::<usize>()?;
 
             // These ids all have various sigils such as `$`, `%`, `@`,
             // so skip those prior to parsing them
             let session_id = session_id[1..].parse()?;
             let window_id = window_id[1..].parse()?;
             let pane_id = pane_id[1..].parse()?;
+            let _pane_active = if pane_active == 1 { true } else { false };
 
             items.push(PaneItem {
                 session_id,
@@ -255,6 +412,7 @@ impl TmuxCommand for ListAllPanes {
                 pane_height,
                 pane_left,
                 pane_top,
+                _pane_active,
             });
         }
 
@@ -269,14 +427,263 @@ impl TmuxCommand for ListAllPanes {
     }
 }
 
+fn parse_pane(layout: &str) -> anyhow::Result<PaneItem> {
+    let re_pane = Regex::new(r"^,?(\d+)x(\d+),(\d+),(\d+)(,(\d+))?").unwrap();
+
+    if let Some(caps) = re_pane.captures(layout).unwrap() {
+        let pane_width = caps
+            .get(1)
+            .unwrap()
+            .as_str()
+            .parse()
+            .expect("Wrong pane width");
+        let pane_height = caps
+            .get(2)
+            .unwrap()
+            .as_str()
+            .parse()
+            .expect("Wrong pane height");
+        let pane_left = caps
+            .get(3)
+            .unwrap()
+            .as_str()
+            .parse()
+            .expect("Wrong pane left");
+        let pane_top = caps
+            .get(4)
+            .unwrap()
+            .as_str()
+            .parse()
+            .expect("Wrong pane top");
+        let pane_id = match caps.get(6) {
+            Some(x) => x.as_str().parse().expect(""),
+            None => 0,
+        };
+
+        return Ok(PaneItem {
+            _pane_index: 0, // Don't care
+            session_id: 0,  // Will fill it later
+            window_id: 0,
+            pane_id,
+            pane_width,
+            pane_height,
+            pane_left,
+            pane_top,
+            cursor_x: 0, // the layout doesn't include this information, will set by list-panes
+            cursor_y: 0,
+            _pane_active: false, // same as above
+        });
+    }
+
+    anyhow::bail!("Wrong pane layout format");
+}
+
+fn parse_layout(
+    mut layout: &str,
+    result: &mut Vec<TmuxLayout>,
+) -> anyhow::Result<(Option<TmuxLayout>, usize)> {
+    log::debug!("Parsing tmux layout: '{}'", layout);
+
+    let re_pane = Regex::new(r"^,?(\d+x\d+,\d+,\d+,\d+)").unwrap();
+    let re_split_push = Regex::new(r"^,?(\d+x\d+,\d+,\d+)[\{|\[]").unwrap();
+    let re_split_h_pop = Regex::new(r"^\}").unwrap();
+    let re_split_v_pop = Regex::new(r"^\]").unwrap();
+
+    let mut parse_len = 0;
+    let mut stack = Vec::new();
+
+    while layout.len() > 0 {
+        if let Some(caps) = re_split_push.captures(layout).unwrap() {
+            log::debug!("Tmux layout split pane push");
+            let len = caps.get(0).unwrap().as_str().len();
+            parse_len += len;
+            let mut pane = parse_pane(caps.get(1).unwrap().as_str()).unwrap();
+
+            layout = layout.get(len..).unwrap();
+            if result.is_empty() {
+                // Fake one, to flag it is not a TmuxLayout::SinglePane will pop
+                result.push(TmuxLayout::SplitHorizontal(vec![]));
+            }
+
+            let (split_pane, len) = parse_layout(layout, result).unwrap();
+            let mut split_pane = split_pane.unwrap();
+
+            match split_pane {
+                TmuxLayout::SplitHorizontal(ref mut x) => {
+                    let last_item = x.pop().unwrap();
+                    pane.pane_id = last_item.pane_id;
+                    x.insert(0, pane.clone());
+                }
+                TmuxLayout::SplitVertical(ref mut x) => {
+                    let last_item = x.pop().unwrap();
+                    pane.pane_id = last_item.pane_id;
+                    x.insert(0, pane.clone());
+                }
+                TmuxLayout::SinglePane(_x) => {
+                    anyhow::bail!("The tmux layout is not right")
+                }
+            }
+
+            result.insert(0, split_pane);
+
+            stack.push(pane);
+
+            layout = layout.get(len..).unwrap();
+            parse_len += len;
+        } else if let Some(caps) = re_pane.captures(layout).unwrap() {
+            log::debug!("Tmux layout pane");
+            let len = caps.get(0).unwrap().as_str().len();
+            let pane = parse_pane(caps.get(1).unwrap().as_str()).unwrap();
+
+            // SinglePane
+            if result.is_empty() {
+                result.insert(0, TmuxLayout::SinglePane(pane));
+                return Ok((None, len));
+            }
+
+            stack.push(pane);
+            parse_len += len;
+            layout = layout.get(len..).unwrap();
+        } else if let Some(_caps) = re_split_h_pop.captures(layout).unwrap() {
+            log::debug!("Tmux layout split horizontal pop");
+            return Ok((Some(TmuxLayout::SplitHorizontal(stack)), parse_len + 1));
+        } else if let Some(_caps) = re_split_v_pop.captures(layout).unwrap() {
+            log::debug!("Tmux layout split vertical pop");
+            return Ok((Some(TmuxLayout::SplitVertical(stack)), parse_len + 1));
+        }
+    }
+
+    // Pop the fake one
+    let _ = result.pop();
+
+    Ok((None, 0))
+}
+
+#[derive(Debug)]
+pub(crate) struct ListAllWindows {
+    pub session_id: TmuxSessionId,
+    pub window_id: Option<TmuxWindowId>,
+}
+
+impl TmuxCommand for ListAllWindows {
+    fn get_command(&self) -> String {
+        if let Some(window_id) = self.window_id {
+            format!(
+                "list-windows -F \
+                '#{{session_id}} #{{window_id}} \
+                #{{window_width}} #{{window_height}} \
+                #{{window_active}} \
+                #{{window_layout}}' \
+                -t {} \
+                -f '#{{==:#{{window_id}},@{}}}'\n",
+                self.session_id, window_id
+            )
+        } else {
+            format!(
+                "list-windows -F \
+                '#{{session_id}} #{{window_id}} \
+                #{{window_width}} #{{window_height}} \
+                #{{window_active}} \
+                #{{window_layout}} -t {}'\n",
+                self.session_id
+            )
+        }
+    }
+
+    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
+        let mut items = vec![];
+
+        for line in result.output.split('\n') {
+            if line.is_empty() {
+                continue;
+            }
+            let mut fields = line.split(' ');
+            let session_id = fields.next().ok_or_else(|| anyhow!("missing session_id"))?;
+            let window_id = fields.next().ok_or_else(|| anyhow!("missing window_id"))?;
+            let window_width = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing window_width"))?
+                .parse()?;
+            let window_height = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing window_height"))?
+                .parse()?;
+            let window_active = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing window_active"))?
+                .parse::<usize>()?;
+
+            let window_layout = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing window_layout"))?;
+
+            // These ids all have various sigils such as `$`, `%`, `@`,
+            // so skip those prior to parsing them
+            let session_id = session_id[1..].parse()?;
+            let window_id = window_id[1..].parse()?;
+
+            let window_layout = window_layout.get(5..).unwrap();
+
+            let mut layout = Vec::<TmuxLayout>::new();
+
+            let _ = parse_layout(window_layout, &mut layout)?;
+            // Fill in the session_id and window_id
+            for l in &mut layout {
+                match l {
+                    TmuxLayout::SinglePane(ref mut p) => {
+                        p.session_id = session_id;
+                        p.window_id = window_id;
+                    }
+                    TmuxLayout::SplitHorizontal(ref mut v) => {
+                        for p in v {
+                            p.session_id = session_id;
+                            p.window_id = window_id;
+                        }
+                    }
+                    TmuxLayout::SplitVertical(ref mut v) => {
+                        for p in v {
+                            p.session_id = session_id;
+                            p.window_id = window_id;
+                        }
+                    }
+                }
+            }
+
+            let window_active = if window_active == 1 { true } else { false };
+
+            items.push(WindowItem {
+                session_id,
+                window_id,
+                window_width,
+                window_height,
+                window_active,
+                layout,
+            });
+        }
+
+        log::info!("layout in domain_id {}: {:#?}", domain_id, items);
+        let mux = Mux::get();
+        if let Some(domain) = mux.get_domain(domain_id) {
+            if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
+                return tmux_domain.inner.sync_window_state(&items);
+            }
+        }
+        anyhow::bail!("Tmux domain lost");
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Resize {
+    pub pane_id: TmuxPaneId,
     pub size: PtySize,
 }
 
 impl TmuxCommand for Resize {
     fn get_command(&self) -> String {
-        format!("refresh-client -C {}x{}\n", self.size.cols, self.size.rows)
+        format!(
+            "resize-pane -x {} -y {} -t %{}\n",
+            self.size.cols, self.size.rows, self.pane_id
+        )
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -295,7 +702,11 @@ impl TmuxCommand for Resize {
 pub(crate) struct CapturePane(TmuxPaneId);
 impl TmuxCommand for CapturePane {
     fn get_command(&self) -> String {
-        format!("capturep -p -t %{} -e -C\n", self.0)
+        const HISTORY_LINES: isize = -2000;
+        format!(
+            "capture-pane -p -t %{} -e -C -S {}\n",
+            self.0, HISTORY_LINES
+        )
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -309,6 +720,7 @@ impl TmuxCommand for CapturePane {
             None => anyhow::bail!("Tmux domain lost"),
         };
 
+        //let unescaped = termwiz::tmux_cc::unvis(&result.output.trim_end_matches('\n')).context("unescape pane content")?;
         let unescaped = termwiz::tmux_cc::unvis(&result.output).context("unescape pane content")?;
         // capturep contents returned from guarded lines which always contain a tailing '\n'
         let unescaped = &unescaped[0..unescaped.len().saturating_sub(1)].replace("\n", "\r\n");
@@ -341,5 +753,82 @@ impl TmuxCommand for SendKeys {
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_pane() {
+        let pane_case1 = "100x200,0,0".to_string();
+        let pane_case2 = "300x400,10,20,17".to_string();
+
+        let p = parse_pane(pane_case1.get(0..).unwrap()).unwrap();
+        assert_eq!(p.pane_id, 0);
+        assert_eq!(p.pane_width, 100);
+        assert_eq!(p.pane_height, 200);
+        assert_eq!(p.pane_left, 0);
+        assert_eq!(p.pane_top, 0);
+
+        let p = parse_pane(pane_case2.get(0..).unwrap()).unwrap();
+        assert_eq!(p.pane_id, 17);
+        assert_eq!(p.pane_width, 300);
+        assert_eq!(p.pane_height, 400);
+        assert_eq!(p.pane_left, 10);
+        assert_eq!(p.pane_top, 20);
+    }
+
+    #[test]
+    fn test_parse_layout() {
+        let layout_case1 = "158x40,0,0,72".to_string();
+        let layout_case2 = "158x40,0,0[158x20,0,0,69,158x19,0,21{79x19,0,21,70,78x19,80,21[78x9,80,21,71,78x9,80,31,73]}]".to_string();
+        let layout_case3 = "158x40,0,0{79x40,0,0[79x20,0,0,74,79x19,0,21{39x19,0,21,76,39x19,40,21,77}],78x40,80,0,75}".to_string();
+
+        let mut layout = Vec::new();
+        let _ = parse_layout(layout_case1.get(0..).unwrap(), &mut layout).unwrap();
+        let l = layout.pop().unwrap();
+        assert!(if let TmuxLayout::SinglePane(_x) = l {
+            true
+        } else {
+            false
+        });
+
+        layout = Vec::new();
+        let _ = parse_layout(layout_case2.get(0..).unwrap(), &mut layout).unwrap();
+        assert!(if let TmuxLayout::SplitVertical(_x) = &layout[0] {
+            true
+        } else {
+            false
+        });
+        assert!(if let TmuxLayout::SplitHorizontal(_x) = &layout[1] {
+            true
+        } else {
+            false
+        });
+        assert!(if let TmuxLayout::SplitVertical(_x) = &layout[2] {
+            true
+        } else {
+            false
+        });
+
+        layout = Vec::new();
+        let _ = parse_layout(layout_case3.get(0..).unwrap(), &mut layout).unwrap();
+        assert!(if let TmuxLayout::SplitHorizontal(_x) = &layout[0] {
+            true
+        } else {
+            false
+        });
+        assert!(if let TmuxLayout::SplitVertical(_x) = &layout[1] {
+            true
+        } else {
+            false
+        });
+        assert!(if let TmuxLayout::SplitHorizontal(_x) = &layout[2] {
+            true
+        } else {
+            false
+        });
     }
 }

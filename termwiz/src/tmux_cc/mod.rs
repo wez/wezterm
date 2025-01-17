@@ -24,13 +24,6 @@ pub struct Guarded {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WindowLayout {
-    pub layout_id: String,
-    pub width: u64,
-    pub height: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Event {
     Begin {
         timestamp: i64,
@@ -94,8 +87,8 @@ pub enum Event {
     },
     LayoutChange {
         window: TmuxWindowId,
-        layout: WindowLayout,
-        visible_layout: Option<WindowLayout>,
+        layout: String,
+        visible_layout: Option<String>,
         raw_flags: Option<String>,
     },
 }
@@ -157,29 +150,6 @@ fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
     let number = pairs.next().unwrap().as_str().parse::<u64>()?;
     let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
     Ok((timestamp, number, flags))
-}
-
-/// Parses a window_layout line, for example "b25d,80x24,0,0,0"
-fn parse_window_layout(pair: Pair<Rule>) -> Option<WindowLayout> {
-    match pair.as_rule() {
-        Rule::window_layout => {
-            let mut pairs = pair.into_inner();
-            let layout_id_option = pairs.next()?.as_str().parse::<String>().ok();
-            let width_option = pairs.next()?.as_str().parse::<u64>().ok();
-            let height_option = pairs.next()?.as_str().parse::<u64>().ok();
-            if let (Some(layout_id), Some(width), Some(height)) =
-                (layout_id_option, width_option, height_option)
-            {
-                return Some(WindowLayout {
-                    layout_id,
-                    width,
-                    height,
-                });
-            }
-            return None;
-        }
-        _ => None,
-    }
 }
 
 fn parse_line(line: &str) -> anyhow::Result<Event> {
@@ -285,8 +255,8 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
         Rule::layout_change => {
             let mut pairs = pair.into_inner();
             let window = parse_window_id(pairs.next().unwrap())?;
-            let layout = pairs.next().and_then(parse_window_layout).unwrap();
-            let visible_layout = pairs.next().and_then(parse_window_layout);
+            let layout = unvis(pairs.next().unwrap().as_str())?;
+            let visible_layout = pairs.next().map(|pair| pair.as_str().to_owned());
             let raw_flags = pairs.next().map(|r| r.as_str().to_owned());
             Ok(Event::LayoutChange {
                 window,
@@ -707,26 +677,14 @@ here
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout: WindowLayout {
-                        layout_id: "b25d".to_owned(),
-                        width: 80,
-                        height: 24
-                    },
+                    layout: "b25d,80x24,0,0,0".to_owned(),
                     visible_layout: None,
                     raw_flags: None
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout: WindowLayout {
-                        layout_id: "cafd".to_owned(),
-                        width: 120,
-                        height: 29
-                    },
-                    visible_layout: Some(WindowLayout {
-                        layout_id: "cafd".to_owned(),
-                        width: 120,
-                        height: 29
-                    }),
+                    layout: "cafd,120x29,0,0,0".to_owned(),
+                    visible_layout: Some("cafd,120x29,0,0,0".to_owned()),
                     raw_flags: Some("*".to_owned())
                 },
                 Event::Output {

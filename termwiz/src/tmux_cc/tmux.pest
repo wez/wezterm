@@ -6,7 +6,7 @@ pane_id = { "%" ~ number }
 window_id = { "@" ~ number }
 session_id = { "$" ~ number }
 client_name = { word }
-window_layout = { word ~ "," ~ number ~ "x" ~ number ~ "," ~ number ~ "," ~ number ~ "," ~ number }
+window_layout = { (ASCII_HEX_DIGIT | "x" | "[" | "]" | "{" | "}" | ",")+ }
 
 begin = { "%begin " ~ number ~ " " ~ number ~ " " ~ number }
 end = { "%end " ~ number ~ " " ~ number ~ " " ~ number }
