@@ -24,15 +24,16 @@ use cocoa::appkit::{
 use cocoa::base::*;
 use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
-    NSUInteger,
+    NSString, NSUInteger,
 };
 use config::window::WindowLevel;
-use config::ConfigHandle;
+use config::{ConfigHandle, RgbaColor};
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
 use core_foundation::string::{CFString, CFStringRef, UniChar};
 use core_foundation::{declare_TCFType, impl_TCFType};
+use core_graphics::color::CGColor;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
@@ -44,7 +45,7 @@ use raw_window_handle::{
 };
 use std::any::Any;
 use std::cell::RefCell;
-use std::ffi::c_void;
+use std::ffi::{c_void, CStr};
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -1109,6 +1110,27 @@ impl WindowInner {
         }
     }
 
+    fn update_titlebar_background(&self, color: RgbaColor) {
+        unsafe {
+            let titlebar_view_container = get_titlebar_view_container(&self.window).unwrap();
+            let layer: id = msg_send![*titlebar_view_container.load(), layer];
+
+            if layer.is_null() {
+                return
+            }
+
+            // We need to make sure to convert the config color into an sRGB CGColor or the color will be slightly off
+            let srgb_cgcolor = srgb(
+                color.0.into(),
+                color.1.into(),
+                color.2.into(),
+                color.3.into(),
+            );
+
+            let _: () = msg_send![layer, setBackgroundColor: srgb_cgcolor];
+        }
+    }
+
     fn update_window_background_blur(&mut self) {
         unsafe {
             CGSSetWindowBackgroundBlurRadius(
@@ -1132,11 +1154,22 @@ impl WindowInner {
             // stuck with a scale factor of 2 despite us having configured 1.
             self.window
                 .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
+
             apply_decorations_to_window(
                 &self.window,
                 self.config.window_decorations,
                 self.config.integrated_title_button_style,
             );
+
+            // Set the titlebar background to the theme color falling back to the default if there
+            // is no specified theme
+            if self.config.window_decorations.contains(WindowDecorations::MACOS_RESPECT_THEME_BACKGROUND) {
+                if let Some(bkg) = self.config.resolved_palette.background {
+                    self.update_titlebar_background(bkg);
+                } else {
+                    self.update_titlebar_background(wezterm_term::color::ColorPalette::default().background.into());
+                }
+            }
 
             self.window.makeKeyAndOrderFront_(nil)
         }
@@ -1353,7 +1386,9 @@ fn apply_decorations_to_window(
         } else {
             appkit::NSWindowTitleVisibility::NSWindowTitleHidden
         });
-        if decorations.contains(WindowDecorations::INTEGRATED_BUTTONS) {
+
+        if decorations.contains(WindowDecorations::INTEGRATED_BUTTONS) 
+            || decorations.contains(WindowDecorations::MACOS_RESPECT_THEME_BACKGROUND) {
             window.setTitlebarAppearsTransparent_(YES);
         } else {
             window.setTitlebarAppearsTransparent_(hidden);
@@ -1399,6 +1434,76 @@ fn decoration_to_mask(
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
     }
+}
+
+unsafe fn get_view_class_name(id: id) -> Option<String> {
+    if id.is_null() {
+        return None;
+    }
+
+    let class_name: id = msg_send![id, className] ;
+
+    if class_name.is_null() {
+        return None;
+    }
+
+    let cstr = CStr::from_ptr(class_name.UTF8String()).to_str();
+
+    match cstr {
+        Ok(s) => Some(s.to_string()),
+        Err(_) => None,
+    }
+}
+
+fn get_titlebar_view_container(window: &StrongPtr) -> Option<WeakPtr> {
+    
+    // The view container for the titlebar on macos is found next to the primary window view 
+    // so we need to traverse up to the super view to find it
+    let super_view = get_view_superview(window)?;
+
+    let sub_views = get_view_subviews(&super_view.load())?;
+    
+    let count = unsafe { sub_views.load().count() };
+
+    for i in 0..count {
+        let sub_view: id = unsafe { sub_views.load().objectAtIndex(i) };
+
+        if sub_view.is_null() {
+            continue;
+        }
+
+        let class_name = unsafe { get_view_class_name(sub_view)? };
+
+        if class_name == TITLEBAR_VIEW_NAME {
+            let titlebar_view = unsafe { WeakPtr::new(sub_view) };
+            return Some(titlebar_view);
+        }
+    }
+
+    None
+}
+
+fn get_view_superview(view: &StrongPtr) -> Option<WeakPtr> {
+    let super_view_id: id = unsafe { msg_send![view.contentView(), superview] };
+
+    if super_view_id.is_null() {
+        return None;
+    }
+
+    let super_view = unsafe { WeakPtr::new(super_view_id) };
+
+    Some(super_view)
+}
+
+fn get_view_subviews(view: &StrongPtr) -> Option<WeakPtr> {
+
+    let sub_views_id: id = unsafe { msg_send![**view, subviews] };
+    if sub_views_id.is_null() {
+        return None
+    }
+
+    let sub_views = unsafe { WeakPtr::new(sub_views_id) };
+    Some(sub_views)
 }
 
 #[derive(Debug)]
@@ -1694,6 +1799,26 @@ impl Inner {
 
 const VIEW_CLS_NAME: &str = "WezTermWindowView";
 const WINDOW_CLS_NAME: &str = "WezTermWindow";
+const TITLEBAR_VIEW_NAME: &str = "NSTitlebarContainerView";
+
+// core-graphics does not currently expose a binding by default for CGColor srgb conversions
+// pull request to upstream this here: https://github.com/servo/core-foundation-rs/pull/716
+// IMPORTANT: This binding was introduced in catalina, attempting to use it on older systems will fail
+fn srgb(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> CGColor {
+    unsafe {
+        let ptr = CGColorCreateSRGB(red, green, blue, alpha);
+        CGColor::wrap_under_create_rule(ptr)
+    }
+}
+
+extern "C" {
+    fn CGColorCreateSRGB(
+        red: CGFloat,
+        green: CGFloat,
+        blue: CGFloat,
+        alpha: CGFloat,
+    ) -> core_graphics::sys::CGColorRef;
+}
 
 struct WindowView {
     inner: Rc<RefCell<Inner>>,

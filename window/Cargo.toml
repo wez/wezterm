@@ -45,6 +45,7 @@ url = "2"
 wezterm-bidi = { path = "../bidi" }
 wezterm-color-types = { path = "../color-types" }
 wezterm-font = { path = "../wezterm-font" }
+ wezterm-term = { path = "../term" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [target."cfg(windows)".dependencies]
