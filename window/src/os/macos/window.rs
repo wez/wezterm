@@ -1375,6 +1375,11 @@ fn decoration_to_mask(
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
+    } else if decorations == WindowDecorations::MACOS_FORCE_SQUARE_CORNERS | WindowDecorations::RESIZE {
+        NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSResizableWindowMask
+            | NSWindowStyleMask::NSFullSizeContentViewWindowMask
     } else if decorations == WindowDecorations::RESIZE
         || decorations == WindowDecorations::INTEGRATED_BUTTONS
         || decorations == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
@@ -1393,6 +1398,10 @@ fn decoration_to_mask(
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
+    } else if decorations == WindowDecorations::MACOS_FORCE_SQUARE_CORNERS {
+        NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSFullSizeContentViewWindowMask
     } else {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
