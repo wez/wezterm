@@ -756,6 +756,26 @@ impl TmuxCommand for SendKeys {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct NewWindow {
+    pub session_id: TmuxSessionId,
+    pub width: usize,
+    pub height: usize,
+}
+
+impl TmuxCommand for NewWindow {
+    fn get_command(&self) -> String {
+        format!(
+            "set-option -t {} default-size {}x{}\nnew-window\n",
+            self.session_id, self.width, self.height
+        )
+    }
+
+    fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

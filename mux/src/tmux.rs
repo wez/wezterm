@@ -1,7 +1,8 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
-use crate::tab::TabId;
-use crate::tmux_commands::{ListAllWindows, TmuxCommand};
+use crate::tab::{Tab, TabId};
+use crate::tmux_commands::{ListAllWindows, NewWindow, TmuxCommand};
+use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
@@ -124,6 +125,14 @@ impl TmuxDomainState {
                         condvar.notify_all();
                     }
                 }
+                Event::SessionWindowChanged { session, window } => {
+                    let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                    cmd_queue.push_back(Box::new(ListAllWindows {
+                        session_id: *session,
+                        window_id: Some(*window),
+                    }));
+                    log::info!("tmux window changed: {}:{}", session, window);
+                }
                 _ => {}
             }
         }
@@ -182,6 +191,18 @@ impl TmuxDomainState {
             }
         };
     }
+
+    /// create a tmux window
+    pub fn create_tmux_window(&self, width: usize, height: usize) {
+        let session_id = self.tmux_session.lock().unwrap();
+        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+        cmd_queue.push_back(Box::new(NewWindow {
+            session_id,
+            width,
+            height,
+        }));
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
+    }
 }
 
 impl TmuxDomain {
@@ -210,6 +231,17 @@ impl TmuxDomain {
 
 #[async_trait(?Send)]
 impl Domain for TmuxDomain {
+    async fn spawn(
+        &self,
+        size: TerminalSize,
+        _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
+        _window: WindowId,
+    ) -> anyhow::Result<Arc<Tab>> {
+        self.inner.create_tmux_window(size.cols, size.rows);
+        anyhow::bail!("Intention: we use tmux command to do so");
+    }
+
     async fn spawn_pane(
         &self,
         _size: TerminalSize,
