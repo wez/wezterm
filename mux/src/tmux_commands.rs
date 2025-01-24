@@ -102,6 +102,51 @@ impl TmuxDomainState {
         }
     }
 
+    fn remove_detached_pane(
+        &self,
+        window_id: TmuxWindowId,
+        new_set: &HashSet<TmuxPaneId>,
+    ) -> anyhow::Result<()> {
+        let mut pane_list = self.gui_tabs.lock();
+        let local_tab = match pane_list.iter_mut().find(|x| x.tmux_window_id == window_id) {
+            Some(x) => x,
+            None => {
+                anyhow::bail!("Cannot find the window {window_id}")
+            }
+        };
+
+        let to_remove: Vec<_> = local_tab.panes.difference(new_set).cloned().collect();
+        for p in to_remove {
+            let pane_map = self.remote_panes.lock();
+            let local_pane_id = pane_map.get(&p).unwrap().lock().local_pane_id;
+            let mux = Mux::get();
+            mux.remove_pane(local_pane_id);
+            local_tab.panes.remove(&p);
+
+            if local_tab.panes.is_empty() {
+                mux.remove_tab(local_tab.tab_id);
+                let mut pane_list = self.gui_tabs.lock();
+                pane_list.retain(|x| x.tmux_window_id != window_id);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn remove_detached_window(&self, window_id: TmuxWindowId) -> anyhow::Result<()> {
+        let mut pane_list = self.gui_tabs.lock();
+        let local_tab = match pane_list.iter_mut().find(|x| x.tmux_window_id == window_id) {
+            Some(x) => x,
+            None => {
+                anyhow::bail!("Cannot find the window {window_id}")
+            }
+        };
+
+        let mux = Mux::get();
+        mux.remove_tab(local_tab.tab_id);
+
+        Ok(())
+    }
+
     fn create_pane(&self, pane: &PaneItem) -> anyhow::Result<Arc<dyn Pane>> {
         let local_pane_id = alloc_pane_id();
         let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
@@ -373,6 +418,7 @@ impl TmuxDomainState {
 
             self.cmd_queue.lock().push_back(Box::new(ListAllPanes {
                 window_id: window.window_id,
+                prune: false,
             }));
             TmuxDomainState::schedule_send_next_command(self.domain_id);
         }
@@ -394,7 +440,8 @@ impl TmuxDomainState {
 
 #[derive(Debug)]
 pub(crate) struct ListAllPanes {
-    window_id: TmuxWindowId,
+    pub window_id: TmuxWindowId,
+    pub prune: bool,
 }
 
 impl TmuxCommand for ListAllPanes {
@@ -410,7 +457,7 @@ impl TmuxCommand for ListAllPanes {
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
         let mut items = vec![];
-
+        let mut pane_set = HashSet::new();
         for line in result.output.split('\n') {
             if line.is_empty() {
                 continue;
@@ -459,6 +506,8 @@ impl TmuxCommand for ListAllPanes {
             let pane_id = pane_id[1..].parse()?;
             let _pane_active = if pane_active == 1 { true } else { false };
 
+            pane_set.insert(pane_id);
+
             items.push(PaneItem {
                 session_id,
                 window_id,
@@ -478,7 +527,13 @@ impl TmuxCommand for ListAllPanes {
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-                return tmux_domain.inner.sync_pane_state(&items);
+                if !self.prune {
+                    return tmux_domain.inner.sync_pane_state(&items);
+                } else {
+                    return tmux_domain
+                        .inner
+                        .remove_detached_pane(self.window_id, &pane_set);
+                }
             }
         }
         anyhow::bail!("Tmux domain lost");

@@ -1,7 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
-use crate::tmux_commands::{ListAllWindows, NewWindow, SplitPane, TmuxCommand};
+use crate::tmux_commands::{ListAllPanes, ListAllWindows, NewWindow, SplitPane, TmuxCommand};
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
@@ -141,8 +141,30 @@ impl TmuxDomainState {
                         smol::block_on(async {
                             let _ = self.channel.0.send(*pane).await;
                         });
+                    } else {
+                        // prune the detached pane
+                        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                        cmd_queue.push_back(Box::new(ListAllPanes {
+                            window_id: *window,
+                            prune: true,
+                        }));
                     }
                     log::info!("tmux window pane changed: {}:{}", window, pane);
+                }
+                Event::LayoutChange {
+                    window,
+                    layout: _,
+                    visible_layout: _,
+                    raw_flags: _,
+                } => {
+                    let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                    cmd_queue.push_back(Box::new(ListAllPanes {
+                        window_id: *window,
+                        prune: true,
+                    }));
+                }
+                Event::WindowClose { window } => {
+                    let _ = self.remove_detached_window(*window);
                 }
                 _ => {}
             }

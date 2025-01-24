@@ -634,6 +634,8 @@ in
 here
 %end 1604279270 310 0
 %window-add @1
+%window-close @38
+%unlinked-window-close @39
 %sessions-changed
 %session-changed $1 1
 %client-session-changed /dev/pts/5 $1 home
@@ -662,6 +664,8 @@ here
                     output: "stuff\nin\nhere\n".to_owned()
                 }),
                 Event::WindowAdd { window: 1 },
+                Event::WindowClose { window: 38 },
+                Event::WindowClose { window: 39 },
                 Event::SessionsChanged,
                 Event::SessionChanged {
                     session: 1,
