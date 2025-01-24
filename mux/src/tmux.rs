@@ -1,13 +1,14 @@
-use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{Tab, TabId};
-use crate::tmux_commands::{ListAllWindows, NewWindow, TmuxCommand};
+use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tmux_commands::{ListAllWindows, NewWindow, SplitPane, TmuxCommand};
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
 use parking_lot::{Condvar, Mutex};
 use portable_pty::CommandBuilder;
+use smol::channel::{bounded, Receiver, Sender};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Write;
 use std::sync::Arc;
@@ -61,6 +62,7 @@ pub(crate) struct TmuxDomainState {
     pub gui_tabs: Mutex<Vec<TmuxTab>>,
     pub remote_panes: Mutex<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
+    pub channel: (Sender<TmuxPaneId>, Receiver<TmuxPaneId>),
 }
 
 pub struct TmuxDomain {
@@ -133,6 +135,15 @@ impl TmuxDomainState {
                     }));
                     log::info!("tmux window changed: {}:{}", session, window);
                 }
+                Event::WindowPaneChanged { window, pane } => {
+                    if !self.check_pane_attached(*window, *pane) {
+                        // new split pane
+                        smol::block_on(async {
+                            let _ = self.channel.0.send(*pane).await;
+                        });
+                    }
+                    log::info!("tmux window pane changed: {}:{}", window, pane);
+                }
                 _ => {}
             }
         }
@@ -203,6 +214,31 @@ impl TmuxDomainState {
         }));
         TmuxDomainState::schedule_send_next_command(self.domain_id);
     }
+
+    /// split the tmux pane
+    pub fn split_tmux_pane(&self, _tab: TabId, pane_id: PaneId, split_request: SplitRequest) {
+        let mut target_tmux_pane_id = None;
+
+        let mut pane_map = self.remote_panes.lock();
+        for (tmux_pane_id, v) in pane_map.iter_mut() {
+            let remote_pane = v.lock();
+            if remote_pane.local_pane_id == pane_id {
+                target_tmux_pane_id = Some(tmux_pane_id);
+                break;
+            }
+        }
+
+        if let Some(id) = target_tmux_pane_id {
+            let mut cmd_queue = self.cmd_queue.as_ref().lock();
+            cmd_queue.push_back(Box::new(SplitPane {
+                pane_id: *id,
+                direction: split_request.direction,
+            }));
+            TmuxDomainState::schedule_send_next_command(self.domain_id);
+        } else {
+            log::debug!("Could not find the tmux pane peer for local pane: {pane_id}");
+        }
+    }
 }
 
 impl TmuxDomain {
@@ -219,6 +255,7 @@ impl TmuxDomain {
             gui_tabs: Mutex::new(Vec::default()),
             remote_panes: Mutex::new(HashMap::default()),
             tmux_session: Mutex::new(None),
+            channel: bounded(1),
         });
 
         Self { inner }
@@ -240,6 +277,22 @@ impl Domain for TmuxDomain {
     ) -> anyhow::Result<Arc<Tab>> {
         self.inner.create_tmux_window(size.cols, size.rows);
         anyhow::bail!("Intention: we use tmux command to do so");
+    }
+
+    async fn split_pane(
+        &self,
+        _source: SplitSource,
+        tab: TabId,
+        pane_id: PaneId,
+        split_request: SplitRequest,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        self.inner.split_tmux_pane(tab, pane_id, split_request);
+        if let Ok(id) = self.inner.channel.1.recv().await {
+            let pane = self.inner.split_pane(tab, pane_id, id, split_request);
+            return pane;
+        }
+
+        anyhow::bail!("Split_pane failed");
     }
 
     async fn spawn_pane(

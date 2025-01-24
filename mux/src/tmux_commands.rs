@@ -1,6 +1,6 @@
 use crate::domain::{DomainId, WriterWrapper};
 use crate::localpane::LocalPane;
-use crate::pane::alloc_pane_id;
+use crate::pane::{alloc_pane_id, PaneId};
 use crate::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
 use crate::tmux::{TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
 use crate::tmux_pty::{TmuxChild, TmuxPty};
@@ -55,18 +55,15 @@ struct WindowItem {
 
 impl TmuxDomainState {
     /// check if a PaneItem received from ListAllPanes has been attached
-    fn check_pane_attached(&self, target: &PaneItem) -> bool {
+    pub fn check_pane_attached(&self, window_id: TmuxWindowId, pane_id: TmuxPaneId) -> bool {
         let pane_list = self.gui_tabs.lock();
-        let local_tab = match pane_list
-            .iter()
-            .find(|&x| x.tmux_window_id == target.window_id)
-        {
+        let local_tab = match pane_list.iter().find(|&x| x.tmux_window_id == window_id) {
             Some(x) => x,
             None => {
                 return false;
             }
         };
-        match local_tab.panes.get(&target.pane_id) {
+        match local_tab.panes.get(&pane_id) {
             Some(_) => {
                 return true;
             }
@@ -169,12 +166,73 @@ impl TmuxDomainState {
         )))
     }
 
+    pub fn split_pane(
+        &self,
+        tab_id: TabId,
+        pane_id: PaneId,
+        remote_id: TmuxPaneId,
+        split_request: SplitRequest,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab_id) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab_id),
+        };
+
+        let pane_index = match tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_size = match tab.compute_split_size(pane_index, split_request) {
+            Some(s) => s,
+            None => anyhow::bail!("invalid pane index {}", pane_index),
+        };
+
+        let window_id;
+        {
+            let mut pane_list = self.gui_tabs.lock();
+            window_id = match pane_list.iter_mut().find(|x| x.tab_id == tab_id) {
+                Some(x) => x.tmux_window_id,
+                None => 0,
+            };
+        }
+
+        let p = PaneItem {
+            session_id: 0,
+            window_id: window_id,
+            pane_id: remote_id,
+            _pane_index: 0,
+            cursor_x: 0,
+            cursor_y: 0,
+            pane_width: split_size.second.cols as u64,
+            pane_height: split_size.second.rows as u64,
+            pane_left: 0,
+            pane_top: 0,
+            _pane_active: false,
+        };
+
+        let pane = self.create_pane(&p).unwrap();
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
+
+        self.add_attached_pane(&p, &tab_id)?;
+        let _ = mux.add_pane(&pane);
+
+        return Ok(pane);
+    }
+
     fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
         let current_session = self.tmux_session.lock().unwrap_or(0);
         let mux = Mux::get();
 
         for pane in panes.iter() {
-            if pane.session_id != current_session || !self.check_pane_attached(&pane) {
+            if pane.session_id != current_session
+                || !self.check_pane_attached(pane.window_id, pane.pane_id)
+            {
                 continue;
             }
 
@@ -257,7 +315,7 @@ impl TmuxDomainState {
 
                 for p in split_stack {
                     let local_pane;
-                    if !self.check_pane_attached(&p) {
+                    if !self.check_pane_attached(p.window_id, p.pane_id) {
                         local_pane = self.create_pane(&p).unwrap();
                         self.add_attached_pane(&p, &tab.tab_id())?;
                         let _ = mux.add_pane(&local_pane);
@@ -769,6 +827,26 @@ impl TmuxCommand for NewWindow {
             "set-option -t {} default-size {}x{}\nnew-window\n",
             self.session_id, self.width, self.height
         )
+    }
+
+    fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct SplitPane {
+    pub pane_id: TmuxPaneId,
+    pub direction: SplitDirection,
+}
+
+impl TmuxCommand for SplitPane {
+    fn get_command(&self) -> String {
+        if self.direction == SplitDirection::Horizontal {
+            format!("split-window -h -t %{}\n", self.pane_id)
+        } else {
+            format!("split-window -v -t %{}\n", self.pane_id)
+        }
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
