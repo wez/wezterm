@@ -173,25 +173,12 @@ hide:
     * openSUSE Tumbleweed
     * RHEL 8, 9
 
-
+    ## Fedora/Centos/RHEL
+    
     To perform initial installation:
 
     ```console
     $ sudo dnf copr enable wezfurlong/wezterm-nightly
-    $ sudo dnf install wezterm
-    ```
-    ## openSUSE specific
-
-    To perform initial installation:
-
-    ```console
-    $ sudo zypper in dnf
-    $ sudo dnf copr enable wezfurlong/wezterm-nightly <repository>
-    ```
-    where `<repository>` is one of the following, depending on the flavor and architecture:
-    `opensuse-tumbleweed-x86_64`, `opensuse-tumbleweed-aarch64`, `opensuse-leap-15.5-x86_64`, `opensuse-leap-15.5-aarch64`.
-
-    ```console
     $ sudo dnf install wezterm
     ```
 
@@ -199,6 +186,27 @@ hide:
 
     ```console
     $ sudo dnf update wezterm
+    ```
+
+    ## openSUSE
+
+    To add the COPR repository:
+
+    ```console
+    $ sudo zypper addrepo https://copr.fedorainfracloud.org/coprs/wezfurlong/wezterm-nightly/repo/<repository>/wezfurlong-wezterm-nightly-<repository>.repo
+    ```
+    where `<repository>` is either `opensuse-tumbleweed` or `opensuse-leap-15.5`, depending on the flavor.
+
+    ## Install wezterm:    
+
+    ```console
+    $ sudo zypper install wezterm
+    ```
+
+    ## Update
+
+    ```console
+    $ sudo zypper update wezterm
     ```
 
 === "Fedora/RPM"
