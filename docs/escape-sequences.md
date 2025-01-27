@@ -140,10 +140,8 @@ are broken out below.
 
 #### Graphic Rendition (SGR)
 
-SGR sequences are of the form `CSI DIGITS [; DIGITS ]+ m`.  That is, any number
-of semicolon separated numbers, terminated by the `m` codepoint.  There are a handful
-of slightly more modern sequences that use colon `:` codepoints to encode additional
-context.
+SGR sequences are of the form `CSI DIGITS [: DIGITS ]+ m`.  That is, any number
+of colon separated numbers, terminated by the `m` codepoint.
 
 The digits map to one of the codes in the table below, which manipulate the
 presentation attributes of subsequently printed characters.
