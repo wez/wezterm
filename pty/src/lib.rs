@@ -46,6 +46,8 @@ use serde_derive::*;
 use std::io::Result as IoResult;
 #[cfg(windows)]
 use std::os::windows::prelude::{AsRawHandle, RawHandle};
+#[cfg(windows)]
+use winapi::um::winnt::HANDLE;
 
 pub mod cmdbuilder;
 pub use cmdbuilder::CommandBuilder;
@@ -162,7 +164,17 @@ impl_downcast!(ChildKiller);
 /// Can be used to spawn processes into the pty.
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
+    #[cfg(not(windows))]
     fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send + Sync>, Error>;
+    /// Spawns a command specified by the provided CommandBuilder. 
+    /// Accepts an Option<HANDLE> to a primary/impersonation token to spawn the process in the context of a different user. 
+    /// The calling process must have the SeIncreaseQuotaPrivilege and SeAssignPrimaryTokenPrivilege privilege enabled to use this feature.
+    #[cfg(windows)]
+    fn spawn_command(
+        &self,
+        cmd: CommandBuilder,
+        token: Option<HANDLE>,
+    ) -> Result<Box<dyn Child + Send + Sync>, Error>;
 }
 
 /// Represents the exit status of a child process.
