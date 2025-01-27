@@ -247,7 +247,7 @@ impl super::TermWindow {
         };
         match mode {
             SelectionMode::Line => {
-                let start = SelectionCoordinate::x_y(x, y);
+                let start = SelectionCoordinate::x_y(0, y);
                 let selection_range = SelectionRange::line_around(start, &**pane);
 
                 self.selection(pane.pane_id()).origin = Some(start);
