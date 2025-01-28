@@ -17,18 +17,18 @@ pub(crate) struct NewPty {
 }
 
 #[derive(Debug)]
-pub(crate) struct ResizePty {
+pub struct ResizePty {
     pub channel: ChannelId,
     pub size: PtySize,
 }
 
 #[derive(Debug)]
 pub struct SshPty {
-    pub(crate) channel: ChannelId,
-    pub(crate) tx: Option<SessionSender>,
-    pub(crate) reader: FileDescriptor,
-    pub(crate) writer: FileDescriptor,
-    pub(crate) size: Mutex<PtySize>,
+    pub channel: ChannelId,
+    pub tx: Option<SessionSender>,
+    pub reader: FileDescriptor,
+    pub writer: FileDescriptor,
+    pub size: Mutex<PtySize>,
 }
 
 impl std::io::Write for SshPty {
