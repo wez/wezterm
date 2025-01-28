@@ -1,7 +1,9 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
-use crate::tmux_commands::{ListAllPanes, ListAllWindows, NewWindow, SplitPane, TmuxCommand};
+use crate::tmux_commands::{
+    ListAllPanes, ListAllWindows, NewWindow, ResizeWindow, SplitPane, TmuxCommand,
+};
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
@@ -105,8 +107,22 @@ impl TmuxDomainState {
                         log::error!("Tmux pane {} havn't been attached", pane);
                     }
                 }
-                Event::WindowAdd { window: _ } => {
-                    self.create_gui_window();
+                Event::WindowAdd { window } => {
+                    if self.gui_window.lock().is_none() {
+                        self.create_gui_window();
+                    } else {
+                        let session = self.tmux_session.lock().unwrap();
+                        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                        cmd_queue.push_back(Box::new(ListAllWindows {
+                            session_id: session,
+                            window_id: Some(*window),
+                        }));
+
+                        smol::block_on(async {
+                            let _ = self.channel.0.send(*window).await;
+                        });
+                        log::info!("tmux window add: {}:{}", session, window);
+                    }
                 }
                 Event::SessionChanged { session, name: _ } => {
                     *self.tmux_session.lock() = Some(*session);
@@ -126,14 +142,6 @@ impl TmuxDomainState {
                         *released = true;
                         condvar.notify_all();
                     }
-                }
-                Event::SessionWindowChanged { session, window } => {
-                    let mut cmd_queue = self.cmd_queue.as_ref().lock();
-                    cmd_queue.push_back(Box::new(ListAllWindows {
-                        session_id: *session,
-                        window_id: Some(*window),
-                    }));
-                    log::info!("tmux window changed: {}:{}", session, window);
                 }
                 Event::WindowPaneChanged { window, pane } => {
                     if !self.check_pane_attached(*window, *pane) {
@@ -226,11 +234,16 @@ impl TmuxDomainState {
     }
 
     /// create a tmux window
-    pub fn create_tmux_window(&self, width: usize, height: usize) {
-        let session_id = self.tmux_session.lock().unwrap();
+    pub fn create_tmux_window(&self) {
         let mut cmd_queue = self.cmd_queue.as_ref().lock();
-        cmd_queue.push_back(Box::new(NewWindow {
-            session_id,
+        cmd_queue.push_back(Box::new(NewWindow));
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
+    }
+
+    pub fn resize_tmux_window(&self, window_id: TmuxWindowId, width: usize, height: usize) {
+        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+        cmd_queue.push_back(Box::new(ResizeWindow {
+            window_id,
             width,
             height,
         }));
@@ -297,7 +310,11 @@ impl Domain for TmuxDomain {
         _command_dir: Option<String>,
         _window: WindowId,
     ) -> anyhow::Result<Arc<Tab>> {
-        self.inner.create_tmux_window(size.cols, size.rows);
+        self.inner.create_tmux_window();
+        if let Ok(window_id) = self.inner.channel.1.recv().await {
+            self.inner
+                .resize_tmux_window(window_id, size.cols, size.rows);
+        }
         anyhow::bail!("Intention: we use tmux command to do so");
     }
 

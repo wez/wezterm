@@ -293,7 +293,7 @@ impl TmuxDomainState {
         Ok(())
     }
 
-    fn sync_window_state(&self, windows: &[WindowItem]) -> anyhow::Result<()> {
+    fn sync_window_state(&self, windows: &[WindowItem], new_window: bool) -> anyhow::Result<()> {
         let current_session = self.tmux_session.lock().unwrap_or(0);
         let mux = Mux::get();
 
@@ -340,10 +340,12 @@ impl TmuxDomainState {
                         tab.assign_pane(&local_pane);
                         self.add_attached_pane(&p, &tab.tab_id())?;
                         let _ = mux.add_pane(&local_pane);
-                        self.cmd_queue
-                            .lock()
-                            .push_back(Box::new(CapturePane(p.pane_id)));
-                        TmuxDomainState::schedule_send_next_command(self.domain_id);
+                        if !new_window {
+                            self.cmd_queue
+                                .lock()
+                                .push_back(Box::new(CapturePane(p.pane_id)));
+                            TmuxDomainState::schedule_send_next_command(self.domain_id);
+                        }
                         break;
                     }
 
@@ -452,7 +454,6 @@ impl TmuxCommand for ListAllPanes {
             #{{pane_left}} #{{pane_top}} #{{pane_active}}' -t @{}\n",
             self.window_id
         )
-        .to_owned()
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -680,27 +681,14 @@ pub(crate) struct ListAllWindows {
 
 impl TmuxCommand for ListAllWindows {
     fn get_command(&self) -> String {
-        if let Some(window_id) = self.window_id {
-            format!(
-                "list-windows -F \
-                '#{{session_id}} #{{window_id}} \
-                #{{window_width}} #{{window_height}} \
-                #{{window_active}} \
-                #{{window_layout}}' \
-                -t {} \
-                -f '#{{==:#{{window_id}},@{}}}'\n",
-                self.session_id, window_id
-            )
-        } else {
-            format!(
-                "list-windows -F \
+        format!(
+            "list-windows -F \
                 '#{{session_id}} #{{window_id}} \
                 #{{window_width}} #{{window_height}} \
                 #{{window_active}} \
                 #{{window_layout}} -t {}'\n",
-                self.session_id
-            )
-        }
+            self.session_id
+        )
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -734,6 +722,12 @@ impl TmuxCommand for ListAllWindows {
             // so skip those prior to parsing them
             let session_id = session_id[1..].parse()?;
             let window_id = window_id[1..].parse()?;
+
+            if let Some(x) = self.window_id {
+                if x != window_id {
+                    continue;
+                }
+            }
 
             let window_layout = window_layout.get(5..).unwrap();
 
@@ -778,7 +772,14 @@ impl TmuxCommand for ListAllWindows {
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-                return tmux_domain.inner.sync_window_state(&items);
+                return tmux_domain.inner.sync_window_state(
+                    &items,
+                    if let Some(_) = self.window_id {
+                        true
+                    } else {
+                        false
+                    },
+                );
             }
         }
         anyhow::bail!("Tmux domain lost");
@@ -870,17 +871,29 @@ impl TmuxCommand for SendKeys {
 }
 
 #[derive(Debug)]
-pub(crate) struct NewWindow {
-    pub session_id: TmuxSessionId,
+pub(crate) struct NewWindow;
+impl TmuxCommand for NewWindow {
+    fn get_command(&self) -> String {
+        "new-window\n".to_owned()
+    }
+
+    fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ResizeWindow {
+    pub window_id: TmuxWindowId,
     pub width: usize,
     pub height: usize,
 }
 
-impl TmuxCommand for NewWindow {
+impl TmuxCommand for ResizeWindow {
     fn get_command(&self) -> String {
         format!(
-            "set-option -t {} default-size {}x{}\nnew-window\n",
-            self.session_id, self.width, self.height
+            "resize-window -x {} -y {} -t @{}\n",
+            self.width, self.height, self.window_id
         )
     }
 
