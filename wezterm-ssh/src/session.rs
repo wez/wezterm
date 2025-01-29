@@ -22,7 +22,7 @@ pub enum SessionEvent {
 }
 
 #[derive(Debug, Clone)]
-pub struct SessionSender {
+pub(crate) struct SessionSender {
     pub tx: Sender<SessionRequest>,
     pub pipe: Arc<Mutex<FileDescriptor>>,
 }
@@ -51,7 +51,7 @@ impl SessionSender {
 pub struct DeadSession;
 
 #[derive(Debug)]
-pub enum SessionRequest {
+pub(crate) enum SessionRequest {
     NewPty(NewPty, Sender<anyhow::Result<(SshPty, SshChildProcess)>>),
     ResizePty(ResizePty, Option<Sender<anyhow::Result<()>>>),
     Exec(Exec, Sender<anyhow::Result<ExecResult>>),

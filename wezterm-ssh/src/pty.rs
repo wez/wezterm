@@ -17,7 +17,7 @@ pub(crate) struct NewPty {
 }
 
 #[derive(Debug)]
-pub struct ResizePty {
+pub(crate) struct ResizePty {
     pub channel: ChannelId,
     pub size: PtySize,
 }
