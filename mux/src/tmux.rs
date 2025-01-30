@@ -2,7 +2,7 @@ use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource}
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::tmux_commands::{
-    ListAllPanes, ListAllWindows, NewWindow, ResizeWindow, SplitPane, TmuxCommand,
+    ListAllPanes, ListAllWindows, ListCommands, NewWindow, ResizeWindow, SplitPane, TmuxCommand,
 };
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
@@ -65,6 +65,7 @@ pub(crate) struct TmuxDomainState {
     pub remote_panes: Mutex<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
     pub channel: (Sender<TmuxPaneId>, Receiver<TmuxPaneId>),
+    pub support_commands: Mutex<HashMap<String, String>>,
 }
 
 pub struct TmuxDomain {
@@ -75,7 +76,7 @@ impl TmuxDomainState {
     pub fn advance(&self, events: Box<Vec<Event>>) {
         for event in events.iter() {
             let state = *self.state.lock();
-            log::info!("tmux: {:?} in state {:?}", event, state);
+            log::debug!("tmux: {:?} in state {:?}", event, state);
             match event {
                 Event::Guarded(response) => match state {
                     State::WaitForInitialGuard => {
@@ -127,10 +128,7 @@ impl TmuxDomainState {
                 Event::SessionChanged { session, name: _ } => {
                     *self.tmux_session.lock() = Some(*session);
                     let mut cmd_queue = self.cmd_queue.as_ref().lock();
-                    cmd_queue.push_back(Box::new(ListAllWindows {
-                        session_id: *session,
-                        window_id: None,
-                    }));
+                    cmd_queue.push_back(Box::new(ListCommands));
                     log::info!("tmux session changed:{}", session);
                 }
                 Event::Exit { reason: _ } => {
@@ -194,7 +192,7 @@ impl TmuxDomainState {
         let cmd_queue = self.cmd_queue.as_ref().lock();
         if let Some(first) = cmd_queue.front() {
             let cmd = first.get_command(self.domain_id);
-            log::info!("sending cmd {:?}", cmd);
+            log::debug!("sending cmd {:?}", cmd);
             let mux = Mux::get();
             if let Some(pane) = mux.get_pane(self.pane_id) {
                 let mut writer = pane.writer();
@@ -291,6 +289,7 @@ impl TmuxDomain {
             remote_panes: Mutex::new(HashMap::default()),
             tmux_session: Mutex::new(None),
             channel: bounded(1),
+            support_commands: Mutex::new(HashMap::default()),
         });
 
         Self { inner }

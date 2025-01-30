@@ -524,7 +524,7 @@ impl TmuxCommand for ListAllPanes {
             });
         }
 
-        log::info!("panes in domain_id {}: {:?}", domain_id, items);
+        log::debug!("panes in domain_id {}: {:?}", domain_id, items);
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
@@ -768,7 +768,7 @@ impl TmuxCommand for ListAllWindows {
             });
         }
 
-        log::info!("layout in domain_id {}: {:#?}", domain_id, items);
+        log::debug!("layout in domain_id {}: {:#?}", domain_id, items);
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
@@ -820,13 +820,39 @@ impl TmuxCommand for Resize {
             None => panic!("Could not find the tab for this pane"),
         };
 
-        let tab = mux.get_tab(local_tab).unwrap();
-        let size = tab.get_size();
+        let size = match mux.get_tab(local_tab) {
+            Some(x) => x.get_size(),
+            None => TerminalSize {
+                rows: 80,
+                cols: 24,
+                pixel_width: 0,
+                pixel_height: 0,
+                dpi: 0,
+            },
+        };
 
-        format!(
-            "resize-window -x {} -y {} -t @{}\n resize-pane -x {} -y {} -t %{}\n",
-            size.cols, size.rows, tmux_window_id, self.size.cols, self.size.rows, self.pane_id
-        )
+        let support_commands = tmux_domain.inner.support_commands.lock();
+
+        if let Some(_x) = support_commands.get("resize-window") {
+            format!(
+                "resize-window -x {} -y {} -t @{};resize-pane -x {} -y {} -t %{}\n",
+                size.cols, size.rows, tmux_window_id, self.size.cols, self.size.rows, self.pane_id
+            )
+        } else if let Some(x) = support_commands.get("refresh-client") {
+            if x.contains("-C XxY") {
+                format!(
+                    "refresh-client -C {}x{}\nresize-pane -x {} -y {} -t %{}\n",
+                    size.cols, size.rows, self.size.cols, self.size.rows, self.pane_id
+                )
+            } else {
+                format!(
+                    "refresh-client -C {},{}\nresize-pane -x {} -y {} -t %{}\n",
+                    size.cols, size.rows, self.size.cols, self.size.rows, self.pane_id
+                )
+            }
+        } else {
+            panic!("The tmux version is not supported");
+        }
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -919,14 +945,76 @@ pub(crate) struct ResizeWindow {
 }
 
 impl TmuxCommand for ResizeWindow {
-    fn get_command(&self, _domain_id: DomainId) -> String {
-        format!(
-            "resize-window -x {} -y {} -t @{}\n",
-            self.width, self.height, self.window_id
-        )
+    fn get_command(&self, domain_id: DomainId) -> String {
+        let mux = Mux::get();
+        let domain = match mux.get_domain(domain_id) {
+            Some(d) => d,
+            None => panic!("Tmux domain lost"),
+        };
+        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
+            Some(t) => t,
+            None => panic!("Tmux domain lost"),
+        };
+
+        let support_commands = tmux_domain.inner.support_commands.lock();
+
+        if let Some(_x) = support_commands.get("resize-window") {
+            format!(
+                "resize-window -x {} -y {} -t @{}\n",
+                self.width, self.height, self.window_id
+            )
+        } else if let Some(x) = support_commands.get("refresh-client") {
+            if x.contains("-C XxY") {
+                format!("refresh-client -C {}x{}\n", self.width, self.height)
+            } else {
+                format!("refresh-client -C {},{}\n", self.width, self.height)
+            }
+        } else {
+            panic!("The tmux version is not supported");
+        }
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ListCommands;
+impl TmuxCommand for ListCommands {
+    fn get_command(&self, _domain_id: DomainId) -> String {
+        "list-commands\n".to_owned()
+    }
+
+    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
+        let mux = Mux::get();
+        let domain = match mux.get_domain(domain_id) {
+            Some(d) => d,
+            None => panic!("Tmux domain lost"),
+        };
+        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
+            Some(t) => t,
+            None => panic!("Tmux domain lost"),
+        };
+
+        let mut support_commands = tmux_domain.inner.support_commands.lock();
+
+        for line in result.output.split('\n') {
+            if line.is_empty() {
+                continue;
+            }
+            let v: Vec<&str> = line.split(' ').collect();
+            support_commands.insert(v[0].to_string(), line.to_string());
+        }
+
+        let mut cmd_queue = tmux_domain.inner.cmd_queue.as_ref().lock();
+        let session = tmux_domain.inner.tmux_session.lock().unwrap();
+        cmd_queue.push_back(Box::new(ListAllWindows {
+            session_id: session,
+            window_id: None,
+        }));
+        TmuxDomainState::schedule_send_next_command(domain_id);
+
         Ok(())
     }
 }
