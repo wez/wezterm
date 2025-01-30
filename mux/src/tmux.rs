@@ -193,7 +193,7 @@ impl TmuxDomainState {
         }
         let cmd_queue = self.cmd_queue.as_ref().lock();
         if let Some(first) = cmd_queue.front() {
-            let cmd = first.get_command();
+            let cmd = first.get_command(self.domain_id);
             log::info!("sending cmd {:?}", cmd);
             let mux = Mux::get();
             if let Some(pane) = mux.get_pane(self.pane_id) {

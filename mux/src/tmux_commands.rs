@@ -17,7 +17,7 @@ use termwiz::tmux_cc::*;
 use wezterm_term::TerminalSize;
 
 pub(crate) trait TmuxCommand: Send + Debug {
-    fn get_command(&self) -> String;
+    fn get_command(&self, domain_id: DomainId) -> String;
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
 }
 
@@ -447,7 +447,7 @@ pub(crate) struct ListAllPanes {
 }
 
 impl TmuxCommand for ListAllPanes {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         format!(
             "list-panes -F '#{{session_id}} #{{window_id}} #{{pane_id}} \
             #{{pane_index}} #{{cursor_x}} #{{cursor_y}} #{{pane_width}} #{{pane_height}} \
@@ -680,7 +680,7 @@ pub(crate) struct ListAllWindows {
 }
 
 impl TmuxCommand for ListAllWindows {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         format!(
             "list-windows -F \
                 '#{{session_id}} #{{window_id}} \
@@ -793,10 +793,39 @@ pub(crate) struct Resize {
 }
 
 impl TmuxCommand for Resize {
-    fn get_command(&self) -> String {
+    fn get_command(&self, domain_id: DomainId) -> String {
+        let mux = Mux::get();
+        let domain = match mux.get_domain(domain_id) {
+            Some(d) => d,
+            None => panic!("Tmux domain lost"),
+        };
+        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
+            Some(t) => t,
+            None => panic!("Tmux domain lost"),
+        };
+
+        let pane_map = tmux_domain.inner.remote_panes.lock();
+
+        let tmux_window_id = match pane_map.get(&self.pane_id) {
+            Some(x) => x.lock().window_id,
+            None => panic!("No this pane"),
+        };
+
+        let pane_list = tmux_domain.inner.gui_tabs.lock();
+        let local_tab = match pane_list
+            .iter()
+            .find(|&x| x.tmux_window_id == tmux_window_id)
+        {
+            Some(x) => x.tab_id,
+            None => panic!("Could not find the tab for this pane"),
+        };
+
+        let tab = mux.get_tab(local_tab).unwrap();
+        let size = tab.get_size();
+
         format!(
-            "resize-pane -x {} -y {} -t %{}\n",
-            self.size.cols, self.size.rows, self.pane_id
+            "resize-window -x {} -y {} -t @{}\n resize-pane -x {} -y {} -t %{}\n",
+            size.cols, size.rows, tmux_window_id, self.size.cols, self.size.rows, self.pane_id
         )
     }
 
@@ -815,7 +844,7 @@ impl TmuxCommand for Resize {
 #[derive(Debug)]
 pub(crate) struct CapturePane(TmuxPaneId);
 impl TmuxCommand for CapturePane {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         const HISTORY_LINES: isize = -2000;
         format!(
             "capture-pane -p -t %{} -e -C -S {}\n",
@@ -857,7 +886,7 @@ pub(crate) struct SendKeys {
     pub pane: TmuxPaneId,
 }
 impl TmuxCommand for SendKeys {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         let mut s = String::new();
         for &byte in self.keys.iter() {
             write!(&mut s, "0x{:X} ", byte).expect("unable to write key");
@@ -873,7 +902,7 @@ impl TmuxCommand for SendKeys {
 #[derive(Debug)]
 pub(crate) struct NewWindow;
 impl TmuxCommand for NewWindow {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         "new-window\n".to_owned()
     }
 
@@ -890,7 +919,7 @@ pub(crate) struct ResizeWindow {
 }
 
 impl TmuxCommand for ResizeWindow {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         format!(
             "resize-window -x {} -y {} -t @{}\n",
             self.width, self.height, self.window_id
@@ -909,7 +938,7 @@ pub(crate) struct SplitPane {
 }
 
 impl TmuxCommand for SplitPane {
-    fn get_command(&self) -> String {
+    fn get_command(&self, _domain_id: DomainId) -> String {
         if self.direction == SplitDirection::Horizontal {
             format!("split-window -h -t %{}\n", self.pane_id)
         } else {
