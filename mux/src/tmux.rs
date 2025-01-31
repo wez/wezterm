@@ -2,7 +2,7 @@ use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource}
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::tmux_commands::{
-    ListAllPanes, ListAllWindows, ListCommands, NewWindow, ResizeWindow, SplitPane, TmuxCommand,
+    ListAllPanes, ListAllWindows, ListCommands, NewWindow, SplitPane, TmuxCommand,
 };
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
@@ -51,6 +51,7 @@ pub(crate) type RefTmuxRemotePane = Arc<Mutex<TmuxRemotePane>>;
 pub(crate) struct TmuxTab {
     pub tab_id: TabId, // local tab ID
     pub tmux_window_id: TmuxWindowId,
+    pub layout_csum: String,
     pub panes: HashSet<TmuxPaneId>, // tmux panes within tmux window
 }
 
@@ -61,7 +62,7 @@ pub(crate) struct TmuxDomainState {
     state: Mutex<State>,
     pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
     pub gui_window: Mutex<Option<MuxWindowBuilder>>,
-    pub gui_tabs: Mutex<Vec<TmuxTab>>,
+    pub gui_tabs: Mutex<HashMap<TmuxWindowId, TmuxTab>>,
     pub remote_panes: Mutex<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
     pub channel: (Sender<TmuxPaneId>, Receiver<TmuxPaneId>),
@@ -118,10 +119,6 @@ impl TmuxDomainState {
                             session_id: session,
                             window_id: Some(*window),
                         }));
-
-                        smol::block_on(async {
-                            let _ = self.channel.0.send(*window).await;
-                        });
                         log::info!("tmux window add: {}:{}", session, window);
                     }
                 }
@@ -140,6 +137,8 @@ impl TmuxDomainState {
                         *released = true;
                         condvar.notify_all();
                     }
+                    let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                    cmd_queue.clear();
                 }
                 Event::WindowPaneChanged { window, pane } => {
                     if !self.check_pane_attached(*window, *pane) {
@@ -147,19 +146,12 @@ impl TmuxDomainState {
                         smol::block_on(async {
                             let _ = self.channel.0.send(*pane).await;
                         });
-                    } else {
-                        // prune the detached pane
-                        let mut cmd_queue = self.cmd_queue.as_ref().lock();
-                        cmd_queue.push_back(Box::new(ListAllPanes {
-                            window_id: *window,
-                            prune: true,
-                        }));
                     }
                     log::info!("tmux window pane changed: {}:{}", window, pane);
                 }
                 Event::LayoutChange {
                     window,
-                    layout: _,
+                    layout,
                     visible_layout: _,
                     raw_flags: _,
                 } => {
@@ -167,6 +159,7 @@ impl TmuxDomainState {
                     cmd_queue.push_back(Box::new(ListAllPanes {
                         window_id: *window,
                         prune: true,
+                        layout_csum: layout.get(0..4).unwrap().to_string(),
                     }));
                 }
                 Event::WindowClose { window } => {
@@ -189,9 +182,13 @@ impl TmuxDomainState {
         if *self.state.lock() != State::Idle {
             return;
         }
-        let cmd_queue = self.cmd_queue.as_ref().lock();
-        if let Some(first) = cmd_queue.front() {
+        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+        while let Some(first) = cmd_queue.front() {
             let cmd = first.get_command(self.domain_id);
+            if cmd.is_empty() {
+                cmd_queue.pop_front();
+                continue;
+            }
             log::debug!("sending cmd {:?}", cmd);
             let mux = Mux::get();
             if let Some(pane) = mux.get_pane(self.pane_id) {
@@ -199,6 +196,7 @@ impl TmuxDomainState {
                 let _ = write!(writer, "{}", cmd);
             }
             *self.state.lock() = State::WaitingForResponse;
+            break;
         }
     }
 
@@ -235,16 +233,6 @@ impl TmuxDomainState {
     pub fn create_tmux_window(&self) {
         let mut cmd_queue = self.cmd_queue.as_ref().lock();
         cmd_queue.push_back(Box::new(NewWindow));
-        TmuxDomainState::schedule_send_next_command(self.domain_id);
-    }
-
-    pub fn resize_tmux_window(&self, window_id: TmuxWindowId, width: usize, height: usize) {
-        let mut cmd_queue = self.cmd_queue.as_ref().lock();
-        cmd_queue.push_back(Box::new(ResizeWindow {
-            window_id,
-            width,
-            height,
-        }));
         TmuxDomainState::schedule_send_next_command(self.domain_id);
     }
 
@@ -285,7 +273,7 @@ impl TmuxDomain {
             state: Mutex::new(State::WaitForInitialGuard),
             cmd_queue: Arc::new(Mutex::new(cmd_queue)),
             gui_window: Mutex::new(None),
-            gui_tabs: Mutex::new(Vec::default()),
+            gui_tabs: Mutex::new(HashMap::default()),
             remote_panes: Mutex::new(HashMap::default()),
             tmux_session: Mutex::new(None),
             channel: bounded(1),
@@ -304,16 +292,12 @@ impl TmuxDomain {
 impl Domain for TmuxDomain {
     async fn spawn(
         &self,
-        size: TerminalSize,
+        _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
         _window: WindowId,
     ) -> anyhow::Result<Arc<Tab>> {
         self.inner.create_tmux_window();
-        if let Ok(window_id) = self.inner.channel.1.recv().await {
-            self.inner
-                .resize_tmux_window(window_id, size.cols, size.rows);
-        }
         anyhow::bail!("Intention: we use tmux command to do so");
     }
 

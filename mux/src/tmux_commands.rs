@@ -51,18 +51,14 @@ struct WindowItem {
     window_height: u64,
     window_active: bool,
     layout: Vec<TmuxLayout>,
+    layout_csum: String,
 }
 
 impl TmuxDomainState {
     /// check if a PaneItem received from ListAllPanes has been attached
     pub fn check_pane_attached(&self, window_id: TmuxWindowId, pane_id: TmuxPaneId) -> bool {
-        let pane_list = self.gui_tabs.lock();
-        let local_tab = match pane_list.iter().find(|&x| x.tmux_window_id == window_id) {
-            Some(x) => x,
-            None => {
-                return false;
-            }
-        };
+        let gui_tabs = self.gui_tabs.lock();
+        let local_tab = gui_tabs.get(&window_id).unwrap();
         match local_tab.panes.get(&pane_id) {
             Some(_) => {
                 return true;
@@ -75,31 +71,40 @@ impl TmuxDomainState {
 
     /// after we create a tab for a remote pane, save its ID into the
     /// TmuxPane-TmuxPane tree, so we can ref it later.
-    fn add_attached_pane(&self, target: &PaneItem, tab_id: &TabId) -> anyhow::Result<()> {
-        let mut pane_list = self.gui_tabs.lock();
-        let local_tab = match pane_list
-            .iter_mut()
-            .find(|x| x.tmux_window_id == target.window_id)
-        {
-            Some(x) => x,
-            None => {
-                pane_list.push(TmuxTab {
-                    tab_id: *tab_id,
-                    tmux_window_id: target.window_id,
-                    panes: HashSet::new(),
-                });
-                pane_list.last_mut().unwrap()
-            }
-        };
-        match local_tab.panes.get(&target.pane_id) {
+    fn add_attached_pane(&self, target: &PaneItem) -> anyhow::Result<()> {
+        let mut gui_tabs = self.gui_tabs.lock();
+        let local_tab = gui_tabs.get_mut(&target.window_id).unwrap();
+        let panes = &mut local_tab.panes;
+
+        match panes.get(&target.pane_id) {
             Some(_) => {
                 anyhow::bail!("Tmux pane already attached");
             }
             None => {
-                local_tab.panes.insert(target.pane_id);
+                panes.insert(target.pane_id);
                 return Ok(());
             }
         }
+    }
+
+    fn add_attached_window(&self, target: &WindowItem, tab_id: &TabId) -> anyhow::Result<()> {
+        let mut gui_tabs = self.gui_tabs.lock();
+        match gui_tabs.get(&target.window_id) {
+            Some(_x) => return Ok(()),
+            None => {
+                gui_tabs.insert(
+                    target.window_id,
+                    TmuxTab {
+                        tab_id: *tab_id,
+                        tmux_window_id: target.window_id,
+                        layout_csum: target.layout_csum.clone(),
+                        panes: HashSet::new(),
+                    },
+                );
+            }
+        };
+
+        return Ok(());
     }
 
     fn remove_detached_pane(
@@ -107,34 +112,36 @@ impl TmuxDomainState {
         window_id: TmuxWindowId,
         new_set: &HashSet<TmuxPaneId>,
     ) -> anyhow::Result<()> {
-        let mut pane_list = self.gui_tabs.lock();
-        let local_tab = match pane_list.iter_mut().find(|x| x.tmux_window_id == window_id) {
+        let mut gui_tabs = self.gui_tabs.lock();
+        let local_tab = match gui_tabs.get_mut(&window_id) {
             Some(x) => x,
             None => {
                 anyhow::bail!("Cannot find the window {window_id}")
             }
         };
 
-        let to_remove: Vec<_> = local_tab.panes.difference(new_set).cloned().collect();
+        let mux = Mux::get();
+        let tab_id = local_tab.tab_id;
+        let panes = &mut local_tab.panes;
+        let to_remove: Vec<_> = panes.difference(new_set).cloned().collect();
         for p in to_remove {
             let pane_map = self.remote_panes.lock();
             let local_pane_id = pane_map.get(&p).unwrap().lock().local_pane_id;
-            let mux = Mux::get();
             mux.remove_pane(local_pane_id);
-            local_tab.panes.remove(&p);
-
-            if local_tab.panes.is_empty() {
-                mux.remove_tab(local_tab.tab_id);
-                let mut pane_list = self.gui_tabs.lock();
-                pane_list.retain(|x| x.tmux_window_id != window_id);
-            }
+            panes.remove(&p);
         }
+
+        if panes.is_empty() {
+            mux.remove_tab(tab_id);
+            gui_tabs.remove(&window_id);
+        }
+
         Ok(())
     }
 
     pub fn remove_detached_window(&self, window_id: TmuxWindowId) -> anyhow::Result<()> {
-        let mut pane_list = self.gui_tabs.lock();
-        let local_tab = match pane_list.iter_mut().find(|x| x.tmux_window_id == window_id) {
+        let mut gui_tabs = self.gui_tabs.lock();
+        let local_tab = match gui_tabs.get(&window_id) {
             Some(x) => x,
             None => {
                 anyhow::bail!("Cannot find the window {window_id}")
@@ -143,6 +150,7 @@ impl TmuxDomainState {
 
         let mux = Mux::get();
         mux.remove_tab(local_tab.tab_id);
+        gui_tabs.remove(&window_id);
 
         Ok(())
     }
@@ -240,10 +248,10 @@ impl TmuxDomainState {
 
         let window_id;
         {
-            let mut pane_list = self.gui_tabs.lock();
-            window_id = match pane_list.iter_mut().find(|x| x.tab_id == tab_id) {
-                Some(x) => x.tmux_window_id,
-                None => 0,
+            let gui_tabs = self.gui_tabs.lock();
+            window_id = match gui_tabs.iter().find(|x| x.1.tab_id == tab_id) {
+                Some((_, x)) => x.tmux_window_id,
+                None => anyhow::bail!("No tab {}", tab_id),
             };
         }
 
@@ -264,7 +272,7 @@ impl TmuxDomainState {
         let pane = self.create_pane(&p).unwrap();
         tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
 
-        self.add_attached_pane(&p, &tab_id)?;
+        self.add_attached_pane(&p)?;
         let _ = mux.add_pane(&pane);
 
         return Ok(pane);
@@ -293,7 +301,7 @@ impl TmuxDomainState {
         Ok(())
     }
 
-    fn sync_window_state(&self, windows: &[WindowItem], new_window: bool) -> anyhow::Result<()> {
+    fn sync_window_state(&self, windows: &[WindowItem]) -> anyhow::Result<()> {
         let current_session = self.tmux_session.lock().unwrap_or(0);
         let mux = Mux::get();
 
@@ -325,6 +333,8 @@ impl TmuxDomainState {
             tab.set_title(&format!("Tmux window: {}", window.window_id));
             mux.add_tab_no_panes(&tab);
 
+            let _ = self.add_attached_window(window, &tab.tab_id())?;
+
             if window.window_active {
                 active_tab_id = Some(tab.tab_id());
             }
@@ -338,14 +348,8 @@ impl TmuxDomainState {
                     TmuxLayout::SinglePane(p) => {
                         let local_pane = self.create_pane(&p).unwrap();
                         tab.assign_pane(&local_pane);
-                        self.add_attached_pane(&p, &tab.tab_id())?;
+                        self.add_attached_pane(&p)?;
                         let _ = mux.add_pane(&local_pane);
-                        if !new_window {
-                            self.cmd_queue
-                                .lock()
-                                .push_back(Box::new(CapturePane(p.pane_id)));
-                            TmuxDomainState::schedule_send_next_command(self.domain_id);
-                        }
                         break;
                     }
 
@@ -364,15 +368,11 @@ impl TmuxDomainState {
                     let local_pane;
                     if !self.check_pane_attached(p.window_id, p.pane_id) {
                         local_pane = self.create_pane(&p).unwrap();
-                        self.add_attached_pane(&p, &tab.tab_id())?;
+                        self.add_attached_pane(&p)?;
                         let _ = mux.add_pane(&local_pane);
                         if let None = tab.get_active_pane() {
                             tab.assign_pane(&local_pane);
                             split_pane_index = tab.get_active_idx();
-                            self.cmd_queue
-                                .lock()
-                                .push_back(Box::new(CapturePane(p.pane_id)));
-                            TmuxDomainState::schedule_send_next_command(self.domain_id);
                             continue;
                         }
 
@@ -392,11 +392,6 @@ impl TmuxDomainState {
                             },
                             local_pane.clone(),
                         )? + 1;
-
-                        self.cmd_queue
-                            .lock()
-                            .push_back(Box::new(CapturePane(p.pane_id)));
-                        TmuxDomainState::schedule_send_next_command(self.domain_id);
                     } else {
                         let pane_map = self.remote_panes.lock();
                         let local_pane_id = pane_map.get(&p.pane_id).unwrap().lock().local_pane_id;
@@ -418,11 +413,17 @@ impl TmuxDomainState {
 
             session_id = window.session_id;
 
+            let gui_tabs = self.gui_tabs.lock();
+            let local_tab = gui_tabs.get(&window.window_id).unwrap();
+            for p in local_tab.panes.iter() {
+                self.cmd_queue.lock().push_back(Box::new(CapturePane(*p)));
+            }
+
             self.cmd_queue.lock().push_back(Box::new(ListAllPanes {
                 window_id: window.window_id,
                 prune: false,
+                layout_csum: window.layout_csum.clone(),
             }));
-            TmuxDomainState::schedule_send_next_command(self.domain_id);
         }
 
         if let Some(mut window) = mux.get_window_mut(**gui_window_id) {
@@ -436,6 +437,8 @@ impl TmuxDomainState {
             }
         }
 
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
+
         Ok(())
     }
 }
@@ -444,10 +447,33 @@ impl TmuxDomainState {
 pub(crate) struct ListAllPanes {
     pub window_id: TmuxWindowId,
     pub prune: bool,
+    pub layout_csum: String,
 }
 
 impl TmuxCommand for ListAllPanes {
-    fn get_command(&self, _domain_id: DomainId) -> String {
+    fn get_command(&self, domain_id: DomainId) -> String {
+        let mux = Mux::get();
+        let domain = match mux.get_domain(domain_id) {
+            Some(d) => d,
+            None => panic!("Tmux domain lost"),
+        };
+        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
+            Some(t) => t,
+            None => panic!("Tmux domain lost"),
+        };
+
+        let mut gui_tabs = tmux_domain.inner.gui_tabs.lock();
+
+        let local_tab = gui_tabs.get_mut(&self.window_id).unwrap();
+
+        if local_tab.layout_csum.eq(&self.layout_csum) {
+            if self.prune {
+                return "".to_string();
+            }
+        } else {
+            local_tab.layout_csum = self.layout_csum.clone();
+        }
+
         format!(
             "list-panes -F '#{{session_id}} #{{window_id}} #{{pane_id}} \
             #{{pane_index}} #{{cursor_x}} #{{cursor_y}} #{{pane_width}} #{{pane_height}} \
@@ -729,6 +755,7 @@ impl TmuxCommand for ListAllWindows {
                 }
             }
 
+            let layout_csum = window_layout.get(0..4).unwrap().to_string();
             let window_layout = window_layout.get(5..).unwrap();
 
             let mut layout = Vec::<TmuxLayout>::new();
@@ -765,6 +792,7 @@ impl TmuxCommand for ListAllWindows {
                 window_height,
                 window_active,
                 layout,
+                layout_csum,
             });
         }
 
@@ -772,14 +800,7 @@ impl TmuxCommand for ListAllWindows {
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-                return tmux_domain.inner.sync_window_state(
-                    &items,
-                    if let Some(_) = self.window_id {
-                        true
-                    } else {
-                        false
-                    },
-                );
+                return tmux_domain.inner.sync_window_state(&items);
             }
         }
         anyhow::bail!("Tmux domain lost");
@@ -805,37 +826,36 @@ impl TmuxCommand for Resize {
         };
 
         let pane_map = tmux_domain.inner.remote_panes.lock();
+        {
+            let mut pane = pane_map.get(&self.pane_id).unwrap().lock();
+
+            if pane.pane_width == self.size.cols as u64 && pane.pane_height == self.size.rows as u64
+            {
+                return "".to_string();
+            } else {
+                pane.pane_width = self.size.cols as u64;
+                pane.pane_height = self.size.rows as u64;
+            }
+        }
 
         let tmux_window_id = match pane_map.get(&self.pane_id) {
             Some(x) => x.lock().window_id,
             None => panic!("No this pane"),
         };
 
-        let pane_list = tmux_domain.inner.gui_tabs.lock();
-        let local_tab = match pane_list
-            .iter()
-            .find(|&x| x.tmux_window_id == tmux_window_id)
-        {
-            Some(x) => x.tab_id,
-            None => panic!("Could not find the tab for this pane"),
-        };
+        let gui_tabs = tmux_domain.inner.gui_tabs.lock();
+        let local_tab = gui_tabs.get(&tmux_window_id).unwrap();
 
-        let size = match mux.get_tab(local_tab) {
+        let size = match mux.get_tab(local_tab.tab_id) {
             Some(x) => x.get_size(),
-            None => TerminalSize {
-                rows: 80,
-                cols: 24,
-                pixel_width: 0,
-                pixel_height: 0,
-                dpi: 0,
-            },
+            None => return "".to_string(),
         };
 
         let support_commands = tmux_domain.inner.support_commands.lock();
 
         if let Some(_x) = support_commands.get("resize-window") {
             format!(
-                "resize-window -x {} -y {} -t @{};resize-pane -x {} -y {} -t %{}\n",
+                "resize-window -x {} -y {} -t @{}\nresize-pane -x {} -y {} -t %{}\n",
                 size.cols, size.rows, tmux_window_id, self.size.cols, self.size.rows, self.pane_id
             )
         } else if let Some(x) = support_commands.get("refresh-client") {
@@ -930,48 +950,6 @@ pub(crate) struct NewWindow;
 impl TmuxCommand for NewWindow {
     fn get_command(&self, _domain_id: DomainId) -> String {
         "new-window\n".to_owned()
-    }
-
-    fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct ResizeWindow {
-    pub window_id: TmuxWindowId,
-    pub width: usize,
-    pub height: usize,
-}
-
-impl TmuxCommand for ResizeWindow {
-    fn get_command(&self, domain_id: DomainId) -> String {
-        let mux = Mux::get();
-        let domain = match mux.get_domain(domain_id) {
-            Some(d) => d,
-            None => panic!("Tmux domain lost"),
-        };
-        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
-            Some(t) => t,
-            None => panic!("Tmux domain lost"),
-        };
-
-        let support_commands = tmux_domain.inner.support_commands.lock();
-
-        if let Some(_x) = support_commands.get("resize-window") {
-            format!(
-                "resize-window -x {} -y {} -t @{}\n",
-                self.width, self.height, self.window_id
-            )
-        } else if let Some(x) = support_commands.get("refresh-client") {
-            if x.contains("-C XxY") {
-                format!("refresh-client -C {}x{}\n", self.width, self.height)
-            } else {
-                format!("refresh-client -C {},{}\n", self.width, self.height)
-            }
-        } else {
-            panic!("The tmux version is not supported");
-        }
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
