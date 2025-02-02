@@ -69,19 +69,35 @@ impl TmuxDomainState {
         }
     }
 
+    pub fn check_window_attached(&self, window_id: TmuxWindowId) -> bool {
+        let gui_tabs = self.gui_tabs.lock();
+        match gui_tabs.get(&window_id) {
+            Some(_) => {
+                return true;
+            }
+            None => {
+                return false;
+            }
+        }
+    }
+
     /// after we create a tab for a remote pane, save its ID into the
     /// TmuxPane-TmuxPane tree, so we can ref it later.
-    fn add_attached_pane(&self, target: &PaneItem) -> anyhow::Result<()> {
+    fn add_attached_pane(
+        &self,
+        window_id: TmuxWindowId,
+        pane_id: TmuxPaneId,
+    ) -> anyhow::Result<()> {
         let mut gui_tabs = self.gui_tabs.lock();
-        let local_tab = gui_tabs.get_mut(&target.window_id).unwrap();
+        let local_tab = gui_tabs.get_mut(&window_id).unwrap();
         let panes = &mut local_tab.panes;
 
-        match panes.get(&target.pane_id) {
+        match panes.get(&pane_id) {
             Some(_) => {
                 anyhow::bail!("Tmux pane already attached");
             }
             None => {
-                panes.insert(target.pane_id);
+                panes.insert(pane_id);
                 return Ok(());
             }
         }
@@ -272,10 +288,30 @@ impl TmuxDomainState {
         let pane = self.create_pane(&p).unwrap();
         tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
 
-        self.add_attached_pane(&p)?;
+        if remote_id != u64::MAX {
+            self.add_attached_pane(window_id, remote_id)?;
+        }
+
         let _ = mux.add_pane(&pane);
 
         return Ok(pane);
+    }
+
+    pub fn fix_attached_pane_id(
+        &self,
+        window_id: TmuxWindowId,
+        old_id: TmuxPaneId,
+        new_id: TmuxPaneId,
+    ) -> anyhow::Result<()> {
+        let mut pane_map = self.remote_panes.lock();
+        let ref_pane = pane_map.remove(&old_id).unwrap();
+
+        ref_pane.lock().pane_id = new_id;
+        pane_map.insert(new_id, ref_pane);
+
+        let _ = self.add_attached_pane(window_id, new_id);
+
+        return Ok(());
     }
 
     fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
@@ -348,7 +384,7 @@ impl TmuxDomainState {
                     TmuxLayout::SinglePane(p) => {
                         let local_pane = self.create_pane(&p).unwrap();
                         tab.assign_pane(&local_pane);
-                        self.add_attached_pane(&p)?;
+                        self.add_attached_pane(p.window_id, p.pane_id)?;
                         let _ = mux.add_pane(&local_pane);
                         break;
                     }
@@ -368,7 +404,7 @@ impl TmuxDomainState {
                     let local_pane;
                     if !self.check_pane_attached(p.window_id, p.pane_id) {
                         local_pane = self.create_pane(&p).unwrap();
-                        self.add_attached_pane(&p)?;
+                        self.add_attached_pane(p.window_id, p.pane_id)?;
                         let _ = mux.add_pane(&local_pane);
                         if let None = tab.get_active_pane() {
                             tab.assign_pane(&local_pane);
@@ -827,7 +863,10 @@ impl TmuxCommand for Resize {
 
         let pane_map = tmux_domain.inner.remote_panes.lock();
         {
-            let mut pane = pane_map.get(&self.pane_id).unwrap().lock();
+            let mut pane = match pane_map.get(&self.pane_id) {
+                Some(x) => x.lock(),
+                None => return "".to_string(),
+            };
 
             if pane.pane_width == self.size.cols as u64 && pane.pane_height == self.size.rows as u64
             {

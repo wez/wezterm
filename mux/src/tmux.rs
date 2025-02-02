@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
 use parking_lot::{Condvar, Mutex};
 use portable_pty::CommandBuilder;
-use smol::channel::{bounded, Receiver, Sender};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Write;
 use std::sync::Arc;
@@ -65,7 +64,6 @@ pub(crate) struct TmuxDomainState {
     pub gui_tabs: Mutex<HashMap<TmuxWindowId, TmuxTab>>,
     pub remote_panes: Mutex<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
-    pub channel: (Sender<TmuxPaneId>, Receiver<TmuxPaneId>),
     pub support_commands: Mutex<HashMap<String, String>>,
 }
 
@@ -141,11 +139,14 @@ impl TmuxDomainState {
                     cmd_queue.clear();
                 }
                 Event::WindowPaneChanged { window, pane } => {
+                    // The tmux 2.7 WindowPaneChanged event comes early than WindowAdd, we need to
+                    // skip it
+                    if !self.check_window_attached(*window) {
+                        continue;
+                    }
+
                     if !self.check_pane_attached(*window, *pane) {
-                        // new split pane
-                        smol::block_on(async {
-                            let _ = self.channel.0.send(*pane).await;
-                        });
+                        let _ = self.fix_attached_pane_id(*window, u64::MAX, *pane);
                     }
                     log::info!("tmux window pane changed: {}:{}", window, pane);
                 }
@@ -276,7 +277,6 @@ impl TmuxDomain {
             gui_tabs: Mutex::new(HashMap::default()),
             remote_panes: Mutex::new(HashMap::default()),
             tmux_session: Mutex::new(None),
-            channel: bounded(1),
             support_commands: Mutex::new(HashMap::default()),
         });
 
@@ -309,12 +309,11 @@ impl Domain for TmuxDomain {
         split_request: SplitRequest,
     ) -> anyhow::Result<Arc<dyn Pane>> {
         self.inner.split_tmux_pane(tab, pane_id, split_request);
-        if let Ok(id) = self.inner.channel.1.recv().await {
-            let pane = self.inner.split_pane(tab, pane_id, id, split_request);
-            return pane;
-        }
 
-        anyhow::bail!("Split_pane failed");
+        // Give a fake id for now, and fix it later on event WindowPaneChanged
+        let pane = self.inner.split_pane(tab, pane_id, u64::MAX, split_request);
+
+        return pane;
     }
 
     async fn spawn_pane(
