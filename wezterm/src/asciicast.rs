@@ -342,6 +342,11 @@ pub struct RecordCommand {
     #[arg(long)]
     cwd: Option<std::path::PathBuf>,
 
+    /// Save asciicast to the specified file, instead of
+    /// using a random file name in the temp directory
+    #[arg(short)]
+    outfile: Option<std::path::PathBuf>,
+
     /// Start prog instead of the default_prog defined by your
     /// wezterm configuration
     #[arg(value_parser)]
@@ -357,12 +362,24 @@ impl RecordCommand {
 
         let header = Header::new(&config, size, &prog);
 
-        let (cast_file, cast_file_name) = tempfile::Builder::new()
-            .prefix("wezterm-recording-")
-            // We use a .txt suffix for convenice when uploading to GH
-            .suffix(".cast.txt")
-            .tempfile()?
-            .keep()?;
+        let (cast_file, cast_file_name) = match self.outfile.as_ref() {
+            Some(outfile) => (
+                std::fs::File::options()
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(outfile)?,
+                outfile.clone(),
+            ),
+            None => {
+                tempfile::Builder::new()
+                    .prefix("wezterm-recording-")
+                    // We use a .txt suffix for convenice when uploading to GH
+                    .suffix(".cast.txt")
+                    .tempfile()?
+                    .keep()?
+            }
+        };
         let mut cast_file = BufWriter::new(cast_file);
         writeln!(cast_file, "{}", serde_json::to_string(&header)?)?;
 

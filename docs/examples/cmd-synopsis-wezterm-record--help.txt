@@ -9,4 +9,6 @@ Arguments:
 Options:
       --cwd <CWD>  Start in the specified directory, instead of the default_cwd
                    defined by your wezterm configuration
+  -o <OUTFILE>     Save asciicast to the specified file, instead of using a
+                   random file name in the temp directory
   -h, --help       Print help
