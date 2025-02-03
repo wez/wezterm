@@ -521,6 +521,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_padding: WindowPadding,
 
+    #[dynamic(default)]
+    pub window_content_alignment: WindowContentAlignment,
+
     /// Specifies the path to a background image attachment file.
     /// The file can be any image format that the rust `image`
     /// crate is able to identify and load.
@@ -1895,6 +1898,28 @@ impl Default for WindowPadding {
             bottom: default_half_cell(),
         }
     }
+}
+
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, Default)]
+pub struct WindowContentAlignment {
+    pub horizontal: HorizontalWindowContentAlignment,
+    pub vertical: VerticalWindowContentAlignment,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HorizontalWindowContentAlignment {
+    #[default]
+    Left,
+    Center,
+    Right,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VerticalWindowContentAlignment {
+    #[default]
+    Top,
+    Center,
+    Bottom,
 }
 
 #[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, PartialEq, Eq)]
