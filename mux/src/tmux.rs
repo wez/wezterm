@@ -21,6 +21,7 @@ enum State {
     WaitForInitialGuard,
     Idle,
     WaitingForResponse,
+    Exit,
 }
 
 #[allow(dead_code)]
@@ -95,6 +96,7 @@ impl TmuxDomainState {
                         .detach();
                     }
                     State::Idle => {}
+                    State::Exit => {}
                 },
                 Event::Output { pane, text } => {
                     let pane_map = self.remote_panes.lock();
@@ -124,9 +126,12 @@ impl TmuxDomainState {
                     *self.tmux_session.lock() = Some(*session);
                     let mut cmd_queue = self.cmd_queue.as_ref().lock();
                     cmd_queue.push_back(Box::new(ListCommands));
+
+                    self.subscribe_notification();
                     log::info!("tmux session changed:{}", session);
                 }
                 Event::Exit { reason: _ } => {
+                    *self.state.lock() = State::Exit;
                     let mut pane_map = self.remote_panes.lock();
                     for (_, v) in pane_map.iter_mut() {
                         let remote_pane = v.lock();
@@ -137,6 +142,20 @@ impl TmuxDomainState {
                     }
                     let mut cmd_queue = self.cmd_queue.as_ref().lock();
                     cmd_queue.clear();
+
+                    // Force to quit the tmux mode
+                    let pane_id = self.pane_id;
+                    promise::spawn::spawn_into_main_thread_with_low_priority(async move {
+                        match Mux::get().get_pane(pane_id) {
+                            Some(x) => {
+                                let _ = write!(x.writer(), "\n\n");
+                            }
+                            None => {}
+                        }
+                    })
+                    .detach();
+
+                    return;
                 }
                 Event::WindowPaneChanged { window, pane } => {
                     // The tmux 2.7 WindowPaneChanged event comes early than WindowAdd, we need to
@@ -162,6 +181,19 @@ impl TmuxDomainState {
                         prune: true,
                         layout_csum: layout.get(0..4).unwrap().to_string(),
                     }));
+                }
+                Event::WindowRenamed { window, name } => {
+                    let gui_tabs = self.gui_tabs.lock();
+                    match gui_tabs.get(&window) {
+                        Some(x) => {
+                            let mux = Mux::get();
+                            match mux.get_tab(x.tab_id) {
+                                Some(tab) => tab.set_title(&format!("{}", name)),
+                                None => {}
+                            }
+                        }
+                        None => {}
+                    }
                 }
                 Event::WindowClose { window } => {
                     let _ = self.remove_detached_window(*window);
@@ -239,21 +271,20 @@ impl TmuxDomainState {
 
     /// split the tmux pane
     pub fn split_tmux_pane(&self, _tab: TabId, pane_id: PaneId, split_request: SplitRequest) {
-        let mut target_tmux_pane_id = None;
+        let tmux_pane_id = match self
+            .remote_panes
+            .lock()
+            .iter()
+            .find(|(_, ref_pane)| ref_pane.lock().local_pane_id == pane_id)
+        {
+            Some(p) => Some(p.1.lock().pane_id),
+            None => None,
+        };
 
-        let mut pane_map = self.remote_panes.lock();
-        for (tmux_pane_id, v) in pane_map.iter_mut() {
-            let remote_pane = v.lock();
-            if remote_pane.local_pane_id == pane_id {
-                target_tmux_pane_id = Some(tmux_pane_id);
-                break;
-            }
-        }
-
-        if let Some(id) = target_tmux_pane_id {
+        if let Some(id) = tmux_pane_id {
             let mut cmd_queue = self.cmd_queue.as_ref().lock();
             cmd_queue.push_back(Box::new(SplitPane {
-                pane_id: *id,
+                pane_id: id,
                 direction: split_request.direction,
             }));
             TmuxDomainState::schedule_send_next_command(self.domain_id);
