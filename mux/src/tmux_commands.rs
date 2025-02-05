@@ -2,7 +2,7 @@ use crate::domain::{DomainId, WriterWrapper};
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, PaneId};
 use crate::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
-use crate::tmux::{TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
+use crate::tmux::{AttachState, TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
 use crate::tmux_pty::{TmuxChild, TmuxPty};
 use crate::{Mux, MuxNotification, Pane};
 use anyhow::{anyhow, Context};
@@ -489,6 +489,10 @@ impl TmuxDomainState {
             None => {}
         }
 
+        if *self.sync_state.lock() == AttachState::Init {
+            self.cmd_queue.lock().push_back(Box::new(AttachDone));
+        }
+
         TmuxDomainState::schedule_send_next_command(self.domain_id);
 
         Ok(())
@@ -508,6 +512,10 @@ impl TmuxDomainState {
                     Some(t) => t,
                     None => return,
                 };
+
+                if *tmux_domain.inner.sync_state.lock() == AttachState::Init {
+                    return;
+                }
 
                 match n {
                     MuxNotification::PaneFocused(pane_id) => {
@@ -951,6 +959,12 @@ impl TmuxCommand for Resize {
             None => return "".to_string(),
         };
 
+        // Not in stable state for now, don't do resizing, otherwise it will cause tmux output
+        // unexpected content.
+        if *tmux_domain.inner.sync_state.lock() == AttachState::Init {
+            return "".to_string();
+        }
+
         let pane_map = tmux_domain.inner.remote_panes.lock();
         {
             let mut pane = match pane_map.get(&self.pane_id) {
@@ -1048,6 +1062,11 @@ impl TmuxCommand for CapturePane {
         let pane_map = tmux_domain.inner.remote_panes.lock();
         if let Some(pane) = pane_map.get(&self.0) {
             let mut pane = pane.lock();
+            match mux.get_pane(pane.local_pane_id) {
+                Some(p) => p.set_cursor_position(0, 0),
+                None => {}
+            }
+
             pane.output_write
                 .write_all(unescaped.as_bytes())
                 .context("writing capture pane result to output")?;
@@ -1174,6 +1193,33 @@ impl TmuxCommand for SelectPane {
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+// This is a dummy command which indicates the attaching is done, it prevents the tmux output
+// the unexpected and unnecessary content when syncing with back end in attaching stage.
+#[derive(Debug)]
+pub(crate) struct AttachDone;
+impl TmuxCommand for AttachDone {
+    fn get_command(&self, _domain_id: DomainId) -> String {
+        // The command doesn't matter, just give a legal simple command to let process_result called.
+        "list-session\n".to_string()
+    }
+
+    fn process_result(&self, domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
+        let mux = Mux::get();
+        let domain = match mux.get_domain(domain_id) {
+            Some(d) => d,
+            None => return Ok(()),
+        };
+        let tmux_domain = match domain.downcast_ref::<TmuxDomain>() {
+            Some(t) => t,
+            None => return Ok(()),
+        };
+
+        // Do nothing, just change the state.
+        *tmux_domain.inner.sync_state.lock() = AttachState::Done;
         Ok(())
     }
 }

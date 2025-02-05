@@ -17,6 +17,12 @@ use termwiz::tmux_cc::*;
 use wezterm_term::TerminalSize;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum AttachState {
+    Init,
+    Done,
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 enum State {
     WaitForInitialGuard,
     Idle,
@@ -66,6 +72,7 @@ pub(crate) struct TmuxDomainState {
     pub remote_panes: Mutex<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
     pub support_commands: Mutex<HashMap<String, String>>,
+    pub sync_state: Mutex<AttachState>,
 }
 
 pub struct TmuxDomain {
@@ -309,6 +316,7 @@ impl TmuxDomain {
             remote_panes: Mutex::new(HashMap::default()),
             tmux_session: Mutex::new(None),
             support_commands: Mutex::new(HashMap::default()),
+            sync_state: Mutex::new(AttachState::Init),
         });
 
         Self { inner }
