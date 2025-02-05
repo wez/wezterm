@@ -386,6 +386,13 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn get_window_position(&self) -> Future<ScreenPoint> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        promise.ok(ScreenPoint::new(0, 0));
+        future
+    }
+
     fn set_text_cursor_position(&self, cursor: Rect) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_text_cursor_position(cursor);

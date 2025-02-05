@@ -300,6 +300,14 @@ pub trait WindowOps {
     /// click before forwarding the event (Windows).
     fn set_window_drag_position(&self, _coords: ScreenPoint) {}
 
+    /// Returns the location of the window on the screen.
+    /// The coordinates are of the top left pixel of the
+    /// client area.
+    ///
+    /// This is only implemented on backends that allow
+    /// windows to move themselves (not Wayland).
+    fn get_window_position(&self) -> Future<ScreenPoint>;
+
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the
     /// client area.
