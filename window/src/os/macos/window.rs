@@ -1757,6 +1757,9 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
     if flags.contains(NSEventModifierFlags::NSCommandKeyMask) {
         mods |= Modifiers::SUPER;
     }
+    if flags.contains(NSEventModifierFlags::NSAlphaShiftKeyMask) {
+        mods |= Modifiers::CAPS_LOCK;
+    }
 
     mods
 }
