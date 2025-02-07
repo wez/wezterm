@@ -1,6 +1,6 @@
 name: Bug Report Form
 description: Create a report to help us improve
-labels: bug
+labels: [bug, needs:triage]
 assignees: []
 body:
   - type: dropdown
