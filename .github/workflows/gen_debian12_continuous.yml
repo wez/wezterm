@@ -1,8 +1,8 @@
 name: debian12_continuous
 
 on:
-  schedule:
-    - cron: "10 3 * * *"
+#  schedule:
+#    - cron: "10 3 * * *"
   push:
     branches:
       - main
