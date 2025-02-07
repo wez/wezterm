@@ -12,7 +12,7 @@ to point to that so that we can enable mouse reporting in wezterm.
 It looks like we'll eventually be able to drop this once Windows
 and/or the build for the terminal project make some more progress.
 
-https://github.com/wez/wezterm/issues/1927
+https://github.com/wezterm/wezterm/issues/1927
 
 These assets were built by cloning the ms-terminal repo and running:
 

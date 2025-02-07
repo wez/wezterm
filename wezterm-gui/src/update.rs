@@ -39,7 +39,7 @@ fn get_github_release_info(uri: &str) -> anyhow::Result<Release> {
     let mut latest = Vec::new();
     let _res = Request::new(&uri)
         .version(HttpVersion::Http10)
-        .header("User-Agent", &format!("wez/wezterm-{}", wezterm_version()))
+        .header("User-Agent", &format!("wezterm/wezterm-{}", wezterm_version()))
         .send(&mut latest)
         .map_err(|e| anyhow!("failed to query github releases: {}", e))?;
 
@@ -53,12 +53,12 @@ fn get_github_release_info(uri: &str) -> anyhow::Result<Release> {
 }
 
 pub fn get_latest_release_info() -> anyhow::Result<Release> {
-    get_github_release_info("https://api.github.com/repos/wez/wezterm/releases/latest")
+    get_github_release_info("https://api.github.com/repos/wezterm/wezterm/releases/latest")
 }
 
 #[allow(unused)]
 pub fn get_nightly_release_info() -> anyhow::Result<Release> {
-    get_github_release_info("https://api.github.com/repos/wez/wezterm/releases/tags/nightly")
+    get_github_release_info("https://api.github.com/repos/wezterm/wezterm/releases/tags/nightly")
 }
 
 lazy_static::lazy_static! {

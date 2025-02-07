@@ -2,10 +2,10 @@
 
 * Support for horizontal scroll wheel event decoding. Thanks to
   [@tlinford](https://github.com/tlinford)!
-  [#2813](https://github.com/wez/wezterm/issues/2813)
+  [#2813](https://github.com/wezterm/wezterm/issues/2813)
 * Correctly recognize `Alt-[` keyboard events. Thanks to
   [@imsnif](https://github.com/imsnif)!
-  [#3009](https://github.com/wez/wezterm/pull/3009)
+  [#3009](https://github.com/wezterm/wezterm/pull/3009)
 * Adjusted Line clustering when bidi is disabled to improve perf when
   used in wezterm
 * Fix crash bug when using to TeenyString inside Cell with Rust 1.67

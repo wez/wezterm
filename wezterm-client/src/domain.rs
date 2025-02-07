@@ -304,7 +304,7 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
         MuxNotification::WindowWorkspaceChanged(window_id) => {
             // Mux::get_window() may trigger a borrow error if called
             // immediately; defer the bulk of this work.
-            // <https://github.com/wez/wezterm/issues/2638>
+            // <https://github.com/wezterm/wezterm/issues/2638>
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::get();
                 let domain = match mux.get_domain(local_domain_id) {

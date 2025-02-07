@@ -21,7 +21,7 @@
 # https://codeberg.org/dnkl/foot/pulls/243/files
 # although we use OSC 0 for the title rather than OSC 2.
 # https://github.com/neovim/neovim/issues/20706
-# https://github.com/wez/wezterm/issues/2635
+# https://github.com/wezterm/wezterm/issues/2635
 wezterm|Wez's terminal emulator,
   Tc,
   hs,

@@ -243,7 +243,7 @@ impl crate::TermWindow {
 
                 // If the tab bar is falling just short of the full width of the
                 // window, extend it to fit.
-                // <https://github.com/wez/wezterm/issues/2210>
+                // <https://github.com/wezterm/wezterm/issues/2210>
                 if is_tab_bar && (x + width + cell_width) > params.pixel_width {
                     width += cell_width;
                 }

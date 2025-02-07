@@ -268,7 +268,7 @@ impl super::TermWindow {
                 // Take care to use the exact pixel dimensions of the cells, rather
                 // than the available space, so that apps that are sensitive to
                 // the pixels-per-cell have consistent values at a given font size.
-                // https://github.com/wez/wezterm/issues/535
+                // https://github.com/wezterm/wezterm/issues/535
                 pixel_height: rows * self.render_metrics.cell_size.height as usize,
                 pixel_width: cols * self.render_metrics.cell_size.width as usize,
                 dpi: dimensions.dpi as u32,
@@ -391,7 +391,7 @@ impl super::TermWindow {
             // in adjust_font_scale will not block us from adapting to the new
             // DPI. This is gross and it would be better handled at the macOS
             // layer.
-            // <https://github.com/wez/wezterm/issues/3503>
+            // <https://github.com/wezterm/wezterm/issues/3503>
             self.window_state -= WindowState::MAXIMIZED;
         }
 

@@ -263,8 +263,8 @@ mod test {
         for (input, expect) in &[
             ("foo", "foo"),
             (
-                "githubsDscom/wez/wezterm-plugins",
-                "githubsDscomsZswezsZswezterm-plugins",
+                "githubsDscom/wezterm/wezterm-plugins",
+                "githubsDscomsZsweztermsZswezterm-plugins",
             ),
             ("localhost:8080/repo", "localhostsCs8080sZsrepo"),
         ] {

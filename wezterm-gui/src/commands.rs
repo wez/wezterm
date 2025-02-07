@@ -1676,7 +1676,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 menubar: &["Help"],
                 icon: Some("md_help"),
             },
-            "https://github.com/wez/wezterm/discussions/" => CommandDef {
+            "https://github.com/wezterm/wezterm/discussions/" => CommandDef {
                 brief: "Discuss on GitHub".into(),
                 doc: "Visit wezterm's GitHub discussion".into(),
                 keys: vec![],
@@ -1684,7 +1684,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 menubar: &["Help"],
                 icon: Some("oct_comment_discussion"),
             },
-            "https://github.com/wez/wezterm/issues/" => CommandDef {
+            "https://github.com/wezterm/wezterm/issues/" => CommandDef {
                 brief: "Search or report issue on GitHub".into(),
                 doc: "Visit wezterm's GitHub issues".into(),
                 keys: vec![],
@@ -2135,8 +2135,8 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ShowTabNavigator,
         // ----------------- Help
         OpenUri("https://wezterm.org/".to_string()),
-        OpenUri("https://github.com/wez/wezterm/discussions/".to_string()),
-        OpenUri("https://github.com/wez/wezterm/issues/".to_string()),
+        OpenUri("https://github.com/wezterm/wezterm/discussions/".to_string()),
+        OpenUri("https://github.com/wezterm/wezterm/issues/".to_string()),
         ShowDebugOverlay,
         // ----------------- Misc
         OpenLinkAtMouseCursor,

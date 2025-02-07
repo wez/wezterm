@@ -1676,7 +1676,7 @@ impl KeyEvent {
         }
         // TODO: Hyper and Meta are not handled yet.
         // We should somehow detect this?
-        // See: https://github.com/wez/wezterm/pull/4605#issuecomment-1823604708
+        // See: https://github.com/wezterm/wezterm/pull/4605#issuecomment-1823604708
         if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
             modifiers |= 64;
         }

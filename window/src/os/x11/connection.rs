@@ -271,7 +271,7 @@ impl ConnectionOps for XConnection {
         // - https://github.com/qt/qtbase/blob/c234700c836777d08db6229fdc997cc7c99e45fb/src/plugins/platforms/xcb/qxcbscreen.cpp#L963
         // - https://github.com/qt/qtbase/blob/c234700c836777d08db6229fdc997cc7c99e45fb/src/plugins/platforms/xcb/qxcbconnection_screens.cpp#L390
         //
-        // related issue: https://github.com/wez/wezterm/issues/5802
+        // related issue: https://github.com/wezterm/wezterm/issues/5802
         let res = match self
             .send_and_wait_request(&xcb::randr::GetScreenResourcesCurrent { window: self.root })
             .context("get_screen_resources_current")
@@ -573,7 +573,7 @@ impl XConnection {
             // Following stuff is not obvious at all.
             // This was necessary in the past to handle GL when XCB owns the event queue.
             // It may not be necessary anymore, but it is included here
-            // because <https://github.com/wez/wezterm/issues/1992> is a resize related
+            // because <https://github.com/wezterm/wezterm/issues/1992> is a resize related
             // issue and it might possibly be related to these dri2 related issues:
             // <https://bugs.freedesktop.org/show_bug.cgi?id=35945#c4>
             // and mailing thread starting here:

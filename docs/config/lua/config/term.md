@@ -10,7 +10,7 @@ wish to install a copy of the `wezterm` TERM definition:
 
 ```console
 $ tempfile=$(mktemp) \
-  && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo \
+  && curl -o $tempfile https://raw.githubusercontent.com/wezterm/wezterm/main/termwiz/data/wezterm.terminfo \
   && tic -x -o ~/.terminfo $tempfile \
   && rm $tempfile
 ```

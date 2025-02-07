@@ -235,7 +235,7 @@ pub fn bootstrap() {
     std::env::remove_var("WINDOWID");
     // Avoid vte shell integration kicking in if someone started
     // wezterm or the mux server from inside gnome terminal.
-    // <https://github.com/wez/wezterm/issues/2237>
+    // <https://github.com/wezterm/wezterm/issues/2237>
     std::env::remove_var("VTE_VERSION");
 
     // Sice folks don't like to reboot or sign out if they `chsh`,

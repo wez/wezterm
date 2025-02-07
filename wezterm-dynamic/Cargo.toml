@@ -2,7 +2,7 @@
 name = "wezterm-dynamic"
 version = "0.2.0"
 edition = "2021"
-repository = "https://github.com/wez/wezterm"
+repository = "https://github.com/wezterm/wezterm"
 description = "config serialization for wezterm via dynamic json-like data values"
 license = "MIT"
 

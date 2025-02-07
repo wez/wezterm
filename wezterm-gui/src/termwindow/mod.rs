@@ -903,7 +903,7 @@ impl TermWindow {
                 // that the mux can empty out, otherwise the mux keeps
                 // the TermWindow alive via the frontend even though
                 // the window is gone and we'll linger forever.
-                // <https://github.com/wez/wezterm/issues/3522>
+                // <https://github.com/wezterm/wezterm/issues/3522>
                 self.clear_all_overlays();
                 Ok(false)
             }
@@ -922,7 +922,7 @@ impl TermWindow {
                 // What's fugly about this is that we'll reload the
                 // global config here once per window, which could
                 // be nasty for folks with a lot of windows.
-                // <https://github.com/wez/wezterm/issues/2295>
+                // <https://github.com/wezterm/wezterm/issues/2295>
                 config::reload();
                 self.config_was_reloaded();
                 Ok(true)
@@ -1125,7 +1125,7 @@ impl TermWindow {
                     // So we do a bit of fancy footwork here to resolve the overlay
                     // and use that if it has the same pane_id, but otherwise fall
                     // back to what we get from the mux.
-                    // <https://github.com/wez/wezterm/issues/3209>
+                    // <https://github.com/wezterm/wezterm/issues/3209>
                     let active_pane = self
                         .get_active_pane_or_overlay()
                         .ok_or_else(|| anyhow!("there is no active pane!?"))?;
@@ -2414,7 +2414,7 @@ impl TermWindow {
             // dedup to avoid issues where both left and right prompts are
             // defined: we only care if there were 1+ prompts on a line,
             // not about how many prompts are on a line.
-            // <https://github.com/wez/wezterm/issues/1121>
+            // <https://github.com/wezterm/wezterm/issues/1121>
             zones.dedup();
             cache.zones = zones;
             cache.seqno = seqno;

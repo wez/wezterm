@@ -270,7 +270,7 @@ hide:
     can install wezterm from our tap:
 
     ```console
-    $ brew tap wez/wezterm-linuxbrew
+    $ brew tap wezterm/wezterm-linuxbrew
     $ brew install wezterm
     ```
 
@@ -307,13 +307,13 @@ hide:
     
     If you need a newer version use the flake. Use the cachix if you want to avoid building WezTerm from source.
 
-    The flake is in the `nix` directory, so the url will be something like `github:wez/wezterm?dir=nix`
+    The flake is in the `nix` directory, so the url will be something like `github:wezterm/wezterm?dir=nix`
 
     Here's an example for NixOS configurations:
     
     ```nix
     {
-        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        inputs.wezterm.url = "github:wezterm/wezterm?dir=nix";
         # ...
 
         outputs = inputs @ {nixpkgs, ...}:{
@@ -332,7 +332,7 @@ hide:
     # flake.nix
     
     {
-        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        inputs.wezterm.url = "github:wezterm/wezterm?dir=nix";
         # ...
 
         outputs = inputs @ {nixpkgs, home-manager, ...}:{

@@ -172,7 +172,7 @@ number of variables!
 
 If after experimenting with your environment and related settings you believe
 that wezterm isn't sending the correct input then please [open an
-issue](https://github.com/wez/wezterm/issues) and include the `xxd` hexdump,
+issue](https://github.com/wezterm/wezterm/issues) and include the `xxd` hexdump,
 and output from `env` and any other pertinent information about what you're
 trying and why it doesn't match your expectations.
 
@@ -234,7 +234,7 @@ directory:
 
 ```bash
 tempfile=$(mktemp) \
-  && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  && curl -o $tempfile https://raw.githubusercontent.com/wezterm/wezterm/master/termwiz/data/wezterm.terminfo \
   && tic -x -o ~/.terminfo $tempfile \
   && rm $tempfile
 ```

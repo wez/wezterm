@@ -2007,7 +2007,7 @@ impl TerminalState {
         // The concept of uninitialized cells in wezterm is not the same as that on VT520 or that
         // on xterm, so, to prevent a lot of noise in esctest, treat them as spaces, at least when
         // asking for the checksum of a single cell (which is what esctest does).
-        // See: https://github.com/wez/wezterm/pull/4565
+        // See: https://github.com/wezterm/wezterm/pull/4565
         if checksum == 0 {
             32u16
         } else {
@@ -2202,7 +2202,7 @@ impl TerminalState {
                     // the logic for updating the cursor position, it causes regressions
                     // in the test suite.
                     // So this is here for now until a better solution is found.
-                    // <https://github.com/wez/wezterm/issues/3548>
+                    // <https://github.com/wezterm/wezterm/issues/3548>
                     EraseInLine::EraseToEndOfLine => cx + if self.wrap_next { 1 } else { 0 }..cols,
                     EraseInLine::EraseToStartOfLine => 0..cx + 1,
                     EraseInLine::EraseLine => 0..cols,

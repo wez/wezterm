@@ -15,7 +15,7 @@ In order for these features to be enabled, you will need to configure your
 shell program to emit the escape sequences at the appropriate place.
 
 You can find some [examples for various shells in the wezterm
-repo](https://github.com/wez/wezterm/tree/main/assets/shell-integration).
+repo](https://github.com/wezterm/wezterm/tree/main/assets/shell-integration).
 
 To use this file to setup shell integration in wezterm with Bash or Zsh, you can
 copy the file to your computer and source it via `. /path/to/file.sh` in your `.bashrc`

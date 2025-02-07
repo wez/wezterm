@@ -1111,7 +1111,7 @@ impl std::io::Write for PtyWriter {
         // will let us successfully write a byte to a disconnected
         // socket and we won't discover the issue until we write
         // the next byte.
-        // <https://github.com/wez/wezterm/issues/771>
+        // <https://github.com/wezterm/wezterm/issues/771>
         if let Ok(writer) = self.rx.try_recv() {
             self.writer = writer;
         }

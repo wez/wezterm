@@ -1633,7 +1633,7 @@ fn default_text_blink_rate_rapid() -> u64 {
 
 fn default_swap_backspace_and_delete() -> bool {
     // cfg!(target_os = "macos")
-    // See: https://github.com/wez/wezterm/issues/88
+    // See: https://github.com/wezterm/wezterm/issues/88
     false
 }
 
@@ -2104,9 +2104,9 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
     }
 }
 
-/// <https://github.com/wez/wezterm/pull/2435>
-/// <https://github.com/wez/wezterm/issues/2771>
-/// <https://github.com/wez/wezterm/issues/2630>
+/// <https://github.com/wezterm/wezterm/pull/2435>
+/// <https://github.com/wezterm/wezterm/issues/2771>
+/// <https://github.com/wezterm/wezterm/issues/2630>
 fn default_macos_forward_mods() -> Modifiers {
     Modifiers::SHIFT
 }

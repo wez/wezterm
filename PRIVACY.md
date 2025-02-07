@@ -51,7 +51,7 @@ more information on that.
 
 The above is true of the wezterm source code and the binaries produced by
 wezterm's CI and made available from https://wezterm.org/ and
-https://github.com/wez/wezterm/.
+https://github.com/wezterm/wezterm/.
 
 If you obtained a pre-built wezterm binary from some other source be aware that
 the person(s) building those versions may have modified them to behave

@@ -121,7 +121,7 @@ impl Default for NewlineCanon {
             // treats \n as a shortcut that justifies text
             // <https://savannah.gnu.org/bugs/?49176>, we default to
             // \r which is typically fine.
-            // <https://github.com/wez/wezterm/issues/1575>
+            // <https://github.com/wezterm/wezterm/issues/1575>
             Self::CarriageReturn
         }
     }

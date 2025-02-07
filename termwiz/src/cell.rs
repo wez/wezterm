@@ -504,7 +504,7 @@ impl CellAttributes {
         // color when erasing rather than other attributes, so it should
         // be fine to clear out the actual underline attribute.
         // Let's extend this to other line attribute types as well.
-        // <https://github.com/wez/wezterm/issues/2489>
+        // <https://github.com/wezterm/wezterm/issues/2489>
         res.set_underline(Underline::None);
         res.set_overline(false);
         res.set_strikethrough(false);
@@ -899,7 +899,7 @@ impl UnicodeVersion {
     fn width(&self, c: WcWidth) -> usize {
         // Special case for symbol fonts that are naughtly and use
         // the unassigned range instead of the private use range.
-        // <https://github.com/wez/wezterm/issues/1864>
+        // <https://github.com/wezterm/wezterm/issues/1864>
         if c == WcWidth::Unassigned {
             1
         } else if c == WcWidth::Ambiguous && self.ambiguous_are_wide {

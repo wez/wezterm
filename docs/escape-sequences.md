@@ -4,7 +4,7 @@
 > with the various technical documents is laborious and tedious and I only
 > have so much spare time!
 >
-> If you notice that something is inaccurate or missing, please do [file an issue](https://github.com/wez/wezterm/issues/new/choose)
+> If you notice that something is inaccurate or missing, please do [file an issue](https://github.com/wezterm/wezterm/issues/new/choose)
 > so that it can be resolved!
 
 ## Output/Escape Sequences
@@ -61,7 +61,7 @@ the action described below.
 | ^D |0x04|EOT |End of Transmission|Ignored|
 | ^E |0x05|ENQ |Enquiry    |Ignored|
 | ^F |0x06|ACK |Acknowledge|Ignored|
-| ^G |0x07|BEL |Bell       |Logs `Ding! (this is the bell)` to stderr of the WezTerm process. See [#3](https://github.com/wez/wezterm/issues/3)|
+| ^G |0x07|BEL |Bell       |Logs `Ding! (this is the bell)` to stderr of the WezTerm process. See [#3](https://github.com/wezterm/wezterm/issues/3)|
 | ^H |0x08|BS  |Backspace  |Move cursor left by 1, constrained by the left margin. If Reverse Wraparound and dec auto wrap modes are enabled, moving left of the left margin will jump the cursor to the right margin, jumping to bottom right margin if it was at the top left.|
 | ^I |0x09|HT  |Horizontal Tab|Move cursor right to the next tab stop|
 | ^J |0x0A|LF  |Line Feed  |If cursor is at the bottom margin, scroll the region up, otherwise move cursor down 1 row|
@@ -369,8 +369,8 @@ In the table below, `DCS` can be either the 7-bit representation (`ESC P`) or th
 |DCS $ q " p ST | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSCL](https://vt100.net/docs/vt510-rm/DECSCL.html) | Request Conformance Level; Reports the conformance level |
 |DCS $ q r ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSTBM](https://vt100.net/docs/vt510-rm/DECSTBM.html) | Request top and bottom margin report; Reports the margins |
 |DCS $ q s ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSLRM](https://vt100.net/docs/vt510-rm/DECSLRM.html) | Request left and right margin report; Reports the margins |
-|DCS \[PARAMS\] q \[DATA\] ST | Sixel Graphic Data | Decodes [Sixel graphic data](https://vt100.net/docs/vt3xx-gp/chapter14.html) and apply the image to the terminal model. Support is preliminary and incomplete; see [this issue](https://github.com/wez/wezterm/issues/217) for status. |
-|DCS 1000 q | tmux control mode | Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see [this issue](https://github.com/wez/wezterm/issues/336) for status. |
+|DCS \[PARAMS\] q \[DATA\] ST | Sixel Graphic Data | Decodes [Sixel graphic data](https://vt100.net/docs/vt3xx-gp/chapter14.html) and apply the image to the terminal model. Support is preliminary and incomplete; see [this issue](https://github.com/wezterm/wezterm/issues/217) for status. |
+|DCS 1000 q | tmux control mode | Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see [this issue](https://github.com/wezterm/wezterm/issues/336) for status. |
 
 ### Operating System Command Sequences
 

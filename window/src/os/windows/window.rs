@@ -2723,7 +2723,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             // They pressed the same dead key twice,
                             // emit the underlying char again and call
                             // it done.
-                            // <https://github.com/wez/wezterm/issues/1729>
+                            // <https://github.com/wezterm/wezterm/issues/1729>
                             inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
                             return Some(0);
                         }

@@ -167,7 +167,7 @@ impl FontLocator for FontConfigFontLocator {
         log::trace!("locate_fallback_for_codepoints: {:?}", codepoints);
         let mut fonts: Vec<ParsedFont> = vec![];
 
-        // In <https://github.com/wez/wezterm/issues/4310> we discover
+        // In <https://github.com/wezterm/wezterm/issues/4310> we discover
         // that a font-config query for a charset containing both
         // 3065 and 2686 fails because no fonts contain both codepoints,
         // but querying separately does find the separate fonts.

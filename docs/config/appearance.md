@@ -223,7 +223,7 @@ builting color scheme.
 
 If you'd like to factor your color schemes out into separate files, you
 can create a [TOML format](https://toml.io/en/) file with a `[colors]` section; take a look at [one of
-the available color schemes for an example](https://github.com/wez/wezterm/tree/main/config/src/scheme_data.rs).
+the available color schemes for an example](https://github.com/wezterm/wezterm/tree/main/config/src/scheme_data.rs).
 
 It is recommended that you place your custom scheme in a directory
 named `$HOME/.config/wezterm/colors` if you're on a POSIX system.

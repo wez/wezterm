@@ -62,7 +62,7 @@ impl InputMap {
                 //
                 // Our default set of assignments deliberately and explicitly emits
                 // variations on SHIFT as a workaround for an issue with
-                // normalization under X11: <https://github.com/wez/wezterm/issues/1906>.
+                // normalization under X11: <https://github.com/wezterm/wezterm/issues/1906>.
                 // Until that is resolved, we need to keep emitting both variants.
                 //
                 // In order for the DisableDefaultAssignment behavior to work with the
@@ -72,7 +72,7 @@ impl InputMap {
                 // a match, skip this key.  Otherwise register the non-normalized
                 // version from default_key_assignments().
                 //
-                // See: <https://github.com/wez/wezterm/issues/3262>
+                // See: <https://github.com/wezterm/wezterm/issues/3262>
                 let (disable_code, disable_mods) = code.normalize_shift(mods);
                 if keys
                     .default

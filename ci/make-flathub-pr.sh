@@ -6,7 +6,7 @@ python3 -m pip install toml aiohttp
 curl -L 'https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py' > /tmp/flatpak-cargo-generator.py
 python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o flathub/generated-sources.json
 
-URL="https://github.com/wez/wezterm/releases/download/${TAG_NAME}/wezterm-${TAG_NAME}-src.tar.gz"
+URL="https://github.com/wezterm/wezterm/releases/download/${TAG_NAME}/wezterm-${TAG_NAME}-src.tar.gz"
 
 # We require that something has obtained the source archive already and left it
 # in the current dir. This is handled by actions/download-artifact in CI
