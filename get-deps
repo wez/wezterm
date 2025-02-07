@@ -390,7 +390,7 @@ fi
 
 if ! test_cmd 'rustc'; then
   echo "Rust is not installed!"
-  echo "Please see https://wezfurlong.org/wezterm/install/source.html for installation instructions"
+  echo "Please see https://wezterm.org/install/source.html for installation instructions"
   exit 1
 fi
 

@@ -1,5 +1,5 @@
 //! This crate provides the core of the virtual terminal emulator implementation
-//! used by [wezterm](https://wezfurlong.org/wezterm/).  The home for this
+//! used by [wezterm](https://wezterm.org/).  The home for this
 //! crate is in the wezterm repo and development is tracked at
 //! <https://github.com/wez/wezterm/>.
 //!

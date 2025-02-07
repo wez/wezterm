@@ -1758,7 +1758,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: incorrect Sixel HLS hue handling [#775](https://github.com/wez/wezterm/issues/775)
 * Fixed: we now recognize the `CSI 48:2:0:214:255m` form of specifying true color text attributes [#785](https://github.com/wez/wezterm/issues/785)
 * Fixed: split separators didn't respect `tab_bar_at_bottom=true` and were rendered in the wrong place [#797](https://github.com/wez/wezterm/issues/797)
-* Improved: messaging around [exit_behavior](https://wezfurlong.org/wezterm/config/lua/config/exit_behavior.md)
+* Improved: messaging around [exit_behavior](https://wezterm.org/config/lua/config/exit_behavior.md)
 * Fixed: errors loading custom color schemes are now logged to the error log [#794](https://github.com/wez/wezterm/issues/794)
 * Fixed: OSC 7 (current working directory) now works with paths that contain spaces and other special characters. Thanks to [@Arvedui](https://github.com/Arvedui)! [#799](https://github.com/wez/wezterm/pull/799)
 * Changed: the homebrew tap is now a Cask that installs to the /Applications directory on macOS. Thanks to [@laggardkernel](https://github.com/laggardkernel)!

@@ -1668,7 +1668,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("md_pipe_disconnected"),
         },
         OpenUri(uri) => match uri.as_ref() {
-            "https://wezfurlong.org/wezterm/" => CommandDef {
+            "https://wezterm.org/" => CommandDef {
                 brief: "Documentation".into(),
                 doc: "Visit the wezterm documentation website".into(),
                 keys: vec![],
@@ -2134,7 +2134,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ShowLauncher,
         ShowTabNavigator,
         // ----------------- Help
-        OpenUri("https://wezfurlong.org/wezterm/".to_string()),
+        OpenUri("https://wezterm.org/".to_string()),
         OpenUri("https://github.com/wez/wezterm/discussions/".to_string()),
         OpenUri("https://github.com/wez/wezterm/issues/".to_string()),
         ShowDebugOverlay,

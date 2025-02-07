@@ -44,13 +44,13 @@ contributors to WezTerm cannot see inside that request and therefore cannot
 infer any information from it.
 
 If you wish, you can disable update checking. See
-https://wezfurlong.org/wezterm/config/lua/config/check_for_updates.html for
+https://wezterm.org/config/lua/config/check_for_updates.html for
 more information on that.
 
 ## Third-Party Builds
 
 The above is true of the wezterm source code and the binaries produced by
-wezterm's CI and made available from https://wezfurlong.org/wezterm/ and
+wezterm's CI and made available from https://wezterm.org/ and
 https://github.com/wez/wezterm/.
 
 If you obtained a pre-built wezterm binary from some other source be aware that

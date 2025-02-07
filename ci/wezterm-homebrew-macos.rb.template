@@ -10,7 +10,7 @@ cask "wezterm" do
   url "https://github.com/wez/wezterm/releases/download/#{version}/WezTerm-macos-#{version}.zip"
   name "WezTerm"
   desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"
-  homepage "https://wezfurlong.org/wezterm/"
+  homepage "https://wezterm.org/"
 
   conflicts_with cask: "wez/wezterm/wezterm-nightly"
 

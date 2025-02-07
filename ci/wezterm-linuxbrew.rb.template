@@ -4,7 +4,7 @@
 # by automation in the wezterm repo.
 class Wezterm < Formula
   desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"
-  homepage "https://wezfurlong.org/wezterm/"
+  homepage "https://wezterm.org/"
   url "https://github.com/wez/wezterm/releases/download/@TAG@/WezTerm-@TAG@-Ubuntu20.04.AppImage"
   sha256 "@SHA256@"
   head "https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-Ubuntu20.04.AppImage"

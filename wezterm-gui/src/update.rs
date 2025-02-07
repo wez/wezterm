@@ -90,7 +90,7 @@ pub fn load_last_release_info_and_set_banner() {
 fn set_banner_from_release_info(latest: &Release) {
     let mux = crate::Mux::get();
     let url = format!(
-        "https://wezfurlong.org/wezterm/changelog.html#{}",
+        "https://wezterm.org/changelog.html#{}",
         latest.tag_name
     );
 
@@ -192,7 +192,7 @@ fn update_checker() {
                     );
 
                     let url = format!(
-                        "https://wezfurlong.org/wezterm/changelog.html#{}",
+                        "https://wezterm.org/changelog.html#{}",
                         latest.tag_name
                     );
 

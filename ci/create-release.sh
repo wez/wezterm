@@ -3,14 +3,14 @@ set -x
 name="$1"
 
 notes=$(cat <<EOT
-See https://wezfurlong.org/wezterm/changelog.html#$name for the changelog
+See https://wezterm.org/changelog.html#$name for the changelog
 
 If you're looking for nightly downloads or more detailed installation instructions:
 
-[Windows](https://wezfurlong.org/wezterm/install/windows.html)
-[macOS](https://wezfurlong.org/wezterm/install/macos.html)
-[Linux](https://wezfurlong.org/wezterm/install/linux.html)
-[FreeBSD](https://wezfurlong.org/wezterm/install/freebsd.html)
+[Windows](https://wezterm.org/install/windows.html)
+[macOS](https://wezterm.org/install/macos.html)
+[Linux](https://wezterm.org/install/linux.html)
+[FreeBSD](https://wezterm.org/install/freebsd.html)
 EOT
 )
 

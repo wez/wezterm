@@ -44,11 +44,11 @@ PublisherUrl: https://wezfurlong.org/
 PublisherSupportUrl: https://github.com/wez/wezterm/issues
 Author: Wez Furlong
 PackageName: WezTerm
-PackageUrl: http://wezfurlong.org/wezterm
+PackageUrl: http://wezterm.org
 License: MIT
 LicenseUrl: https://github.com/wez/wezterm/blob/main/LICENSE.md
 ShortDescription: A GPU-accelerated cross-platform terminal emulator and multiplexer implemented in Rust
-ReleaseNotesUrl: https://wezfurlong.org/wezterm/changelog.html#$TAG_NAME
+ReleaseNotesUrl: https://wezterm.org/changelog.html#$TAG_NAME
 ManifestType: defaultLocale
 ManifestVersion: 1.1.0
 EOT
