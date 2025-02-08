@@ -144,6 +144,8 @@ As features stabilize some brief notes about them will accumulate here.
   #6475 #6476
 * background image with width/height set to `Contain` used the wrong aspect
   ratio. Thanks to @saltkid! #6554 #3708 #4407
+* wayland: `hide_cursor: Missing enter event serial` error. Thanks to @jmbaur!
+  #6548 #5760
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
