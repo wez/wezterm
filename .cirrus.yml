@@ -37,6 +37,30 @@ task:
     - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
 
 task:
+  name: ubuntu-24.04
+  only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  container:
+    image: ubuntu:24.04
+    cpu: 4
+    memory: 12G
+  stateful: false
+  install_rust_script:
+    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    - apt update
+    - apt-get install -y git curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  getdeps_script:
+    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
+  build_script:
+    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
+    - export BUILD_REASON="Schedule"
+    - export RELEASE="nightly"
+    - "test -n \"$CIRRUS_TAG\" && BUILD_REASON=\"tag\""
+    - "test -n \"$CIRRUS_TAG\" && RELEASE=$(ci/tag-name.sh)"
+    - "./ci/deploy.sh"
+    - "ls -l *.deb"
+
+task:
   name: ubuntu-22.04-arm
   only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
