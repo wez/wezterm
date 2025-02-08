@@ -31,37 +31,42 @@ is an optional table that can be used to specify style attributes; the
 following keys are allowed:
 
 * `weight` - specifies the weight of the font.  The default value is `"Regular"`, and possible values are:
-  * `"Thin"`
-  * `"ExtraLight"`
-  * `"Light"`
-  * `"DemiLight"`
-  * `"Book"`
-  * `"Regular"`
-  * `"Medium"`
-  * `"DemiBold"`
-  * `"Bold"`
-  * `"ExtraBold"`
-  * `"Black"`
-  * `"ExtraBlack"`.
+
+    * `"Thin"`
+    * `"ExtraLight"`
+    * `"Light"`
+    * `"DemiLight"`
+    * `"Book"`
+    * `"Regular"` (this is the default)
+    * `"Medium"`
+    * `"DemiBold"`
+    * `"Bold"`
+    * `"ExtraBold"`
+    * `"Black"`
+    * `"ExtraBlack"`.
 
   `weight` has been supported since version 20210502-130208-bff6815d, In earlier versions you
   could use `bold=true` to get a bold font variant.
+
 * `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are:
-  * `"UltraCondensed"`
-  * `"ExtraCondensed"`
-  * `"Condensed"`
-  * `"SemiCondensed"`
-  * `"Normal"`
-  * `"SemiExpanded"`
-  * `"Expanded"`
-  * `"ExtraExpanded"`
-  * `"UltraExpanded"`.
+
+    * `"UltraCondensed"`
+    * `"ExtraCondensed"`
+    * `"Condensed"`
+    * `"SemiCondensed"`
+    * `"Normal"` (this is the default)
+    * `"SemiExpanded"`
+    * `"Expanded"`
+    * `"ExtraExpanded"`
+    * `"UltraExpanded"`.
 
   `stretch` has been supported since version 20210502-130208-bff6815d.
+
 * `style` - specifies the font style to select.  The default is `"Normal"`, and possible values are:
-  * `"Normal"`
-  * `"Italic"`
-  * `"Oblique"`
+
+    * `"Normal"` (this is the default)
+    * `"Italic"`
+    * `"Oblique"`
 
   `"Oblique"` and `"Italic"` fonts are similar in the sense that the glyphs
   are presented at an angle.  `"Italic"` fonts usually have a distinctive
