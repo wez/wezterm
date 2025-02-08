@@ -146,6 +146,8 @@ As features stabilize some brief notes about them will accumulate here.
   ratio. Thanks to @saltkid! #6554 #3708 #4407
 * wayland: `hide_cursor: Missing enter event serial` error. Thanks to @jmbaur!
   #6548 #5760
+* wayland: issue tiled and maximized window states. Thanks to
+  @aliaksandr-trush! #6545 #6262
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
