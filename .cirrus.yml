@@ -16,7 +16,7 @@ task:
     - apt-get install -y git curl
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   getdeps_script:
-    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
+    - env PATH=$HOME/.cargo/bin:$PATH TESTING=1 bash get-deps
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
   test_script:
