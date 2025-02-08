@@ -22,15 +22,6 @@ task:
   getdeps_script:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
     - mkdir -p /run/sshd
-  registry_cache:
-    folder: $CARGO_HOME/registry
-    fingerprint_script: cat Cargo.lock
-  target_cache:
-    folder: target
-    fingerprint_script:
-      - rustc --version
-      - cat Cargo.lock
-  before_cache_script: rm -rf $CARGO_HOME/registry/index
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
   test_script:
@@ -52,13 +43,9 @@ task:
   getdeps_script:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
   build_script:
-    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
-    - export BUILD_REASON="Schedule"
-    - export RELEASE="nightly"
-    - "test -n \"$CIRRUS_TAG\" && BUILD_REASON=\"tag\""
-    - "test -n \"$CIRRUS_TAG\" && RELEASE=$(ci/tag-name.sh)"
-    - "./ci/deploy.sh"
-    - "ls -l *.deb"
+    - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
+  test_script:
+    - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
 
 task:
   name: ubuntu-22.04-arm
