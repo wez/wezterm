@@ -1116,8 +1116,8 @@ def continuous_actions():
         lambda t: t.continuous(),
         trigger="""
 on:
-#  schedule:
-#    - cron: "10 3 * * *"
+  schedule:
+    - cron: "10 3 * * *"
   push:
     branches:
       - main
