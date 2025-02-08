@@ -30,7 +30,10 @@ When specifying a font using its family name, the second *attributes* parameter
 is an optional table that can be used to specify style attributes; the
 following keys are allowed:
 
-* `weight` - specifies the weight of the font.  The default value is `"Regular"`, and possible values are:
+* `weight` - specifies the weight of the font.
+
+  The default value is `"Regular"`, and possible values are:
+
   * `"Thin"`
   * `"ExtraLight"`
   * `"Light"`
@@ -46,7 +49,11 @@ following keys are allowed:
 
   `weight` has been supported since version 20210502-130208-bff6815d, In earlier versions you
   could use `bold=true` to get a bold font variant.
-* `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are:
+
+* `stretch` - specifies the font stretch to select.
+
+  The default value is `"Normal"`, and possible values are:
+
   * `"UltraCondensed"`
   * `"ExtraCondensed"`
   * `"Condensed"`
@@ -58,7 +65,11 @@ following keys are allowed:
   * `"UltraExpanded"`.
 
   `stretch` has been supported since version 20210502-130208-bff6815d.
-* `style` - specifies the font style to select.  The default is `"Normal"`, and possible values are:
+
+* `style` - specifies the font style to select.
+
+  The default is `"Normal"`, and possible values are:
+
   * `"Normal"`
   * `"Italic"`
   * `"Oblique"`
