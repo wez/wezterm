@@ -7,7 +7,7 @@ task:
 
   compute_engine_instance:
     image_project: freebsd-org-cloud-dev
-    image: family/freebsd-14-0
+    image: family/freebsd-14-1
     platform: freebsd
     cpu: 4
     memory: 8G
