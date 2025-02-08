@@ -148,6 +148,8 @@ As features stabilize some brief notes about them will accumulate here.
   #6548 #5760
 * wayland: issue tiled and maximized window states. Thanks to
   @aliaksandr-trush! #6545 #6262
+* wayland: potential crash on monitors with scale > 1. Thanks to @MaeIsBad!
+  #6508 #5406
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
