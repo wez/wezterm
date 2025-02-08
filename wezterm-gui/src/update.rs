@@ -39,7 +39,10 @@ fn get_github_release_info(uri: &str) -> anyhow::Result<Release> {
     let mut latest = Vec::new();
     let _res = Request::new(&uri)
         .version(HttpVersion::Http10)
-        .header("User-Agent", &format!("wezterm/wezterm-{}", wezterm_version()))
+        .header(
+            "User-Agent",
+            &format!("wezterm/wezterm-{}", wezterm_version()),
+        )
         .send(&mut latest)
         .map_err(|e| anyhow!("failed to query github releases: {}", e))?;
 
