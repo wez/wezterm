@@ -3,31 +3,6 @@ env:
   CIRRUS_CLONE_DEPTH: 1
 
 task:
-  name: freebsd-15
-  compute_engine_instance:
-    image_project: freebsd-org-cloud-dev
-    image: family/freebsd-15-0-snap
-    platform: freebsd
-    cpu: 4
-    memory: 8G
-    disk: 100 # Gb
-
-  stateful: false
-  only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
-  install_rust_script:
-    - pkg install -y bash
-    - curl https://sh.rustup.rs -sSf > /tmp/rustup.sh
-    - chmod +x /tmp/rustup.sh
-    - RUSTUP_IO_THREADS=1 /tmp/rustup.sh -y -q
-  getdeps_script:
-    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
-    - mkdir -p /run/sshd
-  build_script:
-    - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
-  test_script:
-    - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
-
-task:
   name: ubuntu-24.04
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   container:
