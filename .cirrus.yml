@@ -38,7 +38,7 @@ task:
 
 task:
   name: ubuntu-22.04-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: ubuntu:22.04
     cpu: 4
@@ -75,7 +75,7 @@ task:
 
 task:
   name: ubuntu-24.04-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: ubuntu:24.04
     cpu: 4
@@ -112,7 +112,7 @@ task:
 
 task:
   name: debian-12-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: debian:12
     cpu: 4
