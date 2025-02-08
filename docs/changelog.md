@@ -152,6 +152,8 @@ As features stabilize some brief notes about them will accumulate here.
   @aliaksandr-trush! #6545 #6262
 * wayland: potential crash on monitors with scale > 1. Thanks to @MaeIsBad!
   #6508 #5406
+* Opening an `InputSelector` while some other overlay was active could
+  result in an error. Thanks to @mikkasendke! #6403
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
