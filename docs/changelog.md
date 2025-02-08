@@ -137,6 +137,8 @@ As features stabilize some brief notes about them will accumulate here.
   paths that contained `#` or `?` characters. Thanks to @loops! #6158 #6171
 * wayland: issues with losing maximized or tiled state when switching between
   applications. Thanks to @aliaksandr-trush! #4568 #5897
+* Mouse multiple button click requires pixel precision. Thanks to @jbiosca78!
+  #6475 #6476
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
