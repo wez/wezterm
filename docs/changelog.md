@@ -154,6 +154,8 @@ As features stabilize some brief notes about them will accumulate here.
   #6508 #5406
 * Opening an `InputSelector` while some other overlay was active could
   result in an error. Thanks to @mikkasendke! #6403
+* Improved handling of implicit hyperlinks with parentheses. Thanks to
+  @psyclaudeZ! #6391
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
