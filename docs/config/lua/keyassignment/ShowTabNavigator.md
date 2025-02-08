@@ -10,4 +10,7 @@ config.keys = {
 }
 ```
 
+{{since('nightly')}}
+
+The choice corresponding to the current tab is initially selected.
 
