@@ -116,6 +116,7 @@ pub fn fixup_appimage() {
 /// it to a UTF-8 version of the current locale known to NSLocale.
 #[cfg(target_os = "macos")]
 pub fn set_lang_from_locale() {
+    #![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
     use cocoa::base::id;
     use cocoa::foundation::NSString;
     use objc::runtime::Object;

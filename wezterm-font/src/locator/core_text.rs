@@ -1,4 +1,5 @@
 #![cfg(target_os = "macos")]
+#![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;

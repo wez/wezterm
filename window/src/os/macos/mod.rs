@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
 use cocoa::base::{id, nil};
 use cocoa::foundation::NSString;
 use objc::rc::StrongPtr;
