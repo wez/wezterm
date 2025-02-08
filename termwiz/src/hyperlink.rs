@@ -266,8 +266,8 @@ impl<'t> Match<'t> {
     }
 }
 pub const CLOSING_PARENTHESIS_HYPERLINK_PATTERN: &str =
-    r"\b\w+://[^\s()]*\(\S*\)(?=\s|$|[^_-/a-zA-Z0-9])";
-pub const GENERIC_HYPERLINK_PATTERN: &str = r"\b\w+://\S+[_-/a-zA-Z0-9]";
+    r"\b\w+://[^\s()]*\(\S*\)(?=\s|$|[^_/a-zA-Z0-9-])";
+pub const GENERIC_HYPERLINK_PATTERN: &str = r"\b\w+://\S+[_/a-zA-Z0-9-]";
 
 impl Rule {
     /// Construct a new rule.  It may fail if the regex is invalid.
