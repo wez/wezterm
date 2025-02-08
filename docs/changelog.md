@@ -52,6 +52,8 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: The wezterm terminfo file is now compiled and bundled in the
   application bundle. Thanks to @ddeville! #6538
 * `wezterm record` now has a `-o outputfile` option. Thanks to @Tyarel8! #6626
+* `ShowTabNavigator` now defaults to selecting the active tab. Thanks to
+  @mgpinf! #6320
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
