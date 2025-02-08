@@ -49,6 +49,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Migrated serial support to the `serial2` rust crate. This opens the door
   to more convenient serial support going forward. Thanks to @jeevithakannan2!
   #6411 #6460
+* macOS: The wezterm terminfo file is now compiled and bundled in the
+  application bundle. Thanks to @ddeville! #6538
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
