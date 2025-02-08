@@ -9,7 +9,7 @@ tags:
 # `wezterm.log_error(arg, ..)`
 
 This function logs the provided message string through wezterm's logging layer
-at 'ERROR' level.  If you started wezterm from a terminal that text will print
+at 'ERROR' level, which can be displayed via [ShowDebugOverlay](../keyassignment/ShowDebugOverlay.md) action.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
 server then it will be logged to the daemon output path.
 
