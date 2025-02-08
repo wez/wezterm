@@ -2265,7 +2265,9 @@ impl TermWindow {
             None => return,
         };
 
-        let pane = match self.get_active_pane_or_overlay() {
+        // Ignore any current overlay: we're going to cancel it out below
+        // and we don't want this new one to reference that cancelled pane
+        let pane = match self.get_active_pane_no_overlay() {
             Some(pane) => pane,
             None => return,
         };
