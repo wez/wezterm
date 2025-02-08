@@ -5467,7 +5467,6 @@ dependencies = [
  "sha2",
  "signal-hook",
  "siphasher 0.3.11",
- "tempfile",
  "terminfo",
  "termios",
  "thiserror 1.0.69",
