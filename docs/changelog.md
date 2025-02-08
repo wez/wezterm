@@ -51,6 +51,7 @@ As features stabilize some brief notes about them will accumulate here.
   #6411 #6460
 * macOS: The wezterm terminfo file is now compiled and bundled in the
   application bundle. Thanks to @ddeville! #6538
+* `wezterm record` now has a `-o outputfile` option. Thanks to @Tyarel8! #6626
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
