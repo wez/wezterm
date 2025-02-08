@@ -438,11 +438,11 @@ impl crate::TermWindow {
 
         let pixel_width = self.dimensions.pixel_width as f32;
         let pixel_height = self.dimensions.pixel_height as f32;
-        let pixel_aspect = pixel_width / pixel_height;
-
         let tex_width = sprite.coords.width() as f32;
         let tex_height = sprite.coords.height() as f32;
-        let aspect = tex_width as f32 / tex_height as f32;
+
+        let scale_width = pixel_width / tex_width as f32;
+        let scale_height = pixel_height / tex_height as f32;
 
         let h_context = DimensionContext {
             dpi: self.dimensions.dpi as f32,
@@ -457,47 +457,26 @@ impl crate::TermWindow {
 
         // log::info!("tex {tex_width}x{tex_height} aspect={aspect}");
 
-        // Compute the largest aspect-preserved size that will fill the space
-        let (max_aspect_width, max_aspect_height) = if aspect >= 1.0 {
-            // Width is the longest side
-            let target_height = pixel_width / aspect;
-            if target_height > pixel_height {
-                (
-                    (pixel_width * pixel_height / target_height).floor(),
-                    pixel_height,
-                )
-            } else {
-                (pixel_width, target_height)
-            }
-        } else {
-            // Height is the longest side
-            let target_width = pixel_height / aspect;
-            if target_width > pixel_width {
-                (
-                    pixel_width,
-                    (pixel_height * pixel_width / target_width).floor(),
-                )
-            } else {
-                (target_width, pixel_height)
-            }
-        };
-
         // Compute the smallest aspect-preserved size that will fit the space
-        let (min_aspect_width, min_aspect_height) = if pixel_aspect > aspect {
-            (pixel_width, (pixel_width / aspect).floor())
-        } else {
-            ((pixel_height * aspect).floor(), pixel_height)
+        let (min_aspect_width, min_aspect_height) = {
+            let scale = scale_width.min(scale_height);
+            (tex_width * scale, tex_height * scale)
+        };
+        // Compute the largest aspect-preserved size that will fill the space
+        let (max_aspect_width, max_aspect_height) = {
+            let scale = scale_width.max(scale_height);
+            (tex_width * scale, tex_height * scale)
         };
 
         let width = match layer.def.width {
-            BackgroundSize::Contain => max_aspect_width as f32,
-            BackgroundSize::Cover => min_aspect_width as f32,
+            BackgroundSize::Contain => min_aspect_width as f32,
+            BackgroundSize::Cover => max_aspect_width as f32,
             BackgroundSize::Dimension(n) => n.evaluate_as_pixels(h_context),
         };
 
         let height = match layer.def.height {
-            BackgroundSize::Contain => max_aspect_height as f32,
-            BackgroundSize::Cover => min_aspect_height as f32,
+            BackgroundSize::Contain => min_aspect_height as f32,
+            BackgroundSize::Cover => max_aspect_height as f32,
             BackgroundSize::Dimension(n) => n.evaluate_as_pixels(v_context),
         };
 
