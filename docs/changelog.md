@@ -71,6 +71,8 @@ As features stabilize some brief notes about them will accumulate here.
 * wezterm-ssh now supports `ProxyUseFdPass`. Thanks to @loops! #6103 #6093
 * `PromptInputLine` now supports a optional `prompt` and `initial_value`
   parameters. Thanks to @mgpinf and @ekorchmar! #6054 #6007
+* Support Unicode 16 octant characters when `custom_block_glyphs` is enabled.
+  Thanks to @eschnett! #6502 #6494
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
