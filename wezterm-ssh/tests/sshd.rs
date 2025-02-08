@@ -15,6 +15,10 @@ use std::os::unix::fs::PermissionsExt;
 /// NOTE: OpenSSH's sshd requires absolute path
 const BIN_PATH_STR: &str = "/usr/sbin/sshd";
 
+pub fn sshd_available() -> bool {
+    Path::new(BIN_PATH_STR).exists()
+}
+
 /// Ask the kernel to assign a free port.
 /// We pass this to sshd and tell it to listen on that port.
 /// This is racy, as releasing the socket technically makes

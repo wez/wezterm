@@ -25,6 +25,9 @@ fn file_type_to_str(file_type: FileType) -> &'static str {
 fn read_dir_should_return_list_of_directories_files_and_symlinks(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -80,6 +83,9 @@ fn read_dir_should_return_list_of_directories_files_and_symlinks(
 fn create_dir_should_create_a_directory_on_the_remote_filesystem(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -101,6 +107,9 @@ fn create_dir_should_create_a_directory_on_the_remote_filesystem(
 fn create_dir_should_return_error_if_unable_to_create_directory(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -128,6 +137,9 @@ fn create_dir_should_return_error_if_unable_to_create_directory(
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_dir_should_remove_a_remote_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -152,6 +164,9 @@ fn remove_dir_should_remove_a_remote_directory(#[future] session: SessionWithSsh
 fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -201,6 +216,9 @@ fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn metadata_should_return_metadata_about_a_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -222,6 +240,9 @@ fn metadata_should_return_metadata_about_a_file(#[future] session: SessionWithSs
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn metadata_should_return_metadata_about_a_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -245,6 +266,9 @@ fn metadata_should_return_metadata_about_a_directory(#[future] session: SessionW
 fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -273,6 +297,9 @@ fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -299,6 +326,9 @@ fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn metadata_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -319,6 +349,9 @@ fn metadata_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_metadata_should_return_metadata_about_a_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -340,6 +373,9 @@ fn symlink_metadata_should_return_metadata_about_a_file(#[future] session: Sessi
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_metadata_should_return_metadata_about_a_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -363,6 +399,9 @@ fn symlink_metadata_should_return_metadata_about_a_directory(#[future] session: 
 fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_file(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -391,6 +430,9 @@ fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_file(
 fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_directory(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -417,6 +459,9 @@ fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_directory
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_metadata_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -437,6 +482,9 @@ fn symlink_metadata_should_fail_if_path_missing(#[future] session: SessionWithSs
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_should_create_symlink_pointing_to_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -469,6 +517,9 @@ fn symlink_should_create_symlink_pointing_to_file(#[future] session: SessionWith
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_should_create_symlink_pointing_to_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -491,6 +542,9 @@ fn symlink_should_create_symlink_pointing_to_directory(#[future] session: Sessio
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn symlink_should_succeed_even_if_path_missing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -512,6 +566,9 @@ fn symlink_should_succeed_even_if_path_missing(#[future] session: SessionWithSsh
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn read_link_should_return_the_target_of_the_symlink(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -548,6 +605,9 @@ fn read_link_should_return_the_target_of_the_symlink(#[future] session: SessionW
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -589,6 +649,9 @@ fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: SessionWith
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -618,6 +681,9 @@ fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] session
 fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -656,6 +722,9 @@ fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
 fn canonicalize_should_fail_if_resolving_missing_path_with_dots(
     #[future] session: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -673,6 +742,9 @@ fn canonicalize_should_fail_if_resolving_missing_path_with_dots(
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn rename_should_support_singular_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -701,6 +773,9 @@ fn rename_should_support_singular_file(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn rename_should_support_dirtectory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -738,6 +813,9 @@ fn rename_should_support_dirtectory(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn rename_should_fail_if_source_path_missing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -764,6 +842,9 @@ fn rename_should_fail_if_source_path_missing(#[future] session: SessionWithSshd)
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_file_should_remove_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -784,6 +865,9 @@ fn remove_file_should_remove_file(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_file_should_remove_symlink_to_file(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -808,6 +892,9 @@ fn remove_file_should_remove_symlink_to_file(#[future] session: SessionWithSshd)
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_file_should_remove_symlink_to_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -832,6 +919,9 @@ fn remove_file_should_remove_symlink_to_directory(#[future] session: SessionWith
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_file_should_fail_if_path_to_directory(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -854,6 +944,9 @@ fn remove_file_should_fail_if_path_to_directory(#[future] session: SessionWithSs
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn remove_file_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
