@@ -75,6 +75,9 @@ As features stabilize some brief notes about them will accumulate here.
   parameters. Thanks to @mgpinf and @ekorchmar! #6054 #6007
 * Support Unicode 16 octant characters when `custom_block_glyphs` is enabled.
   Thanks to @eschnett! #6502 #6494
+* [window_content_alignment](config/lua/config/window_content_alignment.md) option
+  to control where the excess pixel gap will be placed when the window is not
+  a multiple of the cell dimensions. Thanks to @Shiphan! #6629 #1124
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
