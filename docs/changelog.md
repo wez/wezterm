@@ -156,6 +156,8 @@ As features stabilize some brief notes about them will accumulate here.
   result in an error. Thanks to @mikkasendke! #6403
 * Improved handling of implicit hyperlinks with parentheses. Thanks to
   @psyclaudeZ! #6391
+* macOS: Key repeat would stop when switching between held keys when `use_ime`
+  was enabled. Thanks @psyclaudeZ! #6391 #4061
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.19.240130002.nupkg
