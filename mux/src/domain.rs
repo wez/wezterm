@@ -7,7 +7,7 @@
 
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Context, Error};
@@ -69,6 +69,33 @@ pub trait Domain: Downcast + Send + Sync {
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
+    }
+
+    async fn add_floating_pane(
+        &self,
+        tab: TabId,
+        _pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let size = tab.compute_floating_pane_size();
+        let pane = self.spawn_pane(size, command_builder, command_dir).await?;
+        tab.add_floating_pane(size, Arc::clone(&pane))?;
+        Ok(pane)
+    }
+
+    async fn move_floating_pane_to_split(
+        &self,
+        _tab: TabId,
+        _direction: SplitDirection,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
     }
 
     async fn split_pane(
@@ -149,6 +176,13 @@ pub trait Domain: Downcast + Send + Sync {
         _workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<Option<(Arc<Tab>, WindowId)>> {
         Ok(None)
+    }
+
+    async fn move_pane_to_floating_pane(
+        &self,
+        _pane_id: PaneId,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
     }
 
     /// Returns false if the `spawn` method will never succeed.

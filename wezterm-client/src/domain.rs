@@ -2,13 +2,13 @@ use crate::client::Client;
 use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
-use codec::{ListPanesResponse, SpawnV2, SplitPane};
+use codec::{SpawnFloatingPane, ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use mux::pane::{Pane, PaneId};
-use mux::tab::{SplitRequest, Tab, TabId};
+use mux::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::CommandBuilder;
@@ -26,6 +26,7 @@ pub struct ClientInner {
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
     remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
     pub focused_remote_pane_id: Mutex<Option<PaneId>>,
+    pub focused_remove_floating_pane_id: Mutex<Option<PaneId>>,
 }
 
 impl ClientInner {
@@ -246,6 +247,7 @@ impl ClientInner {
             remote_to_local_tab: Mutex::new(HashMap::new()),
             remote_to_local_pane: Mutex::new(HashMap::new()),
             focused_remote_pane_id: Mutex::new(None),
+            focused_remove_floating_pane_id: Mutex::new(None)
         }
     }
 }
@@ -347,6 +349,38 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                             .set_tab_title(codec::TabTitleChanged {
                                 tab_id: remote_tab_id,
                                 title,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
+            }
+        }
+        MuxNotification::FloatingPaneVisibilityChanged { tab_id, visible } => {
+            if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_floating_pane_visibility(codec::FloatingPaneVisibilityChanged {
+                                tab_id: remote_tab_id,
+                                visible,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
+            }
+        }
+        MuxNotification::ActiveFloatingPaneChanged {index, tab_id} => {
+            if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_active_floating_pane(codec::ActiveFloatingPaneChanged {
+                                tab_id: remote_tab_id,
+                                index
                             })
                             .await
                     })
@@ -491,13 +525,32 @@ impl ClientDomain {
         }
     }
 
-    pub fn process_remote_tab_title_change(&self, remote_tab_id: TabId, title: String) {
+    fn get_local_tab(&self, remote_tab_id: TabId) -> Option<Arc<Tab>> {
         if let Some(inner) = self.inner() {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
-                    tab.set_title(&title);
+                    return Some(tab)
                 }
             }
+        }
+        None
+    }
+
+    pub fn process_remote_tab_title_change(&self, remote_tab_id: TabId, title: String) {
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_title(&title);
+        }
+    }
+
+    pub fn set_floating_pane_visibility(&self, remote_tab_id: TabId, visible: bool) {
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_floating_pane_visibility(visible);
+        }
+    }
+
+    pub fn set_active_floating_pane(&self, index: usize, remote_tab_id: TabId) {
+        if let Some(tab) = self.get_local_tab(remote_tab_id) {
+            tab.set_active_floating_pane(index);
         }
     }
 
@@ -538,12 +591,12 @@ impl ClientDomain {
             .collect();
 
         for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
-            let root_size = match tabroot.root_size() {
+            let root_size = match tabroot.panes.root_size() {
                 Some(size) => size,
                 None => continue,
             };
 
-            if let Some((remote_window_id, remote_tab_id)) = tabroot.window_and_tab_ids() {
+            if let Some((remote_window_id, remote_tab_id)) = tabroot.panes.window_and_tab_ids() {
                 let tab;
 
                 remote_windows_to_forget.remove(&remote_window_id);
@@ -760,6 +813,63 @@ impl Domain for ClientDomain {
         anyhow::bail!("spawn_pane not implemented for ClientDomain")
     }
 
+    async fn move_pane_to_floating_pane(
+        &self,
+        pane_id: PaneId,
+    ) -> anyhow::Result<bool> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        inner
+            .client
+            .move_pane_to_floating_pane(codec::MovePaneToFloatingPane {
+                pane_id: pane.remote_pane_id,
+            })
+            .await?;
+
+        self.resync().await?;
+
+        Ok(true)
+    }
+
+    async fn move_floating_pane_to_split(
+        &self,
+        pane_id: PaneId,
+        split_direction: SplitDirection,
+    ) -> anyhow::Result<bool> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let local_pane = Mux::get()
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+
+        let pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        inner
+            .client
+            .move_floating_pane_to_split(codec::MoveFloatingPaneToSplit {
+                pane_id: pane.remote_pane_id,
+                split_direction,
+            })
+            .await?;
+
+        self.resync().await?;
+
+        Ok(true)
+    }
+
     /// Forward the request to the remote; we need to translate the local ids
     /// to those that match the remote for the request, resync the changed
     /// structure, and then translate the results back to local
@@ -922,6 +1032,53 @@ impl Domain for ClientDomain {
 
         tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))
             .ok();
+
+        mux.add_pane(&pane)?;
+
+        Ok(pane)
+    }
+
+    async fn add_floating_pane(
+        &self,
+        _tab_id: TabId,
+        pane_id: PaneId,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
+
+        let mux = Mux::get();
+
+        let tab = mux
+            .get_tab(_tab_id)
+            .ok_or_else(|| anyhow!("tab_id {} is invalid", _tab_id))?;
+        let local_pane = mux
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let client_pane = local_pane
+            .downcast_ref::<ClientPane>()
+            .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
+
+        let result = inner
+            .client
+            .add_floating_pane(SpawnFloatingPane {
+                pane_id: client_pane.remote_pane_id,
+                command,
+                command_dir,
+                domain: SpawnTabDomain::CurrentPaneDomain
+            }).await?;
+
+        let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
+            &inner,
+            result.tab_id,
+            result.pane_id,
+            result.size,
+            "wezterm",
+        ));
+
+        tab.add_floating_pane(result.size, Arc::clone(&pane)).ok();
 
         mux.add_pane(&pane)?;
 

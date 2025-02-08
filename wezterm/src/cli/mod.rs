@@ -106,7 +106,7 @@ Outputs the pane-id for the newly created pane on success"
     #[command(
         name = "spawn",
         trailing_var_arg = true,
-        about = "Spawn a command into a new window or tab
+        about = "Spawn a command into a new window, tab or floating pane
 Outputs the pane-id for the newly created pane on success"
     )]
     SpawnCommand(spawn_command::SpawnCommand),

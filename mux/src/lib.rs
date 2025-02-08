@@ -1,7 +1,7 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
 use crate::ssh_agent::AgentProxy;
-use crate::tab::{SplitRequest, Tab, TabId};
+use crate::tab::{SplitDirection, SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
-use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
+use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalConfiguration, TerminalSize};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -93,6 +93,14 @@ pub enum MuxNotification {
         old_workspace: String,
         new_workspace: String,
     },
+    FloatingPaneVisibilityChanged {
+        tab_id: TabId,
+        visible: bool,
+    },
+    ActiveFloatingPaneChanged{
+        tab_id: TabId,
+        index: usize,
+    }
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -523,6 +531,16 @@ impl Mux {
         if let Some(pane) = self.get_pane(pane_id) {
             pane.focus_changed(true);
         }
+    }
+
+    pub fn set_floating_pane_visibility(&self, tab_id: TabId, visible: bool) -> anyhow::Result<()> {
+        let tab = self
+            .get_tab(tab_id)
+            .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
+
+        tab.set_floating_pane_visibility(visible);
+
+        Ok(())
     }
 
     /// Called by PaneFocused event handlers to reconcile a remote
@@ -1056,6 +1074,10 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.read().values() {
+            if let Some((_, floating_pane)) = tab.get_floating_pane_by_pane_id(pane_id){
+                ids = Some((tab.tab_id(), floating_pane.domain_id()));
+                break;
+            }
             for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {
                     ids = Some((tab.tab_id(), p.pane.domain_id()));
@@ -1169,14 +1191,38 @@ impl Mux {
         })
     }
 
-    pub async fn split_pane(
-        &self,
-        // TODO: disambiguate with TabId
-        pane_id: PaneId,
-        request: SplitRequest,
-        source: SplitSource,
-        domain: config::keyassignment::SpawnTabDomain,
-    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+    fn apply_config_to_pane(pane: Arc<dyn Pane>, term_config: Option<Arc<dyn TerminalConfiguration>>) -> TerminalSize {
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        let dims = pane.get_dimensions();
+
+        let size = TerminalSize {
+            cols: dims.cols,
+            rows: dims.viewport_rows,
+            pixel_height: 0,
+            pixel_width: 0,
+            dpi: dims.dpi,
+        };
+
+        size
+    }
+
+    fn resolve_domain_from_pane_id(&self, pane_id: PaneId) -> anyhow::Result<(Arc<dyn Domain>, WindowId, TabId)> {
+        let (domain_id, src_window, src_tab) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
+
+        let domain = self
+            .get_domain(domain_id)
+            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
+
+        Ok((domain, src_window, src_tab))
+    }
+
+    async fn resolve_spawn_tab_domain_from_pane_id(&self, pane_id: PaneId, domain: SpawnTabDomain) ->
+    anyhow::Result<(Arc<dyn Domain>, TabId, Arc<dyn Pane>, Option<Arc<dyn TerminalConfiguration>>)> {
         let (_pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
@@ -1192,7 +1238,79 @@ impl Mux {
         let current_pane = self
             .get_pane(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+
         let term_config = current_pane.get_config();
+        Ok((domain, tab_id, current_pane, term_config))
+    }
+
+    pub async fn spawn_floating_pane(
+        &self,
+        pane_id: PaneId,
+        command_builder: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (domain, tab_id, current_pane, term_config) = self.resolve_spawn_tab_domain_from_pane_id(pane_id, domain).await?;
+
+        let command_dir = if !command_dir.is_some() {
+            self.resolve_cwd(
+                command_dir,
+                Some(Arc::clone(&current_pane)),
+                domain.domain_id(),
+                CachePolicy::FetchImmediate,
+            )
+        } else {
+            command_dir
+        };
+
+        let pane = domain.add_floating_pane(tab_id, pane_id, command_builder, command_dir).await?;
+        let size = Self::apply_config_to_pane(Arc::clone(&pane), term_config);
+
+        Ok((pane, size))
+    }
+
+    pub async fn move_floating_pane_to_split(
+        &self,
+        pane_id: PaneId,
+        direction: SplitDirection,
+    ) -> anyhow::Result<()> {
+        let (domain, _window_id, tab_id) = self.resolve_domain_from_pane_id(pane_id)?;
+
+        if domain.move_floating_pane_to_split(tab_id, direction).await? {
+            return Ok(())
+        }
+
+        let mux = Mux::get();
+        let tab = match mux.get_tab(tab_id) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab_id),
+        };
+
+        let floating_pane = tab.remove_floating_pane(tab.get_active_floating_pane_index())?;
+
+        tab.set_floating_pane_visibility(false);
+
+        let split_request = SplitRequest {
+            direction,
+            target_is_second: true,
+            top_level: false,
+            size: Default::default(),
+        };
+        tab.split_and_insert(tab.get_active_idx(), split_request, Arc::clone(&floating_pane))?;
+
+        Ok(())
+    }
+
+    pub async fn split_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        request: SplitRequest,
+        source: SplitSource,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
+        let (domain, tab_id, current_pane, term_config) =
+            self.resolve_spawn_tab_domain_from_pane_id(pane_id, domain).await?;
 
         let source = match source {
             SplitSource::Spawn {
@@ -1211,23 +1329,36 @@ impl Mux {
         };
 
         let pane = domain.split_pane(source, tab_id, pane_id, request).await?;
-        if let Some(config) = term_config {
-            pane.set_config(config);
-        }
-
-        // FIXME: clipboard
-
-        let dims = pane.get_dimensions();
-
-        let size = TerminalSize {
-            cols: dims.cols,
-            rows: dims.viewport_rows,
-            pixel_height: 0, // FIXME: split pane pixel dimensions
-            pixel_width: 0,
-            dpi: dims.dpi,
-        };
+        let size = Self::apply_config_to_pane(Arc::clone(&pane), term_config);
 
         Ok((pane, size))
+    }
+
+    pub async fn move_pane_to_floating_pane(
+        &self,
+        pane_id: PaneId,
+    ) -> anyhow::Result<()> {
+        let (domain, _, src_tab) = self.resolve_domain_from_pane_id(pane_id)?;
+
+        if domain.move_pane_to_floating_pane(pane_id).await?{
+            return Ok(())
+        }
+
+        let tab = match self.get_tab(src_tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", src_tab),
+        };
+
+        let pane = tab
+            .remove_pane(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
+
+
+        let size = tab.compute_floating_pane_size();
+        pane.resize(size)?;
+        tab.append_floating_pane(pane);
+
+        Ok(())
     }
 
     pub async fn move_pane_to_new_tab(
@@ -1236,14 +1367,7 @@ impl Mux {
         window_id: Option<WindowId>,
         workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<(Arc<Tab>, WindowId)> {
-        let (domain_id, _src_window, src_tab) = self
-            .resolve_pane_id(pane_id)
-            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
-
-        let domain = self
-            .get_domain(domain_id)
-            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
-
+        let (domain, _, src_tab) = self.resolve_domain_from_pane_id(pane_id)?;
         if let Some((tab, window_id)) = domain
             .move_pane_to_new_tab(pane_id, window_id, workspace_for_new_window.clone())
             .await?
@@ -1272,9 +1396,13 @@ impl Mux {
             (*window_builder, src_tab.get_size())
         };
 
-        let pane = src_tab
-            .remove_pane(pane_id)
-            .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
+        let pane = if let Some((i, _)) = src_tab.get_floating_pane_by_pane_id(pane_id) {
+            src_tab.remove_floating_pane(i)?
+        } else {
+            src_tab
+                .remove_pane(pane_id)
+                .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?
+        };
 
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);

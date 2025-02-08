@@ -44,10 +44,7 @@ use mux::pane::{
     CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
 };
 use mux::renderable::RenderableDimensions;
-use mux::tab::{
-    PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
-    TabId,
-};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use mux_lua::MuxPane;
@@ -1296,6 +1293,8 @@ impl TermWindow {
                     // Also handled by clientpane
                     self.update_title_post_status();
                 }
+                MuxNotification::FloatingPaneVisibilityChanged { .. } => { }
+                MuxNotification::ActiveFloatingPaneChanged { .. } => { }
                 MuxNotification::TabResized(_) => {
                     // Also handled by wezterm-client
                     self.update_title_post_status();
@@ -1423,6 +1422,13 @@ impl TermWindow {
             return tab_overlay.pane_id() == pane_id;
         }
 
+        if let Some(floating_pane) = tab.get_active_floating_pane(){
+            if floating_pane.pane.pane_id() == pane_id
+            {
+                return true;
+            }
+        }
+
         tab.contains_pane(pane_id)
     }
 
@@ -1502,6 +1508,8 @@ impl TermWindow {
                     return true;
                 }
             }
+            MuxNotification::FloatingPaneVisibilityChanged { .. } => { }
+            MuxNotification::ActiveFloatingPaneChanged { .. } => { }
             MuxNotification::Alert {
                 alert: Alert::ToastNotification { .. },
                 ..
@@ -2531,6 +2539,16 @@ impl TermWindow {
             result => return Ok(result),
         }
 
+        if self.is_floating_pane_active() {
+            match assignment {
+                SplitPane(..) |
+                PaneSelect(..) => {
+                    return Ok(PerformAssignmentResult::Handled);
+                },
+                _ => {}
+            }
+        }
+
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
@@ -2605,6 +2623,12 @@ impl TermWindow {
                         top_level: false,
                     }),
                 );
+            }
+            SpawnCommandInNewFloatingPane(spawn) => {
+                log::trace!("SpawnFloatingPane {:?}", spawn);
+                self.spawn_command(
+                    spawn,
+                    SpawnWhere::FloatingPane);
             }
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
@@ -2891,6 +2915,10 @@ impl TermWindow {
 
                 let tab_id = tab.tab_id();
 
+                if tab.floating_pane_is_visible() {
+                    tab.set_floating_pane_visibility(false);
+                }
+
                 if self.tab_state(tab_id).overlay.is_none() {
                     let panes = tab.iter_panes();
                     if panes.iter().position(|p| p.index == *index).is_some() {
@@ -2918,6 +2946,23 @@ impl TermWindow {
                     None => return Ok(PerformAssignmentResult::Handled),
                 };
                 tab.toggle_zoom();
+            }
+            ToggleFloatingPane => {
+                let mux = Mux::get();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(PerformAssignmentResult::Handled),
+                };
+                if !tab.has_floating_pane() {
+                    self.spawn_command(
+                        &SpawnCommand {
+                            domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                            ..Default::default()
+                        },
+                        SpawnWhere::FloatingPane);
+                } else {
+                    tab.toggle_float();
+                }
             }
             SetPaneZoomState(zoomed) => {
                 let mux = Mux::get();
@@ -3086,8 +3131,34 @@ impl TermWindow {
             }
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
+            MoveFloatingPaneToHorizontalSplit => {
+                self.move_floating_pane_to_split(SplitDirection::Horizontal);
+            }
+            MoveFloatingPaneToVerticalSplit => {
+                self.move_floating_pane_to_split(SplitDirection::Vertical);
+            }
         };
         Ok(PerformAssignmentResult::Handled)
+    }
+
+    fn move_floating_pane_to_split(&self, split_direction: SplitDirection) {
+        if !self.is_floating_pane_active() {
+            return;
+        }
+
+        let mux_window_id = self.mux_window_id;
+        promise::spawn::spawn(async move {
+            let mux = Mux::get();
+            let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                Some(tab) => tab,
+                None => anyhow::bail!("no active tab!?"),
+            };
+            let pane = tab
+                .get_active_pane()
+                .ok_or_else(|| anyhow!("tab to have a pane"))?;
+            mux.move_floating_pane_to_split(pane.pane_id(), split_direction).await?;
+            Result::<(), anyhow::Error>::Ok(())
+        }).detach();
     }
 
     fn do_open_link_at_mouse_cursor(&self, pane: &Arc<dyn Pane>) {
@@ -3343,6 +3414,16 @@ impl TermWindow {
         }
     }
 
+    pub fn is_floating_pane_active(&self) -> bool {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return false,
+        };
+
+        return tab.is_floating_pane_active();
+    }
+
     fn get_splits(&mut self) -> Vec<PositionedSplit> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -3427,13 +3508,14 @@ impl TermWindow {
                 index: 0,
                 is_active: true,
                 is_zoomed: false,
+                is_floating: false,
                 left: 0,
                 top: 0,
                 width: size.cols as _,
                 height: size.rows as _,
                 pixel_width: size.cols as usize * self.render_metrics.cell_size.width as usize,
                 pixel_height: size.rows as usize * self.render_metrics.cell_size.height as usize,
-                pane,
+                pane
             }]
         } else {
             let mut panes = tab.iter_panes();
@@ -3454,6 +3536,44 @@ impl TermWindow {
         };
 
         self.get_pos_panes_for_tab(&tab)
+    }
+
+    fn get_floating_pane_scroll_thumb_width(&self) -> usize {
+        if !self.show_scroll_bar {
+            return 0
+        }
+        self.effective_right_padding(&self.config)
+    }
+
+    fn get_floating_pane_to_render(&self) -> Option<PositionedPane> {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return None,
+        };
+
+        if self
+            .tab_state(tab.tab_id())
+            .overlay
+            .as_ref()
+            .map(|overlay| overlay.pane.clone())
+            .is_some()
+        {
+            return None;
+        }
+
+        if !tab.floating_pane_is_visible() {
+            return None;
+        }
+
+        let mut pos = tab.get_active_floating_pane();
+        if let Some(ref mut pos) = pos {
+            if let Some(overlay) = self.pane_state(pos.pane.pane_id()).overlay.as_ref() {
+                pos.pane = Arc::clone(&overlay.pane);
+            }
+        }
+
+        pos
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.

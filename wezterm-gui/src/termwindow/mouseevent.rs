@@ -9,7 +9,7 @@ use ::window::{
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
 use mux::pane::{Pane, WithPaneLines};
-use mux::tab::SplitDirection;
+use mux::tab::{SplitDirection};
 use mux::Mux;
 use mux_lua::MuxPane;
 use std::convert::TryInto;
@@ -307,7 +307,19 @@ impl super::TermWindow {
         };
 
         let border = self.get_os_border();
-        let y_offset = top_bar_height + border.top.get() as f32;
+        let (y_offset, max_thumb_height) = if let Some(floating_pane) = self.get_floating_pane_to_render(){
+            let (padding_left, padding_top) = self.padding_left_top();
+            let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
+            let background_rect = self.compute_background_rect(&floating_pane,
+                padding_left, padding_top, &border, top_pixel_y);
+            (background_rect.origin.y, background_rect.height() as usize)
+        } else {
+            let y = top_bar_height + border.top.get() as f32;
+            let max_thumb_height = self.dimensions.pixel_height.saturating_sub(
+                y as usize + border.bottom.get() + bottom_bar_height as usize,
+            );
+            (y, max_thumb_height)
+        };
 
         let from_top = start_event.coords.y.saturating_sub(item.y as isize);
         let effective_thumb_top = event
@@ -322,9 +334,7 @@ impl super::TermWindow {
             effective_thumb_top,
             &*pane,
             current_viewport,
-            self.dimensions.pixel_height.saturating_sub(
-                y_offset as usize + border.bottom.get() + bottom_bar_height as usize,
-            ),
+            max_thumb_height,
             self.min_scroll_bar_height() as usize,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);
@@ -667,7 +677,35 @@ impl super::TermWindow {
             Some(MouseCapture::TerminalPane(_))
         );
 
-        for pos in self.get_panes_to_render() {
+        let panes = if let Some(floating_pane) = self.get_floating_pane_to_render() {
+            let mouse_in_floating_pane = position.column >= floating_pane.left &&
+                position.column <= floating_pane.left + floating_pane.width &&
+                position.row as usize >= floating_pane.top &&
+                position.row as usize <= floating_pane.top + floating_pane.height;
+
+            if !mouse_in_floating_pane {
+                let mux = Mux::get();
+                if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id){
+                    //Hide floating pane if mouse is clicked outside the floating pane
+                    match &event.kind {
+                        WMEK::Press(_) => {
+                            mux.set_floating_pane_visibility(tab.tab_id(), false).ok();
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Non click mouse events are not dispatched to the other panes when a floating
+                // pane is active. This is to prevent users from triggering unexpected
+                // behavior on one of the non-floating panes.
+                return;
+            }
+            vec![floating_pane]
+        } else {
+            self.get_panes_to_render()
+        };
+
+        for pos in panes {
             if !is_already_captured
                 && row >= pos.top as i64
                 && row <= (pos.top + pos.height) as i64

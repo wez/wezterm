@@ -14,9 +14,9 @@
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
-use mux::pane::PaneId;
+use mux::pane::{PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
+use mux::tab::{SerdeUrl, SplitDirection, SplitRequest, TabEntry, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
@@ -441,7 +441,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 43;
+pub const CODEC_VERSION: usize = 45;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -502,6 +502,11 @@ pdu! {
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
+    SpawnFloatingPane: 63,
+    FloatingPaneVisibilityChanged: 64,
+    MoveFloatingPaneToSplit: 65,
+    MovePaneToFloatingPane: 66,
+    ActiveFloatingPaneChanged: 67,
 }
 
 impl Pdu {
@@ -644,9 +649,29 @@ pub struct ListPanes {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
-    pub tabs: Vec<PaneNode>,
+    pub tabs: Vec<TabEntry>,
     pub tab_titles: Vec<String>,
     pub window_titles: HashMap<WindowId, String>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SpawnFloatingPane {
+    pub pane_id: PaneId,
+    pub command: Option<CommandBuilder>,
+    pub command_dir: Option<String>,
+    pub domain: config::keyassignment::SpawnTabDomain,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct FloatingPaneVisibilityChanged {
+    pub tab_id: TabId,
+    pub visible: bool
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ActiveFloatingPaneChanged {
+    pub index: usize,
+    pub tab_id: TabId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -659,6 +684,17 @@ pub struct SplitPane {
     /// Instead of spawning a command, move the specified
     /// pane into the new split target
     pub move_pane_id: Option<PaneId>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MovePaneToFloatingPane {
+    pub pane_id: PaneId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MoveFloatingPaneToSplit {
+    pub pane_id: PaneId,
+    pub split_direction: SplitDirection,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
