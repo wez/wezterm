@@ -24,11 +24,11 @@ pub(crate) struct ResizePty {
 
 #[derive(Debug)]
 pub struct SshPty {
-    pub channel: ChannelId,
-    pub tx: Option<SessionSender>,
+    pub(crate) channel: ChannelId,
+    pub(crate) tx: Option<SessionSender>,
     pub reader: FileDescriptor,
     pub writer: FileDescriptor,
-    pub size: Mutex<PtySize>,
+    pub(crate) size: Mutex<PtySize>,
 }
 
 impl std::io::Write for SshPty {
