@@ -2222,6 +2222,14 @@ mod test {
     }
 
     impl Pane for FakePane {
+        fn get_mouse_cursor_shape(&self) -> Option<String> {
+            unimplemented!();
+        }
+
+        fn clear_mouse_cursor_shape(&self) {
+            unimplemented!();
+        }
+
         fn pane_id(&self) -> PaneId {
             self.id
         }

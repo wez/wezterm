@@ -1210,6 +1210,12 @@ impl TermWindow {
                     self.update_title();
                 }
                 MuxNotification::Alert {
+                    alert: Alert::MouseCursorShapeChanged,
+                    pane_id,
+                } => {
+                    self.mux_pane_output_event(pane_id);
+                }
+                MuxNotification::Alert {
                     alert: Alert::PaletteChanged,
                     pane_id,
                 } => {
@@ -1515,6 +1521,12 @@ impl TermWindow {
             | MuxNotification::WindowWorkspaceChanged(_) => return true,
             MuxNotification::Alert {
                 alert: Alert::PaletteChanged { .. },
+                ..
+            } => {
+                // fall through
+            }
+            MuxNotification::Alert {
+                alert: Alert::MouseCursorShapeChanged { .. },
                 ..
             } => {
                 // fall through
@@ -3533,6 +3545,16 @@ impl TermWindow {
                 MuxPattern::CaseSensitiveString(first_line)
             }
         }
+    }
+}
+
+fn parse_mouse_cursor_shape(mouse_cursor_shape: &str) -> MouseCursor {
+    match mouse_cursor_shape {
+        "pointer" => MouseCursor::Hand,
+        "text" => MouseCursor::Text,
+        "row-resize" | "ns-resize" => MouseCursor::SizeUpDown,
+        "col-resize" | "ew-resize" => MouseCursor::SizeLeftRight,
+        _ => MouseCursor::Arrow,
     }
 }
 

@@ -137,6 +137,14 @@ pub struct LocalPane {
 
 #[async_trait(?Send)]
 impl Pane for LocalPane {
+    fn get_mouse_cursor_shape(&self) -> Option<String> {
+        self.terminal.lock().get_mouse_cursor_shape()
+    }
+
+    fn clear_mouse_cursor_shape(&self) {
+        self.terminal.lock().clear_mosue_cursor_shape();
+    }
+
     fn pane_id(&self) -> PaneId {
         self.pane_id
     }

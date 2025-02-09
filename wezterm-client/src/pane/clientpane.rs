@@ -245,6 +245,12 @@ impl ClientPane {
 
 #[async_trait(?Send)]
 impl Pane for ClientPane {
+    fn get_mouse_cursor_shape(&self) -> Option<String> {
+        None
+    }
+
+    fn clear_mouse_cursor_shape(&self) {}
+
     fn pane_id(&self) -> PaneId {
         self.local_pane_id
     }

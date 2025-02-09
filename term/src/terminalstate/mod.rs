@@ -342,6 +342,9 @@ pub struct TerminalState {
 
     palette: Option<ColorPalette>,
 
+    /// The mouse cursor shape (OSC 22)
+    mouse_cursor_shape: Option<String>,
+
     pixel_width: usize,
     pixel_height: usize,
     dpi: u32,
@@ -547,6 +550,7 @@ impl TerminalState {
             any_event_mouse: false,
             button_event_mouse: false,
             mouse_tracking: false,
+            mouse_cursor_shape: None,
             last_mouse_move: None,
             cursor_visible: true,
             g0_charset: CharSet::Ascii,
@@ -663,6 +667,16 @@ impl TerminalState {
             .as_ref()
             .cloned()
             .unwrap_or_else(|| self.config.color_palette())
+    }
+
+    /// Returns a copy of the current mouse cursor shape.
+    pub fn get_mouse_cursor_shape(&self) -> Option<String> {
+        self.mouse_cursor_shape.clone()
+    }
+
+    /// Clears the mouse cursor shape.
+    pub fn clear_mosue_cursor_shape(&mut self) {
+        self.mouse_cursor_shape = None;
     }
 
     /// Called in response to dynamic color scheme escape sequences.
@@ -924,6 +938,12 @@ impl TerminalState {
         self.make_all_lines_dirty();
         if let Some(handler) = self.alert_handler.as_mut() {
             handler.alert(Alert::PaletteChanged);
+        }
+    }
+
+    fn mouse_cursor_shape_did_change(&mut self) {
+        if let Some(handler) = self.alert_handler.as_mut() {
+            handler.alert(Alert::MouseCursorShapeChanged);
         }
     }
 

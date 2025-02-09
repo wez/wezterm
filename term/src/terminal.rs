@@ -51,6 +51,8 @@ pub enum Alert {
     TabTitleChanged(Option<String>),
     /// When the color palette has been updated
     PaletteChanged,
+    /// When the mouse cursor shape has been updated
+    MouseCursorShapeChanged,
     /// A UserVar has changed value
     SetUserVar {
         name: String,

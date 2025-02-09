@@ -1101,6 +1101,12 @@ impl CopyRenderable {
 }
 
 impl Pane for CopyOverlay {
+    fn get_mouse_cursor_shape(&self) -> Option<String> {
+        None
+    }
+
+    fn clear_mouse_cursor_shape(&self) {}
+
     fn pane_id(&self) -> PaneId {
         self.delegate.pane_id()
     }
