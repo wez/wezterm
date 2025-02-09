@@ -81,6 +81,8 @@ As features stabilize some brief notes about them will accumulate here.
 * New `MACOS_FORCE_SQUARE_CORNERS` option for
   [window_decorations](config/lua/config/window_decorations.md). Thanks to
   @amadeusdotpng!  #6587 #2182
+* [QuickSelectArgs](config/lua/keyassignment/QuickSelectArgs.md) has new
+  `skip_action_on_paste` option. Thanks to @nhurlock! #6405
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
