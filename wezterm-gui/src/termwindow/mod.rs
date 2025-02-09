@@ -2383,7 +2383,7 @@ impl TermWindow {
         let flags = args.flags;
         let help_text = args.help_text.unwrap_or(
             "Select an item and press Enter=launch  \
-                                                            Esc=cancel  /=filter"
+             Esc=cancel  /=filter"
                 .to_string(),
         );
         let fuzzy_help_text = args

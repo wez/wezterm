@@ -56,6 +56,8 @@ As features stabilize some brief notes about them will accumulate here.
   @mgpinf! #6320
 * macOS: toast notifications now use UNUserNotificationCenter. This requires
   that WezTerm.app be code-signed, which is the case for official binaries.
+* [ShowLauncherArgs](config/lua/keyassignment/ShowLauncherArgs.md) now allows
+  customizing the help text. Thanks to @mgpinf! #6606
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization
