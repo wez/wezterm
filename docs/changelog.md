@@ -175,6 +175,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg
 * Bundled harfbuzz to 10.2.0
 * Bundled libssh to 0.11.1
+* Bundled freetype to 2.13.3
 * image crate to 0.25, which means that JPEG images are now decoded via
   [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
   handling of non-conforming jpeg images. #5365
