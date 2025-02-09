@@ -446,7 +446,7 @@ pub struct QuickSelectArguments {
     pub patterns: Vec<String>,
     #[dynamic(default)]
     pub action: Option<Box<KeyAssignment>>,
-    /// Call `action` after paste is performed (capital selection)
+    /// Skip triggering `action` after paste is performed (capital selection)
     #[dynamic(default)]
     pub skip_action_on_paste: bool,
     /// Label to use in place of "copy" when `action` is set
