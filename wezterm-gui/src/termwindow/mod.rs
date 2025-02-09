@@ -2340,7 +2340,7 @@ impl TermWindow {
             help_text: None,
             fuzzy_help_text: None,
         };
-        self.show_launcher_impl(&args, active_tab_idx);
+        self.show_launcher_impl(args, active_tab_idx);
     }
 
     fn show_launcher(&mut self) {
@@ -2355,10 +2355,10 @@ impl TermWindow {
             help_text: None,
             fuzzy_help_text: None,
         };
-        self.show_launcher_impl(&args, 0);
+        self.show_launcher_impl(args, 0);
     }
 
-    fn show_launcher_impl(&mut self, args: &LauncherActionArgs, initial_choice_idx: usize) {
+    fn show_launcher_impl(&mut self, args: LauncherActionArgs, initial_choice_idx: usize) {
         let mux_window_id = self.mux_window_id;
         let window = self.window.as_ref().unwrap().clone();
 
@@ -2379,16 +2379,15 @@ impl TermWindow {
             .domain_id();
         let pane_id = pane.pane_id();
         let tab_id = tab.tab_id();
-        let title = args.title.clone().unwrap();
+        let title = args.title.unwrap();
         let flags = args.flags;
-        let help_text = args.help_text.clone().unwrap_or(
+        let help_text = args.help_text.unwrap_or(
             "Select an item and press Enter=launch  \
                                                             Esc=cancel  /=filter"
                 .to_string(),
         );
         let fuzzy_help_text = args
             .fuzzy_help_text
-            .clone()
             .unwrap_or("Fuzzy matching: ".to_string());
 
         promise::spawn::spawn(async move {
@@ -2741,7 +2740,7 @@ impl TermWindow {
                     help_text: args.help_text.clone(),
                     fuzzy_help_text: args.fuzzy_help_text.clone(),
                 };
-                self.show_launcher_impl(&args, 0);
+                self.show_launcher_impl(args, 0);
             }
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");
