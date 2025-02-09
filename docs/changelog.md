@@ -174,6 +174,8 @@ As features stabilize some brief notes about them will accumulate here.
   @psyclaudeZ! #6391
 * macOS: Key repeat would stop when switching between held keys when `use_ime`
   was enabled. Thanks @psyclaudeZ! #6391 #4061
+* `wezterm cli split-pane --move-pane-id` could kill panes. Thanks to @scauligi!
+  #6028 #6029
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg
