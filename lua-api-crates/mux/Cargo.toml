@@ -16,6 +16,7 @@ log = "0.4"
 luahelper = { path = "../../luahelper" }
 parking_lot = "0.12"
 portable-pty = { path = "../../pty" }
+promise = { path = "../../promise" }
 smol = "2.0"
 termwiz = { path = "../../termwiz" }
 termwiz-funcs = { path = "../termwiz-funcs" }

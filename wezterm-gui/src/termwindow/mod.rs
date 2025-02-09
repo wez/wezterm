@@ -30,8 +30,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize,
+    KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments, SpawnCommand,
+    SplitSize,
 };
 use config::window::WindowLevel;
 use config::{
@@ -1296,7 +1296,7 @@ impl TermWindow {
                     // Also handled by clientpane
                     self.update_title_post_status();
                 }
-                MuxNotification::TabResized(_) => {
+                MuxNotification::TabReflowed(_) => {
                     // Also handled by wezterm-client
                     self.update_title_post_status();
                 }
@@ -1493,7 +1493,7 @@ impl TermWindow {
                     return true;
                 }
             }
-            MuxNotification::TabResized(tab_id)
+            MuxNotification::TabReflowed(tab_id)
             | MuxNotification::TabTitleChanged { tab_id, .. } => {
                 let mux = Mux::get();
                 if mux.window_containing_tab(tab_id) == Some(mux_window_id) {
@@ -3028,10 +3028,15 @@ impl TermWindow {
                     Some(tab) => tab,
                     None => return Ok(PerformAssignmentResult::Handled),
                 };
-                match direction {
-                    RotationDirection::Clockwise => tab.rotate_clockwise(),
-                    RotationDirection::CounterClockwise => tab.rotate_counter_clockwise(),
-                }
+                let tab_id = tab.tab_id();
+                let direction = *direction;
+                promise::spawn::spawn(async move {
+                    let mux = Mux::get();
+                    if let Err(err) = mux.rotate_panes(tab_id, direction).await {
+                        log::error!("Unable to rotate panes: {:#}", err);
+                    }
+                })
+                .detach()
             }
             SplitPane(split) => {
                 log::trace!("SplitPane {:?}", split);
