@@ -54,6 +54,8 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm record` now has a `-o outputfile` option. Thanks to @Tyarel8! #6626
 * `ShowTabNavigator` now defaults to selecting the active tab. Thanks to
   @mgpinf! #6320
+* macOS: toast notifications now use UNUserNotificationCenter. This requires
+  that WezTerm.app be code-signed, which is the case for official binaries.
 
 #### New
 * [wezterm.serde](config/lua/wezterm.serde/index.md) module for serialization

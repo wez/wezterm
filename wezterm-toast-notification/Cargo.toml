@@ -20,9 +20,11 @@ async-io = "2.3"
 futures-util = "0.3"
 
 [target.'cfg(target_os="macos")'.dependencies]
-cocoa = "0.25"
-core-foundation = "0.9"
-objc = "0.2"
+block2 = "0.6"
+objc2 = "0.6"
+objc2-user-notifications = "0.3"
+objc2-foundation = "0.3"
+uuid.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows = { version="0.33.0", features = [
