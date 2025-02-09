@@ -17,6 +17,8 @@ use wezterm_term::SemanticType;
 pub struct LauncherActionArgs {
     pub flags: LauncherFlags,
     pub title: Option<String>,
+    pub help_text: Option<String>,
+    pub fuzzy_help_text: Option<String>,
 }
 
 bitflags::bitflags! {
