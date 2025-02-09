@@ -180,6 +180,10 @@ pub trait TerminalConfiguration: Downcast + std::fmt::Debug + Send + Sync {
         false
     }
 
+    fn enable_osc52_clipboard_reading(&self) -> bool {
+        false
+    }
+
     /// The default unicode version to assume.
     /// This affects how the width of certain sequences is interpreted.
     /// At the time of writing, we default to 9 even though the current

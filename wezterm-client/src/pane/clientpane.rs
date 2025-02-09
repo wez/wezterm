@@ -27,7 +27,7 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    Alert, Clipboard, ClipboardReader, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
     TerminalConfiguration, TerminalSize,
 };
 
@@ -48,6 +48,23 @@ pub struct ClientPane {
     user_vars: Mutex<HashMap<String, String>>,
     config: Mutex<Option<Arc<dyn TerminalConfiguration>>>,
     unseen_output: Mutex<bool>,
+}
+
+/// Implement [`ClipboardReader`] for the [`smol::channel::Sender`] for
+/// receiving the clipboard content from [`Clipboard::get_contents`]
+/// and redirecting it to the corresponding [`smol::channel::Receiver`]
+#[derive(Debug, Clone)]
+struct ClientClipboardReader(smol::channel::Sender<String>);
+
+impl ClipboardReader for ClientClipboardReader {
+    fn write(&mut self, contents: String) -> Result<(), std::io::Error> {
+        let tx = self.0.clone();
+        promise::spawn::spawn(async move {
+            let _ = tx.send(contents).await;
+        })
+        .detach();
+        Ok(())
+    }
 }
 
 impl ClientPane {
@@ -166,6 +183,38 @@ impl ClientPane {
                     log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
                 }
             },
+            Pdu::QueryClipboard(QueryClipboard { pane_id, selection }) => {
+                log::debug!(
+                    "Pdu::QueryClipboard pane={:?} pane={} remote={} {:?}",
+                    pane_id,
+                    self.local_pane_id,
+                    self.remote_pane_id,
+                    selection,
+                );
+                match self.clipboard.lock().as_ref() {
+                    Some(clip) => {
+                        let client = Arc::clone(&self.client);
+                        let remote_pane_id = self.remote_pane_id;
+                        let (tx, rx) = smol::channel::bounded(1);
+                        clip.get_contents(selection, Box::new(ClientClipboardReader(tx)))?;
+
+                        promise::spawn::spawn(async move {
+                            let content = rx.recv().await.ok();
+                            let _ = client
+                                .client
+                                .send_pdu(Pdu::QueryClipboardResponse(QueryClipboardResponse {
+                                    pane_id: remote_pane_id,
+                                    content,
+                                }))
+                                .await;
+                        })
+                        .detach();
+                    }
+                    None => {
+                        log::error!("ClientPane: Ignoring QueryClipboard request");
+                    }
+                }
+            }
             Pdu::SetPalette(SetPalette { palette, .. }) => {
                 *self.application_palette.lock() = palette != *self.configured_palette.lock();
 

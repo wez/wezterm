@@ -991,6 +991,8 @@ impl SessionHandler {
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }
             | Pdu::SetClipboard { .. }
+            | Pdu::QueryClipboard { .. }
+            | Pdu::QueryClipboardResponse { .. }
             | Pdu::NotifyAlert { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetPaneRenderChangesResponse { .. }
