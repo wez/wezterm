@@ -454,11 +454,18 @@ impl Window {
             y,
         } = conn.resolve_geometry(geometry);
 
+        log::warn!("new_window ResolvedGeometry: width: {width}, height: {height}, x: {x:?}, y: {y:?}");
+
         let scale_factor = (conn.default_dpi() / crate::DEFAULT_DPI) as usize;
+        // let scale_factor = 2 as usize;
         let width = width / scale_factor;
         let height = height / scale_factor;
         let x = x.map(|x| x / scale_factor as i32);
         let y = y.map(|y| y / scale_factor as i32);
+
+        log::warn!("new_window conn.default_dpi: {}", conn.default_dpi());
+        log::warn!("new_window scale_factor: {scale_factor}");
+        log::warn!("new_window after scaling: width: {width}, height: {height}, x: {x:?}, y: {y:?}");
 
         let initial_pos = match (x, y) {
             (Some(x), Some(y)) => Some(ScreenPoint::new(x as isize, y as isize)),
@@ -620,10 +627,16 @@ impl Window {
             let backing_frame = NSView::convertRectToBacking(*view, frame);
             let width = backing_frame.size.width;
             let height = backing_frame.size.height;
+            log::warn!("new_window backing frame: width: {width}, height: {height}");
+
+            let dpi_for_window_screen_value = dpi_for_window_screen(*window, &config);
+            log::warn!("new_window dpi_for_window_screen: {dpi_for_window_screen_value:?}");
 
             let dpi = dpi_for_window_screen(*window, &config)
                 .unwrap_or(crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                 as usize;
+
+            log::warn!("new_window dpi: {dpi}");
 
             let weak_window = window.weak();
             let window_handle = Window {
@@ -1204,6 +1217,7 @@ impl WindowInner {
         unsafe {
             NSWindow::setLevel_(*self.window, window_level_to_nswindow_level(level));
             // Dispatch a resize event with the updated window state
+            log::warn!("WindowInner.set_window_level");
             WindowView::did_resize(&mut **self.view, sel!(windowDidResize:), nil);
         }
     }
@@ -2803,6 +2817,7 @@ impl WindowView {
         let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
+        log::warn!("did_resize backing frame: width: {width}, height: {height}, x: {}, y: {}", backing_frame.origin.x, backing_frame.origin.y);
         if let Some(this) = Self::get_this(this) {
             let mut inner = this.inner.borrow_mut();
 
@@ -2863,6 +2878,7 @@ impl WindowView {
                 .unwrap_or(crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                 as usize;
 
+            log::warn!("WindowView.did_resize dpi: {dpi}");
             inner.events.dispatch(WindowEvent::Resized {
                 dimensions: Dimensions {
                     pixel_width: width as usize,
@@ -2938,6 +2954,7 @@ impl WindowView {
                 // and a repaint.
                 inner.screen_changed = false;
                 drop(inner);
+                log::warn!("WindowView.draw_rect screen_changed");
                 Self::did_resize(view, sel, nil);
                 return;
             }
