@@ -243,5 +243,5 @@ fn main() {
     freetype();
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:outdir={}", out_dir);
-    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
+    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12");
 }

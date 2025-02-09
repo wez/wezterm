@@ -813,7 +813,7 @@ rustup default {toolchain}
         self.env["SCCACHE_GHA_ENABLED"] = "true"
         self.env["RUSTC_WRAPPER"] = "sccache"
         if "macos" in self.name:
-            self.env["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
+            self.env["MACOSX_DEPLOYMENT_TARGET"] = "10.12"
         if "alpine" in self.name:
             self.env["RUSTFLAGS"] = "-C target-feature=-crt-static"
         if "win" in self.name:
