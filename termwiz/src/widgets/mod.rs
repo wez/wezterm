@@ -53,16 +53,16 @@ pub struct UpdateArgs<'a> {
 
 /// Implementing the `Widget` trait allows for defining a potentially
 /// interactive component in a UI layout.
-pub trait Widget {
+pub trait Widget<State> {
     /// Draw the widget to the RenderArgs::surface, and optionally
     /// update RenderArgs::cursor to reflect the cursor position and
     /// display attributes.
-    fn render(&mut self, args: &mut RenderArgs);
+    fn render(&mut self, args: &mut RenderArgs, state: &mut State);
 
     /// Override this to have your widget specify its layout constraints.
     /// You may wish to have your widget constructor receive a `Constraints`
     /// instance to make this more easily configurable in more generic widgets.
-    fn get_size_constraints(&self) -> layout::Constraints {
+    fn get_size_constraints(&self, _state: &State) -> layout::Constraints {
         Default::default()
     }
 
@@ -70,7 +70,12 @@ pub trait Widget {
     /// other widget events.
     /// Return `true` if your widget handled the event, or `false` to allow
     /// the event to propagate to the widget parent.
-    fn process_event(&mut self, _event: &WidgetEvent, _args: &mut UpdateArgs) -> bool {
+    fn process_event(
+        &mut self,
+        _event: &WidgetEvent,
+        _args: &mut UpdateArgs,
+        _state: &mut State,
+    ) -> bool {
         false
     }
 }
@@ -137,11 +142,11 @@ impl Default for WidgetId {
     }
 }
 
-struct RenderData<'widget> {
+struct RenderData<'widget, State> {
     surface: Surface,
     cursor: CursorShapeAndPosition,
     coordinates: ParentRelativeCoords,
-    widget: Box<dyn Widget + 'widget>,
+    widget: Box<dyn Widget<State> + 'widget>,
 }
 
 #[derive(Default)]
@@ -178,20 +183,26 @@ impl Graph {
 }
 
 /// Manages the widgets on the display
-#[derive(Default)]
-pub struct Ui<'widget> {
+pub struct Ui<'widget, State> {
     graph: Graph,
-    render: FnvHashMap<WidgetId, RenderData<'widget>>,
+    render: FnvHashMap<WidgetId, RenderData<'widget, State>>,
     input_queue: VecDeque<WidgetEvent>,
     focused: Option<WidgetId>,
+    state: State,
 }
 
-impl<'widget> Ui<'widget> {
-    pub fn new() -> Self {
-        Default::default()
+impl<'widget, State> Ui<'widget, State> {
+    pub fn new(state: State) -> Self {
+        Self {
+            graph: Default::default(),
+            render: Default::default(),
+            input_queue: Default::default(),
+            focused: Default::default(),
+            state,
+        }
     }
 
-    pub fn add<W: Widget + 'widget>(&mut self, parent: Option<WidgetId>, w: W) -> WidgetId {
+    pub fn add<W: Widget<State> + 'widget>(&mut self, parent: Option<WidgetId>, w: W) -> WidgetId {
         let id = self.graph.add(parent);
 
         self.render.insert(
@@ -211,11 +222,11 @@ impl<'widget> Ui<'widget> {
         id
     }
 
-    pub fn set_root<W: Widget + 'widget>(&mut self, w: W) -> WidgetId {
+    pub fn set_root<W: Widget<State> + 'widget>(&mut self, w: W) -> WidgetId {
         self.add(None, w)
     }
 
-    pub fn add_child<W: Widget + 'widget>(&mut self, parent: WidgetId, w: W) -> WidgetId {
+    pub fn add_child<W: Widget<State> + 'widget>(&mut self, parent: WidgetId, w: W) -> WidgetId {
         self.add(Some(parent), w)
     }
 
@@ -226,7 +237,9 @@ impl<'widget> Ui<'widget> {
             cursor: &mut render_data.cursor,
         };
 
-        render_data.widget.process_event(event, &mut args)
+        render_data
+            .widget
+            .process_event(event, &mut args, &mut self.state)
     }
 
     fn deliver_event(&mut self, mut id: WidgetId, event: &WidgetEvent) {
@@ -368,7 +381,7 @@ impl<'widget> Ui<'widget> {
                     surface,
                     is_focused: self.focused.map(|f| f == id).unwrap_or(false),
                 };
-                render_data.widget.render(&mut args);
+                render_data.widget.render(&mut args, &mut self.state);
             }
             screen.draw_from_screen(
                 surface,
@@ -425,7 +438,9 @@ impl<'widget> Ui<'widget> {
         layout: &mut layout::LayoutState,
         widget: WidgetId,
     ) -> Result<()> {
-        let constraints = self.render[&widget].widget.get_size_constraints();
+        let constraints = self.render[&widget]
+            .widget
+            .get_size_constraints(&self.state);
         let children = self.graph.children(widget).to_vec();
 
         layout.add_widget(widget, &constraints, &children);
@@ -520,15 +535,15 @@ mod test {
 
     struct CursorHider {}
 
-    impl Widget for CursorHider {
-        fn render(&mut self, args: &mut RenderArgs) {
+    impl Widget<()> for CursorHider {
+        fn render(&mut self, args: &mut RenderArgs, _state: &mut ()) {
             args.cursor.visibility = CursorVisibility::Hidden;
         }
     }
 
     #[test]
     fn hide_cursor() {
-        let mut ui = Ui::new();
+        let mut ui = Ui::new(());
 
         ui.set_root(CursorHider {});
 
