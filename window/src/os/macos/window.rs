@@ -1375,7 +1375,9 @@ fn decoration_to_mask(
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
-    } else if decorations == WindowDecorations::MACOS_FORCE_SQUARE_CORNERS | WindowDecorations::RESIZE {
+    } else if decorations
+        == WindowDecorations::MACOS_FORCE_SQUARE_CORNERS | WindowDecorations::RESIZE
+    {
         NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
