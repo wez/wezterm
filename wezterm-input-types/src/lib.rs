@@ -1976,6 +1976,7 @@ bitflags! {
         const MACOS_FORCE_DISABLE_SHADOW = 4;
         const MACOS_FORCE_ENABLE_SHADOW = 4|8;
         const INTEGRATED_BUTTONS = 16;
+        const MACOS_FORCE_SQUARE_CORNERS = 32;
     }
 }
 
@@ -1995,6 +1996,8 @@ impl Into<String> for &WindowDecorations {
             s.push("MACOS_FORCE_ENABLE_SHADOW");
         } else if self.contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW) {
             s.push("MACOS_FORCE_DISABLE_SHADOW");
+        } else if self.contains(WindowDecorations::MACOS_FORCE_SQUARE_CORNERS) {
+            s.push("MACOS_FORCE_SQUARE_CORNERS");
         }
         if s.is_empty() {
             "NONE".to_string()
@@ -2020,6 +2023,8 @@ impl TryFrom<String> for WindowDecorations {
                 flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
             } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
                 flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
+            } else if ele == "MACOS_FORCE_SQUARE_CORNERS" {
+                flags |= Self::MACOS_FORCE_SQUARE_CORNERS;
             } else if ele == "INTEGRATED_BUTTONS" {
                 flags |= Self::INTEGRATED_BUTTONS;
             } else {
