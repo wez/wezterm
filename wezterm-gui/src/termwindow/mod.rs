@@ -30,8 +30,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize,
+    KeyAssignment, LauncherActionArgs, PaneDirection, Pattern, PromptInputLine,
+    QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::window::WindowLevel;
 use config::{
@@ -2333,22 +2333,32 @@ impl TermWindow {
             Some(mux_window) => mux_window.get_active_idx(),
             None => return,
         };
-        self.show_launcher_impl("Tab Navigator", LauncherFlags::TABS, active_tab_idx);
+        let title = "Tab Navigator".to_string();
+        let args = LauncherActionArgs {
+            title: Some(title),
+            flags: LauncherFlags::TABS,
+            help_text: None,
+            fuzzy_help_text: None,
+        };
+        self.show_launcher_impl(&args, active_tab_idx);
     }
 
     fn show_launcher(&mut self) {
-        self.show_launcher_impl(
-            "Launcher",
-            LauncherFlags::LAUNCH_MENU_ITEMS
+        let title = "Launcher".to_string();
+        let args = LauncherActionArgs {
+            title: Some(title),
+            flags: LauncherFlags::LAUNCH_MENU_ITEMS
                 | LauncherFlags::WORKSPACES
                 | LauncherFlags::DOMAINS
                 | LauncherFlags::KEY_ASSIGNMENTS
                 | LauncherFlags::COMMANDS,
-            0,
-        );
+            help_text: None,
+            fuzzy_help_text: None,
+        };
+        self.show_launcher_impl(&args, 0);
     }
 
-    fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags, initial_choice_idx: usize) {
+    fn show_launcher_impl(&mut self, args: &LauncherActionArgs, initial_choice_idx: usize) {
         let mux_window_id = self.mux_window_id;
         let window = self.window.as_ref().unwrap().clone();
 
@@ -2369,7 +2379,17 @@ impl TermWindow {
             .domain_id();
         let pane_id = pane.pane_id();
         let tab_id = tab.tab_id();
-        let title = title.to_string();
+        let title = args.title.clone().unwrap();
+        let flags = args.flags;
+        let help_text = args.help_text.clone().unwrap_or(
+            "Select an item and press Enter=launch  \
+                                                            Esc=cancel  /=filter"
+                .to_string(),
+        );
+        let fuzzy_help_text = args
+            .fuzzy_help_text
+            .clone()
+            .unwrap_or("Fuzzy matching: ".to_string());
 
         promise::spawn::spawn(async move {
             let args = LauncherArgs::new(
@@ -2378,6 +2398,8 @@ impl TermWindow {
                 mux_window_id,
                 pane_id,
                 domain_id_of_current_pane,
+                &help_text,
+                &fuzzy_help_text,
             )
             .await;
 
@@ -2712,7 +2734,14 @@ impl TermWindow {
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
             ShowLauncherArgs(args) => {
-                self.show_launcher_impl(args.title.as_deref().unwrap_or("Launcher"), args.flags, 0)
+                let title = args.title.clone().unwrap_or("Launcher".to_string());
+                let args = LauncherActionArgs {
+                    title: Some(title),
+                    flags: args.flags,
+                    help_text: args.help_text.clone(),
+                    fuzzy_help_text: args.fuzzy_help_text.clone(),
+                };
+                self.show_launcher_impl(&args, 0);
             }
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");
