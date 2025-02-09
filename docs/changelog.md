@@ -78,6 +78,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [window_content_alignment](config/lua/config/window_content_alignment.md) option
   to control where the excess pixel gap will be placed when the window is not
   a multiple of the cell dimensions. Thanks to @Shiphan! #6629 #1124
+* New `MACOS_FORCE_SQUARE_CORNERS` option for
+  [window_decorations](config/lua/config/window_decorations.md). Thanks to
+  @amadeusdotpng!  #6587 #2182
 
 #### Fixed
 * Race condition when very quickly adjusting font scale, and other improvements
