@@ -1975,8 +1975,8 @@ bitflags! {
         // so that we effective have Option<bool>
         const MACOS_FORCE_DISABLE_SHADOW = 4;
         const MACOS_FORCE_ENABLE_SHADOW = 4|8;
-        const MACOS_FORCE_SQUARE_CORNERS = 16;
-        const INTEGRATED_BUTTONS = 32;
+        const INTEGRATED_BUTTONS = 16;
+        const MACOS_FORCE_SQUARE_CORNERS = 32;
     }
 }
 
