@@ -253,6 +253,13 @@ pub enum hb_script_t {
     HB_SCRIPT_MATH = 1517122664,
     HB_SCRIPT_KAWI = 1264678761,
     HB_SCRIPT_NAG_MUNDARI = 1315006317,
+    HB_SCRIPT_GARAY = 1197568609,
+    HB_SCRIPT_GURUNG_KHEMA = 1198877544,
+    HB_SCRIPT_KIRAT_RAI = 1265787241,
+    HB_SCRIPT_OL_ONAL = 1332633967,
+    HB_SCRIPT_SUNUWAR = 1400204917,
+    HB_SCRIPT_TODHRI = 1416586354,
+    HB_SCRIPT_TULU_TIGALARI = 1416983655,
     HB_SCRIPT_INVALID = 0,
     _HB_SCRIPT_MAX_VALUE = 2147483647,
 }
@@ -939,6 +946,18 @@ pub struct hb_face_t {
 extern "C" {
     pub fn hb_face_create(blob: *mut hb_blob_t, index: ::std::os::raw::c_uint) -> *mut hb_face_t;
 }
+extern "C" {
+    pub fn hb_face_create_or_fail(
+        blob: *mut hb_blob_t,
+        index: ::std::os::raw::c_uint,
+    ) -> *mut hb_face_t;
+}
+extern "C" {
+    pub fn hb_face_create_from_file_or_fail(
+        file_name: *const ::std::os::raw::c_char,
+        index: ::std::os::raw::c_uint,
+    ) -> *mut hb_face_t;
+}
 pub type hb_reference_table_func_t = ::std::option::Option<
     unsafe extern "C" fn(
         face: *mut hb_face_t,
@@ -1006,6 +1025,23 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_face_get_glyph_count(face: *const hb_face_t) -> ::std::os::raw::c_uint;
+}
+pub type hb_get_table_tags_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        face: *const hb_face_t,
+        start_offset: ::std::os::raw::c_uint,
+        table_count: *mut ::std::os::raw::c_uint,
+        table_tags: *mut hb_tag_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_uint,
+>;
+extern "C" {
+    pub fn hb_face_set_get_table_tags_func(
+        face: *mut hb_face_t,
+        func: hb_get_table_tags_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
 }
 extern "C" {
     pub fn hb_face_get_table_tags(
@@ -2729,6 +2765,17 @@ extern "C" {
     pub fn hb_buffer_get_not_found_glyph(buffer: *const hb_buffer_t) -> hb_codepoint_t;
 }
 extern "C" {
+    pub fn hb_buffer_set_not_found_variation_selector_glyph(
+        buffer: *mut hb_buffer_t,
+        not_found_variation_selector: hb_codepoint_t,
+    );
+}
+extern "C" {
+    pub fn hb_buffer_get_not_found_variation_selector_glyph(
+        buffer: *const hb_buffer_t,
+    ) -> hb_codepoint_t;
+}
+extern "C" {
     pub fn hb_buffer_set_random_state(buffer: *mut hb_buffer_t, state: ::std::os::raw::c_uint);
 }
 extern "C" {
@@ -3095,20 +3142,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    pub fn hb_shape_justify(
-        font: *mut hb_font_t,
-        buffer: *mut hb_buffer_t,
-        features: *const hb_feature_t,
-        num_features: ::std::os::raw::c_uint,
-        shaper_list: *const *const ::std::os::raw::c_char,
-        min_target_advance: f32,
-        max_target_advance: f32,
-        advance: *mut f32,
-        var_tag: *mut hb_tag_t,
-        var_value: *mut f32,
-    ) -> hb_bool_t;
-}
-extern "C" {
     pub fn hb_shape_list_shapers() -> *mut *const ::std::os::raw::c_char;
 }
 #[repr(C)]
@@ -3315,11 +3348,11 @@ pub type FT_Bitmap = FT_Bitmap_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct FT_Outline_ {
-    pub n_contours: ::std::os::raw::c_short,
-    pub n_points: ::std::os::raw::c_short,
+    pub n_contours: ::std::os::raw::c_ushort,
+    pub n_points: ::std::os::raw::c_ushort,
     pub points: *mut FT_Vector,
-    pub tags: *mut ::std::os::raw::c_char,
-    pub contours: *mut ::std::os::raw::c_short,
+    pub tags: *mut ::std::os::raw::c_uchar,
+    pub contours: *mut ::std::os::raw::c_ushort,
     pub flags: ::std::os::raw::c_int,
 }
 pub type FT_Outline = FT_Outline_;
@@ -3563,6 +3596,12 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_ft_face_create_referenced(ft_face: FT_Face) -> *mut hb_face_t;
+}
+extern "C" {
+    pub fn hb_ft_face_create_from_file_or_fail(
+        file_name: *const ::std::os::raw::c_char,
+        index: ::std::os::raw::c_uint,
+    ) -> *mut hb_face_t;
 }
 extern "C" {
     pub fn hb_ft_font_create(ft_face: FT_Face, destroy: hb_destroy_func_t) -> *mut hb_font_t;
