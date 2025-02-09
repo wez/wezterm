@@ -124,6 +124,10 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: "Workaround git permissions issue"

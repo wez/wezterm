@@ -1,8 +1,8 @@
 name: ubuntu24.04_continuous
 
 on:
-#  schedule:
-#    - cron: "10 3 * * *"
+  schedule:
+    - cron: "10 3 * * *"
   push:
     branches:
       - main
@@ -117,6 +117,10 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: "Workaround git permissions issue"

@@ -1,8 +1,8 @@
 name: macos_continuous
 
 on:
-#  schedule:
-#    - cron: "10 3 * * *"
+  schedule:
+    - cron: "10 3 * * *"
   push:
     branches:
       - main
@@ -28,7 +28,7 @@ jobs:
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
-      MACOSX_DEPLOYMENT_TARGET: "10.9"
+      MACOSX_DEPLOYMENT_TARGET: "10.12"
 
     steps:
       - name: "checkout repo"
@@ -109,6 +109,10 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: "checkout repo"

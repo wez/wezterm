@@ -1080,6 +1080,10 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 """
                 )
                 uploader.render(f, 3)
@@ -1116,8 +1120,8 @@ def continuous_actions():
         lambda t: t.continuous(),
         trigger="""
 on:
-#  schedule:
-#    - cron: "10 3 * * *"
+  schedule:
+    - cron: "10 3 * * *"
   push:
     branches:
       - main
