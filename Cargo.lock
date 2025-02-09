@@ -3046,9 +3046,9 @@ dependencies = [
 
 [[package]]
 name = "libssh-rs"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "798379d61a90b62a72eba729b3a912b82e4f5209b42772f064ba3926d1c603e0"
+checksum = "a40b06af49643baa29a60fe1905275c46b336ed4d8d0aabe7b170a071c1038c4"
 dependencies = [
  "bitflags 1.3.2",
  "libc",
@@ -3059,9 +3059,9 @@ dependencies = [
 
 [[package]]
 name = "libssh-rs-sys"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7eba49ff99a11e55252acbd521cc3c3eea8da567517595a4baf8f973be0720e8"
+checksum = "01d528ea9ac190fa364ff12193da82222dfc645e7ab28666ae91493bd288a1a0"
 dependencies = [
  "cc",
  "libz-sys",
