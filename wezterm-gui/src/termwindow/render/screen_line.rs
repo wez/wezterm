@@ -5,6 +5,7 @@ use crate::termwindow::render::{
     RenderScreenLineParams, RenderScreenLineResult,
 };
 use crate::termwindow::LineToElementShapeItem;
+use crate::Composing;
 use ::window::DeadKeyStatus;
 use anyhow::Context;
 use config::{HsbTransform, TextStyle};
@@ -17,6 +18,7 @@ use termwiz::surface::CursorShape;
 use wezterm_bidi::Direction;
 use wezterm_term::color::ColorAttribute;
 use wezterm_term::CellAttributes;
+use window::ComposingAttribute;
 
 impl crate::TermWindow {
     /// "Render" a line of the terminal screen into the vertex buffer.
@@ -64,6 +66,9 @@ impl crate::TermWindow {
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
         let gl_x = self.dimensions.pixel_width as f32 / -2.;
 
+        let (_bidi_enabled, bidi_direction) = params.line.bidi_info();
+        let direction = bidi_direction.direction();
+
         let start = Instant::now();
 
         let cursor_idx = if params.pane.is_some()
@@ -75,25 +80,49 @@ impl crate::TermWindow {
             None
         };
 
+        let mut composing_text_width = 0;
+        let mut composing_selections = vec![];
+
         // Referencing the text being composed, but only if it belongs to this pane
-        let composing = if cursor_idx.is_some() {
-            if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
-                Some(composing)
-            } else {
-                None
+        if cursor_idx.is_some() {
+            // Do we need to shape immediately, or can we use the pre-shaped data?
+            if let DeadKeyStatus::Composing(Composing { text, attr }) = &self.dead_key_status {
+                composing_text_width = unicode_column_width(text, None);
+
+                if let Some(attr) = attr {
+                    // convert SELECTED attr to selections
+                    let mut selection = 0usize..0;
+                    // iterate over byte end of each character in text
+                    for (i, end) in text
+                        .char_indices()
+                        .map(|(offset, _)| offset)
+                        .chain([text.len()])
+                        .skip(1)
+                        .take(attr.len())
+                        .enumerate()
+                    {
+                        // check last character/attr or SELECTED switch
+                        let last = end == text.len() || i + 1 == attr.len();
+                        if last || (attr[i] ^ attr[i + 1]).contains(ComposingAttribute::SELECTED) {
+                            // update end to unicode width
+                            let end = unicode_column_width(&text[..end], None);
+                            // add selection to selections if attr[i] is end of SELECTED
+                            if attr[i].contains(ComposingAttribute::SELECTED) {
+                                selection.end = end;
+                                if !selection.is_empty() {
+                                    composing_selections.push(selection);
+                                }
+                            }
+                            // break if last character/attr is processed
+                            if last {
+                                break;
+                            }
+                            // prepare selection for next SELECTED or start of SELECTED
+                            selection = end..end;
+                        }
+                    }
+                }
             }
-        } else {
-            None
-        };
-
-        let mut composition_width = 0;
-
-        let (_bidi_enabled, bidi_direction) = params.line.bidi_info();
-        let direction = bidi_direction.direction();
-
-        // Do we need to shape immediately, or can we use the pre-shaped data?
-        if let Some(composing) = composing {
-            composition_width = unicode_column_width(composing, None);
         }
 
         let cursor_cell = if params.stable_line_idx == Some(params.cursor.y) {
@@ -102,8 +131,8 @@ impl crate::TermWindow {
             None
         };
 
-        let cursor_range = if composition_width > 0 {
-            params.cursor.x..params.cursor.x + composition_width
+        let cursor_range = if composing_text_width > 0 {
+            params.cursor.x..params.cursor.x + composing_text_width
         } else if params.stable_line_idx == Some(params.cursor.y) {
             params.cursor.x..params.cursor.x + cursor_cell.as_ref().map(|c| c.width()).unwrap_or(1)
         } else {
@@ -417,6 +446,36 @@ impl crate::TermWindow {
 
                 quad.set_fg_color(cursor_border_color);
                 quad.set_alt_color_and_mix_value(cursor_border_color_alt, cursor_border_mix);
+
+                for selection in &composing_selections {
+                    let selection = params.cursor.x + selection.start - cursor_range.start
+                        ..params.cursor.x + selection.end - cursor_range.start;
+                    if !selection.is_empty() {
+                        let mut quad = layers.allocate(0)?;
+                        quad.set_position(
+                            pos_x + selection.start as f32 * cell_width,
+                            pos_y,
+                            pos_x + selection.end as f32 * cell_width,
+                            pos_y + cell_height,
+                        );
+                        quad.set_hsv(hsv);
+                        quad.set_has_color(false);
+
+                        quad.set_texture(
+                            gl_state
+                                .glyph_cache
+                                .borrow_mut()
+                                .cursor_sprite(
+                                    cursor_shape,
+                                    &params.render_metrics,
+                                    (selection.end - selection.start) as u8,
+                                )?
+                                .texture_coords(),
+                        );
+
+                        quad.set_fg_color(params.selection_bg);
+                    }
+                }
             }
         }
 

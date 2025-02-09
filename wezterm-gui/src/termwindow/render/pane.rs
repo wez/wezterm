@@ -398,7 +398,7 @@ impl crate::TermWindow {
                             }),
                             match (self.pos.is_active, &self.term_window.dead_key_status) {
                                 (true, DeadKeyStatus::Composing(composing)) => {
-                                    Some(composing.to_string())
+                                    Some(composing.clone())
                                 }
                                 _ => None,
                             },
@@ -430,7 +430,7 @@ impl crate::TermWindow {
                         config_generation: self.term_window.config.generation(),
                         shape_generation: self.term_window.shape_generation,
                         quad_generation: self.term_window.quad_generation,
-                        composing: composing.clone(),
+                        composing,
                         selection: selrange.clone(),
                         cursor,
                         shape_hash,
@@ -477,7 +477,7 @@ impl crate::TermWindow {
                             if let DeadKeyStatus::Composing(composing) =
                                 &self.term_window.dead_key_status
                             {
-                                Some((self.cursor.x, composing.to_string()))
+                                Some((self.cursor.x, composing.text.clone()))
                             } else {
                                 None
                             }

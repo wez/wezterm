@@ -8,10 +8,11 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Size, ULength,
-    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Composing, ComposingAttribute, Connection, DeadKeyStatus, Dimensions, Handled,
+    KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    MousePress, Point, RawKeyEvent, Rect, RequestedWindowGeometry, ResizeIncrement,
+    ResolvedGeometry, ScreenPoint, Size, ULength, WindowDecorations, WindowEvent,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -501,7 +502,7 @@ impl Window {
                 ime_state: ImeDisposition::None,
                 ime_last_event: None,
                 live_resizing: false,
-                ime_text: String::new(),
+                ime_composing: Default::default(),
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -1456,7 +1457,7 @@ struct Inner {
     /// Whether we're in live resize
     live_resizing: bool,
 
-    ime_text: String,
+    ime_composing: Composing,
 }
 
 #[repr(C)]
@@ -1838,7 +1839,7 @@ impl WindowView {
     extern "C" fn has_marked_text(this: &mut Object, _sel: Sel) -> BOOL {
         if let Some(myself) = Self::get_this(this) {
             let inner = myself.inner.borrow();
-            if inner.ime_text.is_empty() {
+            if inner.ime_composing.text.is_empty() {
                 NO
             } else {
                 YES
@@ -1851,11 +1852,11 @@ impl WindowView {
     extern "C" fn marked_range(this: &mut Object, _sel: Sel) -> NSRange {
         if let Some(myself) = Self::get_this(this) {
             let inner = myself.inner.borrow();
-            log::trace!("marked_range {:?}", inner.ime_text);
-            if inner.ime_text.is_empty() {
+            log::trace!("marked_range {:?}", inner.ime_composing);
+            if inner.ime_composing.text.is_empty() {
                 NSRange::new(NSNotFound as _, 0)
             } else {
-                NSRange::new(0, inner.ime_text.len() as u64)
+                NSRange::new(0, inner.ime_composing.text.len() as u64)
             }
         } else {
             NSRange::new(NSNotFound as _, 0)
@@ -1895,7 +1896,7 @@ impl WindowView {
                 raw: None,
             };
 
-            inner.ime_text.clear();
+            inner.ime_composing = Default::default();
             inner
                 .events
                 .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
@@ -1921,7 +1922,23 @@ impl WindowView {
         );
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
-            inner.ime_text = s.to_string();
+
+            let text = s.to_string();
+            let attr = Some(
+                text.chars()
+                    .scan(0, |i, c| (Some(*i), *i += c.len_utf16()).0)
+                    .map(|i| {
+                        let mut attr = ComposingAttribute::NONE;
+                        if selected_range.0.location <= (i as u64)
+                            && (i as u64) < selected_range.0.location + selected_range.0.length
+                        {
+                            attr |= ComposingAttribute::SELECTED;
+                        }
+                        attr
+                    })
+                    .collect(),
+            );
+            inner.ime_composing = Composing { text, attr };
 
             /*
             let key_is_down = inner.key_is_down.take().unwrap_or(true);
@@ -1951,7 +1968,7 @@ impl WindowView {
             // FIXME: docs say to insert the text here,
             // but iterm doesn't... and we've never seen
             // this get called so far?
-            inner.ime_text.clear();
+            inner.ime_composing = Default::default();
             inner.ime_last_event.take();
             inner.ime_state = ImeDisposition::Acted;
         }
@@ -2448,7 +2465,10 @@ impl WindowView {
                     Ok(TranslateStatus::Composing(composing)) => {
                         // Next key press in dead key sequence is pending.
                         inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                            DeadKeyStatus::Composing(composing),
+                            DeadKeyStatus::Composing(Composing {
+                                text: composing,
+                                attr: None,
+                            }),
                         ));
 
                         return;
@@ -2529,7 +2549,7 @@ impl WindowView {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
                 inner.ime_state = ImeDisposition::None;
-                inner.ime_text.clear();
+                inner.ime_composing = Default::default();
             }
 
             unsafe {
@@ -2557,7 +2577,7 @@ impl WindowView {
                             // If it didn't generate an event, then a composition
                             // is pending.
                             let status = if inner.ime_last_event.is_none() {
-                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                                DeadKeyStatus::Composing(inner.ime_composing.clone())
                             } else {
                                 DeadKeyStatus::None
                             };
@@ -2584,10 +2604,10 @@ impl WindowView {
                                     return;
                                 }
                             }
-                            let status = if inner.ime_text.is_empty() {
+                            let status = if inner.ime_composing.text.is_empty() {
                                 DeadKeyStatus::None
                             } else {
-                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                                DeadKeyStatus::Composing(inner.ime_composing.clone())
                             };
                             inner
                                 .events
