@@ -6961,6 +6961,7 @@ dependencies = [
  "wezterm-color-types",
  "wezterm-font",
  "wezterm-input-types",
+ "wezterm-term",
  "winapi",
  "windows 0.33.0",
  "winreg",
