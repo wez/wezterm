@@ -25,7 +25,7 @@ When `st` is:
 When the progress OSC is processed, the state is captured, and if it has
 changed, WezTerm will trigger an update of the tab bar, which will in turn
 cause events such as
-[format-tab-title](../../window-events/format-tab-title.md) to trigger.
+[format-tab-title](../window-events/format-tab-title.md) to trigger.
 
 The progress information is not directly used by wezterm, but you can access it
 from lua to style tabs differently according to progress. For example, the
@@ -49,18 +49,18 @@ end
 wezterm.on(
   'format-tab-title',
   function(tab, tabs, panes, config, hover, max_width)
-    local progress = tab.active_pane.progress or "None"
+    local progress = tab.active_pane.progress or 'None'
     local title = tab_title(tab)
-    if progress ~= "None" then
+    if progress ~= 'None' then
       local color = 'green'
       local status
       if progress.Percentage ~= nil then
-        status = string.format("%d%%", progress.Percentage)
+        status = string.format('%d%%', progress.Percentage)
       elseif progress.Error ~= nil then
-        status = string.format("%d%%", progress.Error)
+        status = string.format('%d%%', progress.Error)
         color = 'red'
-      elseif progress == "Indeterminate" then
-        status = "~"
+      elseif progress == 'Indeterminate' then
+        status = '~'
       else
         status = wezterm.serde.json_encode(progress)
       end
