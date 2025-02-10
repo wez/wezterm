@@ -1055,6 +1055,7 @@ impl<'a> Performer<'a> {
                 self.implicit_palette_reset_if_same_as_configured();
                 self.palette_did_change();
             }
+            OperatingSystemCommand::ConEmuProgress(_prog) => {}
         }
     }
 }
