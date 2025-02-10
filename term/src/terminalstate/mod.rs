@@ -339,6 +339,7 @@ pub struct TerminalState {
     title: String,
     /// The icon title string (OSC 1)
     icon_title: Option<String>,
+    progress: Progress,
 
     palette: Option<ColorPalette>,
 
@@ -583,6 +584,7 @@ impl TerminalState {
             focused: true,
             bidi_enabled: None,
             bidi_hint: None,
+            progress: Progress::default(),
         }
     }
 
@@ -642,6 +644,10 @@ impl TerminalState {
     /// if it is set, otherwise return the OSC 2 window title.
     pub fn get_title(&self) -> &str {
         self.icon_title.as_ref().unwrap_or(&self.title)
+    }
+
+    pub fn get_progress(&self) -> Progress {
+        self.progress.clone()
     }
 
     /// Returns the current working directory associated with the

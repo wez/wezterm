@@ -32,6 +32,16 @@ pub trait DeviceControlHandler: Send + Sync {
     fn handle_device_control(&mut self, _control: termwiz::escape::DeviceControlMode);
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+pub enum Progress {
+    #[default]
+    None,
+    Percentage(u8),
+    Error(u8),
+    Indeterminate,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum Alert {
@@ -59,6 +69,8 @@ pub enum Alert {
     /// When something bumps the seqno in the terminal model and
     /// the terminal is not focused
     OutputSinceFocusLost,
+    /// A change to the progress bar state
+    Progress(Progress),
 }
 
 pub trait AlertHandler: Send + Sync {

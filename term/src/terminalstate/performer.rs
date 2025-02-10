@@ -1,4 +1,4 @@
-use crate::terminal::Alert;
+use crate::terminal::{Alert, Progress};
 use crate::terminalstate::{
     default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
 };
@@ -696,6 +696,7 @@ impl<'a> Performer<'a> {
                 self.unicode_version_stack.clear();
                 self.suppress_initial_title_change = false;
                 self.accumulating_title.take();
+                self.progress = Progress::default();
 
                 self.screen.full_reset();
                 self.screen.activate_alt_screen(seqno);
@@ -1055,7 +1056,22 @@ impl<'a> Performer<'a> {
                 self.implicit_palette_reset_if_same_as_configured();
                 self.palette_did_change();
             }
-            OperatingSystemCommand::ConEmuProgress(_prog) => {}
+            OperatingSystemCommand::ConEmuProgress(prog) => {
+                use termwiz::escape::osc::Progress as TProg;
+                let prog = match prog {
+                    TProg::None => Progress::None,
+                    TProg::SetPercentage(p) => Progress::Percentage(p),
+                    TProg::SetError(p) => Progress::Error(p),
+                    TProg::SetIndeterminate => Progress::Indeterminate,
+                    TProg::Paused => Progress::None,
+                };
+                if prog != self.progress {
+                    self.progress = prog.clone();
+                    if let Some(handler) = self.alert_handler.as_mut() {
+                        handler.alert(Alert::Progress(prog));
+                    }
+                }
+            }
         }
     }
 }

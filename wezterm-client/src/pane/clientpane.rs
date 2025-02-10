@@ -27,7 +27,7 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, Progress, StableRowIndex,
     TerminalConfiguration, TerminalSize,
 };
 
@@ -48,6 +48,7 @@ pub struct ClientPane {
     user_vars: Mutex<HashMap<String, String>>,
     config: Mutex<Option<Arc<dyn TerminalConfiguration>>>,
     unseen_output: Mutex<bool>,
+    progress: Mutex<Progress>,
 }
 
 impl ClientPane {
@@ -129,6 +130,7 @@ impl ClientPane {
             unseen_output: Mutex::new(false),
             user_vars: Mutex::new(HashMap::new()),
             config: Mutex::new(None),
+            progress: Mutex::new(Progress::default()),
         }
     }
 
@@ -188,6 +190,13 @@ impl ClientPane {
                         mux.notify(MuxNotification::Alert {
                             pane_id: self.local_pane_id,
                             alert: Alert::OutputSinceFocusLost,
+                        });
+                    }
+                    Alert::Progress(progress) => {
+                        *self.progress.lock() = progress.clone();
+                        mux.notify(MuxNotification::Alert {
+                            pane_id: self.local_pane_id,
+                            alert: Alert::Progress(progress.clone()),
                         });
                     }
                     _ => {}
@@ -314,6 +323,10 @@ impl Pane for ClientPane {
         let renderable = self.renderable.lock();
         let inner = renderable.inner.borrow();
         inner.title.clone()
+    }
+
+    fn get_progress(&self) -> Progress {
+        self.progress.lock().clone()
     }
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {

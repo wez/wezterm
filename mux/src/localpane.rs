@@ -31,7 +31,7 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent,
+    Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, Progress,
     SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
 
@@ -456,6 +456,10 @@ impl Pane for LocalPane {
         }
 
         title
+    }
+
+    fn get_progress(&self) -> Progress {
+        self.terminal.lock().get_progress()
     }
 
     fn palette(&self) -> ColorPalette {
