@@ -24,7 +24,7 @@ For example, to center the terminal cells:
 
 ```lua
 config.window_content_alignment = {
-  horizontal = "Center",
-  vertical = "Center",
+  horizontal = 'Center',
+  vertical = 'Center',
 }
 ```
