@@ -410,6 +410,7 @@ impl LauncherState {
             if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
             }
+            changes.push(Change::AllAttributes(CellAttributes::default()));
             changes.push(Change::Text("\r\n".to_string()));
         }
 
