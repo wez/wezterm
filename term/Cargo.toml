@@ -40,6 +40,6 @@ env_logger = "0.11"
 k9 = "0.12.0"
 
 [dependencies.termwiz]
-version = "0.22"
+version = "0.23"
 path = "../termwiz"
 features = ["use_image"]
