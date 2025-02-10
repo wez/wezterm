@@ -1,4 +1,7 @@
 use std::io::Write;
+use serde::Deserialize;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::path::Path;
 
 const VARIATION_SEQUENCES: &str = include_str!("../../data/emoji-variation-sequences.txt");
@@ -18,30 +21,26 @@ fn main() {
 fn generate_nerdfonts_data() {
     let mut symbols: Vec<(String, char)> = vec![];
 
-    for set in &["cod", "dev", "fa", "fae", "iec", "logos", "md", "oct", "ple", "pom", "seti", "weather"] {
-        let url = format!("https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/bin/scripts/lib/i_{set}.sh");
-        let filename = format!("/tmp/termwiz-data-fa-{set}.sh");
+    let url = "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/glyphnames.json";
+    let body = reqwest::blocking::get(url).unwrap().text().unwrap();
 
-        if !Path::new(&filename).exists() {
-            let body = reqwest::blocking::get(url).unwrap().text().unwrap();
-            std::fs::write(&filename, &body).unwrap();
-        }
-
-        let data = std::fs::read_to_string(&filename).unwrap();
-
-        for line in data.lines() {
-            let fields: Vec<&str> = line.split(' ').collect();
-            if fields.len() == 2 {
-                if let Some(codepoint) = fields[0].strip_prefix("i='").and_then(|s| s.strip_suffix("'")) {
-                    if let Some(name) = fields[1].strip_prefix("i_").and_then(|s| s.strip_suffix("=$i")) {
-                        let codepoint = codepoint.chars().next().unwrap();
-                        symbols.push((name.to_string(), codepoint));
-                    }
-                }
-            }
-        }
+    #[derive(Deserialize)]
+    struct Glyph{
+        #[serde(rename="char")]
+        glyph_text: char,
+        code: String,
     }
 
+    #[derive(Deserialize)]
+    struct Glyphnames {
+        #[serde(rename="METADATA")]
+        metadata: Value,
+        #[serde(flatten)]
+        glyphs: HashMap<String, Glyph>,
+    }
+
+    let parsed: Glyphnames = serde_json::from_str(&body).unwrap();
+    symbols = parsed.glyphs.into_iter().map(|(name, g)| (name.replace("-", "_"), g.glyph_text)).collect();
     symbols.sort_by(|(a, _), (b, _)| human_sort::compare(a, b));
 
     let mut f = std::fs::File::create("../src/nerdfonts_data.rs").unwrap();

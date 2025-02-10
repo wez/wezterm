@@ -185,6 +185,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled harfbuzz to 10.2.0
 * Bundled libssh to 0.11.1
 * Bundled freetype to 2.13.3
+* Bundled Nerd Font Symbols font to v3.3.0
 * image crate to 0.25, which means that JPEG images are now decoded via
   [zune-jpeg](https://docs.rs/zune-jpeg/latest/zune_jpeg/), which improves
   handling of non-conforming jpeg images. #5365
