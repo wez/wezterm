@@ -17,6 +17,7 @@ Ideally this option wouldn't exist, but it is present to work around a [hinting 
 |[U2500](https://www.unicode.org/charts/PDF/U2580.pdf)|Box Drawing|*20210814-124438-54e29167*|
 |[U2580](https://www.unicode.org/charts/PDF/U2580.pdf)|unicode block elements|*20210314-114017-04b7cedd*|
 |[U1FB00](https://www.unicode.org/charts/PDF/U1FB00.pdf)|Symbols for Legacy Computing (Sextants and Smooth mosaic graphics)|*20210814-124438-54e29167*|
+|[U1CC00](https://www.unicode.org/charts/PDF/U1CC00.pdf)|Symbols for Legacy Computing Supplement (Block mosaic terminal graphic characters)|*???*|
 |[U2800](https://www.unicode.org/charts/PDF/U2800.pdf)|Braille Patterns|*20210814-124438-54e29167*|
 |[Powerline](https://github.com/ryanoasis/powerline-extra-symbols#glyphs)|Powerline triangle, curve and diagonal glyphs|*20210814-124438-54e29167*|
 

@@ -1,4 +1,5 @@
 use super::*;
+use luahelper::mlua::LuaSerdeExt;
 use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
 use mlua::Value;
 use mux::pane::CachePolicy;
@@ -143,6 +144,13 @@ impl UserData for MuxPane {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
             Ok(pane.get_title())
+        });
+
+        methods.add_method("get_progress", |lua, this, _: ()| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+            let progress = pane.get_progress();
+            lua.to_value(&progress)
         });
 
         methods.add_method("get_current_working_dir", |_, this, _: ()| {

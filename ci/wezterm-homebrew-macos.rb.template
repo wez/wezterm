@@ -1,18 +1,18 @@
 # Note: if you are viewing this from the tap repo, this file is automatically
 # updated from:
-# https://github.com/wez/wezterm/blob/main/ci/wezterm-homebrew-macos.rb.template
+# https://github.com/wezterm/wezterm/blob/main/ci/wezterm-homebrew-macos.rb.template
 # by automation in the wezterm repo.
 # vim:ft=ruby:
 cask "wezterm" do
   version "@TAG@"
   sha256 "@SHA256@"
 
-  url "https://github.com/wez/wezterm/releases/download/#{version}/WezTerm-macos-#{version}.zip"
+  url "https://github.com/wezterm/wezterm/releases/download/#{version}/WezTerm-macos-#{version}.zip"
   name "WezTerm"
   desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"
-  homepage "https://wezfurlong.org/wezterm/"
+  homepage "https://wezterm.org/"
 
-  conflicts_with cask: "wez/wezterm/wezterm-nightly"
+  conflicts_with cask: "wezterm/wezterm/wezterm-nightly"
 
   # Unclear what the minimal OS version is
   # depends_on macos: ">= :sierra"

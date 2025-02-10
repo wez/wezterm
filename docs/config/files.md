@@ -27,7 +27,7 @@ configuration file using the logic shown below.
 
 !!! tip
     The recommendation is to place your configuration file at `$HOME/.wezterm.lua`
-    (`%HOME%/.wezterm.lua` on Windows) to get started.
+    (`%USERPROFILE%/.wezterm.lua` on Windows) to get started.
 
 More complex configurations that need to span multiple files can be placed in
 `$XDG_CONFIG_HOME/wezterm/wezterm.lua` (for X11/Wayland) or

@@ -2,7 +2,7 @@
 name = "wezterm-bidi"
 version = "0.2.3"
 edition = "2021"
-repository = "https://github.com/wez/wezterm"
+repository = "https://github.com/wezterm/wezterm"
 description = "The Unicode Bidi Algorithm (UBA)"
 license = "MIT AND Unicode-DFS-2016"
 exclude = ["/data", "/tests"]

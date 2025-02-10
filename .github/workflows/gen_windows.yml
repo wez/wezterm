@@ -35,7 +35,7 @@ jobs:
         with:
           target: "x86_64-pc-windows-msvc"
       - name: "Compile with sccache"
-        uses: mozilla-actions/sccache-action@v0.0.5
+        uses: mozilla-actions/sccache-action@v0.0.7
       - name: "Cache Rust Dependencies"
         uses: actions/cache@v4
         id: cache-cargo-vendor

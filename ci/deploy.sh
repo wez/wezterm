@@ -35,6 +35,7 @@ case $OSTYPE in
     mkdir -p $zipdir/WezTerm.app/Contents/Resources
     cp -r assets/shell-integration/* $zipdir/WezTerm.app/Contents/Resources
     cp -r assets/shell-completion $zipdir/WezTerm.app/Contents/Resources
+    tic -xe wezterm -o $zipdir/WezTerm.app/Contents/Resources/terminfo termwiz/data/wezterm.terminfo
 
     for bin in wezterm wezterm-mux-server wezterm-gui strip-ansi-escapes ; do
       # If the user ran a simple `cargo build --release`, then we want to allow
@@ -146,7 +147,7 @@ Version: ${WEZTERM_RPM_VERSION}
 Release: ${SPEC_RELEASE}
 Packager: Wez Furlong <wez@wezfurlong.org>
 License: MIT
-URL: https://wezfurlong.org/wezterm/
+URL: https://wezterm.org/
 Summary: Wez's Terminal Emulator.
 %if 0%{?suse_version}
 Requires: dbus-1, fontconfig, openssl, libxcb1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-egl1, libwayland-cursor0, Mesa-libEGL1, libxcb-keysyms1, libxcb-ewmh2, libxcb-icccm4
@@ -271,13 +272,13 @@ Architecture: $(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
 Maintainer: Wez Furlong <wez@wezfurlong.org>
 Section: utils
 Priority: optional
-Homepage: https://wezfurlong.org/wezterm/
+Homepage: https://wezterm.org/
 Description: Wez's Terminal Emulator.
  wezterm is a terminal emulator with support for modern features
  such as fonts with ligatures, hyperlinks, tabs and multiple
  windows.
 Provides: x-terminal-emulator
-Source: https://wezfurlong.org/wezterm/
+Source: https://wezterm.org/
 EOF
 
         cat > pkg/debian/postinst <<EOF
@@ -362,7 +363,7 @@ pkgdesc="A GPU-accelerated cross-platform terminal emulator and multiplexer writ
 license="MIT"
 arch="all"
 options="!check"
-url="https://wezfurlong.org/wezterm/"
+url="https://wezterm.org/"
 makedepends="cmd:tic"
 source="
   target/release/wezterm

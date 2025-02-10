@@ -30,7 +30,7 @@ Look at [mkdocs serve](https://www.mkdocs.org/user-guide/cli/#mkdocs-serve) for 
 There are a lot of targets out there.  Today we have docs that are Ubuntu biased
 and I know that there are a lot of flavors of Linux.  Rather than expand the README
 with instructions for those, please translate the instructions into steps that
-can be run in the [`get-deps`](https://github.com/wez/wezterm/blob/master/get-deps)
+can be run in the [`get-deps`](https://github.com/wezterm/wezterm/blob/master/get-deps)
 script.
 
 ## Contributing code
@@ -96,7 +96,7 @@ There are some helper classes for writing tests for terminal behavior.
 Here's an example of a test to verify that the terminal contents
 match expectations:
 
-https://github.com/wez/wezterm/blob/master/term/src/test/mod.rs#L334
+https://github.com/wezterm/wezterm/blob/master/term/src/test/mod.rs#L334
 
 Please also make a point of adding comments to your tests to help
 clarify the intent of the test!

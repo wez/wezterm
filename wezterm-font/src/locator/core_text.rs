@@ -1,4 +1,5 @@
 #![cfg(target_os = "macos")]
+#![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
@@ -169,7 +170,7 @@ impl FontLocator for CoreTextFontLocator {
                     // Only use normal attributed text for fallbacks,
                     // otherwise we'll end up picking something with
                     // undefined and undesirable attributes
-                    // <https://github.com/wez/wezterm/issues/4808>
+                    // <https://github.com/wezterm/wezterm/issues/4808>
                     continue;
                 }
 
@@ -264,7 +265,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     let mut fonts = vec![];
     // Explicitly include Menlo itself, as it appears to be the only
     // font on macOS that contains U+2718.
-    // <https://github.com/wez/wezterm/issues/849>
+    // <https://github.com/wezterm/wezterm/issues/849>
     fonts.append(&mut handles_from_descriptor(&menlo.copy_descriptor()));
     for descriptor in &cascade {
         fonts.append(&mut handles_from_descriptor(&descriptor));

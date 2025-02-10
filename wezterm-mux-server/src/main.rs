@@ -16,7 +16,7 @@ mod daemonize;
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
+    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
     version = config::wezterm_version(),
     trailing_var_arg = true,
 )]

@@ -5,7 +5,7 @@
 #define MyAppName "WezTerm"
 ;#define MyAppVersion "1.5"
 #define MyAppPublisher "Wez Furlong"
-#define MyAppURL "http://wezfurlong.org/wezterm"
+#define MyAppURL "http://wezterm.org"
 #define MyAppExeName "wezterm-gui.exe"
 
 [Setup]

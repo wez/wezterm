@@ -521,6 +521,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_padding: WindowPadding,
 
+    #[dynamic(default)]
+    pub window_content_alignment: WindowContentAlignment,
+
     /// Specifies the path to a background image attachment file.
     /// The file can be any image format that the rust `image`
     /// crate is able to identify and load.
@@ -1633,7 +1636,7 @@ fn default_text_blink_rate_rapid() -> u64 {
 
 fn default_swap_backspace_and_delete() -> bool {
     // cfg!(target_os = "macos")
-    // See: https://github.com/wez/wezterm/issues/88
+    // See: https://github.com/wezterm/wezterm/issues/88
     false
 }
 
@@ -1666,9 +1669,11 @@ pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         hyperlink::Rule::with_highlight(r"\((\w+://\S+)\)", "$1", 1).unwrap(),
         hyperlink::Rule::with_highlight(r"\[(\w+://\S+)\]", "$1", 1).unwrap(),
         hyperlink::Rule::with_highlight(r"<(\w+://\S+)>", "$1", 1).unwrap(),
-        // Then handle URLs not wrapped in brackets
-        // and include terminating ), / or - characters, if any
-        hyperlink::Rule::new(r"\b\w+://\S+[)/a-zA-Z0-9-]+", "$0").unwrap(),
+        // Then handle URLs not wrapped in brackets that
+        // 1) have a balanced ending parenthesis or
+        hyperlink::Rule::new(hyperlink::CLOSING_PARENTHESIS_HYPERLINK_PATTERN, "$0").unwrap(),
+        // 2) include terminating _, / or - characters, if any
+        hyperlink::Rule::new(hyperlink::GENERIC_HYPERLINK_PATTERN, "$0").unwrap(),
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
@@ -1897,6 +1902,28 @@ impl Default for WindowPadding {
     }
 }
 
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, Default)]
+pub struct WindowContentAlignment {
+    pub horizontal: HorizontalWindowContentAlignment,
+    pub vertical: VerticalWindowContentAlignment,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HorizontalWindowContentAlignment {
+    #[default]
+    Left,
+    Center,
+    Right,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VerticalWindowContentAlignment {
+    #[default]
+    Top,
+    Center,
+    Bottom,
+}
+
 #[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NewlineCanon {
     // FIXME: also allow deserialziing from bool
@@ -2104,9 +2131,9 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
     }
 }
 
-/// <https://github.com/wez/wezterm/pull/2435>
-/// <https://github.com/wez/wezterm/issues/2771>
-/// <https://github.com/wez/wezterm/issues/2630>
+/// <https://github.com/wezterm/wezterm/pull/2435>
+/// <https://github.com/wezterm/wezterm/issues/2771>
+/// <https://github.com/wezterm/wezterm/issues/2630>
 fn default_macos_forward_mods() -> Modifiers {
     Modifiers::SHIFT
 }

@@ -9,6 +9,9 @@ use std::path::PathBuf;
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn metadata_should_retrieve_file_stat(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -35,6 +38,9 @@ fn metadata_should_retrieve_file_stat(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn read_dir_should_retrieve_next_dir_entry(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -85,6 +91,9 @@ fn read_dir_should_retrieve_next_dir_entry(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn should_support_async_reading(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -118,6 +127,9 @@ fn should_support_async_reading(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn should_support_async_writing(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -149,6 +161,9 @@ fn should_support_async_writing(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn should_support_async_flush(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 
@@ -175,6 +190,9 @@ fn should_support_async_flush(#[future] session: SessionWithSshd) {
 #[rstest]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 fn should_support_async_close(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 

@@ -17,6 +17,8 @@ use wezterm_term::SemanticType;
 pub struct LauncherActionArgs {
     pub flags: LauncherFlags,
     pub title: Option<String>,
+    pub help_text: Option<String>,
+    pub fuzzy_help_text: Option<String>,
 }
 
 bitflags::bitflags! {
@@ -446,10 +448,13 @@ pub struct QuickSelectArguments {
     pub patterns: Vec<String>,
     #[dynamic(default)]
     pub action: Option<Box<KeyAssignment>>,
+    /// Skip triggering `action` after paste is performed (capital selection)
+    #[dynamic(default)]
+    pub skip_action_on_paste: bool,
     /// Label to use in place of "copy" when `action` is set
     #[dynamic(default)]
     pub label: String,
-    /// How man lines before and how many lines after the viewport to
+    /// How many lines before and how many lines after the viewport to
     /// search to produce the quickselect results
     pub scope_lines: Option<usize>,
 }

@@ -7,6 +7,10 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_add", '\u{ea60}'),                                        // 
     ("cod_archive", '\u{ea98}'),                                    // 
     ("cod_arrow_both", '\u{ea99}'),                                 // 
+    ("cod_arrow_circle_down", '\u{ebfc}'),                          // 
+    ("cod_arrow_circle_left", '\u{ebfd}'),                          // 
+    ("cod_arrow_circle_right", '\u{ebfe}'),                         // 
+    ("cod_arrow_circle_up", '\u{ebff}'),                            // 
     ("cod_arrow_down", '\u{ea9a}'),                                 // 
     ("cod_arrow_left", '\u{ea9b}'),                                 // 
     ("cod_arrow_right", '\u{ea9c}'),                                // 
@@ -22,6 +26,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_beaker_stop", '\u{ebe1}'),                                // 
     ("cod_bell", '\u{eaa2}'),                                       // 
     ("cod_bell_dot", '\u{eb9a}'),                                   // 
+    ("cod_bell_slash", '\u{ec08}'),                                 // 
+    ("cod_bell_slash_dot", '\u{ec09}'),                             // 
+    ("cod_blank", '\u{ec03}'),                                      // 
     ("cod_bold", '\u{eaa3}'),                                       // 
     ("cod_book", '\u{eaa4}'),                                       // 
     ("cod_bookmark", '\u{eaa5}'),                                   // 
@@ -42,6 +49,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_chevron_left", '\u{eab5}'),                               // 
     ("cod_chevron_right", '\u{eab6}'),                              // 
     ("cod_chevron_up", '\u{eab7}'),                                 // 
+    ("cod_chip", '\u{ec19}'),                                       // 
     ("cod_chrome_close", '\u{eab8}'),                               // 
     ("cod_chrome_maximize", '\u{eab9}'),                            // 
     ("cod_chrome_minimize", '\u{eaba}'),                            // 
@@ -51,6 +59,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_circle_large", '\u{ebb5}'),                               // 
     ("cod_circle_large_filled", '\u{ebb4}'),                        // 
     ("cod_circle_slash", '\u{eabd}'),                               // 
+    ("cod_circle_small", '\u{ec07}'),                               // 
     ("cod_circle_small_filled", '\u{eb8a}'),                        // 
     ("cod_circuit_board", '\u{eabe}'),                              // 
     ("cod_clear_all", '\u{eabf}'),                                  // 
@@ -61,14 +70,18 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_cloud_download", '\u{eac2}'),                             // 
     ("cod_cloud_upload", '\u{eac3}'),                               // 
     ("cod_code", '\u{eac4}'),                                       // 
+    ("cod_coffee", '\u{ec15}'),                                     // 
     ("cod_collapse_all", '\u{eac5}'),                               // 
     ("cod_color_mode", '\u{eac6}'),                                 // 
     ("cod_combine", '\u{ebb6}'),                                    // 
     ("cod_comment", '\u{ea6b}'),                                    // 
     ("cod_comment_discussion", '\u{eac7}'),                         // 
+    ("cod_comment_draft", '\u{ec0e}'),                              // 
+    ("cod_comment_unresolved", '\u{ec0a}'),                         // 
     ("cod_compass", '\u{ebd5}'),                                    // 
     ("cod_compass_active", '\u{ebd7}'),                             // 
     ("cod_compass_dot", '\u{ebd6}'),                                // 
+    ("cod_copilot", '\u{ec1e}'),                                    // 
     ("cod_copy", '\u{ebcc}'),                                       // 
     ("cod_credit_card", '\u{eac9}'),                                // 
     ("cod_dash", '\u{eacc}'),                                       // 
@@ -122,6 +135,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_ellipsis", '\u{ea7c}'),                                   // 
     ("cod_empty_window", '\u{eae4}'),                               // 
     ("cod_error", '\u{ea87}'),                                      // 
+    ("cod_error_small", '\u{ebfb}'),                                // 
     ("cod_exclude", '\u{eae5}'),                                    // 
     ("cod_expand_all", '\u{eb95}'),                                 // 
     ("cod_export", '\u{ebac}'),                                     // 
@@ -149,16 +163,20 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_folder_active", '\u{eaf6}'),                              // 
     ("cod_folder_library", '\u{ebdf}'),                             // 
     ("cod_folder_opened", '\u{eaf7}'),                              // 
+    ("cod_game", '\u{ec17}'),                                       // 
     ("cod_gear", '\u{eaf8}'),                                       // 
     ("cod_gift", '\u{eaf9}'),                                       // 
     ("cod_gist_secret", '\u{eafa}'),                                // 
     ("cod_git_commit", '\u{eafc}'),                                 // 
     ("cod_git_compare", '\u{eafd}'),                                // 
+    ("cod_git_fetch", '\u{ec1d}'),                                  // 
     ("cod_git_merge", '\u{eafe}'),                                  // 
     ("cod_git_pull_request", '\u{ea64}'),                           // 
     ("cod_git_pull_request_closed", '\u{ebda}'),                    // 
     ("cod_git_pull_request_create", '\u{ebbc}'),                    // 
     ("cod_git_pull_request_draft", '\u{ebdb}'),                     // 
+    ("cod_git_pull_request_go_to_changes", '\u{ec0b}'),             // 
+    ("cod_git_pull_request_new_changes", '\u{ec0c}'),               // 
     ("cod_github", '\u{ea84}'),                                     // 
     ("cod_github_action", '\u{eaff}'),                              // 
     ("cod_github_alt", '\u{eb00}'),                                 // 
@@ -173,12 +191,15 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_gripper", '\u{eb04}'),                                    // 
     ("cod_group_by_ref_type", '\u{eb97}'),                          // 
     ("cod_heart", '\u{eb05}'),                                      // 
+    ("cod_heart_filled", '\u{ec04}'),                               // 
     ("cod_history", '\u{ea82}'),                                    // 
     ("cod_home", '\u{eb06}'),                                       // 
     ("cod_horizontal_rule", '\u{eb07}'),                            // 
     ("cod_hubot", '\u{eb08}'),                                      // 
     ("cod_inbox", '\u{eb09}'),                                      // 
+    ("cod_indent", '\u{ebf9}'),                                     // 
     ("cod_info", '\u{ea74}'),                                       // 
+    ("cod_insert", '\u{ec11}'),                                     // 
     ("cod_inspect", '\u{ebd1}'),                                    // 
     ("cod_issue_draft", '\u{ebd9}'),                                // 
     ("cod_issue_reopened", '\u{eb0b}'),                             // 
@@ -193,6 +214,21 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_layers_active", '\u{ebd4}'),                              // 
     ("cod_layers_dot", '\u{ebd3}'),                                 // 
     ("cod_layout", '\u{ebeb}'),                                     // 
+    ("cod_layout_activitybar_left", '\u{ebec}'),                    // 
+    ("cod_layout_activitybar_right", '\u{ebed}'),                   // 
+    ("cod_layout_centered", '\u{ebf7}'),                            // 
+    ("cod_layout_menubar", '\u{ebf6}'),                             // 
+    ("cod_layout_panel", '\u{ebf2}'),                               // 
+    ("cod_layout_panel_center", '\u{ebef}'),                        // 
+    ("cod_layout_panel_justify", '\u{ebf0}'),                       // 
+    ("cod_layout_panel_left", '\u{ebee}'),                          // 
+    ("cod_layout_panel_off", '\u{ec01}'),                           // 
+    ("cod_layout_panel_right", '\u{ebf1}'),                         // 
+    ("cod_layout_sidebar_left", '\u{ebf3}'),                        // 
+    ("cod_layout_sidebar_left_off", '\u{ec02}'),                    // 
+    ("cod_layout_sidebar_right", '\u{ebf4}'),                       // 
+    ("cod_layout_sidebar_right_off", '\u{ec00}'),                   // 
+    ("cod_layout_statusbar", '\u{ebf5}'),                           // 
     ("cod_library", '\u{eb9c}'),                                    // 
     ("cod_lightbulb", '\u{ea61}'),                                  // 
     ("cod_lightbulb_autofix", '\u{eb13}'),                          // 
@@ -212,16 +248,21 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_magnet", '\u{ebae}'),                                     // 
     ("cod_mail", '\u{eb1c}'),                                       // 
     ("cod_mail_read", '\u{eb1b}'),                                  // 
+    ("cod_map", '\u{ec05}'),                                        // 
+    ("cod_map_filled", '\u{ec06}'),                                 // 
     ("cod_markdown", '\u{eb1d}'),                                   // 
     ("cod_megaphone", '\u{eb1e}'),                                  // 
     ("cod_mention", '\u{eb1f}'),                                    // 
     ("cod_menu", '\u{eb94}'),                                       // 
     ("cod_merge", '\u{ebab}'),                                      // 
+    ("cod_mic", '\u{ec12}'),                                        // 
+    ("cod_mic_filled", '\u{ec1c}'),                                 // 
     ("cod_milestone", '\u{eb20}'),                                  // 
     ("cod_mirror", '\u{ea69}'),                                     // 
     ("cod_mortar_board", '\u{eb21}'),                               // 
     ("cod_move", '\u{eb22}'),                                       // 
     ("cod_multiple_windows", '\u{eb23}'),                           // 
+    ("cod_music", '\u{ec1b}'),                                      // 
     ("cod_mute", '\u{eb24}'),                                       // 
     ("cod_new_file", '\u{ea7f}'),                                   // 
     ("cod_new_folder", '\u{ea80}'),                                 // 
@@ -240,6 +281,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_pass_filled", '\u{ebb3}'),                                // 
     ("cod_person", '\u{ea67}'),                                     // 
     ("cod_person_add", '\u{ebcd}'),                                 // 
+    ("cod_piano", '\u{ec1a}'),                                      // 
     ("cod_pie_chart", '\u{ebe4}'),                                  // 
     ("cod_pin", '\u{eb2b}'),                                        // 
     ("cod_pinned", '\u{eba0}'),                                     // 
@@ -258,6 +300,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_reactions", '\u{eb35}'),                                  // 
     ("cod_record", '\u{eba7}'),                                     // 
     ("cod_record_keys", '\u{ea65}'),                                // 
+    ("cod_record_small", '\u{ebfa}'),                               // 
     ("cod_redo", '\u{ebb0}'),                                       // 
     ("cod_references", '\u{eb36}'),                                 // 
     ("cod_refresh", '\u{eb37}'),                                    // 
@@ -291,7 +334,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_screen_full", '\u{eb4c}'),                                // 
     ("cod_screen_normal", '\u{eb4d}'),                              // 
     ("cod_search", '\u{ea6d}'),                                     // 
+    ("cod_search_fuzzy", '\u{ec0d}'),                               // 
     ("cod_search_stop", '\u{eb4e}'),                                // 
+    ("cod_send", '\u{ec0f}'),                                       // 
     ("cod_server", '\u{eb50}'),                                     // 
     ("cod_server_environment", '\u{eba3}'),                         // 
     ("cod_server_process", '\u{eba2}'),                             // 
@@ -301,8 +346,10 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_sign_in", '\u{ea6f}'),                                    // 
     ("cod_sign_out", '\u{ea6e}'),                                   // 
     ("cod_smiley", '\u{eb54}'),                                     // 
+    ("cod_snake", '\u{ec16}'),                                      // 
     ("cod_sort_precedence", '\u{eb55}'),                            // 
     ("cod_source_control", '\u{ea68}'),                             // 
+    ("cod_sparkle", '\u{ec10}'),                                    // 
     ("cod_split_horizontal", '\u{eb56}'),                           // 
     ("cod_split_vertical", '\u{eb57}'),                             // 
     ("cod_squirrel", '\u{eb58}'),                                   // 
@@ -339,6 +386,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_sync_ignored", '\u{eb9f}'),                               // 
     ("cod_table", '\u{ebb7}'),                                      // 
     ("cod_tag", '\u{ea66}'),                                        // 
+    ("cod_target", '\u{ebf8}'),                                     // 
     ("cod_tasklist", '\u{eb67}'),                                   // 
     ("cod_telescope", '\u{eb68}'),                                  // 
     ("cod_terminal", '\u{ea85}'),                                   // 
@@ -352,7 +400,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_text_size", '\u{eb69}'),                                  // 
     ("cod_three_bars", '\u{eb6a}'),                                 // 
     ("cod_thumbsdown", '\u{eb6b}'),                                 // 
+    ("cod_thumbsdown_filled", '\u{ec13}'),                          // 
     ("cod_thumbsup", '\u{eb6c}'),                                   // 
+    ("cod_thumbsup_filled", '\u{ec14}'),                            // 
     ("cod_tools", '\u{eb6d}'),                                      // 
     ("cod_trash", '\u{ea81}'),                                      // 
     ("cod_triangle_down", '\u{eb6e}'),                              // 
@@ -377,6 +427,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_vm_connect", '\u{eba9}'),                                 // 
     ("cod_vm_outline", '\u{eb7a}'),                                 // 
     ("cod_vm_running", '\u{eb7b}'),                                 // 
+    ("cod_vr", '\u{ec18}'),                                         // 
     ("cod_wand", '\u{ebcf}'),                                       // 
     ("cod_warning", '\u{ea6c}'),                                    // 
     ("cod_watch", '\u{eb7c}'),                                      // 
@@ -389,8 +440,12 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_workspace_untrusted", '\u{ebc2}'),                        // 
     ("cod_zoom_in", '\u{eb81}'),                                    // 
     ("cod_zoom_out", '\u{eb82}'),                                   // 
+    ("custom_ada", '\u{e6b5}'),                                     // 
     ("custom_asm", '\u{e6ab}'),                                     // 
+    ("custom_astro", '\u{e6b3}'),                                   // 
+    ("custom_bazel", '\u{e63a}'),                                   // 
     ("custom_c", '\u{e61e}'),                                       // 
+    ("custom_chuck", '\u{e6b6}'),                                   // 
     ("custom_common_lisp", '\u{e6b0}'),                             // 
     ("custom_cpp", '\u{e61d}'),                                     // 
     ("custom_crystal", '\u{e62f}'),                                 // 
@@ -400,9 +455,11 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_elm", '\u{e62c}'),                                     // 
     ("custom_emacs", '\u{e632}'),                                   // 
     ("custom_fennel", '\u{e6af}'),                                  // 
+    ("custom_firebase", '\u{e657}'),                                // 
     ("custom_folder", '\u{e5ff}'),                                  // 
     ("custom_folder_config", '\u{e5fc}'),                           // 
     ("custom_folder_git", '\u{e5fb}'),                              // 
+    ("custom_folder_git_branch", '\u{e5fb}'),                       // 
     ("custom_folder_github", '\u{e5fd}'),                           // 
     ("custom_folder_npm", '\u{e5fa}'),                              // 
     ("custom_folder_oct", '\u{e6ad}'),                              // 
@@ -414,217 +471,547 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_neovim", '\u{e6ae}'),                                  // 
     ("custom_orgmode", '\u{e633}'),                                 // 
     ("custom_play_arrow", '\u{e602}'),                              // 
+    ("custom_prettier", '\u{e6b4}'),                                // 
+    ("custom_puppet", '\u{e631}'),                                  // 
     ("custom_purescript", '\u{e630}'),                              // 
+    ("custom_ruby", '\u{e605}'),                                    // 
     ("custom_scheme", '\u{e6b1}'),                                  // 
     ("custom_toml", '\u{e6b2}'),                                    // 
     ("custom_v_lang", '\u{e6ac}'),                                  // 
     ("custom_vim", '\u{e62b}'),                                     // 
+    ("custom_vitruvian", '\u{e6b7}'),                               // 
     ("custom_windows", '\u{e62a}'),                                 // 
+    ("dev_aarch64", '\u{e700}'),                                    // 
+    ("dev_adonisjs", '\u{e701}'),                                   // 
+    ("dev_aftereffects", '\u{e705}'),                               // 
+    ("dev_akka", '\u{e708}'),                                       // 
+    ("dev_algolia", '\u{e70a}'),                                    // 
+    ("dev_alpinejs", '\u{e713}'),                                   // 
+    ("dev_amazonwebservices", '\u{e7ad}'),                          // 
+    ("dev_anaconda", '\u{e715}'),                                   // 
     ("dev_android", '\u{e70e}'),                                    // 
+    ("dev_androidstudio", '\u{e71a}'),                              // 
     ("dev_angular", '\u{e753}'),                                    // 
+    ("dev_angularjs", '\u{e71c}'),                                  // 
+    ("dev_angularmaterial", '\u{e720}'),                            // 
+    ("dev_ansible", '\u{e723}'),                                    // 
+    ("dev_antdesign", '\u{e72a}'),                                  // 
+    ("dev_apache", '\u{e72b}'),                                     // 
+    ("dev_apacheairflow", '\u{e72c}'),                              // 
+    ("dev_apachekafka", '\u{e72e}'),                                // 
+    ("dev_apachespark", '\u{e72f}'),                                // 
+    ("dev_apl", '\u{e730}'),                                        // 
     ("dev_appcelerator", '\u{e7ab}'),                               // 
     ("dev_apple", '\u{e711}'),                                      // 
-    ("dev_appstore", '\u{e713}'),                                   // 
-    ("dev_aptana", '\u{e799}'),                                     // 
-    ("dev_asterisk", '\u{e7ac}'),                                   // 
-    ("dev_atlassian", '\u{e75b}'),                                  // 
+    ("dev_appwrite", '\u{e731}'),                                   // 
+    ("dev_archlinux", '\u{e732}'),                                  // 
+    ("dev_arduino", '\u{e733}'),                                    // 
+    ("dev_argocd", '\u{e734}'),                                     // 
+    ("dev_astro", '\u{e735}'),                                      // 
     ("dev_atom", '\u{e764}'),                                       // 
+    ("dev_awk", '\u{e741}'),                                        // 
     ("dev_aws", '\u{e7ad}'),                                        // 
+    ("dev_axios", '\u{e74f}'),                                      // 
+    ("dev_azure", '\u{e754}'),                                      // 
+    ("dev_azuredevops", '\u{e756}'),                                // 
+    ("dev_azuresqldatabase", '\u{e75b}'),                           // 
+    ("dev_babel", '\u{e75d}'),                                      // 
     ("dev_backbone", '\u{e752}'),                                   // 
-    ("dev_bing_small", '\u{e700}'),                                 // 
-    ("dev_bintray", '\u{e794}'),                                    // 
+    ("dev_backbonejs", '\u{e752}'),                                 // 
+    ("dev_ballerina", '\u{e75e}'),                                  // 
+    ("dev_bamboo", '\u{e75f}'),                                     // 
+    ("dev_bash", '\u{e760}'),                                       // 
+    ("dev_beats", '\u{e761}'),                                      // 
+    ("dev_behance", '\u{e762}'),                                    // 
     ("dev_bitbucket", '\u{e703}'),                                  // 
-    ("dev_blackberry", '\u{e723}'),                                 // 
+    ("dev_blazor", '\u{e765}'),                                     // 
+    ("dev_blender", '\u{e766}'),                                    // 
     ("dev_bootstrap", '\u{e747}'),                                  // 
     ("dev_bower", '\u{e74d}'),                                      // 
-    ("dev_brackets", '\u{e79d}'),                                   // 
-    ("dev_bugsense", '\u{e78d}'),                                   // 
-    ("dev_celluloid", '\u{e76b}'),                                  // 
-    ("dev_chart", '\u{e760}'),                                      // 
+    ("dev_browserstack", '\u{e76b}'),                               // 
+    ("dev_bulma", '\u{e76c}'),                                      // 
+    ("dev_bun", '\u{e76f}'),                                        // 
+    ("dev_c", '\u{e771}'),                                          // 
+    ("dev_c_lang", '\u{e771}'),                                     // 
+    ("dev_cairo", '\u{e773}'),                                      // 
+    ("dev_cakephp", '\u{e77a}'),                                    // 
+    ("dev_canva", '\u{e77c}'),                                      // 
+    ("dev_capacitor", '\u{e785}'),                                  // 
+    ("dev_carbon", '\u{e788}'),                                     // 
+    ("dev_cassandra", '\u{e789}'),                                  // 
+    ("dev_centos", '\u{e78a}'),                                     // 
+    ("dev_ceylon", '\u{e78b}'),                                     // 
     ("dev_chrome", '\u{e743}'),                                     // 
-    ("dev_cisco", '\u{e765}'),                                      // 
+    ("dev_circleci", '\u{e78c}'),                                   // 
+    ("dev_clarity", '\u{e78d}'),                                    // 
+    ("dev_clion", '\u{e78e}'),                                      // 
     ("dev_clojure", '\u{e768}'),                                    // 
     ("dev_clojure_alt", '\u{e76a}'),                                // 
-    ("dev_cloud9", '\u{e79f}'),                                     // 
-    ("dev_coda", '\u{e793}'),                                       // 
-    ("dev_code", '\u{e796}'),                                       // 
-    ("dev_code_badge", '\u{e7a3}'),                                 // 
+    ("dev_clojurescript", '\u{e790}'),                              // 
+    ("dev_cloudflare", '\u{e792}'),                                 // 
+    ("dev_cloudflareworkers", '\u{e793}'),                          // 
+    ("dev_cmake", '\u{e794}'),                                      // 
+    ("dev_codeac", '\u{e796}'),                                     // 
+    ("dev_codecov", '\u{e797}'),                                    // 
     ("dev_codeigniter", '\u{e780}'),                                // 
     ("dev_codepen", '\u{e716}'),                                    // 
-    ("dev_codrops", '\u{e72f}'),                                    // 
     ("dev_coffeescript", '\u{e751}'),                               // 
-    ("dev_compass", '\u{e761}'),                                    // 
     ("dev_composer", '\u{e783}'),                                   // 
-    ("dev_creativecommons", '\u{e789}'),                            // 
-    ("dev_creativecommons_badge", '\u{e78a}'),                      // 
+    ("dev_confluence", '\u{e799}'),                                 // 
+    ("dev_consul", '\u{e79a}'),                                     // 
+    ("dev_contao", '\u{e79b}'),                                     // 
+    ("dev_corejs", '\u{e79d}'),                                     // 
+    ("dev_cosmosdb", '\u{e79f}'),                                   // 
+    ("dev_couchbase", '\u{e7a0}'),                                  // 
+    ("dev_couchdb", '\u{e7a2}'),                                    // 
+    ("dev_cplusplus", '\u{e7a3}'),                                  // 
+    ("dev_crystal", '\u{e7ac}'),                                    // 
+    ("dev_csharp", '\u{e7b2}'),                                     // 
     ("dev_css3", '\u{e749}'),                                       // 
     ("dev_css3_full", '\u{e74a}'),                                  // 
-    ("dev_css_tricks", '\u{e701}'),                                 // 
-    ("dev_cssdeck", '\u{e72a}'),                                    // 
+    ("dev_cucumber", '\u{e7b7}'),                                   // 
+    ("dev_cypressio", '\u{e7b9}'),                                  // 
+    ("dev_d3js", '\u{e7bc}'),                                       // 
     ("dev_dart", '\u{e798}'),                                       // 
     ("dev_database", '\u{e706}'),                                   // 
+    ("dev_datagrip", '\u{e7bd}'),                                   // 
+    ("dev_dataspell", '\u{e7be}'),                                  // 
+    ("dev_dbeaver", '\u{e7bf}'),                                    // 
     ("dev_debian", '\u{e77d}'),                                     // 
+    ("dev_denojs", '\u{e7c0}'),                                     // 
+    ("dev_devicon", '\u{e7c1}'),                                    // 
     ("dev_digital_ocean", '\u{e7ae}'),                              // 
+    ("dev_digitalocean", '\u{e7ae}'),                               // 
+    ("dev_discordjs", '\u{e7c2}'),                                  // 
     ("dev_django", '\u{e71d}'),                                     // 
+    ("dev_djangorest", '\u{e7c3}'),                                 // 
     ("dev_dlang", '\u{e7af}'),                                      // 
     ("dev_docker", '\u{e7b0}'),                                     // 
     ("dev_doctrine", '\u{e774}'),                                   // 
-    ("dev_dojo", '\u{e71c}'),                                       // 
     ("dev_dotnet", '\u{e77f}'),                                     // 
+    ("dev_dotnetcore", '\u{e7c6}'),                                 // 
     ("dev_dreamweaver", '\u{e79c}'),                                // 
     ("dev_dropbox", '\u{e707}'),                                    // 
+    ("dev_dropwizard", '\u{e7c7}'),                                 // 
     ("dev_drupal", '\u{e742}'),                                     // 
+    ("dev_dynamodb", '\u{e7c8}'),                                   // 
     ("dev_eclipse", '\u{e79e}'),                                    // 
+    ("dev_ecto", '\u{e7c9}'),                                       // 
+    ("dev_elasticsearch", '\u{e7ca}'),                              // 
+    ("dev_electron", '\u{e7cb}'),                                   // 
+    ("dev_eleventy", '\u{e7cc}'),                                   // 
+    ("dev_elixir", '\u{e7cd}'),                                     // 
+    ("dev_elm", '\u{e7ce}'),                                        // 
+    ("dev_emacs", '\u{e7cf}'),                                      // 
+    ("dev_embeddedc", '\u{e7d0}'),                                  // 
     ("dev_ember", '\u{e71b}'),                                      // 
-    ("dev_envato", '\u{e75d}'),                                     // 
+    ("dev_envoy", '\u{e7d1}'),                                      // 
     ("dev_erlang", '\u{e7b1}'),                                     // 
-    ("dev_extjs", '\u{e78e}'),                                      // 
+    ("dev_eslint", '\u{e7d2}'),                                     // 
+    ("dev_express", '\u{e7d3}'),                                    // 
+    ("dev_facebook", '\u{e7d4}'),                                   // 
+    ("dev_fastapi", '\u{e7d5}'),                                    // 
+    ("dev_fastify", '\u{e7d6}'),                                    // 
+    ("dev_faunadb", '\u{e7d7}'),                                    // 
+    ("dev_feathersjs", '\u{e7d8}'),                                 // 
+    ("dev_fedora", '\u{e7d9}'),                                     // 
+    ("dev_figma", '\u{e7da}'),                                      // 
+    ("dev_filezilla", '\u{e7db}'),                                  // 
     ("dev_firebase", '\u{e787}'),                                   // 
     ("dev_firefox", '\u{e745}'),                                    // 
+    ("dev_flask", '\u{e7dc}'),                                      // 
+    ("dev_flutter", '\u{e7dd}'),                                    // 
+    ("dev_fortran", '\u{e7de}'),                                    // 
+    ("dev_foundation", '\u{e7df}'),                                 // 
+    ("dev_framermotion", '\u{e7e0}'),                               // 
+    ("dev_framework7", '\u{e7e1}'),                                 // 
     ("dev_fsharp", '\u{e7a7}'),                                     // 
+    ("dev_gatling", '\u{e7e2}'),                                    // 
+    ("dev_gatsby", '\u{e7e3}'),                                     // 
+    ("dev_gazebo", '\u{e7e4}'),                                     // 
+    ("dev_gcc", '\u{e7e5}'),                                        // 
+    ("dev_gentoo", '\u{e7e6}'),                                     // 
     ("dev_ghost", '\u{e71f}'),                                      // 
     ("dev_ghost_small", '\u{e714}'),                                // 
+    ("dev_gimp", '\u{e7e7}'),                                       // 
     ("dev_git", '\u{e702}'),                                        // 
     ("dev_git_branch", '\u{e725}'),                                 // 
     ("dev_git_commit", '\u{e729}'),                                 // 
     ("dev_git_compare", '\u{e728}'),                                // 
     ("dev_git_merge", '\u{e727}'),                                  // 
     ("dev_git_pull_request", '\u{e726}'),                           // 
-    ("dev_github", '\u{e70a}'),                                     // 
-    ("dev_github_alt", '\u{e708}'),                                 // 
+    ("dev_gitbook", '\u{e7e8}'),                                    // 
+    ("dev_github", '\u{e709}'),                                     // 
     ("dev_github_badge", '\u{e709}'),                               // 
     ("dev_github_full", '\u{e717}'),                                // 
+    ("dev_githubactions", '\u{e7e9}'),                              // 
+    ("dev_githubcodespaces", '\u{e7ea}'),                           // 
+    ("dev_gitlab", '\u{e7eb}'),                                     // 
+    ("dev_gitpod", '\u{e7ec}'),                                     // 
+    ("dev_gitter", '\u{e7ed}'),                                     // 
     ("dev_gnu", '\u{e779}'),                                        // 
     ("dev_go", '\u{e724}'),                                         // 
-    ("dev_google_cloud_platform", '\u{e7b2}'),                      // 
-    ("dev_google_drive", '\u{e731}'),                               // 
+    ("dev_godot", '\u{e7ee}'),                                      // 
+    ("dev_goland", '\u{e7ef}'),                                     // 
+    ("dev_google", '\u{e7f0}'),                                     // 
+    ("dev_googlecloud", '\u{e7f1}'),                                // 
+    ("dev_gradle", '\u{e7f2}'),                                     // 
+    ("dev_grafana", '\u{e7f3}'),                                    // 
     ("dev_grails", '\u{e7b3}'),                                     // 
+    ("dev_graphql", '\u{e7f4}'),                                    // 
     ("dev_groovy", '\u{e775}'),                                     // 
+    ("dev_grpc", '\u{e7f5}'),                                       // 
     ("dev_grunt", '\u{e74c}'),                                      // 
     ("dev_gulp", '\u{e763}'),                                       // 
-    ("dev_hackernews", '\u{e71a}'),                                 // 
+    ("dev_hadoop", '\u{e7f6}'),                                     // 
+    ("dev_handlebars", '\u{e7f7}'),                                 // 
+    ("dev_hardhat", '\u{e7f8}'),                                    // 
+    ("dev_harvester", '\u{e7f9}'),                                  // 
     ("dev_haskell", '\u{e777}'),                                    // 
+    ("dev_haxe", '\u{e7fa}'),                                       // 
+    ("dev_helm", '\u{e7fb}'),                                       // 
     ("dev_heroku", '\u{e77b}'),                                     // 
+    ("dev_hibernate", '\u{e7fc}'),                                  // 
+    ("dev_homebrew", '\u{e7fd}'),                                   // 
     ("dev_html5", '\u{e736}'),                                      // 
-    ("dev_html5_3d_effects", '\u{e735}'),                           // 
-    ("dev_html5_connectivity", '\u{e734}'),                         // 
-    ("dev_html5_device_access", '\u{e733}'),                        // 
-    ("dev_html5_multimedia", '\u{e732}'),                           // 
+    ("dev_hugo", '\u{e7fe}'),                                       // 
     ("dev_ie", '\u{e744}'),                                         // 
+    ("dev_ifttt", '\u{e7ff}'),                                      // 
     ("dev_illustrator", '\u{e7b4}'),                                // 
+    ("dev_influxdb", '\u{e800}'),                                   // 
+    ("dev_inkscape", '\u{e801}'),                                   // 
+    ("dev_insomnia", '\u{e802}'),                                   // 
     ("dev_intellij", '\u{e7b5}'),                                   // 
     ("dev_ionic", '\u{e7a9}'),                                      // 
+    ("dev_jaegertracing", '\u{e803}'),                              // 
+    ("dev_jamstack", '\u{e804}'),                                   // 
+    ("dev_jasmine", '\u{e805}'),                                    // 
     ("dev_java", '\u{e738}'),                                       // 
-    ("dev_javascript", '\u{e74e}'),                                 // 
+    ("dev_javascript", '\u{e781}'),                                 // 
+    ("dev_javascript_alt", '\u{e74e}'),                             // 
     ("dev_javascript_badge", '\u{e781}'),                           // 
-    ("dev_javascript_shield", '\u{e74f}'),                          // 
+    ("dev_jeet", '\u{e806}'),                                       // 
+    ("dev_jekyll", '\u{e70d}'),                                     // 
     ("dev_jekyll_small", '\u{e70d}'),                               // 
     ("dev_jenkins", '\u{e767}'),                                    // 
+    ("dev_jest", '\u{e807}'),                                       // 
+    ("dev_jetbrains", '\u{e808}'),                                  // 
+    ("dev_jetpackcompose", '\u{e809}'),                             // 
     ("dev_jira", '\u{e75c}'),                                       // 
-    ("dev_joomla", '\u{e741}'),                                     // 
+    ("dev_jiraalign", '\u{e80a}'),                                  // 
     ("dev_jquery", '\u{e750}'),                                     // 
-    ("dev_jquery_ui", '\u{e754}'),                                  // 
-    ("dev_komodo", '\u{e792}'),                                     // 
-    ("dev_krakenjs", '\u{e785}'),                                   // 
+    ("dev_json", '\u{e80b}'),                                       // 
+    ("dev_jule", '\u{e80c}'),                                       // 
+    ("dev_julia", '\u{e80d}'),                                      // 
+    ("dev_junit", '\u{e80e}'),                                      // 
+    ("dev_jupyter", '\u{e80f}'),                                    // 
+    ("dev_k3os", '\u{e810}'),                                       // 
+    ("dev_k3s", '\u{e811}'),                                        // 
+    ("dev_k6", '\u{e812}'),                                         // 
+    ("dev_kaggle", '\u{e813}'),                                     // 
+    ("dev_karatelabs", '\u{e814}'),                                 // 
+    ("dev_karma", '\u{e815}'),                                      // 
+    ("dev_kdeneon", '\u{e816}'),                                    // 
+    ("dev_keras", '\u{e817}'),                                      // 
+    ("dev_kibana", '\u{e818}'),                                     // 
+    ("dev_knexjs", '\u{e819}'),                                     // 
+    ("dev_knockout", '\u{e81a}'),                                   // 
+    ("dev_kotlin", '\u{e81b}'),                                     // 
+    ("dev_krakenjs", '\u{e784}'),                                   // 
     ("dev_krakenjs_badge", '\u{e784}'),                             // 
+    ("dev_ktor", '\u{e81c}'),                                       // 
+    ("dev_kubernetes", '\u{e81d}'),                                 // 
+    ("dev_labview", '\u{e81e}'),                                    // 
     ("dev_laravel", '\u{e73f}'),                                    // 
+    ("dev_latex", '\u{e81f}'),                                      // 
     ("dev_less", '\u{e758}'),                                       // 
+    ("dev_linkedin", '\u{e820}'),                                   // 
     ("dev_linux", '\u{e712}'),                                      // 
+    ("dev_liquibase", '\u{e821}'),                                  // 
+    ("dev_livewire", '\u{e822}'),                                   // 
+    ("dev_llvm", '\u{e823}'),                                       // 
+    ("dev_lodash", '\u{e824}'),                                     // 
+    ("dev_logstash", '\u{e825}'),                                   // 
+    ("dev_lua", '\u{e826}'),                                        // 
+    ("dev_lumen", '\u{e827}'),                                      // 
     ("dev_magento", '\u{e740}'),                                    // 
-    ("dev_mailchimp", '\u{e79a}'),                                  // 
+    ("dev_mariadb", '\u{e828}'),                                    // 
     ("dev_markdown", '\u{e73e}'),                                   // 
     ("dev_materializecss", '\u{e7b6}'),                             // 
+    ("dev_materialui", '\u{e829}'),                                 // 
+    ("dev_matlab", '\u{e82a}'),                                     // 
+    ("dev_matplotlib", '\u{e82b}'),                                 // 
+    ("dev_maven", '\u{e82c}'),                                      // 
+    ("dev_maya", '\u{e82d}'),                                       // 
     ("dev_meteor", '\u{e7a5}'),                                     // 
     ("dev_meteorfull", '\u{e7a6}'),                                 // 
-    ("dev_mitlicence", '\u{e78b}'),                                 // 
-    ("dev_modernizr", '\u{e720}'),                                  // 
+    ("dev_microsoftsqlserver", '\u{e82e}'),                         // 
+    ("dev_minitab", '\u{e82f}'),                                    // 
+    ("dev_mithril", '\u{e830}'),                                    // 
+    ("dev_mobx", '\u{e831}'),                                       // 
+    ("dev_mocha", '\u{e832}'),                                      // 
+    ("dev_modx", '\u{e833}'),                                       // 
+    ("dev_moleculer", '\u{e834}'),                                  // 
     ("dev_mongodb", '\u{e7a4}'),                                    // 
-    ("dev_mootools", '\u{e790}'),                                   // 
+    ("dev_mongoose", '\u{e835}'),                                   // 
+    ("dev_moodle", '\u{e836}'),                                     // 
     ("dev_mootools_badge", '\u{e78f}'),                             // 
     ("dev_mozilla", '\u{e786}'),                                    // 
-    ("dev_msql_server", '\u{e77c}'),                                // 
+    ("dev_msdos", '\u{e837}'),                                      // 
     ("dev_mysql", '\u{e704}'),                                      // 
-    ("dev_nancy", '\u{e766}'),                                      // 
-    ("dev_netbeans", '\u{e79b}'),                                   // 
-    ("dev_netmagazine", '\u{e72e}'),                                // 
+    ("dev_nano", '\u{e838}'),                                       // 
+    ("dev_neo4j", '\u{e839}'),                                      // 
+    ("dev_neovim", '\u{e83a}'),                                     // 
+    ("dev_nestjs", '\u{e83b}'),                                     // 
+    ("dev_netlify", '\u{e83c}'),                                    // 
+    ("dev_networkx", '\u{e83d}'),                                   // 
+    ("dev_nextjs", '\u{e83e}'),                                     // 
     ("dev_nginx", '\u{e776}'),                                      // 
+    ("dev_ngrx", '\u{e83f}'),                                       // 
+    ("dev_nhibernate", '\u{e840}'),                                 // 
+    ("dev_nim", '\u{e841}'),                                        // 
+    ("dev_nimble", '\u{e842}'),                                     // 
+    ("dev_nixos", '\u{e843}'),                                      // 
     ("dev_nodejs", '\u{e719}'),                                     // 
     ("dev_nodejs_small", '\u{e718}'),                               // 
+    ("dev_nodemon", '\u{e844}'),                                    // 
+    ("dev_nodewebkit", '\u{e845}'),                                 // 
+    ("dev_nomad", '\u{e846}'),                                      // 
+    ("dev_norg", '\u{e847}'),                                       // 
+    ("dev_notion", '\u{e848}'),                                     // 
     ("dev_npm", '\u{e71e}'),                                        // 
-    ("dev_onedrive", '\u{e762}'),                                   // 
-    ("dev_openshift", '\u{e7b7}'),                                  // 
-    ("dev_opensource", '\u{e771}'),                                 // 
+    ("dev_nuget", '\u{e849}'),                                      // 
+    ("dev_numpy", '\u{e84a}'),                                      // 
+    ("dev_nuxtjs", '\u{e84b}'),                                     // 
+    ("dev_oauth", '\u{e84c}'),                                      // 
+    ("dev_objectivec", '\u{e84d}'),                                 // 
+    ("dev_ocaml", '\u{e84e}'),                                      // 
+    ("dev_ohmyzsh", '\u{e84f}'),                                    // 
+    ("dev_okta", '\u{e850}'),                                       // 
+    ("dev_openal", '\u{e851}'),                                     // 
+    ("dev_openapi", '\u{e852}'),                                    // 
+    ("dev_opencl", '\u{e853}'),                                     // 
+    ("dev_opencv", '\u{e854}'),                                     // 
+    ("dev_opengl", '\u{e855}'),                                     // 
+    ("dev_openstack", '\u{e856}'),                                  // 
+    ("dev_opensuse", '\u{e857}'),                                   // 
+    ("dev_opentelemetry", '\u{e858}'),                              // 
     ("dev_opera", '\u{e746}'),                                      // 
+    ("dev_oracle", '\u{e859}'),                                     // 
+    ("dev_ory", '\u{e85a}'),                                        // 
+    ("dev_p5js", '\u{e85b}'),                                       // 
+    ("dev_packer", '\u{e85c}'),                                     // 
+    ("dev_pandas", '\u{e85d}'),                                     // 
     ("dev_perl", '\u{e769}'),                                       // 
-    ("dev_phonegap", '\u{e730}'),                                   // 
+    ("dev_pfsense", '\u{e85e}'),                                    // 
+    ("dev_phalcon", '\u{e85f}'),                                    // 
+    ("dev_phoenix", '\u{e860}'),                                    // 
+    ("dev_photonengine", '\u{e861}'),                               // 
     ("dev_photoshop", '\u{e7b8}'),                                  // 
     ("dev_php", '\u{e73d}'),                                        // 
+    ("dev_phpstorm", '\u{e862}'),                                   // 
+    ("dev_playwright", '\u{e863}'),                                 // 
+    ("dev_plotly", '\u{e864}'),                                     // 
+    ("dev_pnpm", '\u{e865}'),                                       // 
+    ("dev_podman", '\u{e866}'),                                     // 
+    ("dev_poetry", '\u{e867}'),                                     // 
+    ("dev_polygon", '\u{e868}'),                                    // 
+    ("dev_portainer", '\u{e869}'),                                  // 
+    ("dev_postcss", '\u{e86a}'),                                    // 
     ("dev_postgresql", '\u{e76e}'),                                 // 
+    ("dev_postman", '\u{e86b}'),                                    // 
+    ("dev_powershell", '\u{e86c}'),                                 // 
+    ("dev_premierepro", '\u{e86d}'),                                // 
+    ("dev_prisma", '\u{e86e}'),                                     // 
+    ("dev_processing", '\u{e86f}'),                                 // 
     ("dev_prolog", '\u{e7a1}'),                                     // 
+    ("dev_prometheus", '\u{e870}'),                                 // 
+    ("dev_protractor", '\u{e871}'),                                 // 
+    ("dev_pulsar", '\u{e872}'),                                     // 
+    ("dev_pulumi", '\u{e873}'),                                     // 
+    ("dev_puppeteer", '\u{e874}'),                                  // 
+    ("dev_purescript", '\u{e875}'),                                 // 
+    ("dev_putty", '\u{e876}'),                                      // 
+    ("dev_pycharm", '\u{e877}'),                                    // 
+    ("dev_pypi", '\u{e878}'),                                       // 
+    ("dev_pyscript", '\u{e879}'),                                   // 
+    ("dev_pytest", '\u{e87a}'),                                     // 
     ("dev_python", '\u{e73c}'),                                     // 
-    ("dev_rackspace", '\u{e7b9}'),                                  // 
-    ("dev_raphael", '\u{e75f}'),                                    // 
-    ("dev_rasberry_pi", '\u{e722}'),                                // 
+    ("dev_pytorch", '\u{e87b}'),                                    // 
+    ("dev_qodana", '\u{e87c}'),                                     // 
+    ("dev_qt", '\u{e87d}'),                                         // 
+    ("dev_quarkus", '\u{e87e}'),                                    // 
+    ("dev_quasar", '\u{e87f}'),                                     // 
+    ("dev_qwik", '\u{e880}'),                                       // 
+    ("dev_r", '\u{e881}'),                                          // 
+    ("dev_rabbitmq", '\u{e882}'),                                   // 
+    ("dev_rails", '\u{e73b}'),                                      // 
+    ("dev_railway", '\u{e883}'),                                    // 
+    ("dev_rancher", '\u{e884}'),                                    // 
+    ("dev_raspberry_pi", '\u{e722}'),                               // 
+    ("dev_reach", '\u{e885}'),                                      // 
     ("dev_react", '\u{e7ba}'),                                      // 
+    ("dev_reactbootstrap", '\u{e886}'),                             // 
+    ("dev_reactnavigation", '\u{e887}'),                            // 
+    ("dev_reactrouter", '\u{e888}'),                                // 
+    ("dev_readthedocs", '\u{e889}'),                                // 
+    ("dev_realm", '\u{e88a}'),                                      // 
+    ("dev_rect", '\u{e88b}'),                                       // 
     ("dev_redhat", '\u{e7bb}'),                                     // 
     ("dev_redis", '\u{e76d}'),                                      // 
+    ("dev_redux", '\u{e88c}'),                                      // 
+    ("dev_renpy", '\u{e88d}'),                                      // 
+    ("dev_replit", '\u{e88e}'),                                     // 
     ("dev_requirejs", '\u{e770}'),                                  // 
-    ("dev_responsive", '\u{e797}'),                                 // 
+    ("dev_rider", '\u{e88f}'),                                      // 
+    ("dev_rocksdb", '\u{e890}'),                                    // 
+    ("dev_rockylinux", '\u{e891}'),                                 // 
+    ("dev_rollup", '\u{e892}'),                                     // 
+    ("dev_ros", '\u{e893}'),                                        // 
+    ("dev_rspec", '\u{e894}'),                                      // 
+    ("dev_rstudio", '\u{e895}'),                                    // 
     ("dev_ruby", '\u{e739}'),                                       // 
     ("dev_ruby_on_rails", '\u{e73b}'),                              // 
     ("dev_ruby_rough", '\u{e791}'),                                 // 
+    ("dev_rubymine", '\u{e896}'),                                   // 
     ("dev_rust", '\u{e7a8}'),                                       // 
+    ("dev_rxjs", '\u{e897}'),                                       // 
     ("dev_safari", '\u{e748}'),                                     // 
+    ("dev_salesforce", '\u{e898}'),                                 // 
+    ("dev_sanity", '\u{e899}'),                                     // 
     ("dev_sass", '\u{e74b}'),                                       // 
     ("dev_scala", '\u{e737}'),                                      // 
-    ("dev_scriptcs", '\u{e7bc}'),                                   // 
-    ("dev_scrum", '\u{e7a0}'),                                      // 
-    ("dev_senchatouch", '\u{e78c}'),                                // 
-    ("dev_sizzlejs", '\u{e788}'),                                   // 
+    ("dev_scalingo", '\u{e89a}'),                                   // 
+    ("dev_scikitlearn", '\u{e89b}'),                                // 
+    ("dev_sdl", '\u{e89c}'),                                        // 
+    ("dev_selenium", '\u{e89d}'),                                   // 
+    ("dev_sema", '\u{e89e}'),                                       // 
+    ("dev_sentry", '\u{e89f}'),                                     // 
+    ("dev_sequelize", '\u{e8a0}'),                                  // 
+    ("dev_shopware", '\u{e8a1}'),                                   // 
+    ("dev_shotgrid", '\u{e8a2}'),                                   // 
+    ("dev_sketch", '\u{e8a3}'),                                     // 
+    ("dev_slack", '\u{e8a4}'),                                      // 
     ("dev_smashing_magazine", '\u{e72d}'),                          // 
-    ("dev_snap_svg", '\u{e75e}'),                                   // 
-    ("dev_sqllite", '\u{e7c4}'),                                    // 
+    ("dev_socketio", '\u{e8a5}'),                                   // 
+    ("dev_solidity", '\u{e8a6}'),                                   // 
+    ("dev_solidjs", '\u{e8a7}'),                                    // 
+    ("dev_sonarqube", '\u{e8a8}'),                                  // 
+    ("dev_sourcetree", '\u{e8a9}'),                                 // 
+    ("dev_spack", '\u{e8aa}'),                                      // 
+    ("dev_splunk", '\u{e8ab}'),                                     // 
+    ("dev_spring", '\u{e8ac}'),                                     // 
+    ("dev_spss", '\u{e8ad}'),                                       // 
+    ("dev_spyder", '\u{e8ae}'),                                     // 
+    ("dev_sqlalchemy", '\u{e8af}'),                                 // 
+    ("dev_sqldeveloper", '\u{e8b0}'),                               // 
+    ("dev_sqlite", '\u{e7c4}'),                                     // 
+    ("dev_ssh", '\u{e8b1}'),                                        // 
     ("dev_stackoverflow", '\u{e710}'),                              // 
-    ("dev_streamline", '\u{e705}'),                                 // 
+    ("dev_stata", '\u{e8b2}'),                                      // 
+    ("dev_storybook", '\u{e8b3}'),                                  // 
+    ("dev_streamlit", '\u{e8b4}'),                                  // 
     ("dev_stylus", '\u{e759}'),                                     // 
     ("dev_sublime", '\u{e7aa}'),                                    // 
+    ("dev_subversion", '\u{e8b5}'),                                 // 
+    ("dev_supabase", '\u{e8b6}'),                                   // 
+    ("dev_svelte", '\u{e8b7}'),                                     // 
+    ("dev_swagger", '\u{e8b8}'),                                    // 
     ("dev_swift", '\u{e755}'),                                      // 
-    ("dev_symfony", '\u{e756}'),                                    // 
+    ("dev_swiper", '\u{e8b9}'),                                     // 
+    ("dev_symfony", '\u{e757}'),                                    // 
     ("dev_symfony_badge", '\u{e757}'),                              // 
-    ("dev_techcrunch", '\u{e72c}'),                                 // 
+    ("dev_tailwindcss", '\u{e8ba}'),                                // 
+    ("dev_tauri", '\u{e8bb}'),                                      // 
+    ("dev_tensorflow", '\u{e8bc}'),                                 // 
     ("dev_terminal", '\u{e795}'),                                   // 
-    ("dev_terminal_badge", '\u{e7a2}'),                             // 
+    ("dev_terraform", '\u{e8bd}'),                                  // 
+    ("dev_tex", '\u{e8be}'),                                        // 
+    ("dev_thealgorithms", '\u{e8bf}'),                              // 
+    ("dev_threedsmax", '\u{e8c0}'),                                 // 
+    ("dev_threejs", '\u{e8c1}'),                                    // 
+    ("dev_titaniumsdk", '\u{e8c2}'),                                // 
+    ("dev_tomcat", '\u{e8c3}'),                                     // 
+    ("dev_tortoisegit", '\u{e8c4}'),                                // 
+    ("dev_towergit", '\u{e8c5}'),                                   // 
+    ("dev_traefikmesh", '\u{e8c6}'),                                // 
+    ("dev_traefikproxy", '\u{e8c7}'),                               // 
     ("dev_travis", '\u{e77e}'),                                     // 
     ("dev_trello", '\u{e75a}'),                                     // 
+    ("dev_trpc", '\u{e8c8}'),                                       // 
+    ("dev_twitter", '\u{e8c9}'),                                    // 
+    ("dev_typescript", '\u{e8ca}'),                                 // 
     ("dev_typo3", '\u{e772}'),                                      // 
     ("dev_ubuntu", '\u{e73a}'),                                     // 
-    ("dev_uikit", '\u{e773}'),                                      // 
+    ("dev_uml", '\u{e8cb}'),                                        // 
+    ("dev_unifiedmodelinglanguage", '\u{e8cb}'),                    // 
+    ("dev_unity", '\u{e721}'),                                      // 
     ("dev_unity_small", '\u{e721}'),                                // 
+    ("dev_unix", '\u{e8cc}'),                                       // 
+    ("dev_unrealengine", '\u{e8cd}'),                               // 
+    ("dev_uwsgi", '\u{e8ce}'),                                      // 
+    ("dev_v8", '\u{e8cf}'),                                         // 
+    ("dev_vagrant", '\u{e8d0}'),                                    // 
+    ("dev_vala", '\u{e8d1}'),                                       // 
+    ("dev_vault", '\u{e8d2}'),                                      // 
+    ("dev_vercel", '\u{e8d3}'),                                     // 
+    ("dev_vertx", '\u{e8d4}'),                                      // 
     ("dev_vim", '\u{e7c5}'),                                        // 
+    ("dev_visualbasic", '\u{e8d5}'),                                // 
     ("dev_visualstudio", '\u{e70c}'),                               // 
-    ("dev_w3c", '\u{e76c}'),                                        // 
-    ("dev_webplatform", '\u{e76f}'),                                // 
+    ("dev_vite", '\u{e8d6}'),                                       // 
+    ("dev_vitejs", '\u{e8d7}'),                                     // 
+    ("dev_vitess", '\u{e8d8}'),                                     // 
+    ("dev_vitest", '\u{e8d9}'),                                     // 
+    ("dev_vscode", '\u{e8da}'),                                     // 
+    ("dev_vsphere", '\u{e8db}'),                                    // 
+    ("dev_vuejs", '\u{e8dc}'),                                      // 
+    ("dev_vuestorefront", '\u{e8dd}'),                              // 
+    ("dev_vuetify", '\u{e8de}'),                                    // 
+    ("dev_vyper", '\u{e8df}'),                                      // 
+    ("dev_wasm", '\u{e8e0}'),                                       // 
+    ("dev_webflow", '\u{e8e1}'),                                    // 
+    ("dev_weblate", '\u{e8e2}'),                                    // 
+    ("dev_webpack", '\u{e8e3}'),                                    // 
+    ("dev_webstorm", '\u{e8e4}'),                                   // 
     ("dev_windows", '\u{e70f}'),                                    // 
+    ("dev_windows11", '\u{e8e5}'),                                  // 
+    ("dev_woocommerce", '\u{e8e6}'),                                // 
     ("dev_wordpress", '\u{e70b}'),                                  // 
-    ("dev_yahoo", '\u{e715}'),                                      // 
-    ("dev_yahoo_small", '\u{e72b}'),                                // 
-    ("dev_yeoman", '\u{e77a}'),                                     // 
+    ("dev_xamarin", '\u{e8e7}'),                                    // 
+    ("dev_xcode", '\u{e8e8}'),                                      // 
+    ("dev_xd", '\u{e8e9}'),                                         // 
+    ("dev_xml", '\u{e8ea}'),                                        // 
+    ("dev_yaml", '\u{e8eb}'),                                       // 
+    ("dev_yarn", '\u{e8ec}'),                                       // 
     ("dev_yii", '\u{e782}'),                                        // 
+    ("dev_yugabytedb", '\u{e8ed}'),                                 // 
+    ("dev_yunohost", '\u{e8ee}'),                                   // 
     ("dev_zend", '\u{e778}'),                                       // 
+    ("dev_zig", '\u{e8ef}'),                                        // 
     ("fa_500px", '\u{f26e}'),                                       // 
+    ("fa_accessible_icon", '\u{f29b}'),                             // 
+    ("fa_accusoft", '\u{f0b7}'),                                    // 
     ("fa_address_book", '\u{f2b9}'),                                // 
     ("fa_address_book_o", '\u{f2ba}'),                              // 
     ("fa_address_card", '\u{f2bb}'),                                // 
     ("fa_address_card_o", '\u{f2bc}'),                              // 
     ("fa_adjust", '\u{f042}'),                                      // 
     ("fa_adn", '\u{f170}'),                                         // 
+    ("fa_adversal", '\u{f0b8}'),                                    // 
+    ("fa_affiliatetheme", '\u{f0b9}'),                              // 
+    ("fa_airbnb", '\u{ef93}'),                                      // 
+    ("fa_algolia", '\u{f0ba}'),                                     // 
     ("fa_align_center", '\u{f037}'),                                // 
     ("fa_align_justify", '\u{f039}'),                               // 
     ("fa_align_left", '\u{f036}'),                                  // 
     ("fa_align_right", '\u{f038}'),                                 // 
+    ("fa_alipay", '\u{eebc}'),                                      // 
     ("fa_amazon", '\u{f270}'),                                      // 
+    ("fa_amazon_pay", '\u{ed56}'),                                  // 
     ("fa_ambulance", '\u{f0f9}'),                                   // 
     ("fa_american_sign_language_interpreting", '\u{f2a3}'),         // 
+    ("fa_amilia", '\u{f0bb}'),                                      // 
     ("fa_anchor", '\u{f13d}'),                                      // 
     ("fa_android", '\u{f17b}'),                                     // 
     ("fa_angellist", '\u{f209}'),                                   // 
@@ -636,8 +1023,21 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_angle_left", '\u{f104}'),                                  // 
     ("fa_angle_right", '\u{f105}'),                                 // 
     ("fa_angle_up", '\u{f106}'),                                    // 
+    ("fa_angles_down", '\u{f103}'),                                 // 
+    ("fa_angles_left", '\u{f100}'),                                 // 
+    ("fa_angles_right", '\u{f101}'),                                // 
+    ("fa_angles_up", '\u{f102}'),                                   // 
+    ("fa_angrycreative", '\u{f0bc}'),                               // 
+    ("fa_angular", '\u{ed4b}'),                                     // 
+    ("fa_ankh", '\u{eebd}'),                                        // 
+    ("fa_app_store", '\u{f0bd}'),                                   // 
+    ("fa_app_store_ios", '\u{f0be}'),                               // 
+    ("fa_apper", '\u{f0bf}'),                                       // 
     ("fa_apple", '\u{f179}'),                                       // 
+    ("fa_apple_pay", '\u{ed41}'),                                   // 
+    ("fa_apple_whole", '\u{ee98}'),                                 // 
     ("fa_archive", '\u{f187}'),                                     // 
+    ("fa_archway", '\u{ee20}'),                                     // 
     ("fa_area_chart", '\u{f1fe}'),                                  // 
     ("fa_arrow_circle_down", '\u{f0ab}'),                           // 
     ("fa_arrow_circle_left", '\u{f0a8}'),                           // 
@@ -648,73 +1048,206 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_arrow_circle_right", '\u{f0a9}'),                          // 
     ("fa_arrow_circle_up", '\u{f0aa}'),                             // 
     ("fa_arrow_down", '\u{f063}'),                                  // 
+    ("fa_arrow_down_1_9", '\u{f162}'),                              // 
+    ("fa_arrow_down_9_1", '\u{efb1}'),                              // 
+    ("fa_arrow_down_a_z", '\u{f15d}'),                              // 
+    ("fa_arrow_down_long", '\u{f175}'),                             // 
+    ("fa_arrow_down_short_wide", '\u{efaf}'),                       // 
+    ("fa_arrow_down_wide_short", '\u{f160}'),                       // 
+    ("fa_arrow_down_z_a", '\u{efad}'),                              // 
     ("fa_arrow_left", '\u{f060}'),                                  // 
+    ("fa_arrow_left_long", '\u{f177}'),                             // 
+    ("fa_arrow_pointer", '\u{f245}'),                               // 
     ("fa_arrow_right", '\u{f061}'),                                 // 
+    ("fa_arrow_right_arrow_left", '\u{f0ec}'),                      // 
+    ("fa_arrow_right_from_bracket", '\u{f08b}'),                    // 
+    ("fa_arrow_right_long", '\u{f178}'),                            // 
+    ("fa_arrow_right_to_bracket", '\u{f090}'),                      // 
+    ("fa_arrow_rotate_left", '\u{f0e2}'),                           // 
+    ("fa_arrow_rotate_right", '\u{f01e}'),                          // 
+    ("fa_arrow_turn_down", '\u{f149}'),                             // 
+    ("fa_arrow_turn_up", '\u{f148}'),                               // 
     ("fa_arrow_up", '\u{f062}'),                                    // 
+    ("fa_arrow_up_1_9", '\u{f163}'),                                // 
+    ("fa_arrow_up_9_1", '\u{efb2}'),                                // 
+    ("fa_arrow_up_a_z", '\u{f15e}'),                                // 
+    ("fa_arrow_up_long", '\u{f176}'),                               // 
+    ("fa_arrow_up_right_from_square", '\u{f08e}'),                  // 
+    ("fa_arrow_up_short_wide", '\u{efb0}'),                         // 
+    ("fa_arrow_up_wide_short", '\u{f161}'),                         // 
+    ("fa_arrow_up_z_a", '\u{efae}'),                                // 
     ("fa_arrows", '\u{f047}'),                                      // 
     ("fa_arrows_alt", '\u{f0b2}'),                                  // 
     ("fa_arrows_h", '\u{f07e}'),                                    // 
+    ("fa_arrows_left_right", '\u{f07e}'),                           // 
+    ("fa_arrows_rotate", '\u{f021}'),                               // 
+    ("fa_arrows_up_down", '\u{f07d}'),                              // 
+    ("fa_arrows_up_down_left_right", '\u{f047}'),                   // 
     ("fa_arrows_v", '\u{f07d}'),                                    // 
+    ("fa_artstation", '\u{ef31}'),                                  // 
+    ("fa_asl_interpreting", '\u{f2a3}'),                            // 
     ("fa_assistive_listening_systems", '\u{f2a2}'),                 // 
     ("fa_asterisk", '\u{f069}'),                                    // 
+    ("fa_asymmetrik", '\u{f0cf}'),                                  // 
     ("fa_at", '\u{f1fa}'),                                          // 
+    ("fa_atlassian", '\u{ef32}'),                                   // 
+    ("fa_atom", '\u{ee99}'),                                        // 
+    ("fa_audible", '\u{f0df}'),                                     // 
     ("fa_audio_description", '\u{f29e}'),                           // 
+    ("fa_automobile", '\u{f1b9}'),                                  // 
+    ("fa_autoprefixer", '\u{ed47}'),                                // 
+    ("fa_avianex", '\u{efc2}'),                                     // 
+    ("fa_aviato", '\u{ed4c}'),                                      // 
+    ("fa_award", '\u{ee22}'),                                       // 
+    ("fa_aws", '\u{f0ef}'),                                         // 
+    ("fa_baby", '\u{ef33}'),                                        // 
+    ("fa_baby_carriage", '\u{ef34}'),                               // 
     ("fa_backward", '\u{f04a}'),                                    // 
+    ("fa_backward_fast", '\u{f049}'),                               // 
+    ("fa_backward_step", '\u{f048}'),                               // 
+    ("fa_bacon", '\u{ef77}'),                                       // 
+    ("fa_bag_shopping", '\u{f290}'),                                // 
+    ("fa_bahai", '\u{eecb}'),                                       // 
     ("fa_balance_scale", '\u{f24e}'),                               // 
     ("fa_ban", '\u{f05e}'),                                         // 
+    ("fa_ban_smoking", '\u{ee16}'),                                 // 
+    ("fa_bandage", '\u{ed74}'),                                     // 
     ("fa_bandcamp", '\u{f2d5}'),                                    // 
+    ("fa_bank", '\u{f19c}'),                                        // 
     ("fa_bar_chart", '\u{f080}'),                                   // 
+    ("fa_bar_chart_o", '\u{f080}'),                                 // 
     ("fa_barcode", '\u{f02a}'),                                     // 
     ("fa_bars", '\u{f0c9}'),                                        // 
+    ("fa_bars_progress", '\u{ef8f}'),                               // 
+    ("fa_bars_staggered", '\u{ee19}'),                              // 
+    ("fa_baseball", '\u{ed5c}'),                                    // 
+    ("fa_baseball_bat_ball", '\u{ed5b}'),                           // 
+    ("fa_basket_shopping", '\u{f291}'),                             // 
+    ("fa_basketball", '\u{ed5d}'),                                  // 
     ("fa_bath", '\u{f2cd}'),                                        // 
+    ("fa_bathtub", '\u{f2cd}'),                                     // 
+    ("fa_battery", '\u{f240}'),                                     // 
+    ("fa_battery_0", '\u{f244}'),                                   // 
+    ("fa_battery_1", '\u{f243}'),                                   // 
+    ("fa_battery_2", '\u{f242}'),                                   // 
+    ("fa_battery_3", '\u{f241}'),                                   // 
+    ("fa_battery_4", '\u{f240}'),                                   // 
     ("fa_battery_empty", '\u{f244}'),                               // 
     ("fa_battery_full", '\u{f240}'),                                // 
     ("fa_battery_half", '\u{f242}'),                                // 
     ("fa_battery_quarter", '\u{f243}'),                             // 
     ("fa_battery_three_quarters", '\u{f241}'),                      // 
+    ("fa_battle_net", '\u{ef94}'),                                  // 
     ("fa_bed", '\u{f236}'),                                         // 
+    ("fa_bed_pulse", '\u{ed8a}'),                                   // 
     ("fa_beer", '\u{f0fc}'),                                        // 
+    ("fa_beer_mug_empty", '\u{f0fc}'),                              // 
     ("fa_behance", '\u{f1b4}'),                                     // 
     ("fa_behance_square", '\u{f1b5}'),                              // 
     ("fa_bell", '\u{f0f3}'),                                        // 
+    ("fa_bell_concierge", '\u{ee2b}'),                              // 
     ("fa_bell_o", '\u{f0a2}'),                                      // 
     ("fa_bell_slash", '\u{f1f6}'),                                  // 
     ("fa_bell_slash_o", '\u{f1f7}'),                                // 
+    ("fa_bezier_curve", '\u{ee24}'),                                // 
     ("fa_bicycle", '\u{f206}'),                                     // 
+    ("fa_bimobject", '\u{f0ff}'),                                   // 
     ("fa_binoculars", '\u{f1e5}'),                                  // 
+    ("fa_biohazard", '\u{ef35}'),                                   // 
     ("fa_birthday_cake", '\u{f1fd}'),                               // 
     ("fa_bitbucket", '\u{f171}'),                                   // 
     ("fa_bitbucket_square", '\u{f172}'),                            // 
+    ("fa_bitcoin", '\u{f10f}'),                                     // 
+    ("fa_bity", '\u{f116}'),                                        // 
     ("fa_black_tie", '\u{f27e}'),                                   // 
+    ("fa_blackberry", '\u{f117}'),                                  // 
+    ("fa_blender", '\u{ede1}'),                                     // 
+    ("fa_blender_phone", '\u{eeea}'),                               // 
     ("fa_blind", '\u{f29d}'),                                       // 
+    ("fa_blog", '\u{ef36}'),                                        // 
+    ("fa_blogger", '\u{f11f}'),                                     // 
+    ("fa_blogger_b", '\u{f12f}'),                                   // 
     ("fa_bluetooth", '\u{f293}'),                                   // 
     ("fa_bluetooth_b", '\u{f294}'),                                 // 
     ("fa_bold", '\u{f032}'),                                        // 
     ("fa_bolt", '\u{f0e7}'),                                        // 
     ("fa_bomb", '\u{f1e2}'),                                        // 
+    ("fa_bone", '\u{ee9a}'),                                        // 
+    ("fa_bong", '\u{ee25}'),                                        // 
     ("fa_book", '\u{f02d}'),                                        // 
+    ("fa_book_atlas", '\u{ee21}'),                                  // 
+    ("fa_book_bible", '\u{eebe}'),                                  // 
+    ("fa_book_journal_whills", '\u{eecd}'),                         // 
+    ("fa_book_medical", '\u{ef78}'),                                // 
+    ("fa_book_open", '\u{ede2}'),                                   // 
+    ("fa_book_open_reader", '\u{ee9b}'),                            // 
+    ("fa_book_quran", '\u{eedc}'),                                  // 
+    ("fa_book_skull", '\u{eeeb}'),                                  // 
+    ("fa_book_tanakh", '\u{ef8e}'),                                 // 
     ("fa_bookmark", '\u{f02e}'),                                    // 
     ("fa_bookmark_o", '\u{f097}'),                                  // 
+    ("fa_bootstrap", '\u{ef95}'),                                   // 
+    ("fa_border_all", '\u{efa3}'),                                  // 
+    ("fa_border_none", '\u{efa4}'),                                 // 
+    ("fa_border_top_left", '\u{efa5}'),                             // 
+    ("fa_bowling_ball", '\u{ed5e}'),                                // 
+    ("fa_box", '\u{ed75}'),                                         // 
+    ("fa_box_archive", '\u{f187}'),                                 // 
+    ("fa_box_open", '\u{ed95}'),                                    // 
+    ("fa_boxes_stacked", '\u{ed76}'),                               // 
     ("fa_braille", '\u{f2a1}'),                                     // 
+    ("fa_brain", '\u{ee9c}'),                                       // 
+    ("fa_bread_slice", '\u{ef79}'),                                 // 
     ("fa_briefcase", '\u{f0b1}'),                                   // 
+    ("fa_briefcase_medical", '\u{ed77}'),                           // 
+    ("fa_broom", '\u{ede4}'),                                       // 
+    ("fa_broom_ball", '\u{ed6e}'),                                  // 
+    ("fa_brush", '\u{ee26}'),                                       // 
     ("fa_btc", '\u{f15a}'),                                         // 
+    ("fa_buffer", '\u{ef96}'),                                      // 
     ("fa_bug", '\u{f188}'),                                         // 
     ("fa_building", '\u{f1ad}'),                                    // 
+    ("fa_building_columns", '\u{f19c}'),                            // 
     ("fa_building_o", '\u{f0f7}'),                                  // 
     ("fa_bullhorn", '\u{f0a1}'),                                    // 
     ("fa_bullseye", '\u{f140}'),                                    // 
+    ("fa_burger", '\u{ef82}'),                                      // 
+    ("fa_buromobelexperte", '\u{f13f}'),                            // 
     ("fa_bus", '\u{f207}'),                                         // 
+    ("fa_bus_simple", '\u{ee27}'),                                  // 
+    ("fa_business_time", '\u{eebf}'),                               // 
+    ("fa_buy_n_large", '\u{efb6}'),                                 // 
     ("fa_buysellads", '\u{f20d}'),                                  // 
+    ("fa_cab", '\u{f1ba}'),                                         // 
+    ("fa_cable_car", '\u{ef71}'),                                   // 
+    ("fa_cake_candles", '\u{f1fd}'),                                // 
     ("fa_calculator", '\u{f1ec}'),                                  // 
     ("fa_calendar", '\u{f073}'),                                    // 
+    ("fa_calendar_check", '\u{f274}'),                              // 
     ("fa_calendar_check_o", '\u{f274}'),                            // 
+    ("fa_calendar_day", '\u{ef37}'),                                // 
+    ("fa_calendar_days", '\u{f073}'),                               // 
+    ("fa_calendar_minus", '\u{f272}'),                              // 
     ("fa_calendar_minus_o", '\u{f272}'),                            // 
     ("fa_calendar_o", '\u{f133}'),                                  // 
+    ("fa_calendar_plus", '\u{f271}'),                               // 
     ("fa_calendar_plus_o", '\u{f271}'),                             // 
     ("fa_calendar_times_o", '\u{f273}'),                            // 
+    ("fa_calendar_week", '\u{ef38}'),                               // 
+    ("fa_calendar_xmark", '\u{f273}'),                              // 
     ("fa_camera", '\u{f030}'),                                      // 
     ("fa_camera_retro", '\u{f083}'),                                // 
+    ("fa_campground", '\u{eeec}'),                                  // 
+    ("fa_canadian_maple_leaf", '\u{ef39}'),                         // 
+    ("fa_candy_cane", '\u{ef3a}'),                                  // 
+    ("fa_cannabis", '\u{ee28}'),                                    // 
+    ("fa_capsules", '\u{ed79}'),                                    // 
     ("fa_car", '\u{f1b9}'),                                         // 
+    ("fa_car_battery", '\u{ee9e}'),                                 // 
+    ("fa_car_burst", '\u{ee9f}'),                                   // 
+    ("fa_car_rear", '\u{ee9d}'),                                    // 
+    ("fa_car_side", '\u{eea0}'),                                    // 
+    ("fa_caravan", '\u{efc1}'),                                     // 
     ("fa_caret_down", '\u{f0d7}'),                                  // 
     ("fa_caret_left", '\u{f0d9}'),                                  // 
     ("fa_caret_right", '\u{f0da}'),                                 // 
@@ -723,10 +1256,18 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_caret_square_o_right", '\u{f152}'),                        // 
     ("fa_caret_square_o_up", '\u{f151}'),                           // 
     ("fa_caret_up", '\u{f0d8}'),                                    // 
+    ("fa_carrot", '\u{ef3b}'),                                      // 
     ("fa_cart_arrow_down", '\u{f218}'),                             // 
+    ("fa_cart_flatbed", '\u{ed7f}'),                                // 
+    ("fa_cart_flatbed_suitcase", '\u{ee66}'),                       // 
     ("fa_cart_plus", '\u{f217}'),                                   // 
+    ("fa_cart_shopping", '\u{f07a}'),                               // 
+    ("fa_cash_register", '\u{ef3c}'),                               // 
+    ("fa_cat", '\u{eeed}'),                                         // 
     ("fa_cc", '\u{f20a}'),                                          // 
+    ("fa_cc_amazon_pay", '\u{ed57}'),                               // 
     ("fa_cc_amex", '\u{f1f3}'),                                     // 
+    ("fa_cc_apple_pay", '\u{ed42}'),                                // 
     ("fa_cc_diners_club", '\u{f24c}'),                              // 
     ("fa_cc_discover", '\u{f1f2}'),                                 // 
     ("fa_cc_jcb", '\u{f24b}'),                                      // 
@@ -734,13 +1275,36 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_cc_paypal", '\u{f1f4}'),                                   // 
     ("fa_cc_stripe", '\u{f1f5}'),                                   // 
     ("fa_cc_visa", '\u{f1f0}'),                                     // 
+    ("fa_centercode", '\u{f14f}'),                                  // 
+    ("fa_centos", '\u{ef3d}'),                                      // 
     ("fa_certificate", '\u{f0a3}'),                                 // 
+    ("fa_chain", '\u{f0c1}'),                                       // 
     ("fa_chain_broken", '\u{f127}'),                                // 
+    ("fa_chair", '\u{eeee}'),                                       // 
+    ("fa_chalkboard", '\u{ede5}'),                                  // 
+    ("fa_chalkboard_user", '\u{ede6}'),                             // 
+    ("fa_champagne_glasses", '\u{ef49}'),                           // 
+    ("fa_charging_station", '\u{eea1}'),                            // 
+    ("fa_chart_area", '\u{f1fe}'),                                  // 
+    ("fa_chart_bar", '\u{f080}'),                                   // 
+    ("fa_chart_line", '\u{f201}'),                                  // 
+    ("fa_chart_pie", '\u{f200}'),                                   // 
     ("fa_check", '\u{f00c}'),                                       // 
     ("fa_check_circle", '\u{f058}'),                                // 
     ("fa_check_circle_o", '\u{f05d}'),                              // 
+    ("fa_check_double", '\u{ee29}'),                                // 
     ("fa_check_square", '\u{f14a}'),                                // 
     ("fa_check_square_o", '\u{f046}'),                              // 
+    ("fa_check_to_slot", '\u{ef2f}'),                               // 
+    ("fa_cheese", '\u{ef7a}'),                                      // 
+    ("fa_chess", '\u{ed5f}'),                                       // 
+    ("fa_chess_bishop", '\u{ed60}'),                                // 
+    ("fa_chess_board", '\u{ed61}'),                                 // 
+    ("fa_chess_king", '\u{ed62}'),                                  // 
+    ("fa_chess_knight", '\u{ed63}'),                                // 
+    ("fa_chess_pawn", '\u{ed64}'),                                  // 
+    ("fa_chess_queen", '\u{ed65}'),                                 // 
+    ("fa_chess_rook", '\u{ed66}'),                                  // 
     ("fa_chevron_circle_down", '\u{f13a}'),                         // 
     ("fa_chevron_circle_left", '\u{f137}'),                         // 
     ("fa_chevron_circle_right", '\u{f138}'),                        // 
@@ -751,72 +1315,249 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_chevron_up", '\u{f077}'),                                  // 
     ("fa_child", '\u{f1ae}'),                                       // 
     ("fa_chrome", '\u{f268}'),                                      // 
+    ("fa_chromecast", '\u{ef97}'),                                  // 
+    ("fa_church", '\u{ede7}'),                                      // 
     ("fa_circle", '\u{f111}'),                                      // 
+    ("fa_circle_arrow_down", '\u{f0ab}'),                           // 
+    ("fa_circle_arrow_left", '\u{f0a8}'),                           // 
+    ("fa_circle_arrow_right", '\u{f0a9}'),                          // 
+    ("fa_circle_arrow_up", '\u{f0aa}'),                             // 
+    ("fa_circle_check", '\u{f05d}'),                                // 
+    ("fa_circle_chevron_down", '\u{f13a}'),                         // 
+    ("fa_circle_chevron_left", '\u{f137}'),                         // 
+    ("fa_circle_chevron_right", '\u{f138}'),                        // 
+    ("fa_circle_chevron_up", '\u{f139}'),                           // 
+    ("fa_circle_dollar_to_slot", '\u{ed98}'),                       // 
+    ("fa_circle_dot", '\u{f192}'),                                  // 
+    ("fa_circle_down", '\u{f01a}'),                                 // 
+    ("fa_circle_exclamation", '\u{f06a}'),                          // 
+    ("fa_circle_h", '\u{ed83}'),                                    // 
+    ("fa_circle_half_stroke", '\u{f042}'),                          // 
+    ("fa_circle_info", '\u{f05a}'),                                 // 
+    ("fa_circle_left", '\u{f190}'),                                 // 
+    ("fa_circle_minus", '\u{f056}'),                                // 
+    ("fa_circle_notch", '\u{f1ce}'),                                // 
     ("fa_circle_o", '\u{f10c}'),                                    // 
     ("fa_circle_o_notch", '\u{f1ce}'),                              // 
+    ("fa_circle_pause", '\u{f28b}'),                                // 
+    ("fa_circle_play", '\u{f144}'),                                 // 
+    ("fa_circle_plus", '\u{f055}'),                                 // 
+    ("fa_circle_question", '\u{f059}'),                             // 
+    ("fa_circle_radiation", '\u{ef5b}'),                            // 
+    ("fa_circle_right", '\u{f18e}'),                                // 
+    ("fa_circle_stop", '\u{f28d}'),                                 // 
     ("fa_circle_thin", '\u{f1db}'),                                 // 
+    ("fa_circle_up", '\u{f01b}'),                                   // 
+    ("fa_circle_user", '\u{f2bd}'),                                 // 
+    ("fa_circle_xmark", '\u{f05c}'),                                // 
+    ("fa_city", '\u{eec0}'),                                        // 
     ("fa_clipboard", '\u{f0ea}'),                                   // 
+    ("fa_clipboard_alt", '\u{f07f}'),                               // 
+    ("fa_clipboard_check", '\u{ed7a}'),                             // 
+    ("fa_clipboard_list", '\u{ed7b}'),                              // 
+    ("fa_clipboard_user", '\u{ef7c}'),                              // 
+    ("fa_clock", '\u{f017}'),                                       // 
     ("fa_clock_o", '\u{f017}'),                                     // 
+    ("fa_clock_rotate_left", '\u{f1da}'),                           // 
     ("fa_clone", '\u{f24d}'),                                       // 
+    ("fa_close", '\u{f00d}'),                                       // 
+    ("fa_closed_captioning", '\u{f20a}'),                           // 
     ("fa_cloud", '\u{f0c2}'),                                       // 
+    ("fa_cloud_arrow_down", '\u{f0ed}'),                            // 
+    ("fa_cloud_arrow_up", '\u{f0ee}'),                              // 
+    ("fa_cloud_bolt", '\u{ef2c}'),                                  // 
     ("fa_cloud_download", '\u{f0ed}'),                              // 
+    ("fa_cloud_meatball", '\u{ef1a}'),                              // 
+    ("fa_cloud_moon", '\u{eeef}'),                                  // 
+    ("fa_cloud_moon_rain", '\u{ef1b}'),                             // 
+    ("fa_cloud_rain", '\u{ef1c}'),                                  // 
+    ("fa_cloud_showers_heavy", '\u{ef1d}'),                         // 
+    ("fa_cloud_sun", '\u{eef0}'),                                   // 
+    ("fa_cloud_sun_rain", '\u{ef1e}'),                              // 
     ("fa_cloud_upload", '\u{f0ee}'),                                // 
+    ("fa_cloudscale", '\u{f15f}'),                                  // 
+    ("fa_cloudsmith", '\u{f167}'),                                  // 
+    ("fa_cloudversify", '\u{f16f}'),                                // 
+    ("fa_cny", '\u{f157}'),                                         // 
     ("fa_code", '\u{f121}'),                                        // 
+    ("fa_code_branch", '\u{f126}'),                                 // 
+    ("fa_code_commit", '\u{f172}'),                                 // 
     ("fa_code_fork", '\u{f126}'),                                   // 
+    ("fa_code_merge", '\u{f17f}'),                                  // 
     ("fa_codepen", '\u{f1cb}'),                                     // 
     ("fa_codiepie", '\u{f284}'),                                    // 
     ("fa_coffee", '\u{f0f4}'),                                      // 
     ("fa_cog", '\u{f013}'),                                         // 
     ("fa_cogs", '\u{f085}'),                                        // 
+    ("fa_coins", '\u{ede8}'),                                       // 
     ("fa_columns", '\u{f0db}'),                                     // 
     ("fa_comment", '\u{f075}'),                                     // 
+    ("fa_comment_dollar", '\u{eec1}'),                              // 
+    ("fa_comment_dots", '\u{f27b}'),                                // 
+    ("fa_comment_medical", '\u{ef7d}'),                             // 
     ("fa_comment_o", '\u{f0e5}'),                                   // 
+    ("fa_comment_slash", '\u{ed96}'),                               // 
+    ("fa_comment_sms", '\u{ef68}'),                                 // 
     ("fa_commenting", '\u{f27a}'),                                  // 
     ("fa_commenting_o", '\u{f27b}'),                                // 
     ("fa_comments", '\u{f086}'),                                    // 
+    ("fa_comments_dollar", '\u{eec2}'),                             // 
     ("fa_comments_o", '\u{f0e6}'),                                  // 
+    ("fa_compact_disc", '\u{ede9}'),                                // 
     ("fa_compass", '\u{f14e}'),                                     // 
+    ("fa_compass_drafting", '\u{ee31}'),                            // 
     ("fa_compress", '\u{f066}'),                                    // 
+    ("fa_computer_mouse", '\u{efba}'),                              // 
+    ("fa_confluence", '\u{ef3f}'),                                  // 
     ("fa_connectdevelop", '\u{f20e}'),                              // 
     ("fa_contao", '\u{f26d}'),                                      // 
+    ("fa_cookie", '\u{ee2c}'),                                      // 
+    ("fa_cookie_bite", '\u{ee2d}'),                                 // 
+    ("fa_copy", '\u{f0c5}'),                                        // 
     ("fa_copyright", '\u{f1f9}'),                                   // 
+    ("fa_cotton_bureau", '\u{efb5}'),                               // 
+    ("fa_couch", '\u{ed97}'),                                       // 
+    ("fa_cow", '\u{eef1}'),                                         // 
+    ("fa_cpanel", '\u{f18f}'),                                      // 
     ("fa_creative_commons", '\u{f25e}'),                            // 
+    ("fa_creative_commons_by", '\u{edb1}'),                         // 
+    ("fa_creative_commons_nc", '\u{edb2}'),                         // 
+    ("fa_creative_commons_nc_eu", '\u{edb3}'),                      // 
+    ("fa_creative_commons_nc_jp", '\u{edb4}'),                      // 
+    ("fa_creative_commons_nd", '\u{edb5}'),                         // 
+    ("fa_creative_commons_pd", '\u{edb6}'),                         // 
+    ("fa_creative_commons_pd_alt", '\u{edb7}'),                     // 
+    ("fa_creative_commons_remix", '\u{edb8}'),                      // 
+    ("fa_creative_commons_sa", '\u{edb9}'),                         // 
+    ("fa_creative_commons_sampling", '\u{edba}'),                   // 
+    ("fa_creative_commons_sampling_plus", '\u{edbb}'),              // 
+    ("fa_creative_commons_share", '\u{edbc}'),                      // 
+    ("fa_creative_commons_zero", '\u{edbd}'),                       // 
     ("fa_credit_card", '\u{f09d}'),                                 // 
     ("fa_credit_card_alt", '\u{f283}'),                             // 
+    ("fa_critical_role", '\u{eef2}'),                               // 
     ("fa_crop", '\u{f125}'),                                        // 
+    ("fa_crop_simple", '\u{ee2e}'),                                 // 
+    ("fa_cross", '\u{eec3}'),                                       // 
     ("fa_crosshairs", '\u{f05b}'),                                  // 
+    ("fa_crow", '\u{edea}'),                                        // 
+    ("fa_crown", '\u{edeb}'),                                       // 
+    ("fa_crutch", '\u{ef7e}'),                                      // 
     ("fa_css3", '\u{f13c}'),                                        // 
+    ("fa_css3_alt", '\u{f19f}'),                                    // 
     ("fa_cube", '\u{f1b2}'),                                        // 
     ("fa_cubes", '\u{f1b3}'),                                       // 
+    ("fa_cut", '\u{f0c4}'),                                         // 
     ("fa_cutlery", '\u{f0f5}'),                                     // 
+    ("fa_cuttlefish", '\u{f1af}'),                                  // 
+    ("fa_d_and_d", '\u{f1bf}'),                                     // 
+    ("fa_d_and_d_beyond", '\u{eef3}'),                              // 
+    ("fa_dashboard", '\u{f0e4}'),                                   // 
     ("fa_dashcube", '\u{f210}'),                                    // 
     ("fa_database", '\u{f1c0}'),                                    // 
     ("fa_deaf", '\u{f2a4}'),                                        // 
+    ("fa_deafness", '\u{f2a4}'),                                    // 
+    ("fa_dedent", '\u{f03b}'),                                      // 
+    ("fa_delete_left", '\u{ee23}'),                                 // 
     ("fa_delicious", '\u{f1a5}'),                                   // 
+    ("fa_democrat", '\u{ef1f}'),                                    // 
+    ("fa_deploydog", '\u{f1cf}'),                                   // 
+    ("fa_deskpro", '\u{f1df}'),                                     // 
     ("fa_desktop", '\u{f108}'),                                     // 
+    ("fa_dev", '\u{eef4}'),                                         // 
     ("fa_deviantart", '\u{f1bd}'),                                  // 
-    ("fa_diamond", '\u{f219}'),                                     // 
+    ("fa_dharmachakra", '\u{eec4}'),                                // 
+    ("fa_dhl", '\u{ef40}'),                                         // 
+    ("fa_diagram_project", '\u{efce}'),                             // 
+    ("fa_diamond", '\u{f29f}'),                                     // 
+    ("fa_diamond_turn_right", '\u{eea2}'),                          // 
+    ("fa_diaspora", '\u{ef41}'),                                    // 
+    ("fa_dice", '\u{edec}'),                                        // 
+    ("fa_dice_d6", '\u{eef6}'),                                     // 
+    ("fa_dice_d20", '\u{eef5}'),                                    // 
+    ("fa_dice_five", '\u{eded}'),                                   // 
+    ("fa_dice_four", '\u{edee}'),                                   // 
+    ("fa_dice_one", '\u{edef}'),                                    // 
+    ("fa_dice_six", '\u{edf0}'),                                    // 
+    ("fa_dice_three", '\u{edf1}'),                                  // 
+    ("fa_dice_two", '\u{edf2}'),                                    // 
     ("fa_digg", '\u{f1a6}'),                                        // 
+    ("fa_digital_ocean", '\u{f1ef}'),                               // 
+    ("fa_discord", '\u{f1ff}'),                                     // 
+    ("fa_discourse", '\u{f20c}'),                                   // 
+    ("fa_disease", '\u{ef7f}'),                                     // 
+    ("fa_divide", '\u{edf3}'),                                      // 
+    ("fa_dna", '\u{ed7d}'),                                         // 
+    ("fa_dochub", '\u{f20f}'),                                      // 
+    ("fa_docker", '\u{f21f}'),                                      // 
+    ("fa_dog", '\u{eef7}'),                                         // 
+    ("fa_dollar", '\u{f155}'),                                      // 
+    ("fa_dollar_sign", '\u{f155}'),                                 // 
+    ("fa_dolly", '\u{ed7e}'),                                       // 
+    ("fa_door_closed", '\u{edf4}'),                                 // 
+    ("fa_door_open", '\u{edf5}'),                                   // 
     ("fa_dot_circle_o", '\u{f192}'),                                // 
+    ("fa_dove", '\u{ed99}'),                                        // 
+    ("fa_down_left_and_up_right_to_center", '\u{ed4d}'),            // 
+    ("fa_down_long", '\u{f03f}'),                                   // 
     ("fa_download", '\u{f019}'),                                    // 
+    ("fa_draft2digital", '\u{f220}'),                               // 
+    ("fa_dragon", '\u{eef8}'),                                      // 
+    ("fa_draw_polygon", '\u{eea3}'),                                // 
     ("fa_dribbble", '\u{f17d}'),                                    // 
+    ("fa_drivers_license", '\u{f2c2}'),                             // 
+    ("fa_drivers_license_o", '\u{f2c3}'),                           // 
     ("fa_dropbox", '\u{f16b}'),                                     // 
+    ("fa_droplet", '\u{f043}'),                                     // 
+    ("fa_droplet_slash", '\u{ee8e}'),                               // 
+    ("fa_drum", '\u{ee32}'),                                        // 
+    ("fa_drum_steelpan", '\u{ee33}'),                               // 
+    ("fa_drumstick_bite", '\u{eef9}'),                              // 
     ("fa_drupal", '\u{f1a9}'),                                      // 
+    ("fa_dumbbell", '\u{ed67}'),                                    // 
+    ("fa_dumpster", '\u{ef42}'),                                    // 
+    ("fa_dumpster_fire", '\u{ef43}'),                               // 
+    ("fa_dungeon", '\u{eefa}'),                                     // 
+    ("fa_dyalog", '\u{f22f}'),                                      // 
+    ("fa_ear_deaf", '\u{f2a4}'),                                    // 
+    ("fa_ear_listen", '\u{f2a2}'),                                  // 
+    ("fa_earlybirds", '\u{f230}'),                                  // 
+    ("fa_earth_africa", '\u{ee45}'),                                // 
+    ("fa_earth_americas", '\u{ee46}'),                              // 
+    ("fa_earth_asia", '\u{ee47}'),                                  // 
+    ("fa_earth_europe", '\u{ef4b}'),                                // 
+    ("fa_ebay", '\u{edbe}'),                                        // 
     ("fa_edge", '\u{f282}'),                                        // 
+    ("fa_edit", '\u{f044}'),                                        // 
     ("fa_eercast", '\u{f2da}'),                                     // 
+    ("fa_egg", '\u{ef80}'),                                         // 
     ("fa_eject", '\u{f052}'),                                       // 
+    ("fa_elementor", '\u{ed5a}'),                                   // 
+    ("fa_ellipsis", '\u{f141}'),                                    // 
     ("fa_ellipsis_h", '\u{f141}'),                                  // 
     ("fa_ellipsis_v", '\u{f142}'),                                  // 
+    ("fa_ellipsis_vertical", '\u{f142}'),                           // 
+    ("fa_ello", '\u{eea4}'),                                        // 
+    ("fa_ember", '\u{ed4e}'),                                       // 
     ("fa_empire", '\u{f1d1}'),                                      // 
     ("fa_envelope", '\u{f0e0}'),                                    // 
     ("fa_envelope_o", '\u{f003}'),                                  // 
     ("fa_envelope_open", '\u{f2b6}'),                               // 
     ("fa_envelope_open_o", '\u{f2b7}'),                             // 
+    ("fa_envelope_open_text", '\u{eec5}'),                          // 
     ("fa_envelope_square", '\u{f199}'),                             // 
+    ("fa_envelopes_bulk", '\u{eed1}'),                              // 
     ("fa_envira", '\u{f299}'),                                      // 
+    ("fa_equals", '\u{edf6}'),                                      // 
     ("fa_eraser", '\u{f12d}'),                                      // 
+    ("fa_erlang", '\u{f23f}'),                                      // 
+    ("fa_ethereum", '\u{ed58}'),                                    // 
+    ("fa_ethernet", '\u{ef44}'),                                    // 
     ("fa_etsy", '\u{f2d7}'),                                        // 
     ("fa_eur", '\u{f153}'),                                         // 
+    ("fa_euro", '\u{f153}'),                                        // 
+    ("fa_euro_sign", '\u{f153}'),                                   // 
+    ("fa_evernote", '\u{ef98}'),                                    // 
     ("fa_exchange", '\u{f0ec}'),                                    // 
     ("fa_exclamation", '\u{f12a}'),                                 // 
     ("fa_exclamation_circle", '\u{f06a}'),                          // 
@@ -826,311 +1567,836 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_external_link", '\u{f08e}'),                               // 
     ("fa_external_link_square", '\u{f14c}'),                        // 
     ("fa_eye", '\u{f06e}'),                                         // 
+    ("fa_eye_dropper", '\u{f1fb}'),                                 // 
+    ("fa_eye_low_vision", '\u{f2a8}'),                              // 
     ("fa_eye_slash", '\u{f070}'),                                   // 
     ("fa_eyedropper", '\u{f1fb}'),                                  // 
+    ("fa_fa", '\u{f2b4}'),                                          // 
+    ("fa_face_angry", '\u{ee1f}'),                                  // 
+    ("fa_face_dizzy", '\u{ee30}'),                                  // 
+    ("fa_face_flushed", '\u{ee42}'),                                // 
+    ("fa_face_frown", '\u{f119}'),                                  // 
+    ("fa_face_frown_open", '\u{ee43}'),                             // 
+    ("fa_face_grimace", '\u{ee48}'),                                // 
+    ("fa_face_grin", '\u{ee49}'),                                   // 
+    ("fa_face_grin_beam", '\u{ee4b}'),                              // 
+    ("fa_face_grin_beam_sweat", '\u{ee4c}'),                        // 
+    ("fa_face_grin_hearts", '\u{ee4d}'),                            // 
+    ("fa_face_grin_squint", '\u{ee4e}'),                            // 
+    ("fa_face_grin_squint_tears", '\u{ee4f}'),                      // 
+    ("fa_face_grin_stars", '\u{ee50}'),                             // 
+    ("fa_face_grin_tears", '\u{ee51}'),                             // 
+    ("fa_face_grin_tongue", '\u{ee52}'),                            // 
+    ("fa_face_grin_tongue_squint", '\u{ee53}'),                     // 
+    ("fa_face_grin_tongue_wink", '\u{ee54}'),                       // 
+    ("fa_face_grin_wide", '\u{ee4a}'),                              // 
+    ("fa_face_grin_wink", '\u{ee55}'),                              // 
+    ("fa_face_kiss", '\u{ee5f}'),                                   // 
+    ("fa_face_kiss_beam", '\u{ee60}'),                              // 
+    ("fa_face_kiss_wink_heart", '\u{ee61}'),                        // 
+    ("fa_face_laugh", '\u{ee62}'),                                  // 
+    ("fa_face_laugh_beam", '\u{ee63}'),                             // 
+    ("fa_face_laugh_squint", '\u{ee64}'),                           // 
+    ("fa_face_laugh_wink", '\u{ee65}'),                             // 
+    ("fa_face_meh", '\u{f11a}'),                                    // 
+    ("fa_face_meh_blank", '\u{ee6d}'),                              // 
+    ("fa_face_rolling_eyes", '\u{ee6e}'),                           // 
+    ("fa_face_sad_cry", '\u{ee7b}'),                                // 
+    ("fa_face_sad_tear", '\u{ee7c}'),                               // 
+    ("fa_face_smile", '\u{f118}'),                                  // 
+    ("fa_face_smile_beam", '\u{ee80}'),                             // 
+    ("fa_face_smile_wink", '\u{eda9}'),                             // 
+    ("fa_face_surprise", '\u{ee89}'),                               // 
+    ("fa_face_tired", '\u{ee8f}'),                                  // 
     ("fa_facebook", '\u{f09a}'),                                    // 
+    ("fa_facebook_f", '\u{f24f}'),                                  // 
+    ("fa_facebook_messenger", '\u{f25f}'),                          // 
     ("fa_facebook_official", '\u{f230}'),                           // 
     ("fa_facebook_square", '\u{f082}'),                             // 
+    ("fa_fan", '\u{efa7}'),                                         // 
+    ("fa_fantasy_flight_games", '\u{eefb}'),                        // 
     ("fa_fast_backward", '\u{f049}'),                               // 
     ("fa_fast_forward", '\u{f050}'),                                // 
     ("fa_fax", '\u{f1ac}'),                                         // 
+    ("fa_feather", '\u{edf7}'),                                     // 
+    ("fa_feather_pointed", '\u{ee34}'),                             // 
+    ("fa_fedex", '\u{ef45}'),                                       // 
+    ("fa_fedora", '\u{ef46}'),                                      // 
+    ("fa_feed", '\u{f09e}'),                                        // 
     ("fa_female", '\u{f182}'),                                      // 
     ("fa_fighter_jet", '\u{f0fb}'),                                 // 
+    ("fa_figma", '\u{ef47}'),                                       // 
     ("fa_file", '\u{f15b}'),                                        // 
     ("fa_file_archive_o", '\u{f1c6}'),                              // 
+    ("fa_file_arrow_down", '\u{ee36}'),                             // 
+    ("fa_file_arrow_up", '\u{ee3d}'),                               // 
+    ("fa_file_audio", '\u{f1c7}'),                                  // 
     ("fa_file_audio_o", '\u{f1c7}'),                                // 
+    ("fa_file_code", '\u{f1c9}'),                                   // 
     ("fa_file_code_o", '\u{f1c9}'),                                 // 
+    ("fa_file_contract", '\u{ee35}'),                               // 
+    ("fa_file_csv", '\u{eefc}'),                                    // 
+    ("fa_file_excel", '\u{f1c3}'),                                  // 
     ("fa_file_excel_o", '\u{f1c3}'),                                // 
+    ("fa_file_export", '\u{ee37}'),                                 // 
+    ("fa_file_image", '\u{f1c5}'),                                  // 
     ("fa_file_image_o", '\u{f1c5}'),                                // 
+    ("fa_file_import", '\u{ee38}'),                                 // 
+    ("fa_file_invoice", '\u{ee39}'),                                // 
+    ("fa_file_invoice_dollar", '\u{ee3a}'),                         // 
+    ("fa_file_lines", '\u{f15c}'),                                  // 
+    ("fa_file_medical", '\u{ed80}'),                                // 
+    ("fa_file_movie_o", '\u{f1c8}'),                                // 
     ("fa_file_o", '\u{f016}'),                                      // 
+    ("fa_file_pdf", '\u{f1c1}'),                                    // 
     ("fa_file_pdf_o", '\u{f1c1}'),                                  // 
+    ("fa_file_pen", '\u{f05f}'),                                    // 
+    ("fa_file_photo_o", '\u{f1c5}'),                                // 
+    ("fa_file_picture_o", '\u{f1c5}'),                              // 
+    ("fa_file_powerpoint", '\u{f1c4}'),                             // 
     ("fa_file_powerpoint_o", '\u{f1c4}'),                           // 
+    ("fa_file_prescription", '\u{ee3b}'),                           // 
+    ("fa_file_signature", '\u{ee3c}'),                              // 
+    ("fa_file_sound_o", '\u{f1c7}'),                                // 
     ("fa_file_text", '\u{f15c}'),                                   // 
     ("fa_file_text_o", '\u{f0f6}'),                                 // 
+    ("fa_file_video", '\u{f1c8}'),                                  // 
     ("fa_file_video_o", '\u{f1c8}'),                                // 
+    ("fa_file_waveform", '\u{ed81}'),                               // 
+    ("fa_file_word", '\u{f1c2}'),                                   // 
     ("fa_file_word_o", '\u{f1c2}'),                                 // 
+    ("fa_file_zip_o", '\u{f1c6}'),                                  // 
+    ("fa_file_zipper", '\u{f1c6}'),                                 // 
     ("fa_files_o", '\u{f0c5}'),                                     // 
+    ("fa_fill", '\u{ee3e}'),                                        // 
+    ("fa_fill_drip", '\u{ee3f}'),                                   // 
     ("fa_film", '\u{f008}'),                                        // 
     ("fa_filter", '\u{f0b0}'),                                      // 
+    ("fa_filter_circle_dollar", '\u{eec8}'),                        // 
+    ("fa_fingerprint", '\u{ee40}'),                                 // 
     ("fa_fire", '\u{f06d}'),                                        // 
     ("fa_fire_extinguisher", '\u{f134}'),                           // 
+    ("fa_fire_flame_curved", '\u{ef76}'),                           // 
+    ("fa_fire_flame_simple", '\u{ed78}'),                           // 
     ("fa_firefox", '\u{f269}'),                                     // 
     ("fa_first_order", '\u{f2b0}'),                                 // 
+    ("fa_first_order_alt", '\u{edd4}'),                             // 
+    ("fa_firstdraft", '\u{f262}'),                                  // 
+    ("fa_fish", '\u{ee41}'),                                        // 
     ("fa_flag", '\u{f024}'),                                        // 
     ("fa_flag_checkered", '\u{f11e}'),                              // 
     ("fa_flag_o", '\u{f11d}'),                                      // 
+    ("fa_flag_usa", '\u{ef20}'),                                    // 
+    ("fa_flash", '\u{f0e7}'),                                       // 
     ("fa_flask", '\u{f0c3}'),                                       // 
     ("fa_flickr", '\u{f16e}'),                                      // 
+    ("fa_flipboard", '\u{ed68}'),                                   // 
+    ("fa_floppy_disk", '\u{f0c7}'),                                 // 
     ("fa_floppy_o", '\u{f0c7}'),                                    // 
+    ("fa_fly", '\u{ed43}'),                                         // 
     ("fa_folder", '\u{f07b}'),                                      // 
+    ("fa_folder_minus", '\u{eec6}'),                                // 
     ("fa_folder_o", '\u{f114}'),                                    // 
     ("fa_folder_open", '\u{f07c}'),                                 // 
     ("fa_folder_open_o", '\u{f115}'),                               // 
+    ("fa_folder_plus", '\u{eec7}'),                                 // 
+    ("fa_folder_tree", '\u{ef81}'),                                 // 
     ("fa_font", '\u{f031}'),                                        // 
     ("fa_font_awesome", '\u{f2b4}'),                                // 
     ("fa_fonticons", '\u{f280}'),                                   // 
+    ("fa_fonticons_fi", '\u{f26f}'),                                // 
+    ("fa_football", '\u{ed69}'),                                    // 
     ("fa_fort_awesome", '\u{f286}'),                                // 
+    ("fa_fort_awesome_alt", '\u{f27f}'),                            // 
     ("fa_forumbee", '\u{f211}'),                                    // 
     ("fa_forward", '\u{f04e}'),                                     // 
+    ("fa_forward_fast", '\u{f050}'),                                // 
+    ("fa_forward_step", '\u{f051}'),                                // 
     ("fa_foursquare", '\u{f180}'),                                  // 
     ("fa_free_code_camp", '\u{f2c5}'),                              // 
+    ("fa_freebsd", '\u{f28f}'),                                     // 
+    ("fa_frog", '\u{edf8}'),                                        // 
     ("fa_frown_o", '\u{f119}'),                                     // 
+    ("fa_fulcrum", '\u{edd5}'),                                     // 
+    ("fa_futbol", '\u{f1e3}'),                                      // 
     ("fa_futbol_o", '\u{f1e3}'),                                    // 
+    ("fa_galactic_republic", '\u{edd6}'),                           // 
+    ("fa_galactic_senate", '\u{edd7}'),                             // 
     ("fa_gamepad", '\u{f11b}'),                                     // 
+    ("fa_gas_pump", '\u{edf9}'),                                    // 
+    ("fa_gauge", '\u{eeb2}'),                                       // 
+    ("fa_gauge_high", '\u{ed2f}'),                                  // 
+    ("fa_gauge_simple", '\u{eeb3}'),                                // 
+    ("fa_gauge_simple_high", '\u{f0e4}'),                           // 
     ("fa_gavel", '\u{f0e3}'),                                       // 
     ("fa_gbp", '\u{f154}'),                                         // 
+    ("fa_ge", '\u{f1d1}'),                                          // 
+    ("fa_gear", '\u{f013}'),                                        // 
+    ("fa_gears", '\u{f085}'),                                       // 
+    ("fa_gem", '\u{f219}'),                                         // 
     ("fa_genderless", '\u{f22d}'),                                  // 
     ("fa_get_pocket", '\u{f265}'),                                  // 
     ("fa_gg", '\u{f260}'),                                          // 
     ("fa_gg_circle", '\u{f261}'),                                   // 
+    ("fa_ghost", '\u{eefe}'),                                       // 
     ("fa_gift", '\u{f06b}'),                                        // 
+    ("fa_gifts", '\u{ef48}'),                                       // 
     ("fa_git", '\u{f1d3}'),                                         // 
+    ("fa_git_alt", '\u{efa0}'),                                     // 
     ("fa_git_square", '\u{f1d2}'),                                  // 
     ("fa_github", '\u{f09b}'),                                      // 
     ("fa_github_alt", '\u{f113}'),                                  // 
     ("fa_github_square", '\u{f092}'),                               // 
+    ("fa_gitkraken", '\u{f2ac}'),                                   // 
     ("fa_gitlab", '\u{f296}'),                                      // 
+    ("fa_gitter", '\u{ed50}'),                                      // 
+    ("fa_gittip", '\u{f184}'),                                      // 
     ("fa_glass", '\u{f000}'),                                       // 
+    ("fa_glasses", '\u{edfa}'),                                     // 
     ("fa_glide", '\u{f2a5}'),                                       // 
     ("fa_glide_g", '\u{f2a6}'),                                     // 
     ("fa_globe", '\u{f0ac}'),                                       // 
+    ("fa_gofore", '\u{f2af}'),                                      // 
+    ("fa_golf_ball_tee", '\u{ed6a}'),                               // 
+    ("fa_goodreads", '\u{f2bf}'),                                   // 
+    ("fa_goodreads_g", '\u{f2cf}'),                                 // 
     ("fa_google", '\u{f1a0}'),                                      // 
+    ("fa_google_drive", '\u{f2df}'),                                // 
+    ("fa_google_play", '\u{f2e1}'),                                 // 
     ("fa_google_plus", '\u{f0d5}'),                                 // 
+    ("fa_google_plus_circle", '\u{f2b3}'),                          // 
     ("fa_google_plus_official", '\u{f2b3}'),                        // 
     ("fa_google_plus_square", '\u{f0d4}'),                          // 
     ("fa_google_wallet", '\u{f1ee}'),                               // 
+    ("fa_gopuram", '\u{eec9}'),                                     // 
     ("fa_graduation_cap", '\u{f19d}'),                              // 
     ("fa_gratipay", '\u{f184}'),                                    // 
     ("fa_grav", '\u{f2d6}'),                                        // 
+    ("fa_greater_than", '\u{edfb}'),                                // 
+    ("fa_greater_than_equal", '\u{edfc}'),                          // 
+    ("fa_grip", '\u{ee56}'),                                        // 
+    ("fa_grip_lines", '\u{ef4c}'),                                  // 
+    ("fa_grip_lines_vertical", '\u{ef4d}'),                         // 
+    ("fa_grip_vertical", '\u{ee57}'),                               // 
+    ("fa_gripfire", '\u{f2e2}'),                                    // 
+    ("fa_group", '\u{f0c0}'),                                       // 
+    ("fa_grunt", '\u{f2e3}'),                                       // 
+    ("fa_guitar", '\u{ef4e}'),                                      // 
+    ("fa_gulp", '\u{f2e4}'),                                        // 
     ("fa_h_square", '\u{f0fd}'),                                    // 
     ("fa_hacker_news", '\u{f1d4}'),                                 // 
+    ("fa_hackerrank", '\u{eea5}'),                                  // 
+    ("fa_hammer", '\u{eeff}'),                                      // 
+    ("fa_hamsa", '\u{eeca}'),                                       // 
+    ("fa_hand", '\u{f256}'),                                        // 
+    ("fa_hand_back_fist", '\u{f255}'),                              // 
+    ("fa_hand_dots", '\u{ed73}'),                                   // 
+    ("fa_hand_fist", '\u{eefd}'),                                   // 
+    ("fa_hand_grab_o", '\u{f255}'),                                 // 
+    ("fa_hand_holding", '\u{ed9a}'),                                // 
+    ("fa_hand_holding_dollar", '\u{ed9c}'),                         // 
+    ("fa_hand_holding_droplet", '\u{ed9d}'),                        // 
+    ("fa_hand_holding_heart", '\u{ed9b}'),                          // 
+    ("fa_hand_lizard", '\u{f258}'),                                 // 
     ("fa_hand_lizard_o", '\u{f258}'),                               // 
+    ("fa_hand_middle_finger", '\u{ef83}'),                          // 
     ("fa_hand_o_down", '\u{f0a7}'),                                 // 
     ("fa_hand_o_left", '\u{f0a5}'),                                 // 
     ("fa_hand_o_right", '\u{f0a4}'),                                // 
     ("fa_hand_o_up", '\u{f0a6}'),                                   // 
     ("fa_hand_paper_o", '\u{f256}'),                                // 
+    ("fa_hand_peace", '\u{f25b}'),                                  // 
     ("fa_hand_peace_o", '\u{f25b}'),                                // 
+    ("fa_hand_point_down", '\u{f0a7}'),                             // 
+    ("fa_hand_point_left", '\u{f0a5}'),                             // 
+    ("fa_hand_point_right", '\u{f0a4}'),                            // 
+    ("fa_hand_point_up", '\u{f0a6}'),                               // 
+    ("fa_hand_pointer", '\u{f25a}'),                                // 
     ("fa_hand_pointer_o", '\u{f25a}'),                              // 
     ("fa_hand_rock_o", '\u{f255}'),                                 // 
+    ("fa_hand_scissors", '\u{f257}'),                               // 
     ("fa_hand_scissors_o", '\u{f257}'),                             // 
+    ("fa_hand_spock", '\u{f259}'),                                  // 
     ("fa_hand_spock_o", '\u{f259}'),                                // 
+    ("fa_hand_stop_o", '\u{f256}'),                                 // 
+    ("fa_hands", '\u{f2a7}'),                                       // 
+    ("fa_hands_asl_interpreting", '\u{f2a3}'),                      // 
+    ("fa_hands_holding", '\u{ed9e}'),                               // 
+    ("fa_hands_praying", '\u{eedb}'),                               // 
+    ("fa_handshake", '\u{f2b5}'),                                   // 
+    ("fa_handshake_angle", '\u{ed9f}'),                             // 
     ("fa_handshake_o", '\u{f2b5}'),                                 // 
+    ("fa_handshake_simple", '\u{eda0}'),                            // 
+    ("fa_hanukiah", '\u{ef00}'),                                    // 
+    ("fa_hard_drive", '\u{f0a0}'),                                  // 
+    ("fa_hard_of_hearing", '\u{f2a4}'),                             // 
     ("fa_hashtag", '\u{f292}'),                                     // 
+    ("fa_hat_cowboy", '\u{efb7}'),                                  // 
+    ("fa_hat_cowboy_side", '\u{efb8}'),                             // 
+    ("fa_hat_wizard", '\u{ef01}'),                                  // 
     ("fa_hdd_o", '\u{f0a0}'),                                       // 
     ("fa_header", '\u{f1dc}'),                                      // 
+    ("fa_heading", '\u{f1dc}'),                                     // 
     ("fa_headphones", '\u{f025}'),                                  // 
+    ("fa_headphones_simple", '\u{ee58}'),                           // 
+    ("fa_headset", '\u{ee59}'),                                     // 
+    ("fa_heard_o", '\u{f08a}'),                                     // 
     ("fa_heart", '\u{f004}'),                                       // 
+    ("fa_heart_crack", '\u{ef4f}'),                                 // 
     ("fa_heart_o", '\u{f08a}'),                                     // 
+    ("fa_heart_pulse", '\u{f21e}'),                                 // 
     ("fa_heartbeat", '\u{f21e}'),                                   // 
+    ("fa_helicopter", '\u{edfd}'),                                  // 
+    ("fa_helmet_safety", '\u{ef84}'),                               // 
+    ("fa_highlighter", '\u{ee5a}'),                                 // 
+    ("fa_hippo", '\u{ef03}'),                                       // 
+    ("fa_hips", '\u{ed6b}'),                                        // 
+    ("fa_hire_a_helper", '\u{f2e6}'),                               // 
     ("fa_history", '\u{f1da}'),                                     // 
+    ("fa_hockey_puck", '\u{ed6c}'),                                 // 
+    ("fa_holly_berry", '\u{ef50}'),                                 // 
     ("fa_home", '\u{f015}'),                                        // 
+    ("fa_hooli", '\u{ed51}'),                                       // 
+    ("fa_hornbill", '\u{ee5b}'),                                    // 
+    ("fa_horse", '\u{ef04}'),                                       // 
+    ("fa_horse_head", '\u{ef51}'),                                  // 
+    ("fa_hospital", '\u{f0f8}'),                                    // 
     ("fa_hospital_o", '\u{f0f8}'),                                  // 
+    ("fa_hospital_user", '\u{ef86}'),                               // 
+    ("fa_hot_tub_person", '\u{ee5c}'),                              // 
+    ("fa_hotdog", '\u{ef87}'),                                      // 
+    ("fa_hotel", '\u{f236}'),                                       // 
+    ("fa_hotel_building", '\u{ee5d}'),                              // 
+    ("fa_hotjar", '\u{f2e7}'),                                      // 
     ("fa_hourglass", '\u{f254}'),                                   // 
+    ("fa_hourglass_1", '\u{f251}'),                                 // 
+    ("fa_hourglass_2", '\u{f252}'),                                 // 
+    ("fa_hourglass_3", '\u{f253}'),                                 // 
     ("fa_hourglass_end", '\u{f253}'),                               // 
     ("fa_hourglass_half", '\u{f252}'),                              // 
     ("fa_hourglass_o", '\u{f250}'),                                 // 
     ("fa_hourglass_start", '\u{f251}'),                             // 
+    ("fa_house", '\u{f015}'),                                       // 
+    ("fa_house_chimney", '\u{ef85}'),                               // 
+    ("fa_house_chimney_crack", '\u{ef05}'),                         // 
+    ("fa_house_chimney_medical", '\u{ef7b}'),                       // 
     ("fa_houzz", '\u{f27c}'),                                       // 
+    ("fa_hryvnia_sign", '\u{ef06}'),                                // 
     ("fa_html5", '\u{f13b}'),                                       // 
+    ("fa_hubspot", '\u{f2e8}'),                                     // 
+    ("fa_hurricane", '\u{ef21}'),                                   // 
     ("fa_i_cursor", '\u{f246}'),                                    // 
+    ("fa_ice_cream", '\u{ef88}'),                                   // 
+    ("fa_icicles", '\u{ef52}'),                                     // 
+    ("fa_icons", '\u{efa8}'),                                       // 
     ("fa_id_badge", '\u{f2c1}'),                                    // 
     ("fa_id_card", '\u{f2c2}'),                                     // 
+    ("fa_id_card_clip", '\u{ed84}'),                                // 
     ("fa_id_card_o", '\u{f2c3}'),                                   // 
+    ("fa_igloo", '\u{ef53}'),                                       // 
     ("fa_ils", '\u{f20b}'),                                         // 
+    ("fa_image", '\u{f03e}'),                                       // 
+    ("fa_image_portrait", '\u{ed19}'),                              // 
+    ("fa_images", '\u{f00f}'),                                      // 
     ("fa_imdb", '\u{f2d8}'),                                        // 
     ("fa_inbox", '\u{f01c}'),                                       // 
     ("fa_indent", '\u{f03c}'),                                      // 
     ("fa_industry", '\u{f275}'),                                    // 
+    ("fa_infinity", '\u{edfe}'),                                    // 
     ("fa_info", '\u{f129}'),                                        // 
     ("fa_info_circle", '\u{f05a}'),                                 // 
     ("fa_inr", '\u{f156}'),                                         // 
     ("fa_instagram", '\u{f16d}'),                                   // 
+    ("fa_institution", '\u{f19c}'),                                 // 
+    ("fa_intercom", '\u{ef54}'),                                    // 
     ("fa_internet_explorer", '\u{f26b}'),                           // 
+    ("fa_intersex", '\u{f224}'),                                    // 
+    ("fa_invision", '\u{ef55}'),                                    // 
     ("fa_ioxhost", '\u{f208}'),                                     // 
     ("fa_italic", '\u{f033}'),                                      // 
+    ("fa_itch_io", '\u{ef99}'),                                     // 
+    ("fa_itunes", '\u{f2e9}'),                                      // 
+    ("fa_itunes_note", '\u{f2eb}'),                                 // 
+    ("fa_java", '\u{edaf}'),                                        // 
+    ("fa_jedi", '\u{eecc}'),                                        // 
+    ("fa_jedi_order", '\u{edd8}'),                                  // 
+    ("fa_jenkins", '\u{f2ec}'),                                     // 
+    ("fa_jet_fighter", '\u{f0fb}'),                                 // 
+    ("fa_jira", '\u{ef56}'),                                        // 
+    ("fa_joget", '\u{f2ed}'),                                       // 
+    ("fa_joint", '\u{ee5e}'),                                       // 
     ("fa_joomla", '\u{f1aa}'),                                      // 
     ("fa_jpy", '\u{f157}'),                                         // 
+    ("fa_js", '\u{f2ee}'),                                          // 
     ("fa_jsfiddle", '\u{f1cc}'),                                    // 
+    ("fa_kaaba", '\u{eece}'),                                       // 
+    ("fa_kaggle", '\u{eea6}'),                                      // 
     ("fa_key", '\u{f084}'),                                         // 
+    ("fa_keybase", '\u{edbf}'),                                     // 
+    ("fa_keyboard", '\u{f11c}'),                                    // 
     ("fa_keyboard_o", '\u{f11c}'),                                  // 
+    ("fa_keycdn", '\u{f2f0}'),                                      // 
+    ("fa_khanda", '\u{eecf}'),                                      // 
+    ("fa_kickstarter", '\u{f2f3}'),                                 // 
+    ("fa_kickstarter_k", '\u{f2f4}'),                               // 
+    ("fa_kit_medical", '\u{ed82}'),                                 // 
+    ("fa_kiwi_bird", '\u{edff}'),                                   // 
+    ("fa_korvue", '\u{ed59}'),                                      // 
     ("fa_krw", '\u{f159}'),                                         // 
+    ("fa_landmark", '\u{eed0}'),                                    // 
+    ("fa_landmark_dome", '\u{ef22}'),                               // 
     ("fa_language", '\u{f1ab}'),                                    // 
     ("fa_laptop", '\u{f109}'),                                      // 
+    ("fa_laptop_code", '\u{eea7}'),                                 // 
+    ("fa_laptop_medical", '\u{ef89}'),                              // 
+    ("fa_laravel", '\u{f2f7}'),                                     // 
     ("fa_lastfm", '\u{f202}'),                                      // 
     ("fa_lastfm_square", '\u{f203}'),                               // 
+    ("fa_layer_group", '\u{eea8}'),                                 // 
     ("fa_leaf", '\u{f06c}'),                                        // 
     ("fa_leanpub", '\u{f212}'),                                     // 
+    ("fa_left_long", '\u{f04f}'),                                   // 
+    ("fa_left_right", '\u{f08f}'),                                  // 
+    ("fa_legal", '\u{f0e3}'),                                       // 
+    ("fa_lemon", '\u{f094}'),                                       // 
     ("fa_lemon_o", '\u{f094}'),                                     // 
+    ("fa_less", '\u{ed48}'),                                        // 
+    ("fa_less_than", '\u{efc3}'),                                   // 
+    ("fa_less_than_equal", '\u{efc4}'),                             // 
     ("fa_level_down", '\u{f149}'),                                  // 
     ("fa_level_up", '\u{f148}'),                                    // 
+    ("fa_life_bouy", '\u{f1cd}'),                                   // 
+    ("fa_life_buoy", '\u{f1cd}'),                                   // 
     ("fa_life_ring", '\u{f1cd}'),                                   // 
+    ("fa_life_saver", '\u{f1cd}'),                                  // 
+    ("fa_lightbulb", '\u{f0eb}'),                                   // 
     ("fa_lightbulb_o", '\u{f0eb}'),                                 // 
+    ("fa_line", '\u{f2fb}'),                                        // 
     ("fa_line_chart", '\u{f201}'),                                  // 
     ("fa_link", '\u{f0c1}'),                                        // 
+    ("fa_link_slash", '\u{f127}'),                                  // 
     ("fa_linkedin", '\u{f0e1}'),                                    // 
+    ("fa_linkedin_in", '\u{f0e1}'),                                 // 
     ("fa_linkedin_square", '\u{f08c}'),                             // 
     ("fa_linode", '\u{f2b8}'),                                      // 
     ("fa_linux", '\u{f17c}'),                                       // 
+    ("fa_lira_sign", '\u{f195}'),                                   // 
     ("fa_list", '\u{f03a}'),                                        // 
     ("fa_list_alt", '\u{f022}'),                                    // 
+    ("fa_list_check", '\u{f0ae}'),                                  // 
     ("fa_list_ol", '\u{f0cb}'),                                     // 
     ("fa_list_ul", '\u{f0ca}'),                                     // 
     ("fa_location_arrow", '\u{f124}'),                              // 
+    ("fa_location_crosshairs", '\u{eea9}'),                         // 
+    ("fa_location_dot", '\u{ed00}'),                                // 
+    ("fa_location_pin", '\u{f041}'),                                // 
     ("fa_lock", '\u{f023}'),                                        // 
+    ("fa_lock_open", '\u{f2fc}'),                                   // 
     ("fa_long_arrow_down", '\u{f175}'),                             // 
     ("fa_long_arrow_left", '\u{f177}'),                             // 
     ("fa_long_arrow_right", '\u{f178}'),                            // 
     ("fa_long_arrow_up", '\u{f176}'),                               // 
     ("fa_low_vision", '\u{f2a8}'),                                  // 
+    ("fa_lungs", '\u{eeaa}'),                                       // 
+    ("fa_lyft", '\u{f2fd}'),                                        // 
+    ("fa_magento", '\u{f2ff}'),                                     // 
     ("fa_magic", '\u{f0d0}'),                                       // 
     ("fa_magnet", '\u{f076}'),                                      // 
+    ("fa_magnifying_glass", '\u{f002}'),                            // 
+    ("fa_magnifying_glass_dollar", '\u{eedd}'),                     // 
+    ("fa_magnifying_glass_location", '\u{eede}'),                   // 
+    ("fa_magnifying_glass_minus", '\u{f010}'),                      // 
+    ("fa_magnifying_glass_plus", '\u{f00e}'),                       // 
+    ("fa_mail_forward", '\u{f064}'),                                // 
+    ("fa_mail_reply", '\u{f112}'),                                  // 
+    ("fa_mail_reply_all", '\u{f122}'),                              // 
+    ("fa_mailchimp", '\u{ee67}'),                                   // 
     ("fa_male", '\u{f183}'),                                        // 
+    ("fa_mandalorian", '\u{edd9}'),                                 // 
     ("fa_map", '\u{f279}'),                                         // 
+    ("fa_map_location", '\u{ee68}'),                                // 
+    ("fa_map_location_dot", '\u{ee69}'),                            // 
     ("fa_map_marker", '\u{f041}'),                                  // 
     ("fa_map_o", '\u{f278}'),                                       // 
     ("fa_map_pin", '\u{f276}'),                                     // 
     ("fa_map_signs", '\u{f277}'),                                   // 
+    ("fa_markdown", '\u{eeab}'),                                    // 
+    ("fa_marker", '\u{ee6a}'),                                      // 
     ("fa_mars", '\u{f222}'),                                        // 
     ("fa_mars_double", '\u{f227}'),                                 // 
     ("fa_mars_stroke", '\u{f229}'),                                 // 
     ("fa_mars_stroke_h", '\u{f22b}'),                               // 
+    ("fa_mars_stroke_right", '\u{f22b}'),                           // 
+    ("fa_mars_stroke_up", '\u{f22a}'),                              // 
     ("fa_mars_stroke_v", '\u{f22a}'),                               // 
+    ("fa_martini_glass", '\u{ee44}'),                               // 
+    ("fa_martini_glass_citrus", '\u{ee2a}'),                        // 
+    ("fa_martini_glass_empty", '\u{f000}'),                         // 
+    ("fa_mask", '\u{ef07}'),                                        // 
+    ("fa_masks_theater", '\u{eeb6}'),                               // 
+    ("fa_mastodon", '\u{edc0}'),                                    // 
     ("fa_maxcdn", '\u{f136}'),                                      // 
+    ("fa_maximize", '\u{f06f}'),                                    // 
+    ("fa_mdb", '\u{efb9}'),                                         // 
     ("fa_meanpath", '\u{f20c}'),                                    // 
+    ("fa_medal", '\u{ee6b}'),                                       // 
+    ("fa_medapps", '\u{ed01}'),                                     // 
     ("fa_medium", '\u{f23a}'),                                      // 
     ("fa_medkit", '\u{f0fa}'),                                      // 
+    ("fa_medrt", '\u{ed02}'),                                       // 
     ("fa_meetup", '\u{f2e0}'),                                      // 
+    ("fa_megaport", '\u{ee6c}'),                                    // 
     ("fa_meh_o", '\u{f11a}'),                                       // 
+    ("fa_memory", '\u{efc5}'),                                      // 
+    ("fa_mendeley", '\u{ef57}'),                                    // 
+    ("fa_menorah", '\u{eed2}'),                                     // 
     ("fa_mercury", '\u{f223}'),                                     // 
+    ("fa_message", '\u{f27a}'),                                     // 
+    ("fa_meteor", '\u{ef23}'),                                      // 
     ("fa_microchip", '\u{f2db}'),                                   // 
     ("fa_microphone", '\u{f130}'),                                  // 
+    ("fa_microphone_lines", '\u{ed03}'),                            // 
+    ("fa_microphone_lines_slash", '\u{efc6}'),                      // 
     ("fa_microphone_slash", '\u{f131}'),                            // 
+    ("fa_microscope", '\u{eeac}'),                                  // 
+    ("fa_microsoft", '\u{ed04}'),                                   // 
+    ("fa_minimize", '\u{ef3e}'),                                    // 
     ("fa_minus", '\u{f068}'),                                       // 
     ("fa_minus_circle", '\u{f056}'),                                // 
     ("fa_minus_square", '\u{f146}'),                                // 
     ("fa_minus_square_o", '\u{f147}'),                              // 
+    ("fa_mitten", '\u{ef58}'),                                      // 
+    ("fa_mix", '\u{ed05}'),                                         // 
     ("fa_mixcloud", '\u{f289}'),                                    // 
-    ("fa_mobile", '\u{f10b}'),                                      // 
+    ("fa_mizuni", '\u{ed06}'),                                      // 
+    ("fa_mobile", '\u{ed08}'),                                      // 
+    ("fa_mobile_button", '\u{ed07}'),                               // 
+    ("fa_mobile_phone", '\u{f10b}'),                                // 
+    ("fa_mobile_screen", '\u{ed09}'),                               // 
+    ("fa_mobile_screen_button", '\u{f10b}'),                        // 
     ("fa_modx", '\u{f285}'),                                        // 
+    ("fa_monero", '\u{ed0a}'),                                      // 
     ("fa_money", '\u{f0d6}'),                                       // 
+    ("fa_money_bill", '\u{f0d6}'),                                  // 
+    ("fa_money_bill_1", '\u{ed0b}'),                                // 
+    ("fa_money_bill_1_wave", '\u{efc8}'),                           // 
+    ("fa_money_bill_wave", '\u{efc7}'),                             // 
+    ("fa_money_check", '\u{efc9}'),                                 // 
+    ("fa_money_check_dollar", '\u{efca}'),                          // 
+    ("fa_monument", '\u{ee6f}'),                                    // 
+    ("fa_moon", '\u{f186}'),                                        // 
     ("fa_moon_o", '\u{f186}'),                                      // 
+    ("fa_mortar_board", '\u{f19d}'),                                // 
+    ("fa_mortar_pestle", '\u{ee70}'),                               // 
+    ("fa_mosque", '\u{eed3}'),                                      // 
     ("fa_motorcycle", '\u{f21c}'),                                  // 
+    ("fa_mountain", '\u{ef08}'),                                    // 
     ("fa_mouse_pointer", '\u{f245}'),                               // 
+    ("fa_mug_hot", '\u{ef59}'),                                     // 
+    ("fa_mug_saucer", '\u{f0f4}'),                                  // 
     ("fa_music", '\u{f001}'),                                       // 
+    ("fa_napster", '\u{ed0c}'),                                     // 
+    ("fa_navicon", '\u{f0c9}'),                                     // 
+    ("fa_neos", '\u{eead}'),                                        // 
+    ("fa_network_wired", '\u{ef09}'),                               // 
     ("fa_neuter", '\u{f22c}'),                                      // 
+    ("fa_newspaper", '\u{f1ea}'),                                   // 
     ("fa_newspaper_o", '\u{f1ea}'),                                 // 
+    ("fa_nimblr", '\u{ee71}'),                                      // 
+    ("fa_node", '\u{ed44}'),                                        // 
+    ("fa_node_js", '\u{ed0d}'),                                     // 
+    ("fa_not_equal", '\u{efcb}'),                                   // 
+    ("fa_note_sticky", '\u{f249}'),                                 // 
+    ("fa_notes_medical", '\u{ed85}'),                               // 
+    ("fa_npm", '\u{ed0e}'),                                         // 
+    ("fa_ns8", '\u{ed0f}'),                                         // 
+    ("fa_nutritionix", '\u{ed10}'),                                 // 
     ("fa_object_group", '\u{f247}'),                                // 
     ("fa_object_ungroup", '\u{f248}'),                              // 
     ("fa_odnoklassniki", '\u{f263}'),                               // 
     ("fa_odnoklassniki_square", '\u{f264}'),                        // 
+    ("fa_oil_can", '\u{eeae}'),                                     // 
+    ("fa_ok_sign", '\u{f058}'),                                     // 
+    ("fa_old_republic", '\u{edda}'),                                // 
+    ("fa_om", '\u{eed4}'),                                          // 
     ("fa_opencart", '\u{f23d}'),                                    // 
     ("fa_openid", '\u{f19b}'),                                      // 
     ("fa_opera", '\u{f26a}'),                                       // 
     ("fa_optin_monster", '\u{f23c}'),                               // 
+    ("fa_orcid", '\u{efbb}'),                                       // 
+    ("fa_osi", '\u{ed45}'),                                         // 
+    ("fa_otter", '\u{ef0a}'),                                       // 
     ("fa_outdent", '\u{f03b}'),                                     // 
+    ("fa_page4", '\u{ed11}'),                                       // 
     ("fa_pagelines", '\u{f18c}'),                                   // 
+    ("fa_pager", '\u{ef8a}'),                                       // 
     ("fa_paint_brush", '\u{f1fc}'),                                 // 
+    ("fa_paint_roller", '\u{ee72}'),                                // 
+    ("fa_paintbrush", '\u{f1fc}'),                                  // 
+    ("fa_palette", '\u{efcc}'),                                     // 
+    ("fa_palfed", '\u{ed12}'),                                      // 
+    ("fa_pallet", '\u{ed86}'),                                      // 
     ("fa_paper_plane", '\u{f1d8}'),                                 // 
     ("fa_paper_plane_o", '\u{f1d9}'),                               // 
     ("fa_paperclip", '\u{f0c6}'),                                   // 
+    ("fa_parachute_box", '\u{eda1}'),                               // 
     ("fa_paragraph", '\u{f1dd}'),                                   // 
+    ("fa_passport", '\u{ee73}'),                                    // 
+    ("fa_paste", '\u{f0ea}'),                                       // 
+    ("fa_patreon", '\u{ed13}'),                                     // 
     ("fa_pause", '\u{f04c}'),                                       // 
     ("fa_pause_circle", '\u{f28b}'),                                // 
     ("fa_pause_circle_o", '\u{f28c}'),                              // 
     ("fa_paw", '\u{f1b0}'),                                         // 
     ("fa_paypal", '\u{f1ed}'),                                      // 
+    ("fa_peace", '\u{eed6}'),                                       // 
+    ("fa_pen", '\u{f01f}'),                                         // 
+    ("fa_pen_clip", '\u{f020}'),                                    // 
+    ("fa_pen_fancy", '\u{ee74}'),                                   // 
+    ("fa_pen_nib", '\u{ee75}'),                                     // 
+    ("fa_pen_ruler", '\u{ee76}'),                                   // 
+    ("fa_pen_to_square", '\u{f044}'),                               // 
     ("fa_pencil", '\u{f040}'),                                      // 
     ("fa_pencil_square", '\u{f14b}'),                               // 
     ("fa_pencil_square_o", '\u{f044}'),                             // 
+    ("fa_people_carry_box", '\u{eda2}'),                            // 
+    ("fa_pepper_hot", '\u{ef8b}'),                                  // 
     ("fa_percent", '\u{f295}'),                                     // 
+    ("fa_periscope", '\u{ed14}'),                                   // 
+    ("fa_person", '\u{f183}'),                                      // 
+    ("fa_person_biking", '\u{efa2}'),                               // 
+    ("fa_person_booth", '\u{ef24}'),                                // 
+    ("fa_person_digging", '\u{efa6}'),                              // 
+    ("fa_person_dots_from_line", '\u{ed7c}'),                       // 
+    ("fa_person_dress", '\u{f182}'),                                // 
+    ("fa_person_hiking", '\u{ef02}'),                               // 
+    ("fa_person_praying", '\u{eeda}'),                              // 
+    ("fa_person_running", '\u{ef0c}'),                              // 
+    ("fa_person_skating", '\u{ef63}'),                              // 
+    ("fa_person_skiing", '\u{ef65}'),                               // 
+    ("fa_person_skiing_nordic", '\u{ef66}'),                        // 
+    ("fa_person_snowboarding", '\u{ef69}'),                         // 
+    ("fa_person_swimming", '\u{ee8b}'),                             // 
+    ("fa_person_walking", '\u{ee1d}'),                              // 
+    ("fa_person_walking_with_cane", '\u{f29d}'),                    // 
+    ("fa_phabricator", '\u{ed15}'),                                 // 
+    ("fa_phoenix_framework", '\u{ed16}'),                           // 
+    ("fa_phoenix_squadron", '\u{eddb}'),                            // 
     ("fa_phone", '\u{f095}'),                                       // 
+    ("fa_phone_flip", '\u{efa9}'),                                  // 
+    ("fa_phone_slash", '\u{ed17}'),                                 // 
     ("fa_phone_square", '\u{f098}'),                                // 
+    ("fa_phone_volume", '\u{f2a0}'),                                // 
+    ("fa_photo", '\u{f03e}'),                                       // 
+    ("fa_photo_film", '\u{efab}'),                                  // 
+    ("fa_php", '\u{ed6d}'),                                         // 
     ("fa_picture_o", '\u{f03e}'),                                   // 
     ("fa_pie_chart", '\u{f200}'),                                   // 
     ("fa_pied_piper", '\u{f2ae}'),                                  // 
     ("fa_pied_piper_alt", '\u{f1a8}'),                              // 
+    ("fa_pied_piper_hat", '\u{edb0}'),                              // 
     ("fa_pied_piper_pp", '\u{f1a7}'),                               // 
+    ("fa_piggy_bank", '\u{eda3}'),                                  // 
+    ("fa_pills", '\u{ed87}'),                                       // 
     ("fa_pinterest", '\u{f0d2}'),                                   // 
     ("fa_pinterest_p", '\u{f231}'),                                 // 
     ("fa_pinterest_square", '\u{f0d3}'),                            // 
+    ("fa_pizza_slice", '\u{ef8c}'),                                 // 
+    ("fa_place_of_worship", '\u{eed7}'),                            // 
     ("fa_plane", '\u{f072}'),                                       // 
+    ("fa_plane_arrival", '\u{ee77}'),                               // 
+    ("fa_plane_departure", '\u{ee78}'),                             // 
     ("fa_play", '\u{f04b}'),                                        // 
     ("fa_play_circle", '\u{f144}'),                                 // 
     ("fa_play_circle_o", '\u{f01d}'),                               // 
+    ("fa_playstation", '\u{ed18}'),                                 // 
     ("fa_plug", '\u{f1e6}'),                                        // 
     ("fa_plus", '\u{f067}'),                                        // 
     ("fa_plus_circle", '\u{f055}'),                                 // 
     ("fa_plus_square", '\u{f0fe}'),                                 // 
     ("fa_plus_square_o", '\u{f196}'),                               // 
     ("fa_podcast", '\u{f2ce}'),                                     // 
+    ("fa_poo", '\u{f2fe}'),                                         // 
+    ("fa_poo_storm", '\u{ef25}'),                                   // 
+    ("fa_poop", '\u{eeaf}'),                                        // 
     ("fa_power_off", '\u{f011}'),                                   // 
+    ("fa_prescription", '\u{ee79}'),                                // 
+    ("fa_prescription_bottle", '\u{ed88}'),                         // 
+    ("fa_prescription_bottle_medical", '\u{ed89}'),                 // 
     ("fa_print", '\u{f02f}'),                                       // 
     ("fa_product_hunt", '\u{f288}'),                                // 
+    ("fa_pushed", '\u{ed1a}'),                                      // 
     ("fa_puzzle_piece", '\u{f12e}'),                                // 
+    ("fa_python", '\u{ed1b}'),                                      // 
     ("fa_qq", '\u{f1d6}'),                                          // 
     ("fa_qrcode", '\u{f029}'),                                      // 
     ("fa_question", '\u{f128}'),                                    // 
     ("fa_question_circle", '\u{f059}'),                             // 
     ("fa_question_circle_o", '\u{f29c}'),                           // 
+    ("fa_quinscape", '\u{ed6f}'),                                   // 
     ("fa_quora", '\u{f2c4}'),                                       // 
     ("fa_quote_left", '\u{f10d}'),                                  // 
     ("fa_quote_right", '\u{f10e}'),                                 // 
+    ("fa_r_project", '\u{edc1}'),                                   // 
+    ("fa_ra", '\u{f1d0}'),                                          // 
+    ("fa_radiation", '\u{ef5a}'),                                   // 
+    ("fa_radio", '\u{efbc}'),                                       // 
+    ("fa_rainbow", '\u{ef26}'),                                     // 
     ("fa_random", '\u{f074}'),                                      // 
+    ("fa_raspberry_pi", '\u{ef5c}'),                                // 
     ("fa_ravelry", '\u{f2d9}'),                                     // 
+    ("fa_react", '\u{ed46}'),                                       // 
+    ("fa_reacteurope", '\u{ef27}'),                                 // 
+    ("fa_readme", '\u{eda4}'),                                      // 
     ("fa_rebel", '\u{f1d0}'),                                       // 
+    ("fa_receipt", '\u{ee0c}'),                                     // 
+    ("fa_record_vinyl", '\u{efbd}'),                                // 
+    ("fa_rectangle_ad", '\u{eebb}'),                                // 
+    ("fa_rectangle_list", '\u{f022}'),                              // 
+    ("fa_rectangle_xmark", '\u{f2d4}'),                             // 
     ("fa_recycle", '\u{f1b8}'),                                     // 
+    ("fa_red_river", '\u{ed1c}'),                                   // 
     ("fa_reddit", '\u{f1a1}'),                                      // 
     ("fa_reddit_alien", '\u{f281}'),                                // 
     ("fa_reddit_square", '\u{f1a2}'),                               // 
+    ("fa_redhat", '\u{ef5d}'),                                      // 
     ("fa_refresh", '\u{f021}'),                                     // 
     ("fa_registered", '\u{f25d}'),                                  // 
+    ("fa_remove", '\u{f00d}'),                                      // 
+    ("fa_remove_sign", '\u{f057}'),                                 // 
     ("fa_renren", '\u{f18b}'),                                      // 
+    ("fa_reorder", '\u{f0c9}'),                                     // 
     ("fa_repeat", '\u{f01e}'),                                      // 
+    ("fa_repeat_alt", '\u{f0b6}'),                                  // 
     ("fa_reply", '\u{f112}'),                                       // 
     ("fa_reply_all", '\u{f122}'),                                   // 
+    ("fa_replyd", '\u{ed1e}'),                                      // 
+    ("fa_republican", '\u{ef28}'),                                  // 
+    ("fa_researchgate", '\u{edc2}'),                                // 
+    ("fa_resistance", '\u{f1d0}'),                                  // 
+    ("fa_resolving", '\u{ed1f}'),                                   // 
+    ("fa_restroom", '\u{ef5e}'),                                    // 
     ("fa_retweet", '\u{f079}'),                                     // 
+    ("fa_rev", '\u{ee7a}'),                                         // 
+    ("fa_ribbon", '\u{eda5}'),                                      // 
+    ("fa_right_from_bracket", '\u{f2f5}'),                          // 
+    ("fa_right_left", '\u{f0b5}'),                                  // 
+    ("fa_right_to_bracket", '\u{f2f6}'),                            // 
+    ("fa_ring", '\u{ef0b}'),                                        // 
+    ("fa_rmb", '\u{f157}'),                                         // 
     ("fa_road", '\u{f018}'),                                        // 
+    ("fa_robot", '\u{ee0d}'),                                       // 
     ("fa_rocket", '\u{f135}'),                                      // 
+    ("fa_rocketchat", '\u{ed20}'),                                  // 
+    ("fa_rockrms", '\u{ed21}'),                                     // 
+    ("fa_rotate", '\u{f2f1}'),                                      // 
+    ("fa_rotate_left", '\u{f2ea}'),                                 // 
+    ("fa_rotate_right", '\u{f2f9}'),                                // 
+    ("fa_rouble", '\u{f158}'),                                      // 
+    ("fa_route", '\u{eda6}'),                                       // 
     ("fa_rss", '\u{f09e}'),                                         // 
     ("fa_rss_square", '\u{f143}'),                                  // 
     ("fa_rub", '\u{f158}'),                                         // 
+    ("fa_ruble", '\u{f158}'),                                       // 
+    ("fa_ruble_sign", '\u{f158}'),                                  // 
+    ("fa_ruler", '\u{ee0e}'),                                       // 
+    ("fa_ruler_combined", '\u{ee0f}'),                              // 
+    ("fa_ruler_horizontal", '\u{ee10}'),                            // 
+    ("fa_ruler_vertical", '\u{ee11}'),                              // 
+    ("fa_rupee", '\u{f156}'),                                       // 
+    ("fa_rupee_sign", '\u{f156}'),                                  // 
+    ("fa_s15", '\u{f2cd}'),                                         // 
+    ("fa_sack_dollar", '\u{ef8d}'),                                 // 
     ("fa_safari", '\u{f267}'),                                      // 
+    ("fa_salesforce", '\u{ef9a}'),                                  // 
+    ("fa_sass", '\u{ed49}'),                                        // 
+    ("fa_satellite", '\u{ef5f}'),                                   // 
+    ("fa_satellite_dish", '\u{ef60}'),                              // 
+    ("fa_save", '\u{f0c7}'),                                        // 
+    ("fa_scale_balanced", '\u{f24e}'),                              // 
+    ("fa_scale_unbalanced", '\u{eddf}'),                            // 
+    ("fa_scale_unbalanced_flip", '\u{ede0}'),                       // 
+    ("fa_schlix", '\u{ed22}'),                                      // 
+    ("fa_school", '\u{ee12}'),                                      // 
     ("fa_scissors", '\u{f0c4}'),                                    // 
+    ("fa_screwdriver", '\u{ee13}'),                                 // 
+    ("fa_screwdriver_wrench", '\u{ef70}'),                          // 
     ("fa_scribd", '\u{f28a}'),                                      // 
+    ("fa_scroll", '\u{ef0d}'),                                      // 
+    ("fa_scroll_torah", '\u{eee5}'),                                // 
+    ("fa_sd_card", '\u{ef61}'),                                     // 
     ("fa_search", '\u{f002}'),                                      // 
     ("fa_search_minus", '\u{f010}'),                                // 
     ("fa_search_plus", '\u{f00e}'),                                 // 
+    ("fa_searchengin", '\u{ed23}'),                                 // 
+    ("fa_seedling", '\u{eda7}'),                                    // 
+    ("fa_sellcast", '\u{f2da}'),                                    // 
     ("fa_sellsy", '\u{f213}'),                                      // 
+    ("fa_send", '\u{f1d8}'),                                        // 
+    ("fa_send_o", '\u{f1d9}'),                                      // 
     ("fa_server", '\u{f233}'),                                      // 
+    ("fa_servicestack", '\u{ed24}'),                                // 
+    ("fa_shapes", '\u{eeb0}'),                                      // 
     ("fa_share", '\u{f064}'),                                       // 
     ("fa_share_alt", '\u{f1e0}'),                                   // 
     ("fa_share_alt_square", '\u{f1e1}'),                            // 
+    ("fa_share_from_square", '\u{f14d}'),                           // 
+    ("fa_share_nodes", '\u{f1e0}'),                                 // 
     ("fa_share_square", '\u{f14d}'),                                // 
     ("fa_share_square_o", '\u{f045}'),                              // 
+    ("fa_shekel", '\u{f20b}'),                                      // 
+    ("fa_shekel_sign", '\u{f20b}'),                                 // 
+    ("fa_sheqel", '\u{f20b}'),                                      // 
     ("fa_shield", '\u{f132}'),                                      // 
+    ("fa_shield_halved", '\u{ed25}'),                               // 
     ("fa_ship", '\u{f21a}'),                                        // 
+    ("fa_shirt", '\u{ee1c}'),                                       // 
     ("fa_shirtsinbulk", '\u{f214}'),                                // 
+    ("fa_shoe_prints", '\u{ee14}'),                                 // 
+    ("fa_shop", '\u{ee18}'),                                        // 
     ("fa_shopping_bag", '\u{f290}'),                                // 
     ("fa_shopping_basket", '\u{f291}'),                             // 
     ("fa_shopping_cart", '\u{f07a}'),                               // 
+    ("fa_shopware", '\u{ee7d}'),                                    // 
     ("fa_shower", '\u{f2cc}'),                                      // 
+    ("fa_shuffle", '\u{f074}'),                                     // 
+    ("fa_shuttle_space", '\u{f197}'),                               // 
+    ("fa_sign_hanging", '\u{eda8}'),                                // 
     ("fa_sign_in", '\u{f090}'),                                     // 
     ("fa_sign_language", '\u{f2a7}'),                               // 
     ("fa_sign_out", '\u{f08b}'),                                    // 
     ("fa_signal", '\u{f012}'),                                      // 
+    ("fa_signature", '\u{ee7f}'),                                   // 
+    ("fa_signing", '\u{f2a7}'),                                     // 
+    ("fa_signs_post", '\u{f277}'),                                  // 
+    ("fa_sim_card", '\u{ef62}'),                                    // 
     ("fa_simplybuilt", '\u{f215}'),                                 // 
+    ("fa_sistrix", '\u{ed26}'),                                     // 
     ("fa_sitemap", '\u{f0e8}'),                                     // 
+    ("fa_sith", '\u{eddc}'),                                        // 
+    ("fa_sketch", '\u{ef64}'),                                      // 
+    ("fa_skull", '\u{ee15}'),                                       // 
+    ("fa_skull_crossbones", '\u{ef0e}'),                            // 
     ("fa_skyatlas", '\u{f216}'),                                    // 
     ("fa_skype", '\u{f17e}'),                                       // 
     ("fa_slack", '\u{f198}'),                                       // 
+    ("fa_slash", '\u{ef0f}'),                                       // 
+    ("fa_sleigh", '\u{ef67}'),                                      // 
     ("fa_sliders", '\u{f1de}'),                                     // 
     ("fa_slideshare", '\u{f1e7}'),                                  // 
     ("fa_smile_o", '\u{f118}'),                                     // 
+    ("fa_smog", '\u{ef29}'),                                        // 
+    ("fa_smoking", '\u{ed8c}'),                                     // 
     ("fa_snapchat", '\u{f2ab}'),                                    // 
     ("fa_snapchat_ghost", '\u{f2ac}'),                              // 
     ("fa_snapchat_square", '\u{f2ad}'),                             // 
+    ("fa_snowflake", '\u{f2dc}'),                                   // 
     ("fa_snowflake_o", '\u{f2dc}'),                                 // 
+    ("fa_snowman", '\u{ef6a}'),                                     // 
+    ("fa_snowplow", '\u{ef6b}'),                                    // 
+    ("fa_soccer_ball_o", '\u{f1e3}'),                               // 
+    ("fa_socks", '\u{eedf}'),                                       // 
+    ("fa_solar_panel", '\u{ee81}'),                                 // 
     ("fa_sort", '\u{f0dc}'),                                        // 
     ("fa_sort_alpha_asc", '\u{f15d}'),                              // 
     ("fa_sort_alpha_desc", '\u{f15e}'),                             // 
@@ -1138,154 +2404,408 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("fa_sort_amount_desc", '\u{f161}'),                            // 
     ("fa_sort_asc", '\u{f0de}'),                                    // 
     ("fa_sort_desc", '\u{f0dd}'),                                   // 
+    ("fa_sort_down", '\u{f0dd}'),                                   // 
     ("fa_sort_numeric_asc", '\u{f162}'),                            // 
     ("fa_sort_numeric_desc", '\u{f163}'),                           // 
+    ("fa_sort_up", '\u{f0de}'),                                     // 
     ("fa_soundcloud", '\u{f1be}'),                                  // 
+    ("fa_sourcetree", '\u{ef6c}'),                                  // 
+    ("fa_spa", '\u{ee82}'),                                         // 
     ("fa_space_shuttle", '\u{f197}'),                               // 
+    ("fa_spaghetti_monster_flying", '\u{eed5}'),                    // 
+    ("fa_speakap", '\u{ed27}'),                                     // 
+    ("fa_speaker_deck", '\u{ef9b}'),                                // 
+    ("fa_spell_check", '\u{efb3}'),                                 // 
+    ("fa_spider", '\u{ef10}'),                                      // 
     ("fa_spinner", '\u{f110}'),                                     // 
+    ("fa_splotch", '\u{ee83}'),                                     // 
     ("fa_spoon", '\u{f1b1}'),                                       // 
     ("fa_spotify", '\u{f1bc}'),                                     // 
+    ("fa_spray_can", '\u{ee84}'),                                   // 
+    ("fa_spray_can_sparkles", '\u{ee97}'),                          // 
     ("fa_square", '\u{f0c8}'),                                      // 
+    ("fa_square_arrow_up_right", '\u{f14c}'),                       // 
+    ("fa_square_behance", '\u{f1b5}'),                              // 
+    ("fa_square_caret_down", '\u{f150}'),                           // 
+    ("fa_square_caret_left", '\u{f191}'),                           // 
+    ("fa_square_caret_right", '\u{f152}'),                          // 
+    ("fa_square_caret_up", '\u{f151}'),                             // 
+    ("fa_square_check", '\u{f14a}'),                                // 
+    ("fa_square_dribbble", '\u{f22e}'),                             // 
+    ("fa_square_envelope", '\u{f199}'),                             // 
+    ("fa_square_facebook", '\u{f082}'),                             // 
+    ("fa_square_font_awesome_stroke", '\u{f0af}'),                  // 
+    ("fa_square_full", '\u{ed70}'),                                 // 
+    ("fa_square_git", '\u{f1d2}'),                                  // 
+    ("fa_square_github", '\u{f092}'),                               // 
+    ("fa_square_google_plus", '\u{f0d4}'),                          // 
+    ("fa_square_h", '\u{f0fd}'),                                    // 
+    ("fa_square_hacker_news", '\u{f2e5}'),                          // 
+    ("fa_square_js", '\u{f2ef}'),                                   // 
+    ("fa_square_lastfm", '\u{f203}'),                               // 
+    ("fa_square_minus", '\u{f146}'),                                // 
     ("fa_square_o", '\u{f096}'),                                    // 
+    ("fa_square_odnoklassniki", '\u{f264}'),                        // 
+    ("fa_square_parking", '\u{efcd}'),                              // 
+    ("fa_square_pen", '\u{f14b}'),                                  // 
+    ("fa_square_phone", '\u{f098}'),                                // 
+    ("fa_square_phone_flip", '\u{efaa}'),                           // 
+    ("fa_square_pinterest", '\u{f0d3}'),                            // 
+    ("fa_square_plus", '\u{f0fe}'),                                 // 
+    ("fa_square_poll_horizontal", '\u{eed9}'),                      // 
+    ("fa_square_poll_vertical", '\u{eed8}'),                        // 
+    ("fa_square_reddit", '\u{f1a2}'),                               // 
+    ("fa_square_root_variable", '\u{eee0}'),                        // 
+    ("fa_square_rss", '\u{f143}'),                                  // 
+    ("fa_square_share_nodes", '\u{f1e1}'),                          // 
+    ("fa_square_snapchat", '\u{f2ad}'),                             // 
+    ("fa_square_steam", '\u{f1b7}'),                                // 
+    ("fa_square_tumblr", '\u{f174}'),                               // 
+    ("fa_square_twitter", '\u{f081}'),                              // 
+    ("fa_square_up_right", '\u{f0b4}'),                             // 
+    ("fa_square_viadeo", '\u{f2aa}'),                               // 
+    ("fa_square_vimeo", '\u{f194}'),                                // 
+    ("fa_square_whatsapp", '\u{ed3b}'),                             // 
+    ("fa_square_xing", '\u{f169}'),                                 // 
+    ("fa_square_xmark", '\u{f2d3}'),                                // 
+    ("fa_square_youtube", '\u{f166}'),                              // 
+    ("fa_squarespace", '\u{ee85}'),                                 // 
     ("fa_stack_exchange", '\u{f18d}'),                              // 
     ("fa_stack_overflow", '\u{f16c}'),                              // 
+    ("fa_stackpath", '\u{efa1}'),                                   // 
+    ("fa_stamp", '\u{ee86}'),                                       // 
     ("fa_star", '\u{f005}'),                                        // 
+    ("fa_star_and_crescent", '\u{eee1}'),                           // 
     ("fa_star_half", '\u{f089}'),                                   // 
+    ("fa_star_half_empty", '\u{f123}'),                             // 
+    ("fa_star_half_full", '\u{f123}'),                              // 
     ("fa_star_half_o", '\u{f123}'),                                 // 
+    ("fa_star_half_stroke", '\u{ee87}'),                            // 
     ("fa_star_o", '\u{f006}'),                                      // 
+    ("fa_star_of_david", '\u{eee2}'),                               // 
+    ("fa_star_of_life", '\u{eeb1}'),                                // 
+    ("fa_staylinked", '\u{ed28}'),                                  // 
     ("fa_steam", '\u{f1b6}'),                                       // 
     ("fa_steam_square", '\u{f1b7}'),                                // 
+    ("fa_steam_symbol", '\u{ed29}'),                                // 
     ("fa_step_backward", '\u{f048}'),                               // 
     ("fa_step_forward", '\u{f051}'),                                // 
+    ("fa_sterling_sign", '\u{f154}'),                               // 
     ("fa_stethoscope", '\u{f0f1}'),                                 // 
+    ("fa_sticker_mule", '\u{ed2a}'),                                // 
     ("fa_sticky_note", '\u{f249}'),                                 // 
     ("fa_sticky_note_o", '\u{f24a}'),                               // 
     ("fa_stop", '\u{f04d}'),                                        // 
     ("fa_stop_circle", '\u{f28d}'),                                 // 
     ("fa_stop_circle_o", '\u{f28e}'),                               // 
+    ("fa_stopwatch", '\u{f2f2}'),                                   // 
+    ("fa_store", '\u{ee17}'),                                       // 
+    ("fa_strava", '\u{ed52}'),                                      // 
     ("fa_street_view", '\u{f21d}'),                                 // 
     ("fa_strikethrough", '\u{f0cc}'),                               // 
+    ("fa_stripe", '\u{ed53}'),                                      // 
+    ("fa_stripe_s", '\u{ed54}'),                                    // 
+    ("fa_stroopwafel", '\u{ee1a}'),                                 // 
+    ("fa_studiovinari", '\u{ed2b}'),                                // 
     ("fa_stumbleupon", '\u{f1a4}'),                                 // 
     ("fa_stumbleupon_circle", '\u{f1a3}'),                          // 
     ("fa_subscript", '\u{f12c}'),                                   // 
     ("fa_subway", '\u{f239}'),                                      // 
     ("fa_suitcase", '\u{f0f2}'),                                    // 
+    ("fa_suitcase_medical", '\u{f0fa}'),                            // 
+    ("fa_suitcase_rolling", '\u{ee88}'),                            // 
+    ("fa_sun", '\u{f185}'),                                         // 
     ("fa_sun_o", '\u{f185}'),                                       // 
     ("fa_superpowers", '\u{f2dd}'),                                 // 
     ("fa_superscript", '\u{f12b}'),                                 // 
+    ("fa_supple", '\u{ed2c}'),                                      // 
+    ("fa_support", '\u{f1cd}'),                                     // 
+    ("fa_suse", '\u{ef6d}'),                                        // 
+    ("fa_swatchbook", '\u{ee8a}'),                                  // 
+    ("fa_swift", '\u{efbe}'),                                       // 
+    ("fa_symfony", '\u{ef9c}'),                                     // 
+    ("fa_synagogue", '\u{eee3}'),                                   // 
+    ("fa_syringe", '\u{ed8d}'),                                     // 
     ("fa_table", '\u{f0ce}'),                                       // 
-    ("fa_tablet", '\u{f10a}'),                                      // 
+    ("fa_table_cells", '\u{f00a}'),                                 // 
+    ("fa_table_cells_large", '\u{f009}'),                           // 
+    ("fa_table_columns", '\u{f0db}'),                               // 
+    ("fa_table_list", '\u{f00b}'),                                  // 
+    ("fa_table_tennis_paddle_ball", '\u{ed71}'),                    // 
+    ("fa_tablet", '\u{ed2e}'),                                      // 
+    ("fa_tablet_button", '\u{ed2d}'),                               // 
+    ("fa_tablet_screen_button", '\u{f10a}'),                        // 
+    ("fa_tablets", '\u{ed8e}'),                                     // 
+    ("fa_tachograph_digital", '\u{ee2f}'),                          // 
     ("fa_tachometer", '\u{f0e4}'),                                  // 
     ("fa_tag", '\u{f02b}'),                                         // 
     ("fa_tags", '\u{f02c}'),                                        // 
+    ("fa_tape", '\u{edaa}'),                                        // 
     ("fa_tasks", '\u{f0ae}'),                                       // 
     ("fa_taxi", '\u{f1ba}'),                                        // 
+    ("fa_teamspeak", '\u{edc3}'),                                   // 
+    ("fa_teeth", '\u{eeb4}'),                                       // 
+    ("fa_teeth_open", '\u{eeb5}'),                                  // 
     ("fa_telegram", '\u{f2c6}'),                                    // 
     ("fa_television", '\u{f26c}'),                                  // 
+    ("fa_temperature_empty", '\u{f2cb}'),                           // 
+    ("fa_temperature_full", '\u{f2c7}'),                            // 
+    ("fa_temperature_half", '\u{f2c9}'),                            // 
+    ("fa_temperature_high", '\u{ef2a}'),                            // 
+    ("fa_temperature_low", '\u{ef2b}'),                             // 
+    ("fa_temperature_quarter", '\u{f2ca}'),                         // 
+    ("fa_temperature_three_quarters", '\u{f2c8}'),                  // 
     ("fa_tencent_weibo", '\u{f1d5}'),                               // 
+    ("fa_tenge_sign", '\u{ef6e}'),                                  // 
     ("fa_terminal", '\u{f120}'),                                    // 
     ("fa_text_height", '\u{f034}'),                                 // 
+    ("fa_text_slash", '\u{efac}'),                                  // 
     ("fa_text_width", '\u{f035}'),                                  // 
     ("fa_th", '\u{f00a}'),                                          // 
     ("fa_th_large", '\u{f009}'),                                    // 
     ("fa_th_list", '\u{f00b}'),                                     // 
+    ("fa_the_red_yeti", '\u{eee4}'),                                // 
+    ("fa_themeco", '\u{ee8d}'),                                     // 
     ("fa_themeisle", '\u{f2b2}'),                                   // 
+    ("fa_thermometer", '\u{f2c7}'),                                 // 
+    ("fa_thermometer_0", '\u{f2cb}'),                               // 
+    ("fa_thermometer_1", '\u{f2ca}'),                               // 
+    ("fa_thermometer_2", '\u{f2c9}'),                               // 
+    ("fa_thermometer_3", '\u{f2c8}'),                               // 
+    ("fa_thermometer_4", '\u{f2c7}'),                               // 
+    ("fa_thermometer_alt", '\u{ed8f}'),                             // 
     ("fa_thermometer_empty", '\u{f2cb}'),                           // 
     ("fa_thermometer_full", '\u{f2c7}'),                            // 
     ("fa_thermometer_half", '\u{f2c9}'),                            // 
     ("fa_thermometer_quarter", '\u{f2ca}'),                         // 
     ("fa_thermometer_three_quarters", '\u{f2c8}'),                  // 
+    ("fa_think_peaks", '\u{ef19}'),                                 // 
     ("fa_thumb_tack", '\u{f08d}'),                                  // 
     ("fa_thumbs_down", '\u{f165}'),                                 // 
     ("fa_thumbs_o_down", '\u{f088}'),                               // 
     ("fa_thumbs_o_up", '\u{f087}'),                                 // 
     ("fa_thumbs_up", '\u{f164}'),                                   // 
+    ("fa_thumbtack", '\u{f08d}'),                                   // 
     ("fa_ticket", '\u{f145}'),                                      // 
+    ("fa_ticket_simple", '\u{ed30}'),                               // 
     ("fa_times", '\u{f00d}'),                                       // 
     ("fa_times_circle", '\u{f057}'),                                // 
     ("fa_times_circle_o", '\u{f05c}'),                              // 
+    ("fa_times_rectangle", '\u{f2d3}'),                             // 
+    ("fa_times_rectangle_o", '\u{f2d4}'),                           // 
     ("fa_tint", '\u{f043}'),                                        // 
+    ("fa_toggle_down", '\u{f150}'),                                 // 
+    ("fa_toggle_left", '\u{f191}'),                                 // 
     ("fa_toggle_off", '\u{f204}'),                                  // 
     ("fa_toggle_on", '\u{f205}'),                                   // 
+    ("fa_toggle_right", '\u{f152}'),                                // 
+    ("fa_toggle_up", '\u{f151}'),                                   // 
+    ("fa_toilet", '\u{ef6f}'),                                      // 
+    ("fa_toilet_paper", '\u{ef11}'),                                // 
+    ("fa_toolbox", '\u{ee1b}'),                                     // 
+    ("fa_tooth", '\u{ee90}'),                                       // 
+    ("fa_torii_gate", '\u{eee6}'),                                  // 
+    ("fa_tornado", '\u{ef2d}'),                                     // 
+    ("fa_tower_broadcast", '\u{ede3}'),                             // 
+    ("fa_tractor", '\u{ef12}'),                                     // 
+    ("fa_trade_federation", '\u{eddd}'),                            // 
     ("fa_trademark", '\u{f25c}'),                                   // 
+    ("fa_traffic_light", '\u{eeb7}'),                               // 
     ("fa_train", '\u{f238}'),                                       // 
+    ("fa_train_subway", '\u{f239}'),                                // 
     ("fa_transgender", '\u{f224}'),                                 // 
     ("fa_transgender_alt", '\u{f225}'),                             // 
     ("fa_trash", '\u{f1f8}'),                                       // 
+    ("fa_trash_arrow_up", '\u{ef90}'),                              // 
+    ("fa_trash_can", '\u{f014}'),                                   // 
+    ("fa_trash_can_arrow_up", '\u{ef91}'),                          // 
     ("fa_trash_o", '\u{f014}'),                                     // 
     ("fa_tree", '\u{f1bb}'),                                        // 
     ("fa_trello", '\u{f181}'),                                      // 
+    ("fa_triangle_exclamation", '\u{f071}'),                        // 
     ("fa_tripadvisor", '\u{f262}'),                                 // 
     ("fa_trophy", '\u{f091}'),                                      // 
     ("fa_truck", '\u{f0d1}'),                                       // 
+    ("fa_truck_fast", '\u{ed8b}'),                                  // 
+    ("fa_truck_medical", '\u{f0f9}'),                               // 
+    ("fa_truck_monster", '\u{eeb8}'),                               // 
+    ("fa_truck_moving", '\u{edac}'),                                // 
+    ("fa_truck_pickup", '\u{eeb9}'),                                // 
+    ("fa_truck_ramp_box", '\u{edab}'),                              // 
     ("fa_try", '\u{f195}'),                                         // 
     ("fa_tty", '\u{f1e4}'),                                         // 
     ("fa_tumblr", '\u{f173}'),                                      // 
     ("fa_tumblr_square", '\u{f174}'),                               // 
+    ("fa_turkish_lira", '\u{f195}'),                                // 
+    ("fa_turn_down", '\u{f2f8}'),                                   // 
+    ("fa_turn_up", '\u{f2fa}'),                                     // 
+    ("fa_tv", '\u{f26c}'),                                          // 
     ("fa_twitch", '\u{f1e8}'),                                      // 
     ("fa_twitter", '\u{f099}'),                                     // 
     ("fa_twitter_square", '\u{f081}'),                              // 
+    ("fa_typo3", '\u{ed55}'),                                       // 
+    ("fa_uber", '\u{ed31}'),                                        // 
+    ("fa_ubuntu", '\u{ef72}'),                                      // 
+    ("fa_uikit", '\u{ed32}'),                                       // 
+    ("fa_umbraco", '\u{efbf}'),                                     // 
     ("fa_umbrella", '\u{f0e9}'),                                    // 
+    ("fa_umbrella_beach", '\u{ee91}'),                              // 
     ("fa_underline", '\u{f0cd}'),                                   // 
     ("fa_undo", '\u{f0e2}'),                                        // 
+    ("fa_uniregistry", '\u{ed33}'),                                 // 
     ("fa_universal_access", '\u{f29a}'),                            // 
     ("fa_university", '\u{f19c}'),                                  // 
+    ("fa_unlink", '\u{f127}'),                                      // 
     ("fa_unlock", '\u{f09c}'),                                      // 
     ("fa_unlock_alt", '\u{f13e}'),                                  // 
+    ("fa_unlock_keyhole", '\u{f13e}'),                              // 
+    ("fa_unsorted", '\u{f0dc}'),                                    // 
+    ("fa_untappd", '\u{ed34}'),                                     // 
+    ("fa_up_down", '\u{f09f}'),                                     // 
+    ("fa_up_down_left_right", '\u{f0b2}'),                          // 
+    ("fa_up_right_and_down_left_from_center", '\u{ed4f}'),          // 
+    ("fa_up_right_from_square", '\u{f0b3}'),                        // 
     ("fa_upload", '\u{f093}'),                                      // 
+    ("fa_ups", '\u{ef73}'),                                         // 
     ("fa_usb", '\u{f287}'),                                         // 
     ("fa_usd", '\u{f155}'),                                         // 
     ("fa_user", '\u{f007}'),                                        // 
+    ("fa_user_astronaut", '\u{edc5}'),                              // 
+    ("fa_user_check", '\u{edc6}'),                                  // 
     ("fa_user_circle", '\u{f2bd}'),                                 // 
     ("fa_user_circle_o", '\u{f2be}'),                               // 
+    ("fa_user_clock", '\u{edc7}'),                                  // 
+    ("fa_user_doctor", '\u{f0f0}'),                                 // 
+    ("fa_user_gear", '\u{edc8}'),                                   // 
+    ("fa_user_graduate", '\u{edcb}'),                               // 
+    ("fa_user_group", '\u{edca}'),                                  // 
+    ("fa_user_injured", '\u{ef13}'),                                // 
+    ("fa_user_large", '\u{ed35}'),                                  // 
+    ("fa_user_large_slash", '\u{edc4}'),                            // 
+    ("fa_user_lock", '\u{edcc}'),                                   // 
     ("fa_user_md", '\u{f0f0}'),                                     // 
+    ("fa_user_minus", '\u{edcd}'),                                  // 
+    ("fa_user_ninja", '\u{edce}'),                                  // 
+    ("fa_user_nurse", '\u{ef92}'),                                  // 
     ("fa_user_o", '\u{f2c0}'),                                      // 
+    ("fa_user_pen", '\u{edc9}'),                                    // 
     ("fa_user_plus", '\u{f234}'),                                   // 
     ("fa_user_secret", '\u{f21b}'),                                 // 
+    ("fa_user_shield", '\u{edcf}'),                                 // 
+    ("fa_user_slash", '\u{edd0}'),                                  // 
+    ("fa_user_tag", '\u{edd1}'),                                    // 
+    ("fa_user_tie", '\u{edd2}'),                                    // 
     ("fa_user_times", '\u{f235}'),                                  // 
+    ("fa_user_xmark", '\u{f235}'),                                  // 
     ("fa_users", '\u{f0c0}'),                                       // 
+    ("fa_users_gear", '\u{edd3}'),                                  // 
+    ("fa_usps", '\u{ef74}'),                                        // 
+    ("fa_ussunnah", '\u{ed36}'),                                    // 
+    ("fa_utensils", '\u{f0f5}'),                                    // 
+    ("fa_vaadin", '\u{ed37}'),                                      // 
+    ("fa_van_shuttle", '\u{ee7e}'),                                 // 
+    ("fa_vcard", '\u{f2bb}'),                                       // 
+    ("fa_vcard_o", '\u{f2bc}'),                                     // 
+    ("fa_vector_square", '\u{ee92}'),                               // 
     ("fa_venus", '\u{f221}'),                                       // 
     ("fa_venus_double", '\u{f226}'),                                // 
     ("fa_venus_mars", '\u{f228}'),                                  // 
     ("fa_viacoin", '\u{f237}'),                                     // 
     ("fa_viadeo", '\u{f2a9}'),                                      // 
     ("fa_viadeo_square", '\u{f2aa}'),                               // 
+    ("fa_vial", '\u{ed90}'),                                        // 
+    ("fa_vials", '\u{ed91}'),                                       // 
+    ("fa_viber", '\u{ed38}'),                                       // 
+    ("fa_video", '\u{f03d}'),                                       // 
     ("fa_video_camera", '\u{f03d}'),                                // 
-    ("fa_vimeo", '\u{f27d}'),                                       // 
+    ("fa_video_slash", '\u{edad}'),                                 // 
+    ("fa_vihara", '\u{eee7}'),                                      // 
+    ("fa_vimeo", '\u{ed39}'),                                       // 
     ("fa_vimeo_square", '\u{f194}'),                                // 
+    ("fa_vimeo_v", '\u{f27d}'),                                     // 
     ("fa_vine", '\u{f1ca}'),                                        // 
     ("fa_vk", '\u{f189}'),                                          // 
+    ("fa_vnv", '\u{ed3a}'),                                         // 
+    ("fa_voicemail", '\u{efb4}'),                                   // 
+    ("fa_volcano", '\u{ef2e}'),                                     // 
+    ("fa_volleyball", '\u{ed72}'),                                  // 
     ("fa_volume_control_phone", '\u{f2a0}'),                        // 
     ("fa_volume_down", '\u{f027}'),                                 // 
+    ("fa_volume_high", '\u{f028}'),                                 // 
+    ("fa_volume_low", '\u{f027}'),                                  // 
     ("fa_volume_off", '\u{f026}'),                                  // 
     ("fa_volume_up", '\u{f028}'),                                   // 
+    ("fa_volume_xmark", '\u{eee8}'),                                // 
+    ("fa_vr_cardboard", '\u{ef14}'),                                // 
+    ("fa_vuejs", '\u{ed4a}'),                                       // 
+    ("fa_walkie_talkie", '\u{efc0}'),                               // 
+    ("fa_wallet", '\u{ee1e}'),                                      // 
+    ("fa_wand_magic", '\u{f0d0}'),                                  // 
+    ("fa_wand_sparkles", '\u{ef15}'),                               // 
+    ("fa_warehouse", '\u{ed92}'),                                   // 
+    ("fa_warning", '\u{f071}'),                                     // 
+    ("fa_water", '\u{ef30}'),                                       // 
+    ("fa_water_ladder", '\u{ee8c}'),                                // 
+    ("fa_wave_square", '\u{ef9d}'),                                 // 
+    ("fa_waze", '\u{ef9e}'),                                        // 
+    ("fa_wechat", '\u{f1d7}'),                                      // 
+    ("fa_weebly", '\u{ee93}'),                                      // 
     ("fa_weibo", '\u{f18a}'),                                       // 
+    ("fa_weight_hanging", '\u{ee94}'),                              // 
+    ("fa_weight_scale", '\u{ed93}'),                                // 
     ("fa_weixin", '\u{f1d7}'),                                      // 
     ("fa_whatsapp", '\u{f232}'),                                    // 
     ("fa_wheelchair", '\u{f193}'),                                  // 
     ("fa_wheelchair_alt", '\u{f29b}'),                              // 
+    ("fa_whiskey_glass", '\u{ef4a}'),                               // 
+    ("fa_whmcs", '\u{ed3c}'),                                       // 
     ("fa_wifi", '\u{f1eb}'),                                        // 
     ("fa_wikipedia_w", '\u{f266}'),                                 // 
+    ("fa_wind", '\u{ef16}'),                                        // 
     ("fa_window_close", '\u{f2d3}'),                                // 
     ("fa_window_close_o", '\u{f2d4}'),                              // 
     ("fa_window_maximize", '\u{f2d0}'),                             // 
     ("fa_window_minimize", '\u{f2d1}'),                             // 
     ("fa_window_restore", '\u{f2d2}'),                              // 
     ("fa_windows", '\u{f17a}'),                                     // 
+    ("fa_wine_bottle", '\u{ef17}'),                                 // 
+    ("fa_wine_glass", '\u{edae}'),                                  // 
+    ("fa_wine_glass_empty", '\u{ee95}'),                            // 
+    ("fa_wix", '\u{ee96}'),                                         // 
+    ("fa_wizards_of_the_coast", '\u{ef18}'),                        // 
+    ("fa_wolf_pack_battalion", '\u{edde}'),                         // 
+    ("fa_won", '\u{f159}'),                                         // 
+    ("fa_won_sign", '\u{f159}'),                                    // 
     ("fa_wordpress", '\u{f19a}'),                                   // 
+    ("fa_wordpress_simple", '\u{ed3d}'),                            // 
     ("fa_wpbeginner", '\u{f297}'),                                  // 
     ("fa_wpexplorer", '\u{f2de}'),                                  // 
     ("fa_wpforms", '\u{f298}'),                                     // 
+    ("fa_wpressr", '\u{ed1d}'),                                     // 
     ("fa_wrench", '\u{f0ad}'),                                      // 
+    ("fa_x_ray", '\u{ed94}'),                                       // 
+    ("fa_xbox", '\u{ed3e}'),                                        // 
     ("fa_xing", '\u{f168}'),                                        // 
     ("fa_xing_square", '\u{f169}'),                                 // 
+    ("fa_xmark", '\u{f00d}'),                                       // 
     ("fa_y_combinator", '\u{f23b}'),                                // 
+    ("fa_y_combinator_square", '\u{f1d4}'),                         // 
     ("fa_yahoo", '\u{f19e}'),                                       // 
+    ("fa_yammer", '\u{ef9f}'),                                      // 
+    ("fa_yandex", '\u{ed3f}'),                                      // 
+    ("fa_yandex_international", '\u{ed40}'),                        // 
+    ("fa_yarn", '\u{ef75}'),                                        // 
+    ("fa_yc", '\u{f23b}'),                                          // 
+    ("fa_yc_square", '\u{f1d4}'),                                   // 
     ("fa_yelp", '\u{f1e9}'),                                        // 
+    ("fa_yen", '\u{f157}'),                                         // 
+    ("fa_yen_sign", '\u{f157}'),                                    // 
+    ("fa_yin_yang", '\u{eee9}'),                                    // 
     ("fa_yoast", '\u{f2b1}'),                                       // 
-    ("fa_youtube", '\u{f167}'),                                     // 
+    ("fa_youtube", '\u{f16a}'),                                     // 
     ("fa_youtube_play", '\u{f16a}'),                                // 
     ("fa_youtube_square", '\u{f166}'),                              // 
+    ("fa_zhihu", '\u{eeba}'),                                       // 
     ("fae_apple_fruit", '\u{e29e}'),                                // 
     ("fae_atom", '\u{e27f}'),                                       // 
     ("fae_bacteria", '\u{e280}'),                                   // 
@@ -1461,7 +2981,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("iec_power_on", '\u{23fd}'),                                   // ⏽
     ("iec_sleep_mode", '\u{23fe}'),                                 // ⏾
     ("iec_toggle_power", '\u{23fc}'),                               // ⏼
+    ("indent_dotted_guide", '\u{e621}'),                            // 
     ("indent_line", '\u{e621}'),                                    // 
+    ("indentation_line", '\u{e621}'),                               // 
     ("linux_almalinux", '\u{f31d}'),                                // 
     ("linux_alpine", '\u{f300}'),                                   // 
     ("linux_aosc", '\u{f301}'),                                     // 
@@ -1514,6 +3036,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_inkscape", '\u{f33b}'),                                 // 
     ("linux_jwm", '\u{f35b}'),                                      // 
     ("linux_kali_linux", '\u{f327}'),                               // 
+    ("linux_kde", '\u{f373}'),                                      // 
     ("linux_kde_neon", '\u{f331}'),                                 // 
     ("linux_kde_plasma", '\u{f332}'),                               // 
     ("linux_kdenlive", '\u{f33c}'),                                 // 
@@ -1521,6 +3044,14 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_krita", '\u{f33d}'),                                    // 
     ("linux_kubuntu", '\u{f333}'),                                  // 
     ("linux_kubuntu_inverse", '\u{f334}'),                          // 
+    ("linux_leap", '\u{f37e}'),                                     // 
+    ("linux_libreoffice", '\u{f376}'),                              // 
+    ("linux_libreofficebase", '\u{f377}'),                          // 
+    ("linux_libreofficecalc", '\u{f378}'),                          // 
+    ("linux_libreofficedraw", '\u{f379}'),                          // 
+    ("linux_libreofficeimpress", '\u{f37a}'),                       // 
+    ("linux_libreofficemath", '\u{f37b}'),                          // 
+    ("linux_libreofficewriter", '\u{f37c}'),                        // 
     ("linux_linuxmint", '\u{f30e}'),                                // 
     ("linux_linuxmint_inverse", '\u{f30f}'),                        // 
     ("linux_locos", '\u{f349}'),                                    // 
@@ -1535,6 +3066,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_mxlinux", '\u{f33f}'),                                  // 
     ("linux_neovim", '\u{f36f}'),                                   // 
     ("linux_nixos", '\u{f313}'),                                    // 
+    ("linux_nobara", '\u{f380}'),                                   // 
     ("linux_octoprint", '\u{f34d}'),                                // 
     ("linux_openbsd", '\u{f328}'),                                  // 
     ("linux_openscad", '\u{f34e}'),                                 // 
@@ -1545,14 +3077,17 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_parabola", '\u{f340}'),                                 // 
     ("linux_parrot", '\u{f329}'),                                   // 
     ("linux_pop_os", '\u{f32a}'),                                   // 
+    ("linux_postmarketos", '\u{f374}'),                             // 
     ("linux_prusaslicer", '\u{f351}'),                              // 
     ("linux_puppy", '\u{f341}'),                                    // 
+    ("linux_qt", '\u{f375}'),                                       // 
     ("linux_qtile", '\u{f35c}'),                                    // 
     ("linux_qubesos", '\u{f342}'),                                  // 
     ("linux_raspberry_pi", '\u{f315}'),                             // 
     ("linux_redhat", '\u{f316}'),                                   // 
     ("linux_reprap", '\u{f352}'),                                   // 
     ("linux_riscv", '\u{f353}'),                                    // 
+    ("linux_river", '\u{f381}'),                                    // 
     ("linux_rocky_linux", '\u{f32b}'),                              // 
     ("linux_sabayon", '\u{f317}'),                                  // 
     ("linux_slackware", '\u{f318}'),                                // 
@@ -1564,7 +3099,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("linux_thunderbird", '\u{f370}'),                              // 
     ("linux_tor", '\u{f371}'),                                      // 
     ("linux_trisquel", '\u{f344}'),                                 // 
+    ("linux_tumbleweed", '\u{f37d}'),                               // 
     ("linux_tux", '\u{f31a}'),                                      // 
+    ("linux_typst", '\u{f37f}'),                                    // 
     ("linux_ubuntu", '\u{f31b}'),                                   // 
     ("linux_ubuntu_inverse", '\u{f31c}'),                           // 
     ("linux_vanilla", '\u{f366}'),                                  // 
@@ -1824,8 +3361,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_alpha_h_box_outline", '\u{f0c00}'),                        // 󰰀
     ("md_alpha_h_circle", '\u{f0c01}'),                             // 󰰁
     ("md_alpha_h_circle_outline", '\u{f0c02}'),                     // 󰰂
-    ("md_alpha_i", '\u{f1088}'),                                    // 󱂈
-    ("md_alpha_i", '\u{f1088}'),                                    // 󱂈
+    ("md_alpha_i", '\u{f0af6}'),                                    // 󰫶
     ("md_alpha_i_box", '\u{f0b10}'),                                // 󰬐
     ("md_alpha_i_box_outline", '\u{f0c03}'),                        // 󰰃
     ("md_alpha_i_circle", '\u{f0c04}'),                             // 󰰄
@@ -1840,8 +3376,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_alpha_k_box_outline", '\u{f0c09}'),                        // 󰰉
     ("md_alpha_k_circle", '\u{f0c0a}'),                             // 󰰊
     ("md_alpha_k_circle_outline", '\u{f0c0b}'),                     // 󰰋
-    ("md_alpha_l", '\u{f13a6}'),                                    // 󱎦
-    ("md_alpha_l", '\u{f13a6}'),                                    // 󱎦
+    ("md_alpha_l", '\u{f0af9}'),                                    // 󰫹
     ("md_alpha_l_box", '\u{f0b13}'),                                // 󰬓
     ("md_alpha_l_box_outline", '\u{f0c0c}'),                        // 󰰌
     ("md_alpha_l_circle", '\u{f0c0d}'),                             // 󰰍
@@ -1856,14 +3391,11 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_alpha_n_box_outline", '\u{f0c12}'),                        // 󰰒
     ("md_alpha_n_circle", '\u{f0c13}'),                             // 󰰓
     ("md_alpha_n_circle_outline", '\u{f0c14}'),                     // 󰰔
-    ("md_alpha_o", '\u{f0b39}'),                                    // 󰬹
-    ("md_alpha_o", '\u{f0b39}'),                                    // 󰬹
+    ("md_alpha_o", '\u{f0afc}'),                                    // 󰫼
     ("md_alpha_o_box", '\u{f0b16}'),                                // 󰬖
     ("md_alpha_o_box_outline", '\u{f0c15}'),                        // 󰰕
-    ("md_alpha_o_circle", '\u{f0c9e}'),                             // 󰲞
-    ("md_alpha_o_circle", '\u{f0c9e}'),                             // 󰲞
-    ("md_alpha_o_circle_outline", '\u{f0c9f}'),                     // 󰲟
-    ("md_alpha_o_circle_outline", '\u{f0c9f}'),                     // 󰲟
+    ("md_alpha_o_circle", '\u{f0c16}'),                             // 󰰖
+    ("md_alpha_o_circle_outline", '\u{f0c17}'),                     // 󰰗
     ("md_alpha_p", '\u{f0afd}'),                                    // 󰫽
     ("md_alpha_p_box", '\u{f0b17}'),                                // 󰬗
     ("md_alpha_p_box_outline", '\u{f0c18}'),                        // 󰰘
@@ -1894,8 +3426,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_alpha_u_box_outline", '\u{f0c27}'),                        // 󰰧
     ("md_alpha_u_circle", '\u{f0c28}'),                             // 󰰨
     ("md_alpha_u_circle_outline", '\u{f0c29}'),                     // 󰰩
-    ("md_alpha_v", '\u{f108c}'),                                    // 󱂌
-    ("md_alpha_v", '\u{f108c}'),                                    // 󱂌
+    ("md_alpha_v", '\u{f0b03}'),                                    // 󰬃
     ("md_alpha_v_box", '\u{f0b1d}'),                                // 󰬝
     ("md_alpha_v_box_outline", '\u{f0c2a}'),                        // 󰰪
     ("md_alpha_v_circle", '\u{f0c2b}'),                             // 󰰫
@@ -1905,8 +3436,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_alpha_w_box_outline", '\u{f0c2d}'),                        // 󰰭
     ("md_alpha_w_circle", '\u{f0c2e}'),                             // 󰰮
     ("md_alpha_w_circle_outline", '\u{f0c2f}'),                     // 󰰯
-    ("md_alpha_x", '\u{f1091}'),                                    // 󱂑
-    ("md_alpha_x", '\u{f1091}'),                                    // 󱂑
+    ("md_alpha_x", '\u{f0b05}'),                                    // 󰬅
     ("md_alpha_x_box", '\u{f0b1f}'),                                // 󰬟
     ("md_alpha_x_box_outline", '\u{f0c30}'),                        // 󰰰
     ("md_alpha_x_circle", '\u{f0c31}'),                             // 󰰱
@@ -3162,11 +4692,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_checkbox_blank", '\u{f012e}'),                             // 󰄮
     ("md_checkbox_blank_badge", '\u{f1176}'),                       // 󱅶
     ("md_checkbox_blank_badge_outline", '\u{f0117}'),               // 󰄗
-    ("md_checkbox_blank_circle", '\u{f0765}'),                      // 󰝥
-    ("md_checkbox_blank_circle", '\u{f0765}'),                      // 󰝥
-    ("md_checkbox_blank_circle_outline", '\u{f0766}'),              // 󰝦
-    ("md_checkbox_blank_circle_outline", '\u{f0766}'),              // 󰝦
-    ("md_checkbox_blank_circle_outline", '\u{f0766}'),              // 󰝦
+    ("md_checkbox_blank_circle", '\u{f012f}'),                      // 󰄯
+    ("md_checkbox_blank_circle_outline", '\u{f0130}'),              // 󰄰
     ("md_checkbox_blank_off", '\u{f12ec}'),                         // 󱋬
     ("md_checkbox_blank_off_outline", '\u{f12ed}'),                 // 󱋭
     ("md_checkbox_blank_outline", '\u{f0131}'),                     // 󰄱
@@ -4132,8 +5659,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_exclamation", '\u{f0205}'),                                // 󰈅
     ("md_exclamation_thick", '\u{f1238}'),                          // 󱈸
     ("md_exit_run", '\u{f0a48}'),                                   // 󰩈
-    ("md_exit_to_app", '\u{f05fc}'),                                // 󰗼
-    ("md_exit_to_app", '\u{f05fc}'),                                // 󰗼
+    ("md_exit_to_app", '\u{f0206}'),                                // 󰈆
     ("md_expand_all", '\u{f0ab4}'),                                 // 󰪴
     ("md_expand_all_outline", '\u{f0ab5}'),                         // 󰪵
     ("md_expansion_card", '\u{f08ae}'),                             // 󰢮
@@ -5076,8 +6602,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_headset", '\u{f02ce}'),                                    // 󰋎
     ("md_headset_dock", '\u{f02cf}'),                               // 󰋏
     ("md_headset_off", '\u{f02d0}'),                                // 󰋐
-    ("md_heart", '\u{f08d0}'),                                      // 󰣐
-    ("md_heart", '\u{f08d0}'),                                      // 󰣐
+    ("md_heart", '\u{f02d1}'),                                      // 󰋑
     ("md_heart_box", '\u{f02d2}'),                                  // 󰋒
     ("md_heart_box_outline", '\u{f02d3}'),                          // 󰋓
     ("md_heart_broken", '\u{f02d4}'),                               // 󰋔
@@ -5096,8 +6621,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_heart_multiple_outline", '\u{f0a57}'),                     // 󰩗
     ("md_heart_off", '\u{f0759}'),                                  // 󰝙
     ("md_heart_off_outline", '\u{f1434}'),                          // 󱐴
-    ("md_heart_outline", '\u{f18a0}'),                              // 󱢠
-    ("md_heart_outline", '\u{f18a0}'),                              // 󱢠
+    ("md_heart_outline", '\u{f02d5}'),                              // 󰋕
     ("md_heart_plus", '\u{f142e}'),                                 // 󱐮
     ("md_heart_plus_outline", '\u{f1431}'),                         // 󱐱
     ("md_heart_pulse", '\u{f05f6}'),                                // 󰗶
@@ -5284,8 +6808,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_image_filter_center_focus_weak", '\u{f02f2}'),             // 󰋲
     ("md_image_filter_drama", '\u{f02f3}'),                         // 󰋳
     ("md_image_filter_frames", '\u{f02f4}'),                        // 󰋴
-    ("md_image_filter_hdr", '\u{f0509}'),                           // 󰔉
-    ("md_image_filter_hdr", '\u{f0509}'),                           // 󰔉
+    ("md_image_filter_hdr", '\u{f02f5}'),                           // 󰋵
     ("md_image_filter_none", '\u{f02f6}'),                          // 󰋶
     ("md_image_filter_tilt_shift", '\u{f02f7}'),                    // 󰋷
     ("md_image_filter_vintage", '\u{f02f8}'),                       // 󰋸
@@ -6034,8 +7557,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_music_clef_alto", '\u{f0f6e}'),                            // 󰽮
     ("md_music_clef_bass", '\u{f0f6f}'),                            // 󰽯
     ("md_music_clef_treble", '\u{f0f70}'),                          // 󰽰
-    ("md_music_note", '\u{f0388}'),                                 // 󰎈
-    ("md_music_note", '\u{f0388}'),                                 // 󰎈
+    ("md_music_note", '\u{f0387}'),                                 // 󰎇
     ("md_music_note_bluetooth", '\u{f05fe}'),                       // 󰗾
     ("md_music_note_bluetooth_off", '\u{f05ff}'),                   // 󰗿
     ("md_music_note_eighth_dotted", '\u{f0f71}'),                   // 󰽱
@@ -6066,8 +7588,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("md_navigation", '\u{f0390}'),                                 // 󰎐
     ("md_navigation_outline", '\u{f1607}'),                         // 󱘇
     ("md_navigation_variant_outline", '\u{f18f1}'),                 // 󱣱
-    ("md_near_me", '\u{f18f0}'),                                    // 󱣰
-    ("md_near_me", '\u{f18f0}'),                                    // 󱣰
+    ("md_near_me", '\u{f05cd}'),                                    // 󰗍
     ("md_necklace", '\u{f0f0b}'),                                   // 󰼋
     ("md_needle", '\u{f0391}'),                                     // 󰎑
     ("md_needle_off", '\u{f19d2}'),                                 // 󱧒
@@ -8784,15 +10305,18 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("oct_zoom_in", '\u{f531}'),                                    // 
     ("oct_zoom_out", '\u{f532}'),                                   // 
     ("pl_branch", '\u{e0a0}'),                                      // 
+    ("pl_current_line", '\u{e0a1}'),                                // 
     ("pl_hostname", '\u{e0a2}'),                                    // 
     ("pl_left_hard_divider", '\u{e0b0}'),                           // 
     ("pl_left_soft_divider", '\u{e0b1}'),                           // 
     ("pl_line_number", '\u{e0a1}'),                                 // 
+    ("pl_readonly", '\u{e0a2}'),                                    // 
     ("pl_right_hard_divider", '\u{e0b2}'),                          // 
     ("pl_right_soft_divider", '\u{e0b3}'),                          // 
     ("ple_backslash_separator", '\u{e0b9}'),                        // 
     ("ple_backslash_separator_redundant", '\u{e0bf}'),              // 
     ("ple_column_number", '\u{e0a3}'),                              // 
+    ("ple_current_column", '\u{e0a3}'),                             // 
     ("ple_flame_thick", '\u{e0c0}'),                                // 
     ("ple_flame_thick_mirrored", '\u{e0c2}'),                       // 
     ("ple_flame_thin", '\u{e0c1}'),                                 // 
@@ -8805,6 +10329,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("ple_ice_waveform_mirrored", '\u{e0ca}'),                      // 
     ("ple_left_half_circle_thick", '\u{e0b6}'),                     // 
     ("ple_left_half_circle_thin", '\u{e0b7}'),                      // 
+    ("ple_left_hard_divider_inverse", '\u{e0d7}'),                  // 
     ("ple_lego_block_facing", '\u{e0d0}'),                          // 
     ("ple_lego_block_sideways", '\u{e0d1}'),                        // 
     ("ple_lego_separator", '\u{e0ce}'),                             // 
@@ -8817,6 +10342,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("ple_pixelated_squares_small_mirrored", '\u{e0c5}'),           // 
     ("ple_right_half_circle_thick", '\u{e0b4}'),                    // 
     ("ple_right_half_circle_thin", '\u{e0b5}'),                     // 
+    ("ple_right_hard_divider_inverse", '\u{e0d6}'),                 // 
     ("ple_trapezoid_top_bottom", '\u{e0d2}'),                       // 
     ("ple_trapezoid_top_bottom_mirrored", '\u{e0d4}'),              // 
     ("ple_upper_left_triangle", '\u{e0bc}'),                        // 
@@ -8847,6 +10373,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_cake_php", '\u{e63d}'),                                  // 
     ("seti_checkbox", '\u{e63f}'),                                  // 
     ("seti_checkbox_unchecked", '\u{e640}'),                        // 
+    ("seti_cjsx", '\u{e61b}'),                                      // 
     ("seti_clock", '\u{e641}'),                                     // 
     ("seti_clojure", '\u{e642}'),                                   // 
     ("seti_code_climate", '\u{e643}'),                              // 
@@ -8855,6 +10382,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_coldfusion", '\u{e645}'),                                // 
     ("seti_config", '\u{e615}'),                                    // 
     ("seti_cpp", '\u{e646}'),                                       // 
+    ("seti_crystal", '\u{e62f}'),                                   // 
     ("seti_crystal_embedded", '\u{e647}'),                          // 
     ("seti_css", '\u{e614}'),                                       // 
     ("seti_csv", '\u{e64a}'),                                       // 
@@ -8867,7 +10395,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_docker", '\u{e650}'),                                    // 
     ("seti_editorconfig", '\u{e652}'),                              // 
     ("seti_ejs", '\u{e618}'),                                       // 
+    ("seti_elixir", '\u{e62d}'),                                    // 
     ("seti_elixir_script", '\u{e653}'),                             // 
+    ("seti_elm", '\u{e62c}'),                                       // 
     ("seti_error", '\u{e654}'),                                     // 
     ("seti_eslint", '\u{e655}'),                                    // 
     ("seti_ethereum", '\u{e656}'),                                  // 
@@ -8878,6 +10408,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_folder", '\u{e613}'),                                    // 
     ("seti_font", '\u{e659}'),                                      // 
     ("seti_git", '\u{e65d}'),                                       // 
+    ("seti_git_folder", '\u{e65d}'),                                // 
+    ("seti_git_ignore", '\u{e65d}'),                                // 
     ("seti_github", '\u{e65b}'),                                    // 
     ("seti_gitlab", '\u{e65c}'),                                    // 
     ("seti_go", '\u{e627}'),                                        // 
@@ -8895,6 +10427,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_haxe", '\u{e666}'),                                      // 
     ("seti_heroku", '\u{e607}'),                                    // 
     ("seti_hex", '\u{e667}'),                                       // 
+    ("seti_home", '\u{e617}'),                                      // 
     ("seti_html", '\u{e60e}'),                                      // 
     ("seti_ignored", '\u{e668}'),                                   // 
     ("seti_illustrator", '\u{e669}'),                               // 
@@ -8909,6 +10442,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_json", '\u{e60b}'),                                      // 
     ("seti_julia", '\u{e624}'),                                     // 
     ("seti_karma", '\u{e622}'),                                     // 
+    ("seti_kotlin", '\u{e634}'),                                    // 
+    ("seti_less", '\u{e60b}'),                                      // 
     ("seti_license", '\u{e60a}'),                                   // 
     ("seti_liquid", '\u{e670}'),                                    // 
     ("seti_livescript", '\u{e671}'),                                // 
@@ -8923,6 +10458,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_nim", '\u{e677}'),                                       // 
     ("seti_notebook", '\u{e678}'),                                  // 
     ("seti_npm", '\u{e616}'),                                       // 
+    ("seti_npm_ignored", '\u{e616}'),                               // 
     ("seti_nunjucks", '\u{e679}'),                                  // 
     ("seti_ocaml", '\u{e67a}'),                                     // 
     ("seti_odata", '\u{e67b}'),                                     // 
@@ -8934,12 +10470,14 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_pipeline", '\u{e680}'),                                  // 
     ("seti_plan", '\u{e681}'),                                      // 
     ("seti_platformio", '\u{e682}'),                                // 
+    ("seti_play_arrow", '\u{e602}'),                                // 
     ("seti_powershell", '\u{e683}'),                                // 
     ("seti_prisma", '\u{e684}'),                                    // 
     ("seti_project", '\u{e601}'),                                   // 
     ("seti_prolog", '\u{e685}'),                                    // 
     ("seti_pug", '\u{e686}'),                                       // 
     ("seti_puppet", '\u{e631}'),                                    // 
+    ("seti_purescript", '\u{e630}'),                                // 
     ("seti_python", '\u{e606}'),                                    // 
     ("seti_r", '\u{e68a}'),                                         // 
     ("seti_rails", '\u{e604}'),                                     // 
@@ -8967,6 +10505,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("seti_swift", '\u{e699}'),                                     // 
     ("seti_terraform", '\u{e69a}'),                                 // 
     ("seti_tex", '\u{e69b}'),                                       // 
+    ("seti_text", '\u{e64e}'),                                      // 
+    ("seti_time_cop", '\u{e641}'),                                  // 
     ("seti_todo", '\u{e69c}'),                                      // 
     ("seti_tsconfig", '\u{e69d}'),                                  // 
     ("seti_twig", '\u{e61c}'),                                      // 

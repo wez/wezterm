@@ -27,43 +27,43 @@
 
   <launchable type="desktop-id">org.wezfurlong.wezterm.desktop</launchable>
 
-  <url type="homepage">https://wezfurlong.org/wezterm/</url>
-  <url type="help">https://wezfurlong.org/wezterm/help.html</url>
-  <url type="bugtracker">https://github.com/wez/wezterm/issues</url>
+  <url type="homepage">https://wezterm.org/</url>
+  <url type="help">https://wezterm.org/help.html</url>
+  <url type="bugtracker">https://github.com/wezterm/wezterm/issues</url>
   <url type="donation">https://github.com/sponsors/wez</url>
 
   <screenshots>
     <screenshot type="default">
       <caption>Use background image attachments</caption>
-      <image>https://wezfurlong.org/wezterm/screenshots/wezterm-vday-screenshot.png</image>
+      <image>https://wezterm.org/screenshots/wezterm-vday-screenshot.png</image>
     </screenshot>
     <screenshot>
       <caption>Ligatures in VIM</caption>
-      <image>https://wezfurlong.org/wezterm/screenshots/two.png</image>
+      <image>https://wezterm.org/screenshots/two.png</image>
     </screenshot>
     <screenshot>
       <caption>Multiple windows, tabs and panes are supported</caption>
-      <video>https://wezfurlong.org/wezterm/screenshots/wezterm-tabs.mp4</video>
+      <video>https://wezterm.org/screenshots/wezterm-tabs.mp4</video>
     </screenshot>
     <screenshot>
       <caption>Quickselect makes mouseless selection fast and convenient</caption>
-      <image>https://wezfurlong.org/wezterm/screenshots/wezterm-quick-select.png</image>
+      <image>https://wezterm.org/screenshots/wezterm-quick-select.png</image>
     </screenshot>
     <screenshot>
       <caption>Dynamically change color schemes via escape sequences</caption>
-      <video>https://wezfurlong.org/wezterm/screenshots/wezterm-dynamic-colors.mp4</video>
+      <video>https://wezterm.org/screenshots/wezterm-dynamic-colors.mp4</video>
     </screenshot>
     <screenshot>
       <caption>Use gradients as background image attachments</caption>
-      <image>https://wezfurlong.org/wezterm/screenshots/radial-gradient.png</image>
+      <image>https://wezterm.org/screenshots/radial-gradient.png</image>
     </screenshot>
     <screenshot>
       <caption>Compose multiple background layers with parallax scrolling</caption>
-      <video>https://wezfurlong.org/wezterm/screenshots/wezterm-parallax-2.mp4</video>
+      <video>https://wezterm.org/screenshots/wezterm-parallax-2.mp4</video>
     </screenshot>
     <screenshot>
       <caption>Split the screen into panes and use mouse-less pane selection mode to navigate them</caption>
-      <image>https://wezfurlong.org/wezterm/screenshots/pane-select.png</image>
+      <image>https://wezterm.org/screenshots/pane-select.png</image>
     </screenshot>
   </screenshots>
 

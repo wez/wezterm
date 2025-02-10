@@ -46,6 +46,7 @@ pub enum OperatingSystemCommand {
     CurrentWorkingDirectory(String),
     ResetColors(Vec<u8>),
     RxvtExtension(Vec<String>),
+    ConEmuProgress(Progress),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -311,7 +312,39 @@ impl OperatingSystemCommand {
             )),
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
-            SystemNotification => single_string!(SystemNotification),
+            SystemNotification => {
+                if osc.len() >= 3 && osc[1] == b"4" {
+                    fn get_pct(v: &&[u8]) -> u8 {
+                        let number = str::from_utf8(v).unwrap_or("0");
+                        number.parse::<u8>().unwrap_or(0).max(0).min(100)
+                    }
+                    match osc[2] {
+                        b"0" => return Ok(OperatingSystemCommand::ConEmuProgress(Progress::None)),
+                        b"1" => {
+                            let pct = osc.get(3).map(get_pct).unwrap_or(0);
+                            return Ok(OperatingSystemCommand::ConEmuProgress(
+                                Progress::SetPercentage(pct),
+                            ));
+                        }
+                        b"2" => {
+                            let pct = osc.get(3).map(get_pct).unwrap_or(0);
+                            return Ok(OperatingSystemCommand::ConEmuProgress(Progress::SetError(
+                                pct,
+                            )));
+                        }
+                        b"3" => {
+                            return Ok(OperatingSystemCommand::ConEmuProgress(
+                                Progress::SetIndeterminate,
+                            ))
+                        }
+                        b"4" => {
+                            return Ok(OperatingSystemCommand::ConEmuProgress(Progress::Paused))
+                        }
+                        _ => {}
+                    }
+                }
+                single_string!(SystemNotification)
+            }
             SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
@@ -533,6 +566,11 @@ impl Display for OperatingSystemCommand {
                 write!(f, "{}", 100 + *color as u8)?;
             }
             CurrentWorkingDirectory(s) => write!(f, "7;{}", s)?,
+            ConEmuProgress(Progress::None) => write!(f, "9;4;0")?,
+            ConEmuProgress(Progress::SetPercentage(pct)) => write!(f, "9;4;1;{pct}")?,
+            ConEmuProgress(Progress::SetError(pct)) => write!(f, "9;4;2;{pct}")?,
+            ConEmuProgress(Progress::SetIndeterminate) => write!(f, "9;4;3")?,
+            ConEmuProgress(Progress::Paused) => write!(f, "9;4;4")?,
         };
         // Use the longer form ST as neovim doesn't like the BEL version
         write!(f, "\x1b\\")?;
@@ -802,6 +840,15 @@ impl Display for FinalTermSemanticPrompt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Progress {
+    None,
+    SetPercentage(u8),
+    SetError(u8),
+    SetIndeterminate,
+    Paused,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ITermProprietary {
     /// The "Set Mark" command allows you to record a location and then jump back to it later
     SetMark,
@@ -920,7 +967,7 @@ impl ITermFileData {
                 param
             };
 
-            // eg: `File=;size=1234` case. <https://github.com/wez/wezterm/issues/1291>
+            // eg: `File=;size=1234` case. <https://github.com/wezterm/wezterm/issues/1291>
             if param.is_empty() {
                 continue;
             }
@@ -1606,6 +1653,26 @@ mod test {
                 "the tea is ready".into()
             ]),
         )
+    }
+
+    #[test]
+    fn conemu() {
+        assert_eq!(
+            parse(&["9", "4", "1", "42"], "\x1b]9;4;1;42\x1b\\"),
+            OperatingSystemCommand::ConEmuProgress(Progress::SetPercentage(42))
+        );
+        assert_eq!(
+            parse(&["9", "4", "2", "64"], "\x1b]9;4;2;64\x1b\\"),
+            OperatingSystemCommand::ConEmuProgress(Progress::SetError(64))
+        );
+        assert_eq!(
+            parse(&["9", "4", "3"], "\x1b]9;4;3\x1b\\"),
+            OperatingSystemCommand::ConEmuProgress(Progress::SetIndeterminate)
+        );
+        assert_eq!(
+            parse(&["9", "4", "4"], "\x1b]9;4;4\x1b\\"),
+            OperatingSystemCommand::ConEmuProgress(Progress::Paused)
+        );
     }
 
     #[test]

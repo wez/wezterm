@@ -9,6 +9,10 @@ The arguments are a lua table with the following keys:
 
 * `flags` - required; the set of flags that specifies what to show in the launcher
 * `title` - optional; the title to show in the tab while the launcher is active
+* `help_text` - a string to display when in the default mode. Defaults to:
+  `"Select an item and press Enter=launch  Esc=cancel  /=filter"` {{since('nightly', inline=True)}}
+* `fuzzy_help_text` - a string to display when in fuzzy finding mode. Defaults to:
+  `"Fuzzy matching: "` {{since('nightly', inline=True)}}
 
 The possible flags are listed below. You must explicitly list each item that you
 want to include in the launcher. If you only specify `"FUZZY"` then you will see

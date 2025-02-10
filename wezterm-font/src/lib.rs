@@ -415,7 +415,7 @@ impl FallbackResolveInfo {
                     .lock()
                     .unwrap()
                     .replace((Instant::now(), self.config.generation()));
-                let url = "https://wezfurlong.org/wezterm/config/fonts.html";
+                let url = "https://wezterm.org/config/fonts.html";
                 log::warn!(
                     "No fonts contain glyphs for these codepoints: {}.\n\
                      Placeholder glyphs are being displayed instead.\n\
@@ -835,7 +835,7 @@ impl FontConfigInner {
                 config::show_error(&format!(
                     "{}. Fallback(s) are being used instead, and the terminal \
                     may not render as intended{}. See \
-                    https://wezfurlong.org/wezterm/config/fonts.html for more information",
+                    https://wezterm.org/config/fonts.html for more information",
                     explanation, styled_extra
                 ));
             }

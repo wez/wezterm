@@ -93,6 +93,9 @@ fn libpng() {
     cfg.define("HAVE_STDINT_H", None);
     cfg.define("HAVE_STDDEF_H", None);
     let target = env::var("TARGET").unwrap();
+    if target.contains("powerpc64") {
+        cfg.define("PNG_POWERPC_VSX_OPT", Some("0"));
+    }
     if !target.contains("windows") {
         cfg.define("_LARGEFILE64_SOURCE", Some("1"));
     }
@@ -240,5 +243,5 @@ fn main() {
     freetype();
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:outdir={}", out_dir);
-    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
+    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12");
 }

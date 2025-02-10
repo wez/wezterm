@@ -63,7 +63,7 @@ lfucache = { path = "../lfucache" }
 log = "0.4"
 luahelper = { path = "../luahelper" }
 metrics = "0.23"
-mlua = {version="0.9", features=["send"]}
+mlua = {version="0.9", features=["send", "serialize"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 once_cell = "1.8"

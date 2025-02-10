@@ -3,35 +3,20 @@ env:
   CIRRUS_CLONE_DEPTH: 1
 
 task:
-  name: freebsd-14
-
-  compute_engine_instance:
-    image_project: freebsd-org-cloud-dev
-    image: family/freebsd-14-0
-    platform: freebsd
-    cpu: 4
-    memory: 8G
-    disk: 100 # Gb
-
-  stateful: false
+  name: ubuntu-24.04
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  container:
+    image: ubuntu:24.04
+    cpu: 4
+    memory: 12G
+  stateful: false
   install_rust_script:
-    - pkg install -y bash
-    - curl https://sh.rustup.rs -sSf > /tmp/rustup.sh
-    - chmod +x /tmp/rustup.sh
-    - RUSTUP_IO_THREADS=1 /tmp/rustup.sh -y -q
+    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    - apt update
+    - apt-get install -y git curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   getdeps_script:
-    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
-    - mkdir -p /run/sshd
-  registry_cache:
-    folder: $CARGO_HOME/registry
-    fingerprint_script: cat Cargo.lock
-  target_cache:
-    folder: target
-    fingerprint_script:
-      - rustc --version
-      - cat Cargo.lock
-  before_cache_script: rm -rf $CARGO_HOME/registry/index
+    - env PATH=$HOME/.cargo/bin:$PATH TESTING=1 bash get-deps
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
   test_script:
@@ -39,14 +24,14 @@ task:
 
 task:
   name: ubuntu-22.04-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: ubuntu:22.04
     cpu: 4
     memory: 12G
   environment:
-    GITHUB_TOKEN: ENCRYPTED[f20f769b749757fbdc3968320deea1c8e90f2bc2ff5f957bae4de0f022793f57400a5936fe8699bd732a231c9ed74be7]
-    FURY_TOKEN: ENCRYPTED[833e7ce9bfd87970b321dd621677f792a65f485b40819cad30258d3a1e1569f9cb4878a2958efecdf40a5050354edd54]
+    GITHUB_TOKEN: ENCRYPTED[!0dfc9f7314ab2500c7f72cc957d0b76940404eb8503a8cd5c4bf8a90515dfb5952ce4794bd7434002fdcc57ebf1667e0!]
+    FURY_TOKEN: ENCRYPTED[!ec706982eb6c8c393fb8757ca8dcf6a04a300bb38a94c51c366455671d99ff9863be78d0b0c8ea65b49e50d16c9c956c!]
 
   stateful: false
   install_rust_script:
@@ -76,14 +61,14 @@ task:
 
 task:
   name: ubuntu-24.04-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: ubuntu:24.04
     cpu: 4
     memory: 12G
   environment:
-    GITHUB_TOKEN: ENCRYPTED[f20f769b749757fbdc3968320deea1c8e90f2bc2ff5f957bae4de0f022793f57400a5936fe8699bd732a231c9ed74be7]
-    FURY_TOKEN: ENCRYPTED[833e7ce9bfd87970b321dd621677f792a65f485b40819cad30258d3a1e1569f9cb4878a2958efecdf40a5050354edd54]
+    GITHUB_TOKEN: ENCRYPTED[!0dfc9f7314ab2500c7f72cc957d0b76940404eb8503a8cd5c4bf8a90515dfb5952ce4794bd7434002fdcc57ebf1667e0!]
+    FURY_TOKEN: ENCRYPTED[!ec706982eb6c8c393fb8757ca8dcf6a04a300bb38a94c51c366455671d99ff9863be78d0b0c8ea65b49e50d16c9c956c!]
 
   stateful: false
   install_rust_script:
@@ -113,13 +98,13 @@ task:
 
 task:
   name: debian-12-arm
-  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "$CIRRUS_REPO_OWNER == 'wezterm' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock') && $BRANCH == 'main'"
   arm_container:
     image: debian:12
     cpu: 4
     memory: 12G
   environment:
-    GITHUB_TOKEN: ENCRYPTED[f20f769b749757fbdc3968320deea1c8e90f2bc2ff5f957bae4de0f022793f57400a5936fe8699bd732a231c9ed74be7]
+    GITHUB_TOKEN: ENCRYPTED[!0dfc9f7314ab2500c7f72cc957d0b76940404eb8503a8cd5c4bf8a90515dfb5952ce4794bd7434002fdcc57ebf1667e0!]
 
   stateful: false
   install_rust_script:

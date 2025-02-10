@@ -2,7 +2,7 @@
 name = "wezterm-blob-leases"
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/wez/wezterm"
+repository = "https://github.com/wezterm/wezterm"
 description = "Manage image blob caching/leasing for wezterm"
 license = "MIT"
 

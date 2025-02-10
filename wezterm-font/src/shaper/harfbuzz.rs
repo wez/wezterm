@@ -218,8 +218,8 @@ impl HarfbuzzShaper {
         // We deliberately omit setting the script and leave it to harfbuzz
         // to infer from the buffer contents so that it can correctly
         // enable appropriate preprocessing for eg: Hangul.
-        // <https://github.com/wez/wezterm/issues/1474> and
-        // <https://github.com/wez/wezterm/issues/1573>
+        // <https://github.com/wezterm/wezterm/issues/1474> and
+        // <https://github.com/wezterm/wezterm/issues/1573>
         // buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
         buf.set_direction(match direction {
             Direction::LeftToRight => harfbuzz::hb_direction_t::HB_DIRECTION_LTR,
@@ -373,7 +373,7 @@ impl HarfbuzzShaper {
         // In situations where we know better (eg: when we have presentation_width)
         // we can fixup the cluster information to be based on the cell index for
         // the harfbuzz byte start.
-        // <https://github.com/wez/wezterm/issues/2572>
+        // <https://github.com/wezterm/wezterm/issues/2572>
 
         let mut cluster_resolver = ClusterResolver {
             presentation_width,
@@ -437,7 +437,7 @@ impl HarfbuzzShaper {
                         } else if info.cluster + info.len == prior.cluster + prior.len {
                             // Overlaps and coincide with the end of prior; this one folds away.
                             // This can happen with NFD rather than NFC text.
-                            // <https://github.com/wez/wezterm/issues/2032>
+                            // <https://github.com/wezterm/wezterm/issues/2032>
                             continue;
                         }
                         // log::info!("prior={:#?}, info={:#?}", prior, info);
@@ -447,7 +447,7 @@ impl HarfbuzzShaper {
                 // It is important that this bit happens after we've had the
                 // opportunity to coalesce runs of unresolved codepoints,
                 // otherwise we can produce incorrect shaping
-                // <https://github.com/wez/wezterm/issues/2482>
+                // <https://github.com/wezterm/wezterm/issues/2482>
                 if cluster.last().unwrap().cluster == info.cluster {
                     cluster.push(info);
                     continue;
@@ -523,7 +523,7 @@ impl HarfbuzzShaper {
                 // However, some symbol fonts have broken advance metrics and we don't
                 // want those glyphs to end up with zero width, so if this run is zero
                 // width then we round up to 1 cell.
-                // <https://github.com/wez/wezterm/issues/1787>
+                // <https://github.com/wezterm/wezterm/issues/1787>
                 let weighted_cell_width = if total_width == 0. {
                     1
                 } else {
@@ -648,7 +648,7 @@ impl FontShaper for HarfbuzzShaper {
 
         // When the user has overridden the scale, we need to stash a y-adjustment
         // so that the glyphs are better vertically aligned
-        // <https://github.com/wez/wezterm/issues/1803>
+        // <https://github.com/wezterm/wezterm/issues/1803>
         if scale != 1.0 && metrics.is_scaled {
             let diff = metrics.descender - (metrics.descender / scale);
             metrics.force_y_adjust = diff;

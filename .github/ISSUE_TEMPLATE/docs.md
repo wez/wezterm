@@ -2,7 +2,7 @@
 name: Documentation Problem
 about: Missing, incomplete or incorrect information in the documentation
 title: ''
-labels: docs
+labels: [docs, needs:triage]
 assignees: ''
 
 ---

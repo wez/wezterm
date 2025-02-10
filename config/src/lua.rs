@@ -527,8 +527,8 @@ impl<'lua> FromLua<'lua> for LuaFontAttributes {
 /// confusion/annoyance and issues filed on Github.
 /// Let's default to disabling ligatures for these fonts unless
 /// the user has explicitly specified harfbuzz_features.
-/// <https://github.com/wez/wezterm/issues/1736>
-/// <https://github.com/wez/wezterm/issues/1786>
+/// <https://github.com/wezterm/wezterm/issues/1736>
+/// <https://github.com/wezterm/wezterm/issues/1786>
 fn disable_ligatures_for_menlo_or_monaco(mut attrs: FontAttributes) -> FontAttributes {
     if attrs.harfbuzz_features.is_none() && (attrs.family == "Menlo" || attrs.family == "Monaco") {
         attrs.harfbuzz_features = Some(vec![

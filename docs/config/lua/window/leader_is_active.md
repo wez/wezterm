@@ -1,4 +1,4 @@
-# wezterm:leader_is_active()
+# window:leader_is_active()
 
 {{since('20220319-142410-0fcdea07')}}
 

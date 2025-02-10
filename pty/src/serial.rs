@@ -11,22 +11,20 @@ use crate::{
 };
 use anyhow::{ensure, Context};
 use filedescriptor::FileDescriptor;
-use serial::{
-    BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
-};
+use serial2::{CharSize, FlowControl, Parity, SerialPort, StopBits};
 use std::cell::RefCell;
 use std::ffi::{OsStr, OsString};
 use std::io::{Read, Result as IoResult, Write};
 #[cfg(unix)]
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
-type Handle = Arc<Mutex<SystemPort>>;
+type Handle = Arc<SerialPort>;
 
 pub struct SerialTty {
     port: OsString,
-    baud: BaudRate,
+    baud: u32,
     char_size: CharSize,
     parity: Parity,
     stop_bits: StopBits,
@@ -37,15 +35,15 @@ impl SerialTty {
     pub fn new<T: AsRef<OsStr> + ?Sized>(port: &T) -> Self {
         Self {
             port: port.as_ref().to_owned(),
-            baud: BaudRate::Baud9600,
+            baud: 9600,
             char_size: CharSize::Bits8,
-            parity: Parity::ParityNone,
-            stop_bits: StopBits::Stop1,
-            flow_control: FlowControl::FlowSoftware,
+            parity: Parity::None,
+            stop_bits: StopBits::One,
+            flow_control: FlowControl::XonXoff,
         }
     }
 
-    pub fn set_baud_rate(&mut self, baud: BaudRate) {
+    pub fn set_baud_rate(&mut self, baud: u32) {
         self.baud = baud;
     }
 
@@ -68,27 +66,28 @@ impl SerialTty {
 
 impl PtySystem for SerialTty {
     fn openpty(&self, _size: PtySize) -> anyhow::Result<PtyPair> {
-        let mut port = serial::open(&self.port)
+        let mut port = SerialPort::open(&self.port, self.baud)
             .with_context(|| format!("openpty on serial port {:?}", self.port))?;
 
-        let settings = PortSettings {
-            baud_rate: self.baud,
-            char_size: self.char_size,
-            parity: self.parity,
-            stop_bits: self.stop_bits,
-            flow_control: self.flow_control,
-        };
-        log::debug!("serial settings: {:#?}", settings);
-        port.configure(&settings)?;
+        let mut settings = port.get_configuration()?;
+        settings.set_raw();
+        settings.set_baud_rate(self.baud)?;
+        settings.set_char_size(self.char_size);
+        settings.set_flow_control(self.flow_control);
+        settings.set_parity(self.parity);
+        settings.set_stop_bits(self.stop_bits);
+        log::debug!("serial settings: {:#?}", port.get_configuration());
+        port.set_configuration(&settings)?;
 
         // The timeout needs to be rather short because, at least on Windows,
         // a read with a long timeout will block a concurrent write from
         // happening.  In wezterm we tend to have a thread looping on read
         // while writes happen occasionally from the gui thread, and if we
         // make this timeout too long we can block the gui thread.
-        port.set_timeout(Duration::from_millis(50))?;
+        port.set_read_timeout(Duration::from_millis(50))?;
+        port.set_write_timeout(Duration::from_millis(50))?;
 
-        let port: Handle = Arc::new(Mutex::new(port));
+        let port: Handle = Arc::new(port);
 
         Ok(PtyPair {
             slave: Box::new(Slave {
@@ -149,7 +148,7 @@ impl Child for SerialChild {
         loop {
             std::thread::sleep(Duration::from_secs(5));
 
-            let mut port = self.port.lock().unwrap();
+            let port = &self.port;
             if let Err(err) = port.read_cd() {
                 log::error!("Error reading carrier detect: {:#}", err);
                 return Ok(ExitStatus::with_exit_code(1));
@@ -201,11 +200,11 @@ struct MasterWriter {
 
 impl Write for MasterWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.port.lock().unwrap().write(buf)
+        self.port.write(buf)
     }
 
     fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.port.lock().unwrap().flush()
+        self.port.flush()
     }
 }
 
@@ -224,7 +223,7 @@ impl MasterPty for Master {
         // We rely on the fact that SystemPort implements the traits
         // that expose the underlying file descriptor, and that direct
         // reads from that return the raw data that we want
-        let fd = FileDescriptor::dup(&*self.port.lock().unwrap())?;
+        let fd = FileDescriptor::dup(&*self.port)?;
         Ok(Box::new(Reader { fd }))
     }
 

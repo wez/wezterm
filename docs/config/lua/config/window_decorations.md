@@ -39,6 +39,13 @@ The value is a set of flags:
       [integrated_title_button_color](integrated_title_button_color.md) and,
       if you are using the retro tab bar, [tab_bar_style](tab_bar_style.md).
 
+{{since('nightly', outline=true)}}
+    The following flag is also supported:
+
+    * `MACOS_FORCE_SQUARE_CORNERS` - on macOS, force the window to have square
+      rather than rounded corners. It is not compatible with `TITLE` or
+      `INTEGRATED_BUTTONS`
+
 On X11 and Wayland, the windowing system may override the window decorations.
 
 When the titlebar is disabled you can drag the window using the tab bar if it

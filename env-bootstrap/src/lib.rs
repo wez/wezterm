@@ -116,6 +116,7 @@ pub fn fixup_appimage() {
 /// it to a UTF-8 version of the current locale known to NSLocale.
 #[cfg(target_os = "macos")]
 pub fn set_lang_from_locale() {
+    #![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
     use cocoa::base::id;
     use cocoa::foundation::NSString;
     use objc::runtime::Object;
@@ -235,7 +236,7 @@ pub fn bootstrap() {
     std::env::remove_var("WINDOWID");
     // Avoid vte shell integration kicking in if someone started
     // wezterm or the mux server from inside gnome terminal.
-    // <https://github.com/wez/wezterm/issues/2237>
+    // <https://github.com/wezterm/wezterm/issues/2237>
     std::env::remove_var("VTE_VERSION");
 
     // Sice folks don't like to reboot or sign out if they `chsh`,

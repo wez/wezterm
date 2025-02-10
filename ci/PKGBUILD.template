@@ -1,6 +1,6 @@
 # Maintainer:  Wez Furlong <wez at wezfurlong dot org>
 # NOTE: if you're looking at this on AUR, this file is generated from
-# https://github.com/wez/wezterm/blob/main/ci/PKGBUILD.template
+# https://github.com/wezterm/wezterm/blob/main/ci/PKGBUILD.template
 # by automation in the wezterm repo.
 
 pkgname=wezterm-bin
@@ -9,7 +9,7 @@ pkgver=$(echo $_tag | tr - .)
 pkgrel=2
 pkgdesc='A GPU-accelerated cross-platform terminal emulator and multiplexer implemented in Rust'
 arch=('i686' 'x86_64')
-url='https://wezfurlong.org/wezterm'
+url='https://wezterm.org'
 license=('MIT')
 provides=('wezterm')
 conflicts=('wezterm')
@@ -30,8 +30,8 @@ optdepends=(
   'python-nautilus: WezTerm context menu in Nautilus'
 )
 source=(
-  "wezterm::https://github.com/wez/wezterm/releases/download/${_tag}/WezTerm-${_tag}-Ubuntu16.04.AppImage"
-  'LICENSE::https://github.com/wez/wezterm/raw/main/LICENSE.md'
+  "wezterm::https://github.com/wezterm/wezterm/releases/download/${_tag}/WezTerm-${_tag}-Ubuntu16.04.AppImage"
+  'LICENSE::https://github.com/wezterm/wezterm/raw/main/LICENSE.md'
 )
 sha256sums=(
   '@SHA256@'

@@ -115,7 +115,7 @@ impl Compose {
                     // key if known.
                     // We used to fall back to the name of the keysym, but
                     // feedback was that is was undesirable
-                    // <https://github.com/wez/wezterm/issues/4511>
+                    // <https://github.com/wezterm/wezterm/issues/4511>
                     let key_state = key_state.borrow();
                     let utf8 = key_state.key_get_utf8(xcode);
                     if !utf8.is_empty() {
@@ -244,7 +244,7 @@ impl KeyboardWithFallback {
     // As part of this, we need to update the mask with the currently
     // known modifiers in order for automation scenarios to work out:
     // <https://github.com/fcitx/fcitx5/issues/893>
-    // <https://github.com/wez/wezterm/issues/4615>
+    // <https://github.com/wezterm/wezterm/issues/4615>
     fn process_xcb_key_event_impl(
         &self,
         xcode: xkb::Keycode,
@@ -350,8 +350,8 @@ impl KeyboardWithFallback {
                     //
                     // This logic excludes that textual expansion for this situation.
                     //
-                    // <https://github.com/wez/wezterm/issues/1851>
-                    // <https://github.com/wez/wezterm/issues/2845>
+                    // <https://github.com/wezterm/wezterm/issues/1851>
+                    // <https://github.com/wezterm/wezterm/issues/2845>
 
                     if !utf8.is_empty()
                         && !raw_modifiers
@@ -398,7 +398,7 @@ impl KeyboardWithFallback {
                         }
                     } else if kc.is_none() && key_code_from_sym.is_none() {
                         // Not sure if this is a good idea, see
-                        // <https://github.com/wez/wezterm/issues/4910> for context.
+                        // <https://github.com/wezterm/wezterm/issues/4910> for context.
                         match fallback_feed {
                             FeedResult::Nothing(_fb_utf8, fb_sym) => {
                                 log::trace!(

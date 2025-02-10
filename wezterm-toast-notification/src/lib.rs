@@ -55,3 +55,6 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
         timeout: None,
     });
 }
+
+#[cfg(target_os = "macos")]
+pub use macos::initialize as macos_initialize;

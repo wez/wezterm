@@ -738,7 +738,7 @@ impl GlyphCache {
         };
 
         // We shouldn't need to render a glyph that occupies zero cells, but that
-        // can happen somehow; see <https://github.com/wez/wezterm/issues/1042>
+        // can happen somehow; see <https://github.com/wezterm/wezterm/issues/1042>
         // so let's treat 0 cells as 1 cell so that we don't try to divide by
         // zero below.
         let num_cells = num_cells.max(1) as f64;
@@ -948,7 +948,7 @@ impl GlyphCache {
                     // that any given cell may switch to a different frame from
                     // its neighbor while we are rendering the entire terminal
                     // frame, so we want to avoid that.
-                    // <https://github.com/wez/wezterm/issues/3260>
+                    // <https://github.com/wezterm/wezterm/issues/3260>
                     let mut next_due = *decoded_frame_start
                         + durations[*decoded_current_frame].max(min_frame_duration);
                     if now >= next_due {
@@ -1017,7 +1017,7 @@ impl GlyphCache {
                 // that any given cell may switch to a different frame from
                 // its neighbor while we are rendering the entire terminal
                 // frame, so we want to avoid that.
-                // <https://github.com/wez/wezterm/issues/3260>
+                // <https://github.com/wezterm/wezterm/issues/3260>
                 let mut next_due =
                     *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
                 if now >= next_due {

@@ -30,8 +30,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
-    RotationDirection, SpawnCommand, SplitSize,
+    KeyAssignment, LauncherActionArgs, PaneDirection, Pattern, PromptInputLine,
+    QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::window::WindowLevel;
 use config::{
@@ -39,7 +39,7 @@ use config::{
     GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
 };
 use lfucache::*;
-use mlua::{FromLua, UserData, UserDataFields};
+use mlua::{FromLua, LuaSerdeExt, UserData, UserDataFields};
 use mux::pane::{
     CachePolicy, CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult,
 };
@@ -66,7 +66,7 @@ use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration, TerminalSize};
+use wezterm_term::{Alert, Progress, StableRowIndex, TerminalConfiguration, TerminalSize};
 
 pub mod background;
 pub mod box_model;
@@ -269,6 +269,7 @@ pub struct PaneInformation {
     pub pixel_height: usize,
     pub title: String,
     pub user_vars: HashMap<String, String>,
+    pub progress: Progress,
 }
 
 impl UserData for PaneInformation {
@@ -284,6 +285,7 @@ impl UserData for PaneInformation {
         fields.add_field_method_get("height", |_, this| Ok(this.height));
         fields.add_field_method_get("pixel_width", |_, this| Ok(this.pixel_width));
         fields.add_field_method_get("pixel_height", |_, this| Ok(this.pixel_height));
+        fields.add_field_method_get("progress", |lua, this| lua.to_value(&this.progress));
         fields.add_field_method_get("title", |_, this| Ok(this.title.clone()));
         fields.add_field_method_get("user_vars", |_, this| Ok(this.user_vars.clone()));
         fields.add_field_method_get("foreground_process_name", |_, this| {
@@ -903,7 +905,7 @@ impl TermWindow {
                 // that the mux can empty out, otherwise the mux keeps
                 // the TermWindow alive via the frontend even though
                 // the window is gone and we'll linger forever.
-                // <https://github.com/wez/wezterm/issues/3522>
+                // <https://github.com/wezterm/wezterm/issues/3522>
                 self.clear_all_overlays();
                 Ok(false)
             }
@@ -922,7 +924,7 @@ impl TermWindow {
                 // What's fugly about this is that we'll reload the
                 // global config here once per window, which could
                 // be nasty for folks with a lot of windows.
-                // <https://github.com/wez/wezterm/issues/2295>
+                // <https://github.com/wezterm/wezterm/issues/2295>
                 config::reload();
                 self.config_was_reloaded();
                 Ok(true)
@@ -1125,7 +1127,7 @@ impl TermWindow {
                     // So we do a bit of fancy footwork here to resolve the overlay
                     // and use that if it has the same pane_id, but otherwise fall
                     // back to what we get from the mux.
-                    // <https://github.com/wez/wezterm/issues/3209>
+                    // <https://github.com/wezterm/wezterm/issues/3209>
                     let active_pane = self
                         .get_active_pane_or_overlay()
                         .ok_or_else(|| anyhow!("there is no active pane!?"))?;
@@ -1204,7 +1206,8 @@ impl TermWindow {
                         | Alert::CurrentWorkingDirectoryChanged
                         | Alert::WindowTitleChanged(_)
                         | Alert::TabTitleChanged(_)
-                        | Alert::IconTitleChanged(_),
+                        | Alert::IconTitleChanged(_)
+                        | Alert::Progress(_),
                     ..
                 } => {
                     self.update_title();
@@ -1455,6 +1458,7 @@ impl TermWindow {
                     | Alert::WindowTitleChanged(_)
                     | Alert::TabTitleChanged(_)
                     | Alert::IconTitleChanged(_)
+                    | Alert::Progress(_)
                     | Alert::SetUserVar { .. }
                     | Alert::Bell,
             }
@@ -2265,7 +2269,9 @@ impl TermWindow {
             None => return,
         };
 
-        let pane = match self.get_active_pane_or_overlay() {
+        // Ignore any current overlay: we're going to cancel it out below
+        // and we don't want this new one to reference that cancelled pane
+        let pane = match self.get_active_pane_no_overlay() {
             Some(pane) => pane,
             None => return,
         };
@@ -2326,21 +2332,37 @@ impl TermWindow {
     }
 
     fn show_tab_navigator(&mut self) {
-        self.show_launcher_impl("Tab Navigator", LauncherFlags::TABS);
+        let mux = Mux::get();
+        let active_tab_idx = match mux.get_window(self.mux_window_id) {
+            Some(mux_window) => mux_window.get_active_idx(),
+            None => return,
+        };
+        let title = "Tab Navigator".to_string();
+        let args = LauncherActionArgs {
+            title: Some(title),
+            flags: LauncherFlags::TABS,
+            help_text: None,
+            fuzzy_help_text: None,
+        };
+        self.show_launcher_impl(args, active_tab_idx);
     }
 
     fn show_launcher(&mut self) {
-        self.show_launcher_impl(
-            "Launcher",
-            LauncherFlags::LAUNCH_MENU_ITEMS
+        let title = "Launcher".to_string();
+        let args = LauncherActionArgs {
+            title: Some(title),
+            flags: LauncherFlags::LAUNCH_MENU_ITEMS
                 | LauncherFlags::WORKSPACES
                 | LauncherFlags::DOMAINS
                 | LauncherFlags::KEY_ASSIGNMENTS
                 | LauncherFlags::COMMANDS,
-        );
+            help_text: None,
+            fuzzy_help_text: None,
+        };
+        self.show_launcher_impl(args, 0);
     }
 
-    fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags) {
+    fn show_launcher_impl(&mut self, args: LauncherActionArgs, initial_choice_idx: usize) {
         let mux_window_id = self.mux_window_id;
         let window = self.window.as_ref().unwrap().clone();
 
@@ -2361,7 +2383,16 @@ impl TermWindow {
             .domain_id();
         let pane_id = pane.pane_id();
         let tab_id = tab.tab_id();
-        let title = title.to_string();
+        let title = args.title.unwrap();
+        let flags = args.flags;
+        let help_text = args.help_text.unwrap_or(
+            "Select an item and press Enter=launch  \
+             Esc=cancel  /=filter"
+                .to_string(),
+        );
+        let fuzzy_help_text = args
+            .fuzzy_help_text
+            .unwrap_or("Fuzzy matching: ".to_string());
 
         promise::spawn::spawn(async move {
             let args = LauncherArgs::new(
@@ -2370,6 +2401,8 @@ impl TermWindow {
                 mux_window_id,
                 pane_id,
                 domain_id_of_current_pane,
+                &help_text,
+                &fuzzy_help_text,
             )
             .await;
 
@@ -2380,7 +2413,7 @@ impl TermWindow {
                     let window = window.clone();
                     let (overlay, future) =
                         start_overlay(term_window, &tab, move |_tab_id, term| {
-                            launcher(args, term, window)
+                            launcher(args, term, window, initial_choice_idx)
                         });
 
                     term_window.assign_overlay(tab_id, overlay);
@@ -2414,7 +2447,7 @@ impl TermWindow {
             // dedup to avoid issues where both left and right prompts are
             // defined: we only care if there were 1+ prompts on a line,
             // not about how many prompts are on a line.
-            // <https://github.com/wez/wezterm/issues/1121>
+            // <https://github.com/wezterm/wezterm/issues/1121>
             zones.dedup();
             cache.zones = zones;
             cache.seqno = seqno;
@@ -2704,7 +2737,14 @@ impl TermWindow {
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
             ShowLauncherArgs(args) => {
-                self.show_launcher_impl(args.title.as_deref().unwrap_or("Launcher"), args.flags)
+                let title = args.title.clone().unwrap_or("Launcher".to_string());
+                let args = LauncherActionArgs {
+                    title: Some(title),
+                    flags: args.flags,
+                    help_text: args.help_text.clone(),
+                    fuzzy_help_text: args.fuzzy_help_text.clone(),
+                };
+                self.show_launcher_impl(args, 0);
             }
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");
@@ -3366,6 +3406,7 @@ impl TermWindow {
             pixel_height: pos.pixel_height,
             title: pos.pane.get_title(),
             user_vars: pos.pane.copy_user_vars(),
+            progress: pos.pane.get_progress(),
         }
     }
 

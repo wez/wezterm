@@ -218,7 +218,7 @@ hide:
     |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |No longer supported|
     |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
     |Fedora37    |[{{ fedora37_rpm_stable_asset }}]({{ fedora37_rpm_stable }})|No longer supported|
-    |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|[{{ fedora38_rpm_nightly_asset }}]({{ fedora38_rpm_nightly }})|
+    |Fedora38    |[{{ fedora38_rpm_stable_asset }}]({{ fedora38_rpm_stable }})|No longer supported|
     |Fedora39    |[{{ fedora39_rpm_stable_asset }}]({{ fedora39_rpm_stable }})|[{{ fedora39_rpm_nightly_asset }}]({{ fedora39_rpm_nightly }})|
     |Fedora40    |Nightly only|[{{ fedora40_rpm_nightly_asset }}]({{ fedora40_rpm_nightly }})|
 
@@ -270,7 +270,7 @@ hide:
     can install wezterm from our tap:
 
     ```console
-    $ brew tap wez/wezterm-linuxbrew
+    $ brew tap wezterm/wezterm-linuxbrew
     $ brew install wezterm
     ```
 
@@ -307,13 +307,13 @@ hide:
     
     If you need a newer version use the flake. Use the cachix if you want to avoid building WezTerm from source.
 
-    The flake is in the `nix` directory, so the url will be something like `github:wez/wezterm?dir=nix`
+    The flake is in the `nix` directory, so the url will be something like `github:wezterm/wezterm?dir=nix`
 
     Here's an example for NixOS configurations:
     
     ```nix
     {
-        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        inputs.wezterm.url = "github:wezterm/wezterm?dir=nix";
         # ...
 
         outputs = inputs @ {nixpkgs, ...}:{
@@ -332,7 +332,7 @@ hide:
     # flake.nix
     
     {
-        inputs.wezterm.url = "github:wez/wezterm?dir=nix";
+        inputs.wezterm.url = "github:wezterm/wezterm?dir=nix";
         # ...
 
         outputs = inputs @ {nixpkgs, home-manager, ...}:{

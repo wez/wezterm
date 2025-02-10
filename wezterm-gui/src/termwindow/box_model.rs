@@ -274,7 +274,7 @@ impl Element {
             // changed style. Undo that here.
             // There's still an issue where the style does actually change and we
             // subsequently don't clip the element.
-            // <https://github.com/wez/wezterm/issues/2560>
+            // <https://github.com/wezterm/wezterm/issues/2560>
             if let Some(prior) = content.last_mut() {
                 let (fg, bg) = prior_attr.as_ref().unwrap();
                 if cluster.attrs.background() == *bg && cluster.attrs.foreground() == *fg {

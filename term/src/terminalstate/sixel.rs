@@ -89,7 +89,7 @@ impl TerminalState {
                     // Looking at red, we need to rotate left by 120 to
                     // go from sixel red to standard hsl red.
                     // Negative values wrap around the circle.
-                    // https://github.com/wez/wezterm/issues/775
+                    // https://github.com/wezterm/wezterm/issues/775
                     let angle = (*hue_angle as f64) - 120.0;
                     let angle = if angle < 0. { 360.0 + angle } else { angle };
                     let c = csscolorparser::Color::from_hsla(

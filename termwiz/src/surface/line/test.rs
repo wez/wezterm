@@ -12,7 +12,7 @@ use std::sync::Arc;
 /// When we join the lines, we must preserve the invisible blank
 /// that is part of the grapheme otherwise our metrics will be
 /// wrong.
-/// <https://github.com/wez/wezterm/issues/2568>
+/// <https://github.com/wezterm/wezterm/issues/2568>
 #[test]
 fn append_line() {
     let mut line1: Line = "0123456789".into();

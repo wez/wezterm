@@ -2,7 +2,7 @@ use crate::{attr, bound};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_quote, Data, DataEnum, DataStruct, DeriveInput, Error, Fields, FieldsNamed, Ident, Result,
+    parse_quote, Data, DataEnum, DataStruct, DeriveInput, Error, Fields, FieldsNamed, Result,
 };
 
 pub fn derive(input: DeriveInput) -> Result<TokenStream> {
@@ -28,10 +28,6 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     let ident = &input.ident;
     let literal = ident.to_string();
     let (impl_generics, ty_generics, _where_clause) = input.generics.split_for_impl();
-    let dummy = Ident::new(
-        &format!("_IMPL_FROMDYNAMIC_FOR_{}", ident),
-        Span::call_site(),
-    );
 
     let placements = fields
         .named
@@ -119,22 +115,19 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
     };
 
     let tokens = quote! {
-        #[allow(non_upper_case_globals)]
-        const #dummy: () = {
-            impl #impl_generics wezterm_dynamic::FromDynamic for #ident #ty_generics #bounded_where_clause {
-                fn from_dynamic(value: &wezterm_dynamic::Value, options: wezterm_dynamic::FromDynamicOptions) -> std::result::Result<Self, wezterm_dynamic::Error> {
-                    use wezterm_dynamic::{Value, BorrowedKey, ObjectKeyTrait};
-                    #adjust_options
-                    #from_dynamic
-                }
+        impl #impl_generics wezterm_dynamic::FromDynamic for #ident #ty_generics #bounded_where_clause {
+            fn from_dynamic(value: &wezterm_dynamic::Value, options: wezterm_dynamic::FromDynamicOptions) -> std::result::Result<Self, wezterm_dynamic::Error> {
+                use wezterm_dynamic::{Value, BorrowedKey, ObjectKeyTrait};
+                #adjust_options
+                #from_dynamic
+            }
 
+        }
+        impl #impl_generics #ident #ty_generics #bounded_where_clause {
+            pub const fn possible_field_names() -> &'static [&'static str] {
+                #field_names
             }
-            impl #impl_generics #ident #ty_generics #bounded_where_clause {
-                pub const fn possible_field_names() -> &'static [&'static str] {
-                    #field_names
-                }
-            }
-        };
+        }
     };
 
     if info.debug {
@@ -154,10 +147,6 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
 
     let ident = &input.ident;
     let literal = ident.to_string();
-    let dummy = Ident::new(
-        &format!("_IMPL_FROMDYNAMIC_FOR_{}", ident),
-        Span::call_site(),
-    );
 
     let variant_names = enumeration
         .variants
@@ -321,23 +310,20 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
     };
 
     let tokens = quote! {
-        #[allow(non_upper_case_globals)]
-        const #dummy: () = {
-            impl wezterm_dynamic::FromDynamic for #ident {
-                fn from_dynamic(value: &wezterm_dynamic::Value, options: wezterm_dynamic::FromDynamicOptions) -> std::result::Result<Self, wezterm_dynamic::Error> {
-                    use wezterm_dynamic::{Value, BorrowedKey, ObjectKeyTrait};
-                    #from_dynamic
-                }
+        impl wezterm_dynamic::FromDynamic for #ident {
+            fn from_dynamic(value: &wezterm_dynamic::Value, options: wezterm_dynamic::FromDynamicOptions) -> std::result::Result<Self, wezterm_dynamic::Error> {
+                use wezterm_dynamic::{Value, BorrowedKey, ObjectKeyTrait};
+                #from_dynamic
             }
+        }
 
-            impl #ident {
-                pub fn variants() -> &'static [&'static str] {
-                    &[
-                        #( #variant_names, )*
-                    ]
-                }
+        impl #ident {
+            pub fn variants() -> &'static [&'static str] {
+                &[
+                    #( #variant_names, )*
+                ]
             }
-        };
+        }
     };
 
     if info.debug {

@@ -36,7 +36,7 @@ procinfo = { path = "../procinfo" }
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
 serde = {version="1.0", features = ["rc", "derive"]}
-serial = "0.4"
+serial2 = "0.2"
 shell-words = "1.1"
 smol = "2.0"
 terminfo = "0.9"

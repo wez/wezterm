@@ -1,10 +1,10 @@
 copyright: Copyright &copy; 2018-Present Wez Furlong
 use_directory_urls: false
 site_name: Wez's Terminal Emulator
-site_url: https://wezfurlong.org/wezterm/
+site_url: https://wezterm.org/
 site_description: Wez's Terminal Emulator
-repo_url: https://github.com/wez/wezterm
-repo_name: wez/wezterm
+repo_url: https://github.com/wezterm/wezterm
+repo_name: wezterm/wezterm
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: gh_pages
@@ -50,8 +50,6 @@ theme:
     - toc.follow
 plugins:
   - include-markdown
-  - tags:
-      tags_file: tags.md
   - macros:
       module_name: mkdocs_macros
   - search:
@@ -130,7 +128,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/wez/wezterm
+      link: https://github.com/wezterm/wezterm
     - icon: fontawesome/brands/mastodon
       link: https://fosstodon.org/@wez
     - icon: fontawesome/brands/twitter

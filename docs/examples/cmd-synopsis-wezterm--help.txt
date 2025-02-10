@@ -1,5 +1,5 @@
 Wez's Terminal Emulator
-http://github.com/wez/wezterm
+http://github.com/wezterm/wezterm
 
 Usage: wezterm [OPTIONS] [COMMAND]
 

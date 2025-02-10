@@ -534,7 +534,7 @@ impl Face {
                 // returns (8.0, 0.0) when the selected bitmap strike is (4, 14).
                 // 4 pixels is too thin for this font, so we take the max of the
                 // known dimensions to produce the size.
-                // <https://github.com/wez/wezterm/issues/1165>
+                // <https://github.com/wezterm/wezterm/issues/1165>
                 let m = self.cell_metrics();
                 let height = f64::from(best.height).max(m.height);
                 SelectedFontSize {

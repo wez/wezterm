@@ -138,7 +138,7 @@ void main() {
     // We don't know why; it doesn't make sense.
     // The inputs are already in range and work fine on other platforms.
     // See discussion starting at:
-    // <https://github.com/wez/wezterm/issues/1180#issuecomment-1496102764>
+    // <https://github.com/wezterm/wezterm/issues/1180#issuecomment-1496102764>
     // for the background.
     color.a = mix(o_fg_color.a, o_fg_color_alt.a, clamp(o_fg_color_mix, 0.0, 1.0));
     color.a *= colorMask.a;

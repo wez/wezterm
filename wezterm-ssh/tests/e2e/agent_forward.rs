@@ -19,6 +19,9 @@ async fn session_with_agent_forward(
 fn ssh_add_should_be_able_to_list_identities_with_agent_forward(
     #[future] session_with_agent_forward: SessionWithSshd,
 ) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session_with_agent_forward.await;
 
@@ -37,6 +40,9 @@ fn ssh_add_should_be_able_to_list_identities_with_agent_forward(
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 #[cfg_attr(not(feature = "libssh-rs"), ignore)]
 fn no_agent_forward_should_happen_when_disabled(#[future] session: SessionWithSshd) {
+    if !sshd_available() {
+        return;
+    }
     smol::block_on(async {
         let session: SessionWithSshd = session.await;
 

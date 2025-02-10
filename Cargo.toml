@@ -28,6 +28,9 @@ opt-level = 3
 # Disabled because it breaks builds on Windows
 #split-debuginfo = "unpacked"
 
+[workspace.dependencies]
+uuid = { version="1.13", features=["v4", "fast-rng"] }
+
 [patch.crates-io]
 # We use our own vendored cairo, which has minimal deps and should just
 # build via cargo.

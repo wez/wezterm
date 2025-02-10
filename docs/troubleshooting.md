@@ -48,6 +48,14 @@ PS C:\> $env:WEZTERM_LOG="debug"
 PS C:\> wezterm
 ```
 
+When using a flatpak you must first enter the flatpak container by running:
+
+```
+flatpak run --command=sh --devel org.wezfurlong.wezterm
+```
+
+Before then running `wezterm`.
+
 Each log line will include the module name, which is a colon separated
 namespace; in the output below the modules are `config`,
 `wezterm_gui::frontend`, `wezterm_font::ftwrap` and `wezterm_gui::termwindow`:

@@ -57,6 +57,8 @@ pub struct LauncherArgs {
     title: String,
     active_workspace: String,
     workspaces: Vec<String>,
+    help_text: String,
+    fuzzy_help_text: String,
 }
 
 impl LauncherArgs {
@@ -67,6 +69,8 @@ impl LauncherArgs {
         mux_window_id: WindowId,
         pane_id: PaneId,
         domain_id_of_current_tab: DomainId,
+        help_text: &str,
+        fuzzy_help_text: &str,
     ) -> Self {
         let mux = Mux::get();
 
@@ -155,6 +159,8 @@ impl LauncherArgs {
             title: title.to_string(),
             workspaces,
             active_workspace,
+            help_text: help_text.to_string(),
+            fuzzy_help_text: fuzzy_help_text.to_string(),
         }
     }
 }
@@ -172,6 +178,8 @@ struct LauncherState {
     window: ::window::Window,
     filtering: bool,
     flags: LauncherFlags,
+    help_text: String,
+    fuzzy_help_text: String,
 }
 
 impl LauncherState {
@@ -361,11 +369,7 @@ impl LauncherState {
             },
             Change::Text(format!(
                 "{}\r\n",
-                truncate_right(
-                    "Select an item and press Enter=launch  \
-                     Esc=cancel  /=filter",
-                    max_width
-                )
+                truncate_right(&self.help_text, max_width)
             )),
             Change::AllAttributes(CellAttributes::default()),
         ];
@@ -416,7 +420,7 @@ impl LauncherState {
                 },
                 Change::ClearToEndOfLine(ColorAttribute::Default),
                 Change::Text(truncate_right(
-                    &format!("Fuzzy matching: {}", self.filter_term),
+                    &format!("{}{}", &self.fuzzy_help_text, self.filter_term),
                     max_width,
                 )),
             ]);
@@ -593,11 +597,12 @@ pub fn launcher(
     args: LauncherArgs,
     mut term: TermWizTerminal,
     window: ::window::Window,
+    initial_choice_idx: usize,
 ) -> anyhow::Result<()> {
     let size = term.get_screen_size()?;
     let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
     let mut state = LauncherState {
-        active_idx: 0,
+        active_idx: initial_choice_idx,
         max_items,
         pane_id: args.pane_id,
         top_row: 0,
@@ -607,6 +612,8 @@ pub fn launcher(
         window,
         filtering: args.flags.contains(LauncherFlags::FUZZY),
         flags: args.flags,
+        help_text: args.help_text.clone(),
+        fuzzy_help_text: args.fuzzy_help_text.clone(),
     };
 
     term.set_raw_mode()?;

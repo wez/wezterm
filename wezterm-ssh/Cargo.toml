@@ -3,7 +3,7 @@ name = "wezterm-ssh"
 version = "0.4.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
-repository = "https://github.com/wez/wezterm"
+repository = "https://github.com/wezterm/wezterm"
 description = "More convenient higher level wrapper around libssh2"
 license = "MIT"
 documentation = "https://docs.rs/wezterm-ssh"
@@ -27,11 +27,11 @@ filenamegen = "0.2.6"
 gethostname = "0.5"
 libc = "0.2"
 log = "0.4"
-portable-pty = { version="0.8", path = "../pty" }
+portable-pty = { version="0.9", path = "../pty" }
 regex = "1"
 smol = "2.0"
 ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}
-libssh-rs = {version="0.3.2", features=["vendored"], optional = true}
+libssh-rs = {version="0.3.5", features=["vendored"], optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
 thiserror = "1.0"
 socket2 = "0.5"

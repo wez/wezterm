@@ -383,6 +383,7 @@ impl CommandDef {
         let inputmap = InputMap::new(config);
 
         let mut candidates_for_removal = vec![];
+        #[allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
         let wezterm_perform_key_assignment_sel = sel!(weztermPerformKeyAssignment:);
 
         /// Mark menu items as candidates for removal
@@ -1668,7 +1669,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("md_pipe_disconnected"),
         },
         OpenUri(uri) => match uri.as_ref() {
-            "https://wezfurlong.org/wezterm/" => CommandDef {
+            "https://wezterm.org/" => CommandDef {
                 brief: "Documentation".into(),
                 doc: "Visit the wezterm documentation website".into(),
                 keys: vec![],
@@ -1676,7 +1677,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 menubar: &["Help"],
                 icon: Some("md_help"),
             },
-            "https://github.com/wez/wezterm/discussions/" => CommandDef {
+            "https://github.com/wezterm/wezterm/discussions/" => CommandDef {
                 brief: "Discuss on GitHub".into(),
                 doc: "Visit wezterm's GitHub discussion".into(),
                 keys: vec![],
@@ -1684,7 +1685,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 menubar: &["Help"],
                 icon: Some("oct_comment_discussion"),
             },
-            "https://github.com/wez/wezterm/issues/" => CommandDef {
+            "https://github.com/wezterm/wezterm/issues/" => CommandDef {
                 brief: "Search or report issue on GitHub".into(),
                 doc: "Visit wezterm's GitHub issues".into(),
                 keys: vec![],
@@ -2134,9 +2135,9 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ShowLauncher,
         ShowTabNavigator,
         // ----------------- Help
-        OpenUri("https://wezfurlong.org/wezterm/".to_string()),
-        OpenUri("https://github.com/wez/wezterm/discussions/".to_string()),
-        OpenUri("https://github.com/wez/wezterm/issues/".to_string()),
+        OpenUri("https://wezterm.org/".to_string()),
+        OpenUri("https://github.com/wezterm/wezterm/discussions/".to_string()),
+        OpenUri("https://github.com/wezterm/wezterm/issues/".to_string()),
         ShowDebugOverlay,
         // ----------------- Misc
         OpenLinkAtMouseCursor,

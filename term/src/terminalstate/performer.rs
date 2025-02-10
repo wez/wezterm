@@ -1,4 +1,4 @@
-use crate::terminal::Alert;
+use crate::terminal::{Alert, Progress};
 use crate::terminalstate::{
     default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
 };
@@ -137,7 +137,7 @@ impl<'a> Performer<'a> {
                 // We got a zero-width grapheme.
                 // We used to force them into a cell to guarantee that we
                 // preserved them in the model, but it introduces presentation
-                // problems, such as <https://github.com/wez/wezterm/issues/1422>
+                // problems, such as <https://github.com/wezterm/wezterm/issues/1422>
                 log::trace!("Eliding zero-width grapheme {:?}", g);
                 continue;
             }
@@ -223,7 +223,7 @@ impl<'a> Performer<'a> {
     /// in a mode where all printable output is accumulated for the title.
     /// To combat this, we pop_tmux_title_state when we're obviously moving
     /// to different escape sequence parsing states.
-    /// <https://github.com/wez/wezterm/issues/2442>
+    /// <https://github.com/wezterm/wezterm/issues/2442>
     fn pop_tmux_title_state(&mut self) {
         if let Some(title) = self.accumulating_title.take() {
             log::debug!("ST never received for pending tmux title escape sequence: {title:?}");
@@ -477,7 +477,7 @@ impl<'a> Performer<'a> {
             CSI::Cursor(termwiz::escape::csi::Cursor::Left(n)) => {
                 // We treat CUB (Cursor::Left) the same as Backspace as
                 // that is what xterm does.
-                // <https://github.com/wez/wezterm/issues/1273>
+                // <https://github.com/wezterm/wezterm/issues/1273>
                 for _ in 0..n {
                     self.control(ControlCode::Backspace);
                 }
@@ -696,6 +696,7 @@ impl<'a> Performer<'a> {
                 self.unicode_version_stack.clear();
                 self.suppress_initial_title_change = false;
                 self.accumulating_title.take();
+                self.progress = Progress::default();
 
                 self.screen.full_reset();
                 self.screen.activate_alt_screen(seqno);
@@ -1054,6 +1055,22 @@ impl<'a> Performer<'a> {
                 }
                 self.implicit_palette_reset_if_same_as_configured();
                 self.palette_did_change();
+            }
+            OperatingSystemCommand::ConEmuProgress(prog) => {
+                use termwiz::escape::osc::Progress as TProg;
+                let prog = match prog {
+                    TProg::None => Progress::None,
+                    TProg::SetPercentage(p) => Progress::Percentage(p),
+                    TProg::SetError(p) => Progress::Error(p),
+                    TProg::SetIndeterminate => Progress::Indeterminate,
+                    TProg::Paused => Progress::None,
+                };
+                if prog != self.progress {
+                    self.progress = prog.clone();
+                    if let Some(handler) = self.alert_handler.as_mut() {
+                        handler.alert(Alert::Progress(prog));
+                    }
+                }
             }
         }
     }

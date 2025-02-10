@@ -2565,7 +2565,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         && (keys[VK_CONTROL as usize] & 0x80 != 0)
     {
         // AltGr is pressed; while AltGr is on the RHS of the keyboard
-        // is is not the same thing as right-alt.
+        // is not the same thing as right-alt.
         // Windows sets RMENU and CONTROL to indicate AltGr and we
         // have to keep these in the key state in order for ToUnicode
         // to map the key correctly.
@@ -2723,7 +2723,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             // They pressed the same dead key twice,
                             // emit the underlying char again and call
                             // it done.
-                            // <https://github.com/wez/wezterm/issues/1729>
+                            // <https://github.com/wezterm/wezterm/issues/1729>
                             inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
                             return Some(0);
                         }

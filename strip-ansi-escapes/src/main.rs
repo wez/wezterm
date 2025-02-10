@@ -10,7 +10,7 @@ use termwiz::escape::{Action, ControlCode};
 ///
 /// This utility is part of WezTerm.
 ///
-/// https://github.com/wez/wezterm
+/// https://github.com/wezterm/wezterm
 struct Opt {}
 
 fn main() -> Result<()> {

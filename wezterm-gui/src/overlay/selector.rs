@@ -155,11 +155,12 @@ impl SelectorState {
                 line.resize(max_width, termwiz::surface::SEQ_ZERO);
             }
             changes.append(&mut line.changes(&attr));
+            changes.push(Change::Text(" ".to_string()));
             if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
             }
             changes.push(Change::AllAttributes(CellAttributes::default()));
-            changes.push(Change::Text(" \r\n".to_string()));
+            changes.push(Change::Text("\r\n".to_string()));
         }
 
         if self.filtering || !self.filter_term.is_empty() {

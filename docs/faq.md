@@ -172,7 +172,7 @@ number of variables!
 
 If after experimenting with your environment and related settings you believe
 that wezterm isn't sending the correct input then please [open an
-issue](https://github.com/wez/wezterm/issues) and include the `xxd` hexdump,
+issue](https://github.com/wezterm/wezterm/issues) and include the `xxd` hexdump,
 and output from `env` and any other pertinent information about what you're
 trying and why it doesn't match your expectations.
 
@@ -234,7 +234,7 @@ directory:
 
 ```bash
 tempfile=$(mktemp) \
-  && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  && curl -o $tempfile https://raw.githubusercontent.com/wezterm/wezterm/master/termwiz/data/wezterm.terminfo \
   && tic -x -o ~/.terminfo $tempfile \
   && rm $tempfile
 ```
@@ -376,10 +376,26 @@ config.set_environment_variables = {
 }
 ```
 
+and yet another option is to configure launchd to use a more expansive
+PATH for all processes in your user session using `launchctl config user path`
+doing something like this:
+
+```console
+$ sudo launchctl config user path <my path setting>
+```
+
+!!! warning
+    Take care with setting the user path using this technique, as if you change
+    that path in a way that system-provided utilities are lower priority than
+    alternative software that you have installed, you may unexpectedly change
+    the overall system behavior.
+
 See also:
 
  * [set_environment_variables](config/lua/config/set_environment_variables.md)
  * [SpawnCommand](config/lua/SpawnCommand.md)
  * [wezterm.config_file](config/lua/wezterm/config_file.md)
  * [wezterm.shell_quote_arg](config/lua/wezterm/shell_quote_arg.md)
+ * [how to set the PATH for Finder-launched applications](https://apple.stackexchange.com/q/51677/166425)
+ * [what does launchctl config user path do?](https://stackoverflow.com/q/51636338/149111)
 
