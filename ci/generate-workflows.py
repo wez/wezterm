@@ -1011,6 +1011,7 @@ TARGETS = [
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:39"),
     Target(container="fedora:40"),
+    Target(container="fedora:41"),
     # Target(container="alpine:3.15"),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
