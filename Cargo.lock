@@ -3212,11 +3212,11 @@ dependencies = [
 
 [[package]]
 name = "mac_address"
-version = "1.1.7"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8836fae9d0d4be2c8b4efcdd79e828a2faa058a90d005abf42f91cac5493a08e"
+checksum = "c0aeb26bf5e836cc1c341c8106051b573f1766dfa05aa87f0b98be5e51b02303"
 dependencies = [
- "nix 0.28.0",
+ "nix 0.29.0",
  "winapi",
 ]
 
@@ -3558,7 +3558,6 @@ dependencies = [
  "cfg-if",
  "cfg_aliases 0.1.1",
  "libc",
- "memoffset",
 ]
 
 [[package]]
@@ -6476,11 +6475,10 @@ dependencies = [
 
 [[package]]
 name = "wezterm-blob-leases"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "getrandom 0.2.15",
+ "getrandom 0.3.1",
  "mac_address",
- "once_cell",
  "serde",
  "sha2",
  "tempfile",

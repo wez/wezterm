@@ -1,5 +1,5 @@
-use once_cell::sync::Lazy;
 use uuid::Uuid;
+use std::sync::LazyLock;
 
 /// Represents an individual lease
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -19,7 +19,7 @@ fn get_mac_address() -> [u8; 6] {
         Ok(Some(addr)) => addr.bytes(),
         _ => {
             let mut mac = [0u8; 6];
-            getrandom::getrandom(&mut mac).ok();
+            getrandom::fill(&mut mac).ok();
             mac
         }
     }
@@ -27,7 +27,7 @@ fn get_mac_address() -> [u8; 6] {
 
 impl LeaseId {
     pub fn new() -> Self {
-        static MAC: Lazy<[u8; 6]> = Lazy::new(get_mac_address);
+        static MAC: LazyLock<[u8; 6]> = LazyLock::new(get_mac_address);
         let uuid = Uuid::now_v1(&*MAC);
         let pid = std::process::id();
         Self { uuid, pid }
