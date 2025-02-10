@@ -3,13 +3,13 @@ use config::{ConfigHandle, TabBarColors};
 use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
 use termwiz::cell::{unicode_column_width, Cell, CellAttributes};
-use termwiz::color::ColorSpec;
+use termwiz::color::{AnsiColor, ColorSpec};
 use termwiz::escape::csi::Sgr;
 use termwiz::escape::parser::Parser;
 use termwiz::escape::{Action, ControlCode, CSI};
 use termwiz::surface::SEQ_ZERO;
-use termwiz_funcs::{format_as_escapes, FormatItem};
-use wezterm_term::Line;
+use termwiz_funcs::{format_as_escapes, FormatColor, FormatItem};
+use wezterm_term::{Line, Progress};
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -103,6 +103,15 @@ fn call_format_tab_title(
     }
 }
 
+/// pct is a percentage in the range 0-100.
+/// We want to map it to one of the nerdfonts
+/// `md_circle_slice_1..=8` glyphs which occupy
+/// the range 0xf0a9e ..= 0xf0aa5.
+/// 100/8 -> 12.5, rounding down to 12
+fn pct_to_glyph(pct: u8) -> char {
+    char::from_u32(0xf0a9e + (pct as u32 / 12)).unwrap_or('\u{f0aa5}')
+}
+
 fn compute_tab_title(
     tab: &TabInformation,
     tab_info: &[TabInformation],
@@ -116,45 +125,71 @@ fn compute_tab_title(
     match title {
         Some(title) => title,
         None => {
-            let title = if let Some(pane) = &tab.active_pane {
+            let mut items = vec![];
+            let mut len = 0;
+
+            if let Some(pane) = &tab.active_pane {
                 let mut title = if tab.tab_title.is_empty() {
                     pane.title.clone()
                 } else {
                     tab.tab_title.clone()
                 };
+
                 let classic_spacing = if config.use_fancy_tab_bar { "" } else { " " };
                 if config.show_tab_index_in_tab_bar {
-                    title = format!(
-                        "{}{}: {}{}",
-                        classic_spacing,
+                    let index = format!(
+                        "{classic_spacing}{}: ",
                         tab.tab_index
                             + if config.tab_and_split_indices_are_zero_based {
                                 0
                             } else {
                                 1
-                            },
-                        title,
-                        classic_spacing,
+                            }
                     );
+                    len += unicode_column_width(&index, None);
+                    items.push(FormatItem::Text(index));
+
+                    title = format!("{}{classic_spacing}", title);
                 }
+
+                match pane.progress {
+                    Progress::None => {}
+                    Progress::Percentage(pct) | Progress::Error(pct) => {
+                        let graphic = format!("{} ", pct_to_glyph(pct));
+                        len += unicode_column_width(&graphic, None);
+                        let color = if matches!(pane.progress, Progress::Percentage(_)) {
+                            FormatItem::Foreground(FormatColor::AnsiColor(AnsiColor::Green))
+                        } else {
+                            FormatItem::Foreground(FormatColor::AnsiColor(AnsiColor::Red))
+                        };
+                        items.push(color);
+                        items.push(FormatItem::Text(graphic));
+                        items.push(FormatItem::Foreground(FormatColor::Default));
+                    }
+                    Progress::Indeterminate => {
+                        // TODO: Decide what to do here to indicate this
+                    }
+                }
+
                 // We have a preferred soft minimum on tab width to make it
                 // easier to click on tab titles, but we'll still go below
                 // this if there are too many tabs to fit the window at
                 // this width.
                 if !config.use_fancy_tab_bar {
-                    while unicode_column_width(&title, None) < 5 {
+                    while len + unicode_column_width(&title, None) < 5 {
                         title.push(' ');
                     }
                 }
-                title
+
+                len += unicode_column_width(&title, None);
+                items.push(FormatItem::Text(title));
             } else {
-                " no pane ".to_string()
+                let title = " no pane ".to_string();
+                len += unicode_column_width(&title, None);
+                items.push(FormatItem::Text(title));
             };
 
-            TitleText {
-                len: unicode_column_width(&title, None),
-                items: vec![FormatItem::Text(title)],
-            }
+            TitleText { len, items }
         }
     }
 }
