@@ -485,6 +485,13 @@ pub struct Config {
     #[dynamic(default = "default_tab_max_width")]
     pub tab_max_width: usize,
 
+    /// Specifies the minimum width that a tab can have
+    /// in the tab bar.  Defaults to 5 glyphs in width.
+    /// If the tab title is shorter than this, the tab will
+    /// be sized to fit the title.
+    #[dynamic(default = "default_tab_min_width")]
+    pub tab_min_width: usize,
+
     /// If true, hide the tab bar if the window only has a single tab.
     #[dynamic(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
@@ -1818,6 +1825,10 @@ fn default_enq_answerback() -> String {
 
 fn default_tab_max_width() -> usize {
     16
+}
+
+fn default_tab_min_width() -> usize {
+    5
 }
 
 fn default_update_interval() -> u64 {
