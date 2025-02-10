@@ -6545,7 +6545,7 @@ dependencies = [
 
 [[package]]
 name = "wezterm-dynamic"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "log",
  "maplit",
