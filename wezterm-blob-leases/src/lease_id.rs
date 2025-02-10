@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use std::sync::LazyLock;
+use uuid::Uuid;
 
 /// Represents an individual lease
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
