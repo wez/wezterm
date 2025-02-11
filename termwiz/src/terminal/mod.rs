@@ -2,9 +2,9 @@
 
 use crate::caps::probed::ProbeCapabilities;
 use crate::caps::Capabilities;
-use crate::input::InputEvent;
+use crate::input::{InputEvent, KeyboardEncoding};
 use crate::surface::Change;
-use crate::{format_err, Result};
+use crate::{bail, format_err, Result};
 use num_traits::NumCast;
 use std::fmt::Display;
 use std::time::Duration;
@@ -99,6 +99,11 @@ pub trait Terminal {
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>>;
 
     fn waker(&self) -> TerminalWaker;
+
+    /// Set a new keyboard encoding for the terminal.
+    fn set_keyboard_encoding(&mut self, _encoding: KeyboardEncoding) -> Result<()> {
+        bail!("terminal does't support setting keyboard encodings");
+    }
 }
 
 /// `SystemTerminal` is a concrete implementation of `Terminal`.

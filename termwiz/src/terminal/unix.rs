@@ -4,11 +4,15 @@ use crate::{bail, Context, Result};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
+use std::borrow::BorrowMut;
+use std::cell::OnceCell;
 use std::collections::VecDeque;
 use std::error::Error as _;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
+use std::iter::Once;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
@@ -17,10 +21,14 @@ use termios::{
     cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
     TCSAFLUSH, TCSANOW,
 };
+use wezterm_input_types::KittyKeyboardFlags;
 
 use crate::caps::Capabilities;
-use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, XtermKeyModifierResource, CSI};
-use crate::input::{InputEvent, InputParser};
+use crate::escape::csi::{
+    DecPrivateMode, DecPrivateModeCode, Keyboard, Mode, XtermKeyModifierResource,
+    XtermModifyOtherKeys, CSI,
+};
+use crate::input::{InputEvent, InputParser, KeyboardEncoding};
 use crate::render::terminfo::TerminfoRenderer;
 use crate::surface::Change;
 use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
@@ -48,6 +56,16 @@ pub trait UnixTty {
     fn set_size(&mut self, size: winsize) -> Result<()>;
     fn get_termios(&mut self) -> Result<Termios>;
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<()>;
+    fn modify_termios(
+        &mut self,
+        modifier: impl FnOnce(&mut Termios),
+        when: SetAttributeWhen,
+    ) -> Result<()> {
+        self.get_termios().and_then(|mut termios| {
+            modifier(&mut termios);
+            self.set_termios(&termios, when)
+        })
+    }
     /// Waits until all written data has been transmitted.
     fn drain(&mut self) -> Result<()>;
     fn purge(&mut self, purge: Purge) -> Result<()>;
@@ -101,13 +119,13 @@ impl TtyWriteHandle {
         Ok(())
     }
 
-    fn modify_other_keys(&mut self, level: i64) -> std::io::Result<()> {
+    fn modify_other_keys(&mut self, level: XtermModifyOtherKeys) -> std::io::Result<()> {
         write!(
             self,
             "{}",
             CSI::Mode(Mode::XtermKeyMode {
                 resource: XtermKeyModifierResource::OtherKeys,
-                value: Some(level),
+                value: Some(level as i64),
             })
         )
     }
@@ -197,8 +215,7 @@ impl UnixTty for TtyWriteHandle {
 /// A unix style terminal
 pub struct UnixTerminal {
     read: TtyReadHandle,
-    write: TtyWriteHandle,
-    saved_termios: Termios,
+    write: TermiosGuard<TtyWriteHandle>,
     renderer: TerminfoRenderer,
     input_parser: InputParser,
     input_queue: VecDeque<InputEvent>,
@@ -208,6 +225,8 @@ pub struct UnixTerminal {
     wake_pipe_write: Arc<Mutex<UnixStream>>,
     caps: Capabilities,
     in_alternate_screen: bool,
+    keyboard_enhancement_supported: Option<bool>,
+    saved_keyboard_encoding: Option<KeyboardEncoding>,
 }
 
 impl UnixTerminal {
@@ -225,9 +244,8 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal> {
-        let mut read = TtyReadHandle::new(FileDescriptor::dup(read)?);
-        let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)?);
-        let saved_termios = write.get_termios()?;
+        let read = TtyReadHandle::new(FileDescriptor::dup(read)?);
+        let write = TermiosGuard::new(TtyWriteHandle::new(FileDescriptor::dup(write)?))?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
         let input_queue = VecDeque::new();
@@ -240,13 +258,10 @@ impl UnixTerminal {
         wake_pipe.set_nonblocking(true)?;
         wake_pipe_write.set_nonblocking(true)?;
 
-        read.set_blocking(Blocking::Wait)?;
-
         Ok(UnixTerminal {
             caps,
             read,
             write,
-            saved_termios,
             renderer,
             input_parser,
             input_queue,
@@ -255,6 +270,8 @@ impl UnixTerminal {
             wake_pipe,
             wake_pipe_write: Arc::new(Mutex::new(wake_pipe_write)),
             in_alternate_screen: false,
+            keyboard_enhancement_supported: None,
+            saved_keyboard_encoding: None,
         })
     }
 
@@ -289,6 +306,39 @@ impl UnixTerminal {
             Err(e) => bail!("failed to read sigwinch pipe {}", e),
         }
     }
+
+    pub fn get_keyboard_encoding(&mut self) -> Result<KeyboardEncoding> {
+        Ok(self
+            .probe_capabilities()
+            .map(|mut probe| probe.enhanced_keyboard_state())
+            .transpose()?
+            .flatten()
+            .map(|kitty| KeyboardEncoding::Kitty(kitty))
+            .unwrap_or(KeyboardEncoding::Xterm))
+    }
+
+    /// Check if the terminal supports Kitty keyboard enhancement protocol
+    pub fn keyboard_enhancement_supported(&mut self) -> Result<bool> {
+        match self.keyboard_enhancement_supported {
+            Some(x) => Ok(x),
+            None => {
+                let result = self
+                    .probe_capabilities()
+                    .map(|mut probe| probe.enhanced_keyboard_state())
+                    .transpose()?
+                    .flatten()
+                    .is_some();
+                self.keyboard_enhancement_supported = Some(result);
+                Ok(result)
+            }
+        }
+    }
+
+    /// Restores the keyboard encoding to its original state, if it had been changed
+    pub fn restore_keyboard_encoding(&mut self) -> Result<()> {
+        self.saved_keyboard_encoding
+            .map_or(Ok(()), |enc| self.set_keyboard_encoding(enc))
+    }
 }
 
 #[derive(Clone)]
@@ -311,11 +361,10 @@ impl UnixTerminalWaker {
 
 impl Terminal for UnixTerminal {
     fn set_raw_mode(&mut self) -> Result<()> {
-        let mut raw = self.write.get_termios()?;
-        cfmakeraw(&mut raw);
-        self.write
-            .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
-            .context("failed to set raw mode")?;
+        self.write.modify_termios(
+            cfmakeraw,
+            SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue,
+        )?;
 
         macro_rules! decset {
             ($variant:ident) => {
@@ -336,16 +385,27 @@ impl Terminal for UnixTerminal {
             decset!(AnyEventMouse);
             decset!(SGRMouse);
         }
-        self.write.modify_other_keys(2)?;
-        self.write.flush()?;
 
-        Ok(())
+        if self.caps.probe_for_enhanced_keyboard() && self.keyboard_enhancement_supported()? {
+            if self.saved_keyboard_encoding.is_none() {
+                // don't override the original state if this is called multiple times
+                self.saved_keyboard_encoding = Some(self.get_keyboard_encoding()?);
+            }
+            self.set_keyboard_encoding(KeyboardEncoding::Kitty(KittyKeyboardFlags::all()))?;
+        } else {
+            self.write
+                .modify_other_keys(XtermModifyOtherKeys::Enabled)?;
+        }
+        self.flush()
     }
 
     fn set_cooked_mode(&mut self) -> Result<()> {
-        self.write.modify_other_keys(1)?;
         self.write
-            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
+            .modify_other_keys(XtermModifyOtherKeys::Partial)?;
+        self.restore_keyboard_encoding()?;
+        // FIXME: this only works if the original mode was cooked.
+        // There's no `termios::cfmakesane()`, so we'd have to set the flags manually
+        self.write.restore_termios()
     }
 
     fn enter_alternate_screen(&mut self) -> Result<()> {
@@ -387,7 +447,9 @@ impl Terminal for UnixTerminal {
     }
 
     fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
-        Some(ProbeCapabilities::new(&mut self.read, &mut self.write))
+        // enter raw mode
+        let raw_writer = self.write.with_modified_termios(cfmakeraw).ok()?;
+        Some(ProbeCapabilities::new(&mut self.read, raw_writer))
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
@@ -401,7 +463,7 @@ impl Terminal for UnixTerminal {
         self.write.set_size(size)
     }
     fn render(&mut self, changes: &[Change]) -> Result<()> {
-        self.renderer.render_to(changes, &mut self.write)
+        self.renderer.render_to(changes, &mut *self.write)
     }
     fn flush(&mut self) -> Result<()> {
         self.write.flush().context("flush failed")
@@ -507,6 +569,37 @@ impl Terminal for UnixTerminal {
             pipe: self.wake_pipe_write.clone(),
         }
     }
+
+    fn set_keyboard_encoding(&mut self, encoding: KeyboardEncoding) -> Result<()> {
+        let is_kitty_supported = self.keyboard_enhancement_supported()?;
+        match encoding {
+            KeyboardEncoding::Xterm => {
+                if is_kitty_supported {
+                    write!(
+                        self.write,
+                        "{}",
+                        CSI::Keyboard(Keyboard::PushKittyState {
+                            flags: KittyKeyboardFlags::empty(),
+                            mode: crate::escape::csi::KittyKeyboardMode::AssignAll
+                        })
+                    )?;
+                }
+            }
+            KeyboardEncoding::Kitty(flags) if is_kitty_supported => {
+                write!(
+                    self.write,
+                    "{}",
+                    // Ideally, we'd use SetKittyState, but it doesn't work on some terminals (iTerm2)
+                    CSI::Keyboard(Keyboard::PushKittyState {
+                        flags,
+                        mode: crate::escape::csi::KittyKeyboardMode::AssignAll
+                    })
+                )?;
+            }
+            _ => bail!("Unsupported keyboard encoding {encoding:?} for Unix terminal"),
+        }
+        Ok(())
+    }
 }
 
 impl Drop for UnixTerminal {
@@ -523,6 +616,8 @@ impl Drop for UnixTerminal {
                 .unwrap();
             };
         }
+
+        self.restore_keyboard_encoding().unwrap();
         self.render(&[Change::CursorVisibility(
             crate::surface::CursorVisibility::Visible,
         )])
@@ -534,13 +629,91 @@ impl Drop for UnixTerminal {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
         }
-        self.write.modify_other_keys(0).unwrap();
+        self.write
+            .modify_other_keys(XtermModifyOtherKeys::Disabled)
+            .unwrap();
         self.exit_alternate_screen().unwrap();
         self.write.flush().unwrap();
 
         signal_hook::low_level::unregister(self.sigwinch_id);
-        self.write
-            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
-            .expect("failed to restore original termios state");
+    }
+}
+
+pub(crate) struct TermiosGuard<W: BorrowMut<TtyWriteHandle>> {
+    writer: W,
+    saved_state: Termios,
+}
+
+/// Wrapper for `TtyWriteHandle` with a modified Termios state, which restores the original state when dropped.
+/// The generic BorrowMut parameter is needed because we want allow both owned and borrowed handles.
+impl<W: BorrowMut<TtyWriteHandle>> TermiosGuard<W> {
+    /// Restore the termios state to the original saved state now.
+    #[inline]
+    fn restore_termios(&mut self) -> Result<()> {
+        self.writer
+            .borrow_mut()
+            .set_termios(&self.saved_state, SetAttributeWhen::Now)
+            .context("failed to restore original termios state")
+    }
+
+    /// Modifies the termios state using the given closure and returns a new `TermiosGuard`,
+    /// which restores to the original termios state when dropped.
+    #[inline]
+    fn with_modified_termios(
+        &mut self,
+        modifier: impl FnOnce(&mut Termios),
+    ) -> Result<TermiosGuard<impl BorrowMut<TtyWriteHandle> + '_>> {
+        let mut new = TermiosGuard::new(self.writer.borrow_mut())?;
+        new.modify_termios(
+            modifier,
+            SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue,
+        )
+        .context("failed to modify termios state")?;
+        Ok(new)
+    }
+
+    /// Creates a new `TermiosGuard`, saving the current termios state.
+    /// The state is restored when the guard is dropped.
+    #[inline]
+    fn new(mut writer: W) -> Result<Self> {
+        let saved_state = writer.borrow_mut().get_termios()?;
+        Ok(Self {
+            writer,
+            saved_state,
+        })
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Write for TermiosGuard<W> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.writer.borrow_mut().write(buf)
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.borrow_mut().flush()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Deref for TermiosGuard<W> {
+    type Target = TtyWriteHandle;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.writer.borrow()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> DerefMut for TermiosGuard<W> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+        self.writer.borrow_mut()
+    }
+}
+
+impl<W: BorrowMut<TtyWriteHandle>> Drop for TermiosGuard<W> {
+    fn drop(&mut self) {
+        self.restore_termios().unwrap()
     }
 }
