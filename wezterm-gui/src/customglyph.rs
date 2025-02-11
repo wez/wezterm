@@ -1776,7 +1776,7 @@ impl BlockKey {
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
                         PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
