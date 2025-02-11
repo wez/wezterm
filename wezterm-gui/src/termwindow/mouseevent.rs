@@ -472,9 +472,9 @@ impl super::TermWindow {
                         .window_state
                         .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
                     if let Some(ref window) = self.window {
-                        if self.config.window_decorations
-                            == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
-                        {
+                        if self.config.window_decorations.contains(
+                            WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE,
+                        ) {
                             if self.last_mouse_click.as_ref().map(|c| c.streak) == Some(2) {
                                 if maximized {
                                     window.restore();
