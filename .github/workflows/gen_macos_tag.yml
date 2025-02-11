@@ -89,6 +89,19 @@ jobs:
         with:
           name: "macos"
           path: "WezTerm-*.zip"
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.repository == 'wezterm/wezterm'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: "checkout repo"
+        uses: actions/checkout@v4
       - name: "Checkout homebrew tap"
         uses: actions/checkout@v4
         with:
@@ -100,39 +113,22 @@ jobs:
         run: "cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb"
       - name: "Commit homebrew tap changes"
         uses: stefanzweifel/git-auto-commit-action@v5
-        if: github.repository == 'wezterm/wezterm'
         with:
           commit_message: "Automated update to match latest tag"
           repository: "homebrew-wezterm"
-
-  upload:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-
-    steps:
-      - name: "checkout repo"
-        uses: actions/checkout@v4
       - name: "Download artifact"
         uses: actions/download-artifact@v4
-        if: github.repository == 'wezterm/wezterm'
         with:
           name: "macos"
       - name: "Checksum"
-        if: github.repository == 'wezterm/wezterm'
         shell: bash
         run: "for f in WezTerm-*.zip ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
-        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
       - name: "Upload to Tagged Release"
-        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

@@ -610,7 +610,6 @@ rustup default {toolchain}
             ActionStep(
                 "Upload artifact",
                 action="actions/upload-artifact@v4",
-                condition="github.repository == 'wezterm/wezterm'",
                 params={"name": self.name, "path": paths, "retention-days": 5},
             ),
         ]
@@ -622,7 +621,6 @@ rustup default {toolchain}
         checksum = RunStep(
             "Checksum",
             f"for f in {' '.join(patterns)} ; do sha256sum $f > $f.sha256 ; done",
-            condition="github.repository == 'wezterm/wezterm'",
         )
 
         patterns.append("*.sha256")
@@ -634,7 +632,6 @@ rustup default {toolchain}
                     "Upload to gemfury",
                     f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
                     env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
-                    condition="github.repository == 'wezterm/wezterm'",
                 ),
             ]
 
@@ -643,14 +640,12 @@ rustup default {toolchain}
                 "Download artifact",
                 action="actions/download-artifact@v4",
                 params={"name": self.name},
-                condition="github.repository == 'wezterm/wezterm'",
             ),
             checksum,
             RunStep(
                 "Upload to Nightly Release",
                 f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
-                condition="github.repository == 'wezterm/wezterm'",
             ),
         ] + steps
 
@@ -661,7 +656,6 @@ rustup default {toolchain}
         checksum = RunStep(
             "Checksum",
             f"for f in {' '.join(patterns)} ; do sha256sum $f > $f.sha256 ; done",
-            condition="github.repository == 'wezterm/wezterm'",
         )
 
         patterns.append("*.sha256")
@@ -673,7 +667,6 @@ rustup default {toolchain}
                     "Upload to gemfury",
                     f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
                     env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
-                    condition="github.repository == 'wezterm/wezterm'",
                 ),
             ]
 
@@ -682,7 +675,6 @@ rustup default {toolchain}
                 "Download artifact",
                 action="actions/download-artifact@v4",
                 params={"name": self.name},
-                condition="github.repository == 'wezterm/wezterm'",
             ),
             checksum,
             RunStep(
@@ -691,7 +683,6 @@ rustup default {toolchain}
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
                 },
-                condition="github.repository == 'wezterm/wezterm'",
             ),
             RunStep(
                 "Upload to Tagged Release",
@@ -699,7 +690,6 @@ rustup default {toolchain}
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
                 },
-                condition="github.repository == 'wezterm/wezterm'",
             ),
         ]
 
@@ -726,7 +716,6 @@ rustup default {toolchain}
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                 },
-                condition="github.repository == 'wezterm/wezterm'",
             ),
         ]
 
@@ -761,7 +750,6 @@ rustup default {toolchain}
                     env={
                         "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                     },
-                    condition="github.repository == 'wezterm/wezterm'",
                 ),
             ]
 
@@ -791,7 +779,6 @@ rustup default {toolchain}
                         "commit_message": "Automated update to match latest tag",
                         "repository": "homebrew-wezterm",
                     },
-                    condition="github.repository == 'wezterm/wezterm'",
                 ),
             ]
         elif self.app_image:
@@ -816,7 +803,6 @@ rustup default {toolchain}
                         "commit_message": "Automated update to match latest tag",
                         "repository": "linuxbrew-wezterm",
                     },
-                    condition="github.repository == 'wezterm/wezterm'",
                 ),
             ]
 
@@ -988,11 +974,11 @@ rustup default {toolchain}
         steps += self.test_all()
         steps += self.package(trusted=True)
         steps += self.upload_artifact()
-        steps += self.update_homebrew_tap()
 
         uploader = Job(
             runs_on="ubuntu-latest",
             steps=self.checkout(submodules=False)
+            + self.update_homebrew_tap()
             + self.upload_asset_tag()
             + self.create_winget_pr()
             + self.create_flathub_pr(),
@@ -1094,6 +1080,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+    if: github.repository == 'wezterm/wezterm'
     permissions:
       contents: write
       pages: write

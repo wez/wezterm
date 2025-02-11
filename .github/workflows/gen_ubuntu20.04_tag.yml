@@ -106,25 +106,11 @@ jobs:
             *src.tar.gz
             *.AppImage
             *.zsync
-      - name: "Checkout linuxbrew tap"
-        uses: actions/checkout@v4
-        with:
-          repository: "wez/homebrew-wezterm-linuxbrew"
-          path: "linuxbrew-wezterm"
-          token: "${{ secrets.GH_PAT }}"
-      - name: "Update linuxbrew tap formula"
-        shell: bash
-        run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
-      - name: "Commit linuxbrew tap changes"
-        uses: stefanzweifel/git-auto-commit-action@v5
-        if: github.repository == 'wezterm/wezterm'
-        with:
-          commit_message: "Automated update to match latest tag"
-          repository: "linuxbrew-wezterm"
 
   upload:
     runs-on: ubuntu-latest
     needs: build
+    if: github.repository == 'wezterm/wezterm'
     permissions:
       contents: write
       pages: write
@@ -136,23 +122,33 @@ jobs:
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
         uses: actions/checkout@v4
+      - name: "Checkout linuxbrew tap"
+        uses: actions/checkout@v4
+        with:
+          repository: "wez/homebrew-wezterm-linuxbrew"
+          path: "linuxbrew-wezterm"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Update linuxbrew tap formula"
+        shell: bash
+        run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
+      - name: "Commit linuxbrew tap changes"
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Automated update to match latest tag"
+          repository: "linuxbrew-wezterm"
       - name: "Download artifact"
         uses: actions/download-artifact@v4
-        if: github.repository == 'wezterm/wezterm'
         with:
           name: "ubuntu20.04"
       - name: "Checksum"
-        if: github.repository == 'wezterm/wezterm'
         shell: bash
         run: "for f in wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
-        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
       - name: "Upload to Tagged Release"
-        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -167,7 +163,6 @@ jobs:
         shell: bash
         run: "bash ci/make-flathub-pr.sh"
       - name: "Submit PR"
-        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         shell: bash
