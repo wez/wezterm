@@ -422,7 +422,7 @@ impl VTParser {
                 full: false,
             },
 
-            params: [CsiParam::Integer(0); MAX_PARAMS],
+            params: [CsiParam::default(); MAX_PARAMS],
             num_params: 0,
             params_full: false,
             current_param: None,
@@ -897,7 +897,7 @@ mod test {
         // Due to the much higher CSI element limit,
         // we must construct this test differently.
         let mut input = "\x1b[0".to_string();
-        let mut params = vec![CsiParam::Integer(0)];
+        let mut params = vec![CsiParam::default()];
 
         for n in 1..=127 {
             input.push_str(&format!(";{n}"));
