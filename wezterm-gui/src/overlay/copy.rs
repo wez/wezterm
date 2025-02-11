@@ -822,6 +822,54 @@ impl CopyRenderable {
         }
     }
 
+    fn move_backward_one_word_start(&mut self) {
+        let y = if self.cursor.x == 0 && self.cursor.y > 0 {
+            self.cursor.x = usize::max_value();
+            self.cursor.y.saturating_sub(1)
+        } else {
+            self.cursor.y
+        };
+
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            if self.cursor.x == usize::max_value() {
+                self.cursor.x = line.len().saturating_sub(1);
+            }
+            let s = line.columns_as_str(0..self.cursor.x.saturating_add(1));
+
+            let mut last_was_whitespace = false;
+
+            for (idx, word) in s.split_ascii_whitespace().rev().enumerate() {
+                let width = unicode_column_width(word, None);
+
+                if is_whitespace_word(word) {
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    last_was_whitespace = true;
+                    continue;
+                }
+                last_was_whitespace = false;
+
+                if idx == 0 && width == 1 {
+                    // We were at the start of the initial word
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    continue;
+                }
+
+                self.cursor.x = self.cursor.x.saturating_sub(width.saturating_sub(1));
+                break;
+            }
+
+            if last_was_whitespace && self.cursor.y > 0 {
+                // The line begins with whitespace
+                self.cursor.x = usize::max_value();
+                self.cursor.y -= 1;
+                return self.move_backward_one_word_start();
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
     fn move_backward_one_word(&mut self) {
         let y = if self.cursor.x == 0 && self.cursor.y > 0 {
             self.cursor.x = usize::max_value();
@@ -1260,6 +1308,7 @@ impl Pane for CopyOverlay {
                     MoveToStartOfNextLine => render.move_to_start_of_next_line(),
                     MoveToSelectionOtherEnd => render.move_to_selection_other_end(),
                     MoveToSelectionOtherEndHoriz => render.move_to_selection_other_end_horiz(),
+                    MoveBackwardWordStart => render.move_backward_one_word_start(),
                     MoveBackwardWord => render.move_backward_one_word(),
                     MoveForwardWord => render.move_forward_one_word(),
                     MoveForwardWordEnd => render.move_to_end_of_word(),
