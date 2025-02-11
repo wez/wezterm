@@ -16,6 +16,7 @@ jobs:
   lints:
     name: Build
     runs-on: ubuntu-latest
+    if: github.repository == 'wezterm/wezterm'
     steps:
       - uses: actions/checkout@v3
       - name: Install nix

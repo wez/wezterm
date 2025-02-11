@@ -23,6 +23,7 @@ on:
 jobs:
   noResponse:
     runs-on: ubuntu-latest
+    if: github.repository == 'wezterm/wezterm'
     steps:
       - uses: actions/stale@v9.0.0
         with:
