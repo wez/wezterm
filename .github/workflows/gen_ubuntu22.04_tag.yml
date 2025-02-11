@@ -108,23 +108,28 @@ jobs:
       - name: "checkout repo"
         uses: actions/checkout@v4
       - name: "Upload to gemfury"
+        if: github.repository == 'wezterm/wezterm'
         env:
           FURY_TOKEN: ${{ secrets.FURY_TOKEN }}
         shell: bash
         run: "for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done"
       - name: "Download artifact"
         uses: actions/download-artifact@v4
+        if: github.repository == 'wezterm/wezterm'
         with:
           name: "ubuntu22.04"
       - name: "Checksum"
+        if: github.repository == 'wezterm/wezterm'
         shell: bash
         run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
+        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
       - name: "Upload to Tagged Release"
+        if: github.repository == 'wezterm/wezterm'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
