@@ -107,6 +107,13 @@ fedora_deps() {
   if test_flag; then
     $YUM install -y 'openssh-server'
   fi
+
+  # Fedora 41 and above split a part of openssl-devel into openssl-devel-engine.
+  # CentOS/RHEL 10 are doing the same thing.
+  if { [ "$VERSION_ID" -ge "41" ] && [ "$ID" == "fedora" ]; } \
+     || { [ "$VERSION_ID" -ge "10" ] && [ "$ID" != "fedora" ]; }; then
+    $YUM install -y 'openssl-devel-engine'
+  fi
 }
 
 suse_deps() {
