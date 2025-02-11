@@ -15,7 +15,10 @@ impl ActivatePane {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
         let pane_id = client.resolve_pane_id(self.pane_id).await?;
         client
-            .set_focused_pane_id(codec::SetFocusedPane { pane_id })
+            .set_focused_pane_id(codec::SetFocusedPane {
+                pane_id,
+                pane_focus_serial: None,
+            })
             .await?;
         Ok(())
     }

@@ -6,6 +6,7 @@ use mux::client::ClientId;
 use mux::domain::SplitSource;
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::serial::InputSerial;
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
 use promise::spawn::spawn_into_main_thread;
@@ -328,7 +329,10 @@ impl SessionHandler {
                 }
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
             }
-            Pdu::SetFocusedPane(SetFocusedPane { pane_id }) => {
+            Pdu::SetFocusedPane(SetFocusedPane {
+                pane_id,
+                pane_focus_serial,
+            }) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
                     catch(
@@ -361,7 +365,10 @@ impl SessionHandler {
                             tab.set_active_pane(&pane);
 
                             mux.record_focus_for_current_identity(pane_id);
-                            mux.notify(mux::MuxNotification::PaneFocused(pane_id));
+                            mux.notify(mux::MuxNotification::PaneFocused {
+                                pane_id,
+                                pane_focus_serial,
+                            });
 
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },

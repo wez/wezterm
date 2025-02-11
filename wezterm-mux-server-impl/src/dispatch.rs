@@ -166,10 +166,16 @@ where
                     stream.flush().await.context("flushing PDU to client")?;
                 }
             }
-            Ok(Item::Notif(MuxNotification::PaneFocused(pane_id))) => {
-                Pdu::PaneFocused(codec::PaneFocused { pane_id })
-                    .encode_async(&mut stream, 0)
-                    .await?;
+            Ok(Item::Notif(MuxNotification::PaneFocused {
+                pane_id,
+                pane_focus_serial,
+            })) => {
+                Pdu::PaneFocused(codec::PaneFocused {
+                    pane_id,
+                    pane_focus_serial,
+                })
+                .encode_async(&mut stream, 0)
+                .await?;
                 stream.flush().await.context("flushing PDU to client")?;
             }
             Ok(Item::Notif(MuxNotification::TabResized(tab_id))) => {

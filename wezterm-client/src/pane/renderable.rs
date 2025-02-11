@@ -6,6 +6,7 @@ use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::serial::InputSerial;
 use mux::Mux;
 use promise::BrokenPromise;
 use rangeset::*;

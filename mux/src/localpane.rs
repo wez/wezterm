@@ -482,6 +482,11 @@ impl Pane for LocalPane {
     }
 
     fn focus_changed(&self, focused: bool) {
+        if focused {
+            let mux = Mux::get();
+            mux.increment_pane_focus_serial();
+        }
+
         self.terminal.lock().focus_changed(focused);
     }
 
