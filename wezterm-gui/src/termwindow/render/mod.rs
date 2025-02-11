@@ -521,6 +521,8 @@ impl crate::TermWindow {
     }
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
+        const CURSOR_MIN_CONTRAST: f32 = 2.5;
+
         if params.cursor.is_some() {
             if let Some(bg_color_mix) = self.get_intensity_if_bell_target_ringing(
                 params.pane.expect("cursor only set if pane present"),
@@ -561,12 +563,14 @@ impl crate::TermWindow {
                 self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
 
             if dead_key_or_leader && params.is_active_pane {
-                let (fg_color, bg_color) =
-                    if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
-                        (params.bg_color, params.fg_color)
-                    } else {
-                        (params.cursor_fg, params.cursor_bg)
-                    };
+                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor
+                    && params.cursor_is_default_color
+                    && params.fg_color.contrast_ratio(&params.bg_color) >= CURSOR_MIN_CONTRAST
+                {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                };
 
                 let color = params
                     .config
@@ -622,7 +626,10 @@ impl crate::TermWindow {
                 CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
                 CursorVisibility::Visible,
             ) => {
-                if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
+                if self.config.force_reverse_video_cursor
+                    && params.cursor_is_default_color
+                    && params.fg_color.contrast_ratio(&params.bg_color) >= CURSOR_MIN_CONTRAST
+                {
                     (params.bg_color, params.fg_color, params.fg_color)
                 } else {
                     (
@@ -641,7 +648,10 @@ impl crate::TermWindow {
                 | CursorShape::SteadyBar,
                 CursorVisibility::Visible,
             ) => {
-                if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
+                if self.config.force_reverse_video_cursor
+                    && params.cursor_is_default_color
+                    && params.fg_color.contrast_ratio(&params.bg_color) >= CURSOR_MIN_CONTRAST
+                {
                     (params.fg_color, params.bg_color, params.fg_color)
                 } else {
                     (params.fg_color, params.bg_color, params.cursor_bg)

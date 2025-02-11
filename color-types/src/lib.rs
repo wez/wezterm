@@ -538,16 +538,8 @@ impl SrgbaTuple {
         *deltae::DeltaE::new(a, b, deltae::DEMethod::DE2000).value()
     }
 
-    pub fn contrast_ratio(&self, other: &Self) -> f64 {
-        let (_, _, l_a, _) = self.to_hsla();
-        let (_, _, l_b, _) = other.to_hsla();
-        let a = l_a + 0.05;
-        let b = l_b + 0.05;
-        if a > b {
-            a / b
-        } else {
-            b / a
-        }
+    pub fn contrast_ratio(&self, other: &Self) -> f32 {
+        self.to_linear().contrast_ratio(&other.to_linear())
     }
 }
 
@@ -891,6 +883,22 @@ impl LinearRgba {
             self.3,
         )
     }
+
+    pub fn relative_luminance(&self) -> f32 {
+        0.2126 * self.0 + 0.7152 * self.1 + 0.0722 * self.2
+    }
+
+    pub fn contrast_ratio(&self, other: &Self) -> f32 {
+        let l_a = self.relative_luminance();
+        let l_b = other.relative_luminance();
+        let a = l_a + 0.05;
+        let b = l_b + 0.05;
+        if a > b {
+            a / b
+        } else {
+            b / a
+        }
+    }
 }
 
 #[cfg(test)]
@@ -959,5 +967,29 @@ mod tests {
 
         let grey = SrgbaTuple::from_str("rgb:f0f0/f0f0/f0f0").unwrap();
         assert_eq!(grey.to_rgb_string(), "#f0f0f0");
+    }
+
+    #[test]
+    fn linear_rgb_contrast_ratio() {
+        let a = LinearRgba::with_srgba(255, 0, 0, 1);
+        let b = LinearRgba::with_srgba(0, 255, 0, 1);
+        let contrast_ratio = a.contrast_ratio(&b);
+        assert!(
+            (2.91 - contrast_ratio).abs() < 0.01,
+            "contrast({}) == 2.91",
+            contrast_ratio
+        );
+    }
+
+    #[test]
+    fn srgba_contrast_ratio() {
+        let a = SrgbaTuple::from_str("hsl:0   100  50").unwrap();
+        let b = SrgbaTuple::from_str("hsl:120 100  50").unwrap();
+        let contrast_ratio = a.contrast_ratio(&b);
+        assert!(
+            (2.91 - contrast_ratio).abs() < 0.01,
+            "contrast({}) == 2.91",
+            contrast_ratio
+        );
     }
 }
