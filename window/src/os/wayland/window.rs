@@ -722,7 +722,7 @@ impl WaylandWindowInner {
         }
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
-            let factor = self.get_dpi_factor() as f64;
+            let factor = self.get_dpi_factor() as f64 * self.config.wayland_scroll_factor;
 
             if value_x.signum() != self.hscroll_remainder.signum() {
                 // reset accumulator when changing scroll direction
