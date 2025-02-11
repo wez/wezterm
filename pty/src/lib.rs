@@ -1,5 +1,5 @@
 //! This crate provides a cross platform API for working with the
-//! psuedo terminal (pty) interfaces provided by the system.
+//! pseudo terminal (pty) interfaces provided by the system.
 //! Unlike other crates in this space, this crate provides a set
 //! of traits that allow selecting from different implementations
 //! at runtime.

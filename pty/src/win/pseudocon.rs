@@ -63,20 +63,20 @@ lazy_static! {
     static ref CONPTY: ConPtyFuncs = load_conpty();
 }
 
-pub struct PsuedoCon {
+pub struct PseudoCon {
     con: HPCON,
 }
 
-unsafe impl Send for PsuedoCon {}
-unsafe impl Sync for PsuedoCon {}
+unsafe impl Send for PseudoCon {}
+unsafe impl Sync for PseudoCon {}
 
-impl Drop for PsuedoCon {
+impl Drop for PseudoCon {
     fn drop(&mut self) {
         unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
     }
 }
 
-impl PsuedoCon {
+impl PseudoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
         let result = unsafe {
@@ -92,7 +92,7 @@ impl PsuedoCon {
         };
         ensure!(
             result == S_OK,
-            "failed to create psuedo console: HRESULT {}",
+            "failed to create pseudo console: HRESULT {}",
             result
         );
         Ok(Self { con })
