@@ -140,7 +140,7 @@ mlua = "0.9"
 mux = { path = "mux" }
 mux-lua = { path = "lua-api-crates/mux" }
 names = { version = "0.12", default-features = false }
-nix = "0.28"
+nix = "0.29"
 notify = "5.0.0"
 ntapi = "0.4"
 nucleo-matcher = "0.3"
