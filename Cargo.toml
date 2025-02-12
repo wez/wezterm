@@ -59,14 +59,14 @@ clap = {version="4.0", features=["derive"]}
 clap_complete = "4.4"
 clap_complete_fig = "4.0"
 clipboard-win = "2.2"
-cocoa = "0.25"
+cocoa = "0.26"
 codec = { path = "codec" }
 color-funcs = { path = "lua-api-crates/color-funcs" }
 colorgrad = "0.6"
 config = { path = "config" }
-core-foundation = "0.9"
-core-graphics = "0.23"
-core-text = "20.0"
+core-foundation = "0.10"
+core-graphics = "0.24"
+core-text = "21.0"
 criterion = "0.5"
 crossbeam = "0.8"
 csscolorparser = "0.6"
