@@ -614,7 +614,7 @@ impl Tab {
     /// Called when running in the mux server after an individual pane
     /// has been resized.
     /// Because the split manipulation happened on the GUI we "lost"
-    /// the information that would have allowed us to call resize_split_by()
+    /// the information that would have allowed us to call resize_split_to()
     /// and instead need to back-infer the split size information.
     /// We rely on the client to have resized (or be in the process
     /// of resizing) affected panes consistently with its own Tab
@@ -636,8 +636,8 @@ impl Tab {
     /// and negative values to the left/top.
     /// The adjusted size is propogated downwards to contained children and
     /// their panes are resized accordingly.
-    pub fn resize_split_by(&self, split_index: usize, delta: isize) {
-        self.inner.lock().resize_split_by(split_index, delta)
+    pub fn resize_split_to(&self, split_index: usize, left_or_top: isize) {
+        self.inner.lock().resize_split_to(split_index, left_or_top)
     }
 
     /// Adjusts the size of the active pane in the specified direction
@@ -1258,7 +1258,7 @@ impl TabInner {
         Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
     }
 
-    fn resize_split_by(&mut self, split_index: usize, delta: isize) {
+    fn resize_split_to(&mut self, split_index: usize, left_or_top: isize) {
         if self.zoomed.is_some() {
             return;
         }
@@ -1286,12 +1286,12 @@ impl TabInner {
         }
 
         // Now cursor is looking at the split
-        self.adjust_node_at_cursor(&mut cursor, delta);
+        self.adjust_node_at_cursor(&mut cursor, left_or_top);
         self.cascade_size_from_cursor(cursor);
         Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
     }
 
-    fn adjust_node_at_cursor(&mut self, cursor: &mut Cursor, delta: isize) {
+    fn adjust_node_at_cursor(&mut self, cursor: &mut Cursor, left_or_top: isize) {
         let cell_dimensions = self.cell_dimensions();
         if let Ok(Some(node)) = cursor.node_mut() {
             match node.direction {
@@ -1299,8 +1299,7 @@ impl TabInner {
                     let width = node.width();
 
                     let mut cols = node.first.cols as isize;
-                    cols = cols
-                        .saturating_add(delta)
+                    cols = left_or_top
                         .max(1)
                         .min((width as isize).saturating_sub(2));
                     node.first.cols = cols as usize;
@@ -1315,8 +1314,7 @@ impl TabInner {
                     let height = node.height();
 
                     let mut rows = node.first.rows as isize;
-                    rows = rows
-                        .saturating_add(delta)
+                    rows = left_or_top
                         .max(1)
                         .min((height as isize).saturating_sub(2));
                     node.first.rows = rows as usize;
@@ -2499,7 +2497,7 @@ mod test {
         assert_eq!(600, panes[2].pixel_height);
         assert_eq!(2, panes[2].pane.pane_id());
 
-        tab.resize_split_by(1, 1);
+        tab.resize_split_to(1, 12);
         let panes = tab.iter_panes();
         assert_eq!(39, panes[0].width);
         assert_eq!(12, panes[0].height);
