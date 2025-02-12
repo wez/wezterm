@@ -39,7 +39,7 @@ async-task = "4.7"
 async-trait = "0.1"
 async_ossl = { path = "async_ossl" }
 backtrace = "0.3"
-base64 = "0.21"
+base64 = "0.22"
 base91 = { path = "base91" }
 battery = { path = "lua-api-crates/battery" }
 benchmarking = "0.4"
