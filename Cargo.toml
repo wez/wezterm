@@ -49,7 +49,7 @@ block2 = "0.6"
 bstr = "1.0"
 bytemuck = { version="1.4", features=["derive"]}
 bytes = "1.0"
-cairo-rs = {version="0.18", default-features=false}
+cairo-rs = {version="0.18", default-features=false} # See patch.crates-io section
 camino = "1.0"
 cassowary = "0.3"
 cc = {version="1.0", features = ["parallel"]}
