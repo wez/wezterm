@@ -82,7 +82,7 @@ impl Texture2d for WebGpuTexture {
         let (im_width, im_height) = im.image_dimensions();
 
         self.queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
@@ -93,7 +93,7 @@ impl Texture2d for WebGpuTexture {
                 aspect: wgpu::TextureAspect::All,
             },
             im.pixel_data_slice(),
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(im_width as u32 * 4),
                 rows_per_image: Some(im_height as u32),
@@ -224,7 +224,7 @@ impl WebGpuState {
         config: &ConfigHandle,
     ) -> anyhow::Result<Self> {
         let backends = wgpu::Backends::all();
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends,
             ..Default::default()
         });
@@ -458,13 +458,13 @@ impl WebGpuState {
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[Vertex::desc()],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
