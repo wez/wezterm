@@ -179,7 +179,7 @@ regex = "1"
 reqwest = "0.12"
 resize = "0.5"
 rstest = "0.21"
-rusqlite = "0.30"
+rusqlite = "0.32"
 serde = {version="1.0", features = ["derive"]}
 serde-funcs = { path = "lua-api-crates/serde-funcs" }
 serde_json = "1.0"
@@ -198,7 +198,7 @@ smol = "2.0"
 socket2 = "0.5"
 spa = "0.3.1"
 spawn-funcs = { path = "lua-api-crates/spawn-funcs" }
-sqlite-cache = {git="https://github.com/losfair/sqlite-cache", rev="0961b50385ff189bb12742716331c05ed0bf7805" }
+sqlite-cache = "0.1.4"
 ssh-funcs = { path = "lua-api-crates/ssh-funcs" }
 ssh2 = "0.9.3"
 starship-battery = "0.10"
