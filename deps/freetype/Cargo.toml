@@ -8,7 +8,7 @@ build = "build.rs"
 publish = false
 
 [dependencies]
-fixed = "1.23"
+fixed.workspace = true
 
 [build-dependencies]
-cc = {version="1.0", features = ["parallel"]}
+cc.workspace = true

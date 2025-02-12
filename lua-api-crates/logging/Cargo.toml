@@ -7,7 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-config = { path = "../../config" }
-log = "0.4"
-luahelper = { path = "../../luahelper" }
+anyhow.workspace = true
+config.workspace = true
+log.workspace = true
+luahelper.workspace = true

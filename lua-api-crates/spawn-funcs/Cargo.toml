@@ -7,14 +7,14 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-config = { path = "../../config" }
-wezterm-dynamic = { path = "../../wezterm-dynamic" }
-log = "0.4"
-luahelper = { path = "../../luahelper" }
-smol = "2.0"
-bstr = "1.0"
-wezterm-open-url = { path = "../../wezterm-open-url" }
+anyhow.workspace = true
+bstr.workspace = true
+config.workspace = true
+log.workspace = true
+luahelper.workspace = true
+smol.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-open-url.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = ["winuser"]}
+winapi = { workspace=true, features = ["winuser"]}

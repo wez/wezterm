@@ -8,35 +8,35 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-backtrace = "0.3"
-chrono = {version="0.4", default-features=false, features=["unstable-locales"]}
-config = { path = "../config" }
-dirs-next = "2.0"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
+backtrace.workspace = true
+battery.workspace = true
+chrono.workspace = true
+color-funcs.workspace = true
+config.workspace = true
+dirs-next.workspace = true
 env_logger = "0.10" # Note: we rely on filter::Builder which is gone in 0.11
-termwiz = { path = "../termwiz" }
-battery = { path = "../lua-api-crates/battery" }
-color-funcs = { path = "../lua-api-crates/color-funcs" }
-termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
-logging = { path = "../lua-api-crates/logging" }
-mux-lua = { path = "../lua-api-crates/mux" }
-procinfo-funcs = { path = "../lua-api-crates/procinfo-funcs" }
-filesystem = { path = "../lua-api-crates/filesystem" }
-serde-funcs = { path = "../lua-api-crates/serde-funcs" }
-plugin = { path = "../lua-api-crates/plugin" }
-share-data = { path = "../lua-api-crates/share-data" }
-ssh-funcs = { path = "../lua-api-crates/ssh-funcs" }
-spawn-funcs = { path = "../lua-api-crates/spawn-funcs" }
-time-funcs = { path = "../lua-api-crates/time-funcs" }
-url-funcs = { path = "../lua-api-crates/url-funcs" }
-wezterm-version = { path = "../wezterm-version" }
+filesystem.workspace = true
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
+logging.workspace = true
+mux-lua.workspace = true
+plugin.workspace = true
+procinfo-funcs.workspace = true
+serde-funcs.workspace = true
+share-data.workspace = true
+spawn-funcs.workspace = true
+ssh-funcs.workspace = true
+termwiz-funcs.workspace = true
+termwiz.workspace = true
+time-funcs.workspace = true
+url-funcs.workspace = true
+wezterm-version.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = "0.3"
+winapi.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.25"
-objc = "0.2"
+cocoa.workspace = true
+objc.workspace = true
 

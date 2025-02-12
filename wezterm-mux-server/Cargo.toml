@@ -9,27 +9,27 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-async_ossl = { path = "../async_ossl" }
-clap = {version="4.0", features=["derive"]}
-config = { path = "../config" }
-env-bootstrap = { path = "../env-bootstrap" }
-libc = "0.2"
-log = "0.4"
-mux = { path = "../mux" }
-mlua = "0.9"
-openssl = "0.10"
-portable-pty = { path = "../pty", features = ["serde_support"]}
-promise = { path = "../promise" }
-umask = { path = "../umask" }
-wezterm-blob-leases = { path = "../wezterm-blob-leases", version="0.1", features=["simple_tempdir"] }
-wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
-wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
-wezterm-term = { path = "../term" }
+anyhow.workspace = true
+async_ossl.workspace = true
+clap.workspace = true
+config.workspace = true
+env-bootstrap.workspace = true
+libc.workspace = true
+log.workspace = true
+mux.workspace = true
+mlua.workspace = true
+openssl.workspace = true
+portable-pty = { workspace=true, features = ["serde_support"]}
+promise.workspace = true
+umask.workspace = true
+wezterm-blob-leases = {workspace=true, features=["simple_tempdir"]}
+wezterm-mux-server-impl.workspace = true
+wezterm-gui-subcommands.workspace = true
+wezterm-term.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = [ "winuser" ]}
+winapi = { workspace=true, features = [ "winuser" ]}
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
-cc = "1.0"
+embed-resource.workspace = true
+cc.workspace = true

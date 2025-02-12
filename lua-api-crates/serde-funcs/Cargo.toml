@@ -7,10 +7,10 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-config = { path = "../../config" }
-luahelper = { path = "../../luahelper" }
-wezterm-dynamic = { path = "../../wezterm-dynamic" }
-serde_json = "1.0.82"
-serde_yaml = "0.9.31"
-toml = "0.8.9"
+anyhow.workspace = true
+config.workspace = true
+luahelper.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+toml.workspace = true
+wezterm-dynamic.workspace = true

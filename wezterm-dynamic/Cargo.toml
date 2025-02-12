@@ -7,11 +7,11 @@ description = "config serialization for wezterm via dynamic json-like data value
 license = "MIT"
 
 [dependencies]
-wezterm-dynamic-derive = { version="0.1.1", path="derive" }
-ordered-float = "4.1"
-thiserror = "1.0"
-strsim = "0.11"
-log = "0.4"
+log.workspace = true
+ordered-float.workspace = true
+strsim.workspace = true
+thiserror.workspace = true
+wezterm-dynamic-derive.workspace = true
 
 [dev-dependencies]
-maplit = "1.0"
+maplit.workspace = true

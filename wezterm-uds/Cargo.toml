@@ -8,5 +8,5 @@ license = "MIT"
 documentation = "https://docs.rs/wezterm-uds"
 
 [dependencies]
-async-io = "2.3"
-uds_windows = "1.1"
+async-io.workspace = true
+uds_windows.workspace = true

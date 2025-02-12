@@ -7,12 +7,12 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-chrono = {version="0.4", default-features=false, features=["unstable-locales"]}
-config = { path = "../../config" }
-luahelper = { path = "../../luahelper" }
-lazy_static = "1.4"
-promise = { path = "../../promise" }
-smol = "2.0"
-spa = "0.3.1"
-wezterm-dynamic = { path = "../../wezterm-dynamic" }
+anyhow.workspace = true
+chrono.workspace = true
+config.workspace = true
+lazy_static.workspace = true
+luahelper.workspace = true
+promise.workspace = true
+smol.workspace = true
+spa.workspace = true
+wezterm-dynamic.workspace = true

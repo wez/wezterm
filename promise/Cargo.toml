@@ -6,10 +6,10 @@ edition = "2018"
 publish = false
 
 [dependencies]
-async-task = "4.7"
-async-executor = "1.11"
-async-io = "2.3"
-anyhow = "1.0"
-thiserror = "1.0"
-lazy_static = "1.4"
-flume = "0.11"
+anyhow.workspace = true
+async-executor.workspace = true
+async-io.workspace = true
+async-task.workspace = true
+flume.workspace = true
+lazy_static.workspace = true
+thiserror.workspace =true

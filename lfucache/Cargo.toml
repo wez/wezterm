@@ -7,11 +7,11 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ahash = "0.8"
-config = { path = "../config" }
-fnv = "1.0"
-intrusive-collections = "0.9"
-metrics = "0.23"
+ahash.workspace = true
+config.workspace = true
+fnv.workspace = true
+intrusive-collections.workspace = true
+metrics.workspace = true
 
 [dev-dependencies]
-k9 = "0.12"
+k9.workspace = true

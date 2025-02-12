@@ -8,40 +8,40 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-chrono = {version="0.4", default-features=false}
-clap = {version="4.0", features=["derive", "wrap_help"]}
-clap_complete = "4.4"
-clap_complete_fig = "4.0"
-codec = { path = "../codec" }
-config = { path = "../config" }
-env-bootstrap = { path = "../env-bootstrap" }
-filedescriptor = { version="0.8", path = "../filedescriptor" }
-hostname = "0.4"
-humantime = "2.1"
-image = "0.25"
-libc = "0.2"
-log = "0.4"
-mux = { path = "../mux" }
-portable-pty = { path = "../pty" }
-promise = { path = "../promise" }
-serde = {version="1.0", features = ["derive"]}
-serde_json = "1.0"
-shell-words = "1.1"
-smol = "2.0"
-tabout = { path = "../tabout" }
-tempfile = "3.3"
-termwiz = { path = "../termwiz" }
-termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
-textwrap = "0.16"
-umask = { path = "../umask" }
-url = "2"
-wezterm-client = { path = "../wezterm-client" }
-wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
-wezterm-term = { path = "../term" }
+anyhow.workspace = true
+chrono.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+clap_complete_fig.workspace = true
+codec.workspace = true
+config.workspace = true
+env-bootstrap.workspace = true
+filedescriptor.workspace = true
+hostname.workspace = true
+humantime.workspace = true
+image.workspace = true
+libc.workspace = true
+log.workspace = true
+mux.workspace = true
+portable-pty.workspace = true
+promise.workspace  =true
+serde.workspace = true
+serde_json.workspace = true
+shell-words.workspace = true
+smol.workspace = true
+tabout.workspace = true
+tempfile.workspace = true
+termwiz-funcs.workspace = true
+termwiz.workspace = true
+textwrap.workspace  =true
+umask.workspace = true
+url.workspace = true
+wezterm-client.workspace = true
+wezterm-gui-subcommands.workspace = true
+wezterm-term.workspace = true
 
 [target."cfg(unix)".dependencies]
-termios = "0.3"
+termios.workspace = true
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
@@ -54,8 +54,8 @@ features = [
     "fileapi",
     "synchapi",
 ]
-version = "0.3"
+workspace = true
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
-cc = "1.0"
+cc.workspace = true
+embed-resource.workspace = true
