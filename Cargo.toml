@@ -192,7 +192,7 @@ shared_library = "0.1"
 shell-words = "1.1"
 shlex = "1.1"
 signal-hook = "0.3"
-siphasher = "0.3"
+siphasher = "1.0.1"
 smithay-client-toolkit = {version = "0.19", default-features=false}
 smol = "2.0"
 socket2 = "0.5"
