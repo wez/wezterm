@@ -202,7 +202,7 @@ spawn-funcs = { path = "lua-api-crates/spawn-funcs" }
 sqlite-cache = {git="https://github.com/losfair/sqlite-cache", rev="0961b50385ff189bb12742716331c05ed0bf7805" }
 ssh-funcs = { path = "lua-api-crates/ssh-funcs" }
 ssh2 = "0.9.3"
-starship-battery = "0.8"
+starship-battery = "0.10"
 strsim = "0.11"
 syn = "1.0"
 tabout = { path = "tabout" }
