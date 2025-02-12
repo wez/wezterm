@@ -754,6 +754,16 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["WezTerm"],
             icon: None,
         },
+        HideOtherApplications => CommandDef {
+            brief: "Hide Other Applications".into(),
+            doc: "Hides the windows of all other the applications. \
+              This is macOS specific."
+                .into(),
+            keys: vec![(Modifiers::SUPER.union(Modifiers::ALT), "h".into())],
+            args: &[],
+            menubar: &["WezTerm"],
+            icon: None,
+        },
         SpawnWindow => CommandDef {
             brief: "New Window".into(),
             doc: "Launches the default program into a new window".into(),
@@ -2021,6 +2031,8 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ReloadConfiguration,
         #[cfg(target_os = "macos")]
         HideApplication,
+        #[cfg(target_os = "macos")]
+        HideOtherApplications,
         #[cfg(target_os = "macos")]
         QuitApplication,
         // ----------------- Shell
