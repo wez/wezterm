@@ -99,6 +99,16 @@
 				<string>public.unix-executable</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.directory</string>
+				<string>com.apple.bundle</string>
+				<string>com.apple.resolvable</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
