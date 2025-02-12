@@ -57,7 +57,7 @@ impl MuxPane {
             let last_idx = line.physical_lines.len().saturating_sub(1);
             for (idx, phys) in line.physical_lines.iter().enumerate() {
                 let this_row = line.first_row + idx as StableRowIndex;
-                if this_row >= first_row && this_row < last_row {
+                if this_row >= first_row && this_row <= last_row {
                     let last_phys_idx = phys.len().saturating_sub(1);
 
                     let cols = cols_for_row(&zone, this_row);
