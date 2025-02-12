@@ -16,7 +16,7 @@ use crate::{
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
 use cocoa::appkit::{
-    self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
+    self, CGFloat, NSAppearance, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
     NSOpenGLContext, NSOpenGLPixelFormat, NSPasteboard, NSRunningApplication, NSScreen, NSView,
     NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
@@ -26,7 +26,7 @@ use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
     NSUInteger,
 };
-use config::window::WindowLevel;
+use config::window::{MacOSWindowAppearance, WindowLevel};
 use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
@@ -602,6 +602,13 @@ impl Window {
             );
             window.setContentView_(*view);
             window.setDelegate_(*view);
+
+            let appearance = match config.macos_window_appearance {
+                MacOSWindowAppearance::System => nil,
+                MacOSWindowAppearance::Light => NSAppearance(*nsstring("NSAppearanceNameAqua")),
+                MacOSWindowAppearance::Dark => NSAppearance(*nsstring("NSAppearanceNameDarkAqua")),
+            };
+            NSWindow::setAppearance(*window, appearance);
 
             view.setWantsLayer(YES);
             let () = msg_send![
