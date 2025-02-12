@@ -1354,18 +1354,17 @@ impl CompositorHandler for WaylandState {
         &mut self,
         _conn: &WConnection,
         _qh: &wayland_client::QueueHandle<Self>,
-        _surface: &wayland_client::protocol::wl_surface::WlSurface,
-        _new_factor: i32,
+        surface: &wayland_client::protocol::wl_surface::WlSurface,
+        new_factor: i32,
     ) {
-        // TODO: uncomment after upgrading SCTK to 0.18
-        // let window_id = SurfaceUserData::from_wl(surface).window_id;
-        // WaylandConnection::with_window_inner(window_id, |inner| {
-        //     if let Some(frame) = inner.window_frame.as_mut() {
-        //         frame.set_scaling_factor(new_factor as f64);
-        //     }
-        //     Ok(())
-        // });
-        // We do nothing, we get the scale_factor from surface_data
+        // Update the scale factor for the frame
+        let window_id = SurfaceUserData::from_wl(surface).window_id;
+        WaylandConnection::with_window_inner(window_id, move |inner| {
+            if let Some(frame) = inner.decorations.as_mut() {
+                frame.set_scaling_factor(new_factor as f64);
+            }
+            Ok(())
+        });
     }
 
     fn frame(
