@@ -7,12 +7,12 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-config = { path = "../../config" }
-finl_unicode = "1.2"
-terminfo = "0.9"
-wezterm-dynamic = { path = "../../wezterm-dynamic" }
-wezterm-input-types = { path = "../../wezterm-input-types" }
-luahelper = { path = "../../luahelper" }
-termwiz = { path = "../../termwiz", features=["use_serde"] }
-lazy_static = "1.4"
+anyhow.workspace = true
+config.workspace = true
+finl_unicode.workspace = true
+lazy_static.workspace = true
+luahelper.workspace = true
+terminfo.workspace = true
+termwiz = { workspace=true, features=["use_serde"] }
+wezterm-dynamic.workspace = true
+wezterm-input-types.workspace = true

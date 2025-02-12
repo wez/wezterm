@@ -9,13 +9,13 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getrandom = "0.3.1"
-mac_address = "1.1.8"
-serde = {version="1.0", features=["derive"], optional=true}
-sha2 = "0.10"
-tempfile = {version="3.16", optional=true}
-thiserror = "1.0"
-uuid = {version="1.13", features=["v1", "rng"]}
+getrandom.workspace = true
+mac_address.workspace = true
+serde = {workspace=true, features=["derive"], optional=true}
+sha2.workspace = true
+tempfile = {workspace=true, optional=true}
+thiserror.workspace = true
+uuid = {workspace=true, features=["v1", "rng"]}
 
 [features]
 default = []

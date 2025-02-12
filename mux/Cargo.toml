@@ -8,50 +8,50 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-async-trait = "0.1"
-base64 = "0.21"
-bintree = { path = "../bintree" }
-bitflags = "1.3"
-chrono = { version = "0.4", default-features=false, features = ["serde"] }
-config = { path = "../config" }
-crossbeam = "0.8"
-downcast-rs = "1.0"
-fancy-regex = "0.11"
-filedescriptor = { version="0.8", path = "../filedescriptor" }
-finl_unicode = "1.2"
-hostname = "0.4"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
-luahelper = { path = "../luahelper" }
-metrics = "0.23"
-mlua = "0.9"
-names = { version = "0.12", default-features = false }
-nix = {version="0.28", features=["term"]}
-parking_lot = "0.12"
-percent-encoding = "2"
-portable-pty = { path = "../pty", features = ["serde_support"]}
-procinfo = { path = "../procinfo" }
-promise = { path = "../promise" }
-rangeset = { path = "../rangeset" }
-serde = {version="1.0", features = ["rc", "derive"]}
-serial2 = "0.2"
-shell-words = "1.1"
-smol = "2.0"
-terminfo = "0.9"
-termwiz = { path = "../termwiz" }
-termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
-textwrap = "0.16"
-thiserror = "1.0"
-url = "2"
-wezterm-ssh = { path = "../wezterm-ssh" }
-wezterm-dynamic = { path = "../wezterm-dynamic" }
-wezterm-term = { path = "../term", features=["use_serde"] }
+anyhow.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+bintree.workspace = true
+bitflags.workspace = true
+chrono.workspace = true
+config.workspace = true
+crossbeam.workspace = true
+downcast-rs.workspace = true
+fancy-regex.workspace = true
+filedescriptor.workspace = true
+finl_unicode.workspace = true
+hostname.workspace = true
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
+luahelper.workspace = true
+metrics.workspace = true
+mlua.workspace = true
+names.workspace = true
+nix = {workspace=true, features=["term"]}
+parking_lot.workspace = true
+percent-encoding.workspace = true
+portable-pty = { workspace=true, features = ["serde_support"]}
+procinfo.workspace = true
+promise.workspace = true
+rangeset.workspace = true
+serde = {workspace=true, features = ["rc", "derive"]}
+serial2.workspace = true
+shell-words.workspace = true
+smol.workspace = true
+terminfo.workspace = true
+termwiz-funcs.workspace = true
+termwiz.workspace = true
+textwrap.workspace = true
+thiserror.workspace = true
+url.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-ssh.workspace = true
+wezterm-term = { workspace=true, features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
-ntapi = "0.4"
-winapi = { version = "0.3", features = [
+ntapi.workspace = true
+winapi = { workspace=true, features = [
     "handleapi",
     "memoryapi",
     "psapi",
@@ -60,4 +60,4 @@ winapi = { version = "0.3", features = [
 ]}
 
 [dev-dependencies]
-k9 = "0.12"
+k9.workspace = true

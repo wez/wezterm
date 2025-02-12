@@ -29,7 +29,244 @@ opt-level = 3
 #split-debuginfo = "unpacked"
 
 [workspace.dependencies]
-uuid = { version="1.13", features=["v4", "fast-rng"] }
+ahash = "0.8"
+anyhow = "1.0"
+async-executor = "1.11"
+async-io = "2.3"
+async-task = "4.7"
+async-trait = "0.1"
+async_ossl = { path = "async_ossl" }
+async-channel = "2.3"
+bytes = "1.0"
+guillotiere = "0.6"
+libloading = "0.8"
+line_drawing = "0.8"
+raw-window-handle = "0.6"
+resize = "0.5"
+backtrace = "0.3"
+clipboard-win = "2.2"
+glium = { version = "0.35", default-features = false }
+base64 = "0.21"
+camino = "1.0"
+base91 = { path = "base91" }
+battery = { path = "lua-api-crates/battery" }
+bintree = { path = "bintree" }
+bitflags = "1.3"
+bstr = "1.0"
+cairo-rs = {version="0.18", default-features=false}
+cassowary = "0.3"
+cc = {version="1.0", features = ["parallel"]}
+chrono = {version="0.4", default-features=false, features=["unstable-locales", "serde"]}
+clap = {version="4.0", features=["derive"]}
+clap_complete = "4.4"
+clap_complete_fig = "4.0"
+cocoa = "0.25"
+codec = { path = "codec" }
+dns-lookup = "2.0"
+color-funcs = { path = "lua-api-crates/color-funcs" }
+colorgrad = "0.6"
+config = { path = "config" }
+core-foundation = "0.9"
+core-graphics = "0.23"
+cgl = "0.3"
+core-text = "20.0"
+criterion = "0.5"
+crossbeam = "0.8"
+csscolorparser = "0.6"
+deltae = "0.3"
+dirs-next = "2.0"
+dhat = "0.3"
+downcast-rs = "1.0"
+dwrote = "0.11"
+emojis = "0.6"
+encoding_rs = "0.8"
+enum-display-derive = "0.1"
+env-bootstrap = { path = "env-bootstrap" }
+frecency = { path = "frecency" }
+hdrhistogram = "7.1"
+http_req = "0.11"
+nucleo-matcher = "0.3"
+fastrand = "2.0"
+env_logger = "0.11"
+euclid = "0.22"
+fancy-regex = "0.11"
+gethostname = "0.5"
+libssh-rs = "0.3.5"
+socket2 = "0.5"
+ssh2 = "0.9.3"
+filedescriptor = { version="0.8.3", path = "filedescriptor" }
+filenamegen = "0.2.6"
+filesystem = { path = "lua-api-crates/filesystem" }
+finl_unicode = "1.2"
+fixed = "1.23"
+fixedbitset = "0.4"
+flume = "0.11"
+fnv = "1.0"
+fontconfig = { path = "deps/fontconfig" }
+freetype = { path = "deps/freetype" }
+futures = "0.3"
+getrandom = "0.3.1"
+git2 = { version = "0.18", default-features = false, features = ["https"] }
+governor = {version="0.5", default-features=false, features=["std"]}
+harfbuzz = { path = "deps/harfbuzz" }
+hex = "0.4"
+hostname = "0.4"
+human-sort = "0.2"
+humantime = "2.1"
+humansize = "2.1"
+image = "0.25"
+intrusive-collections = "0.9"
+k9 = "0.12.0"
+lazy_static = "1.4"
+leb128 = "0.2"
+lfucache = { path = "lfucache" }
+libc = "0.2"
+libflate = "2"
+log = "0.4"
+logging = { path = "lua-api-crates/logging" }
+lru = "0.12"
+luahelper = { path = "luahelper" }
+mac_address = "1.1.8"
+maplit = "1.0"
+memmap2 = "0.9"
+memmem = "0.1"
+metrics = "0.23"
+miniz_oxide = "0.7"
+mlua = "0.9"
+mux = { path = "mux" }
+mux-lua = { path = "lua-api-crates/mux" }
+names = { version = "0.12", default-features = false }
+nix = "0.28"
+notify = "5.0.0"
+ntapi = "0.4"
+num = "0.4"
+num-derive = "0.4"
+num-traits = "0.2"
+objc = "0.2"
+once_cell = "1.8"
+openssl = "0.10.57"
+ordered-float = "4.1"
+parking_lot = "0.12"
+percent-encoding = "2.3"
+pest = "2.1"
+pest_derive = "2.1"
+phf = "0.11"
+phf_codegen = "0.10"
+pkg-config = "0.3"
+plist = "1.3"
+plugin = { path = "lua-api-crates/plugin" }
+portable-pty = { path = "pty" }
+proc-macro2 = "1.0"
+procinfo = { path = "procinfo" }
+procinfo-funcs = { path = "lua-api-crates/procinfo-funcs" }
+promise = { path = "promise" }
+rcgen = "0.12"
+regex = "1"
+quote = "1.0.2"
+rangeset = { path = "rangeset" }
+ratelim= { path = "ratelim" }
+rayon = "1.7"
+reqwest = "0.12"
+rusqlite = "0.30"
+serde = {version="1.0", features = ["derive"]}
+serde-funcs = { path = "lua-api-crates/serde-funcs" }
+serde_json = "1.0"
+serde_with = {version="2.0", features = ["chrono_0_4"]}
+serde_yaml = "0.9"
+assert_fs = "1.0.4"
+predicates = "3.0"
+rstest = "0.21"
+passfd = "0.1.6"
+serial2 = "0.2"
+sha2 = "0.10"
+tiny-skia = "0.11"
+share-data = { path = "lua-api-crates/share-data" }
+shared_library = "0.1"
+shell-words = "1.1"
+whoami = "1.5"
+zbus = "4.2"
+futures-util = "0.3"
+futures-lite = "2.3"
+x11 = "2.21"
+xcb = "1.3"
+xkbcommon = "0.7.0"
+block2 = "0.6"
+mio = "0.8"
+objc2 = "0.6"
+objc2-user-notifications = "0.3"
+objc2-foundation = "0.3"
+xcb-imdkit = { version="0.3", git="https://github.com/wez/xcb-imdkit-rs.git", rev="358e226573461fe540efb920e2aad740e3c6fab1"}
+smithay-client-toolkit = {version = "0.19", default-features=false}
+wayland-backend = "0.3.5"
+wayland-protocols = "0.32"
+wayland-client = "0.31"
+wayland-egl = "0.32"
+zvariant = "4.0"
+unicode-width = "0.1"
+tabout = { path = "tabout" }
+shlex = "1.1"
+signal-hook = "0.3"
+siphasher = "0.3"
+smol = "2.0"
+spa = "0.3.1"
+spawn-funcs = { path = "lua-api-crates/spawn-funcs" }
+sqlite-cache = {git="https://github.com/losfair/sqlite-cache", rev="0961b50385ff189bb12742716331c05ed0bf7805" }
+ssh-funcs = { path = "lua-api-crates/ssh-funcs" }
+starship-battery = "0.8"
+strsim = "0.11"
+syn = "1.0"
+tar = "0.4"
+tempfile = "3.16"
+terminfo = "0.9"
+termios = "0.3"
+termwiz = { path = "termwiz" }
+gl_generator = "0.14"
+termwiz-funcs = { path = "lua-api-crates/termwiz-funcs" }
+textwrap = "0.16"
+thiserror = "1.0"
+time-funcs = { path = "lua-api-crates/time-funcs" }
+tokio = "1.19"
+toml = "0.8"
+ucd-trie = "0.1"
+umask = { path = "umask" }
+unicode-normalization = "0.1.21"
+unicode-segmentation = "1.8"
+url = "2"
+url-funcs = { path = "lua-api-crates/url-funcs" }
+utf8parse = "0.2"
+uuid = "1.13"
+varbincode = "0.1"
+vtparse = { version="0.6.2", path="vtparse" }
+walkdir = "2"
+bytemuck = { version="1.4", features=["derive"]}
+embed-resource = "1.7"
+wezterm-bidi = { version="0.2.3", path = "bidi" }
+wezterm-blob-leases = { version="0.1.1", path = "wezterm-blob-leases"}
+wezterm-client = { path = "wezterm-client" }
+wezterm-color-types = { version="0.3", path = "color-types" }
+wezterm-config-derive = { version="0.1", path="config/derive" }
+wezterm-dynamic = { version = "0.2.1", path = "wezterm-dynamic" }
+wezterm-dynamic-derive = { version="0.1.1", path="wezterm-dynamic/derive" }
+wezterm-font = { path = "wezterm-font" }
+wezterm-gui-subcommands = { path = "wezterm-gui-subcommands" }
+wezterm-input-types = { version="0.1", path = "wezterm-input-types" }
+wezterm-mux-server-impl = { path = "wezterm-mux-server-impl" }
+wezterm-open-url = { path = "wezterm-open-url" }
+wezterm-ssh = { path = "wezterm-ssh" }
+wezterm-term = { path = "term" }
+xml-rs = "0.8"
+uds_windows = "1.1"
+wezterm-toast-notification = { path = "wezterm-toast-notification" }
+wezterm-uds = { path = "wezterm-uds" }
+wezterm-version = { path = "wezterm-version" }
+wgpu = "24.0.1"
+window-funcs = { path = "lua-api-crates/window-funcs" }
+winapi = "0.3.9"
+window = {path="window"}
+windows = "0.33.0"
+benchmarking = "0.4"
+winreg = "0.10"
+zstd = "0.11"
 
 [patch.crates-io]
 # We use our own vendored cairo, which has minimal deps and should just

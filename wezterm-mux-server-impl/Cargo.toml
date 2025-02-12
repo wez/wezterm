@@ -8,28 +8,28 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-async_ossl = { path = "../async_ossl" }
-async-io = "2.3"
-codec = { path = "../codec" }
-config = { path = "../config" }
-dns-lookup = "2.0"
-futures = "0.3"
-hostname = "0.4"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
-mux = { path = "../mux" }
-portable-pty = { path = "../pty", features = ["serde_support"]}
-promise = { path = "../promise" }
-rangeset = { path = "../rangeset" }
-rcgen = "0.12"
-smol = "2.0"
-url = "2"
-wezterm-client = { path = "../wezterm-client" }
-wezterm-term = { path = "../term", features=["use_serde"] }
-wezterm-uds = { path = "../wezterm-uds" }
-termwiz = { path = "../termwiz", features=["use_serde"] }
+anyhow.workspace = true
+async-io.workspace = true
+async_ossl.workspace = true
+codec.workspace = true
+config.workspace = true
+dns-lookup.workspace = true
+futures.workspace = true
+hostname.workspace = true
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
+mux.workspace = true
+portable-pty = { workspace=true, features = ["serde_support"]}
+promise.workspace = true
+rangeset.workspace = true
+rcgen.workspace = true
+smol.workspace = true
+termwiz = { workspace=true, features=["use_serde"] }
+url.workspace = true
+wezterm-client.workspace = true
+wezterm-term = { workspace=true, features=["use_serde"] }
+wezterm-uds.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = [ "winuser" ]}
+winapi = { workspace=true, features = [ "winuser" ]}

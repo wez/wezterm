@@ -772,7 +772,6 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
- "terminal_size 0.4.1",
 ]
 
 [[package]]
@@ -2822,7 +2821,7 @@ dependencies = [
  "proc-macro2",
  "regex",
  "syn 2.0.98",
- "terminal_size 0.2.6",
+ "terminal_size",
 ]
 
 [[package]]
@@ -4140,7 +4139,6 @@ dependencies = [
  "log",
  "nix 0.28.0",
  "serde",
- "serde_derive",
  "serial2",
  "shared_library",
  "shell-words",
@@ -5494,16 +5492,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "terminal_size"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5352447f921fda68cf61b4101566c0bdb5104eff6804d0678e5227580ab6a4e9"
-dependencies = [
- "rustix 0.38.44",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "terminfo"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6746,7 +6734,7 @@ dependencies = [
  "anyhow",
  "assert_fs",
  "async_ossl",
- "base64 0.22.1",
+ "base64 0.21.7",
  "bitflags 1.3.2",
  "camino",
  "clap",

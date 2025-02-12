@@ -14,45 +14,45 @@ vendor-noto-emoji = []
 vendor-nerd-font-symbols = []
 
 [dependencies]
-anyhow = "1.0"
-cairo-rs = {version="0.18", default-features=false}
-config = { path = "../config" }
-encoding_rs = "0.8"
-enum-display-derive = "0.1"
-euclid = "0.22"
-finl_unicode = "1.2"
-freetype = { path = "../deps/freetype" }
-harfbuzz = { path = "../deps/harfbuzz" }
-image = "0.25"
-lazy_static = "1.4"
-lfucache = { path = "../lfucache" }
-log = "0.4"
-memmap2 = "0.9"
-metrics = "0.23"
-ordered-float = "4.1"
-rangeset = { path = "../rangeset" }
-termwiz = { path = "../termwiz" }
-thiserror = "1.0"
-walkdir = "2"
-wezterm-color-types = { path = "../color-types" }
-wezterm-input-types = { path = "../wezterm-input-types" }
-wezterm-term = { path = "../term", features=["use_serde"] }
-wezterm-toast-notification = { path = "../wezterm-toast-notification" }
-wezterm-bidi = { path = "../bidi" }
+anyhow.workspace = true
+cairo-rs.workspace = true
+config.workspace = true
+encoding_rs.workspace = true
+enum-display-derive.workspace = true
+euclid.workspace = true
+finl_unicode.workspace = true
+freetype.workspace = true
+harfbuzz.workspace = true
+image.workspace = true
+lazy_static.workspace = true
+lfucache.workspace = true
+log.workspace = true
+memmap2.workspace = true
+metrics.workspace = true
+ordered-float.workspace = true
+rangeset.workspace = true
+termwiz.workspace = true
+thiserror.workspace = true
+walkdir.workspace = true
+wezterm-bidi.workspace = true
+wezterm-color-types.workspace = true
+wezterm-input-types.workspace = true
+wezterm-term = { workspace=true, features=["use_serde"] }
+wezterm-toast-notification.workspace = true
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
-fontconfig = { path = "../deps/fontconfig" }
+fontconfig.workspace = true
 
 [target."cfg(windows)".dependencies]
-dwrote = "0.11"
-winapi = "0.3"
+dwrote.workspace = true
+winapi.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.25"
-core-foundation = "0.9"
-core-text = "20.0"
-objc = "0.2"
+cocoa.workspace = true
+core-foundation.workspace = true
+core-text.workspace = true
+objc.workspace = true
 
 [dev-dependencies]
-k9 = "0.12.0"
-env_logger = "0.11"
+env_logger.workspace = true
+k9.workspace = true

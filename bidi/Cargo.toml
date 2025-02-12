@@ -12,9 +12,9 @@ exclude = ["/data", "/tests"]
 [features]
 
 [dependencies]
-log = "0.4"
-wezterm-dynamic = { version = "0.2", path = "../wezterm-dynamic" }
+log.workspace = true
+wezterm-dynamic.workspace = true
 
 [dev-dependencies]
-k9 = "0.12.0"
-env_logger = "0.11"
+k9.workspace = true
+env_logger.workspace = true
