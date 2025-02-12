@@ -173,7 +173,7 @@ quote = "1.0.2"
 rangeset = { path = "rangeset" }
 ratelim= { path = "ratelim" }
 raw-window-handle = "0.6"
-rayon = "1.7"
+rayon = "1.10"
 rcgen = "0.12"
 regex = "1"
 reqwest = "0.12"
