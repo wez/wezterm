@@ -101,7 +101,7 @@ futures-lite = "2.3"
 futures-util = "0.3"
 gethostname = "0.5"
 getrandom = "0.3.1"
-git2 = { version = "0.18", default-features = false, features = ["https"] }
+git2 = { version = "0.20", default-features = false, features = ["https"] }
 gl_generator = "0.14"
 glium = { version = "0.35", default-features = false }
 governor = {version="0.5", default-features=false, features=["std"]}
