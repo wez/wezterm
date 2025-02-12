@@ -89,7 +89,6 @@ tiny-skia.workspace = true
 umask.workspace = true
 unicode-normalization.workspace = true
 unicode-segmentation.workspace = true
-unicode-width.workspace = true
 url-funcs.workspace = true
 url.workspace = true
 walkdir.workspace = true

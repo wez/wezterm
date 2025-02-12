@@ -6620,7 +6620,6 @@ dependencies = [
  "umask",
  "unicode-normalization",
  "unicode-segmentation",
- "unicode-width",
  "url",
  "url-funcs",
  "walkdir",
