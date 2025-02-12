@@ -26,7 +26,6 @@ log.workspace = true
 luahelper.workspace = true
 mlua = {workspace=true, features=["vendored", "lua54", "async", "send", "serialize"]}
 notify.workspace = true
-once_cell.workspace = true
 ordered-float = { workspace=true, features = ["serde"] }
 portable-pty = { workspace=true, features = ["serde_support"]}
 promise.workspace = true

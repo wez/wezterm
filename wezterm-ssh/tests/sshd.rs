@@ -1,11 +1,11 @@
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
-use once_cell::sync::Lazy;
 use rstest::*;
 use std::collections::HashMap;
 use std::io::Result as IoResult;
 use std::path::Path;
 use std::process::{Child, Command};
+use std::sync::LazyLock;
 use std::time::Duration;
 use wezterm_ssh::{Config, Session, SessionEvent};
 
@@ -28,7 +28,7 @@ fn allocate_port() -> u16 {
     listener.local_addr().unwrap().port()
 }
 
-const USERNAME: Lazy<String> = Lazy::new(whoami::username);
+const USERNAME: LazyLock<String> = LazyLock::new(whoami::username);
 
 pub struct SshKeygen;
 

@@ -48,7 +48,6 @@ assert_fs.workspace = true
 clap.workspace = true
 env_logger.workspace = true
 k9.workspace = true
-once_cell.workspace = true
 predicates.workspace = true
 rstest.workspace = true
 shell-words.workspace = true

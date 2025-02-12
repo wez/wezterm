@@ -1,7 +1,7 @@
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 
-static VERSION: OnceCell<&'static str> = OnceCell::new();
-static TRIPLE: OnceCell<&'static str> = OnceCell::new();
+static VERSION: OnceLock<&'static str> = OnceLock::new();
+static TRIPLE: OnceLock<&'static str> = OnceLock::new();
 
 pub fn assign_version_info(version: &'static str, triple: &'static str) {
     VERSION.set(version).unwrap();
