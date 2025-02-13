@@ -138,7 +138,7 @@ impl Line {
         let mut cells = Vec::new();
 
         for sub in Graphemes::new(s) {
-            let cell = Cell::new_grapheme(sub, attrs.clone(), unicode_version);
+            let cell = Cell::new_grapheme(sub, attrs.clone(), unicode_version.clone());
             let width = cell.width();
             cells.push(cell);
             for _ in 1..width {
