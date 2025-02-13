@@ -101,7 +101,11 @@ impl TerminalState {
             verbosity
         );
         if image_id != 0 {
-            self.kitty_remove_placement(image_id, placement.placement_id);
+            if let Some(place_id) = placement.placement_id {
+                if place_id != 0 {
+                    self.kitty_remove_placement(image_id, placement.placement_id);
+                }
+            }
         }
         let img = Arc::clone(self.kitty_img.id_to_data.get(&image_id).ok_or_else(|| {
             anyhow::anyhow!(
@@ -297,9 +301,7 @@ impl TerminalState {
     ) {
         let seqno = self.seqno;
         let screen = self.screen_mut();
-        let range =
-            screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex));
-        for idx in range {
+        for idx in 0..screen.scrollback_rows() {
             let line = screen.line_mut(idx);
             for c in line.cells_mut() {
                 c.attrs_mut()
