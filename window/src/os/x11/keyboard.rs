@@ -396,7 +396,13 @@ impl KeyboardWithFallback {
                             }
                             _ => sym,
                         }
-                    } else if kc.is_none() && key_code_from_sym.is_none() {
+                    } else if kc.is_none()
+                        && key_code_from_sym.is_none()
+                        // Make sure that non-standard modifier keys of Neo2 layout are not mapped
+                        // to a fallback because that would result in extra emitions of the
+                        // original ANSI characters
+                        && !Self::is_keysym_iso_modifier(xsym)
+                    {
                         // Not sure if this is a good idea, see
                         // <https://github.com/wezterm/wezterm/issues/4910> for context.
                         match fallback_feed {
@@ -455,6 +461,19 @@ impl KeyboardWithFallback {
             events.dispatch(WindowEvent::KeyEvent(event));
             None
         }
+    }
+
+    fn is_keysym_iso_modifier(xsym: xkbcommon::xkb::Keysym) -> bool {
+        use xkbcommon::xkb::Keysym;
+        matches!(
+            xsym,
+            Keysym::ISO_Level3_Lock
+                | Keysym::ISO_Level3_Shift
+                | Keysym::ISO_Level5_Lock
+                | Keysym::ISO_Level5_Shift
+                | Keysym::ISO_Level3_Latch
+                | Keysym::ISO_Level5_Latch
+        )
     }
 
     fn mod_is_active(&self, modifier: &str) -> bool {
