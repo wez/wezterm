@@ -9,7 +9,7 @@ use ::window::{
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
 use mux::pane::{Pane, WithPaneLines};
-use mux::tab::SplitDirection;
+use mux::tab::{SplitDirection, TabId};
 use mux::Mux;
 use mux_lua::MuxPane;
 use std::convert::TryInto;
@@ -332,6 +332,45 @@ impl super::TermWindow {
         self.dragging.replace((item, start_event));
     }
 
+    fn find_tab_item_by_idx(&mut self, target_tab_idx: TabId) -> Option<&UIItem> {
+        self.ui_items.iter().find(|item| match item.item_type {
+            UIItemType::TabBar(TabBarItem::Tab { tab_idx, .. }) => tab_idx == target_tab_idx,
+            _ => false,
+        })
+    }
+
+    fn drag_reorder_tab(
+        &mut self,
+        mut item: UIItem,
+        tab_idx: TabId,
+        start_event: MouseEvent,
+        event: MouseEvent,
+    ) {
+        let current_x = event.coords.x;
+        let drag_right = current_x.saturating_sub(start_event.coords.x) > 0;
+        let delta = if drag_right { 1 } else { -1 };
+
+        let next_tab_idx = tab_idx.saturating_add_signed(delta);
+        if let Some(next_tab) = self.find_tab_item_by_idx(next_tab_idx) {
+            let next_tab_midpoint = next_tab.x.saturating_add(next_tab.width / 2) as isize;
+            let over_threshold = (drag_right && current_x > next_tab_midpoint)
+                || (!drag_right && current_x < next_tab_midpoint);
+            if over_threshold {
+                if let Ok(_) = self.move_tab_relative(delta) {
+                    if let Some(tab) = self.find_tab_item_by_idx(next_tab_idx) {
+                        // Ensure we have updated tab index
+                        item = tab.clone();
+                    }
+                }
+            }
+        }
+
+        // We are only interested in the moment to moment direction of dragging; not
+        // the overall (from first click that initiated drag), so we always replace
+        // the start_event.
+        self.dragging.replace((item, event));
+    }
+
     fn drag_ui_item(
         &mut self,
         item: UIItem,
@@ -347,6 +386,9 @@ impl super::TermWindow {
             }
             UIItemType::ScrollThumb => {
                 self.drag_scroll_thumb(item, start_event, event, context);
+            }
+            UIItemType::TabBar(TabBarItem::Tab { tab_idx, .. }) => {
+                self.drag_reorder_tab(item, tab_idx, start_event, event);
             }
             _ => {
                 log::error!("drag not implemented for {:?}", item);
@@ -364,8 +406,8 @@ impl super::TermWindow {
     ) {
         self.last_ui_item.replace(item.clone());
         match item.item_type {
-            UIItemType::TabBar(item) => {
-                self.mouse_event_tab_bar(item, event, context);
+            UIItemType::TabBar(tab_bar_item) => {
+                self.mouse_event_tab_bar(item, tab_bar_item, event, context);
             }
             UIItemType::AboveScrollThumb => {
                 self.mouse_event_above_scroll_thumb(item, pane, event, context);
@@ -455,14 +497,17 @@ impl super::TermWindow {
 
     pub fn mouse_event_tab_bar(
         &mut self,
-        item: TabBarItem,
+        item: UIItem,
+        tab_bar_item: TabBarItem,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         match event.kind {
-            WMEK::Press(MousePress::Left) => match item {
+            WMEK::Press(MousePress::Left) => match tab_bar_item {
                 TabBarItem::Tab { tab_idx, .. } => {
                     self.activate_tab(tab_idx as isize).ok();
+                    // For reordering tabs
+                    self.dragging = Some((item, event));
                 }
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Left);
@@ -510,7 +555,7 @@ impl super::TermWindow {
                     }
                 }
             },
-            WMEK::Press(MousePress::Middle) => match item {
+            WMEK::Press(MousePress::Middle) => match tab_bar_item {
                 TabBarItem::Tab { tab_idx, .. } => {
                     self.close_specific_tab(tab_idx, true);
                 }
@@ -522,7 +567,7 @@ impl super::TermWindow {
                 | TabBarItem::RightStatus
                 | TabBarItem::WindowButton(_) => {}
             },
-            WMEK::Press(MousePress::Right) => match item {
+            WMEK::Press(MousePress::Right) => match tab_bar_item {
                 TabBarItem::Tab { .. } => {
                     self.show_tab_navigator();
                 }
@@ -534,7 +579,7 @@ impl super::TermWindow {
                 | TabBarItem::RightStatus
                 | TabBarItem::WindowButton(_) => {}
             },
-            WMEK::Move => match item {
+            WMEK::Move => match tab_bar_item {
                 TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
                     context.set_window_drag_position(event.screen_coords);
                 }
