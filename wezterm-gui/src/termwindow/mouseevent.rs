@@ -159,6 +159,21 @@ impl super::TermWindow {
 
             WMEK::Move => {
                 if let Some(start) = self.window_drag_position.as_ref() {
+                    // Restore the window size when dragging in the maximized state
+                    let maximized = self
+                        .window_state
+                        .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                    if maximized {
+                        if let Some(window) = self.window.as_ref() {
+                            window.restore();
+                        }
+                        // self.window_drag_position.coords needs to be recalculated
+                        // after restoring the window, so we clear it here and skip
+                        // the rest of the Move event handling
+                        self.window_drag_position = None;
+                        return;
+                    }
+
                     // Dragging the window
                     // Compute the distance since the initial event
                     let delta_x = start.screen_coords.x - event.screen_coords.x;
@@ -471,21 +486,22 @@ impl super::TermWindow {
                     let maximized = self
                         .window_state
                         .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                    let resizable_by_tab_bar = self.config.window_decorations.contains(
+                        WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE,
+                    );
                     if let Some(ref window) = self.window {
-                        if self.config.window_decorations
-                            == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
+                        if resizable_by_tab_bar
+                            && self.last_mouse_click.as_ref().map(|c| c.streak) == Some(2)
                         {
-                            if self.last_mouse_click.as_ref().map(|c| c.streak) == Some(2) {
-                                if maximized {
-                                    window.restore();
-                                } else {
-                                    window.maximize();
-                                }
+                            if maximized {
+                                window.restore();
+                            } else {
+                                window.maximize();
                             }
                         }
                     }
                     // Potentially starting a drag by the tab bar
-                    if !maximized {
+                    if !maximized || resizable_by_tab_bar {
                         self.window_drag_position.replace(event.clone());
                     }
                     context.request_drag_move();
