@@ -308,7 +308,9 @@ impl crate::TermWindow {
             let (fg_color, bg_color) = if let Some(c) = &cursor_cell {
                 let attrs = c.attrs();
 
-                let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
+                // Default background is taken from pallete background
+                // However any transparency effects are also applied to it
+                let bg_color = params.default_bg;
 
                 let fg_color = resolve_fg_color_attr(
                     &attrs,
