@@ -61,6 +61,10 @@ pub struct StartCommand {
     #[arg(short = 'e', hide = true)]
     pub _cmd: bool,
 
+    /// Override the window title completely.
+    #[arg(short = 'T', long)]
+    pub title: Option<String>,
+
     /// Override the default windowing system class.
     /// The default is "org.wezfurlong.wezterm".
     /// Under X11 and Windows this changes the window class.
