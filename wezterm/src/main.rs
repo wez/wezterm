@@ -113,6 +113,9 @@ enum SubCommand {
     #[command(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
 
+    #[command(name = "ls-config", about = "Show current configuration values")]
+    LsConfig(LsConfigCommand),
+
     #[command(name = "show-keys", about = "Show key assignments")]
     ShowKeys(ShowKeysCommand),
 
@@ -739,6 +742,7 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Start(_)
         | SubCommand::BlockingStart(_)
         | SubCommand::LsFonts(_)
+        | SubCommand::LsConfig(_)
         | SubCommand::ShowKeys(_)
         | SubCommand::Ssh(_)
         | SubCommand::Serial(_)
