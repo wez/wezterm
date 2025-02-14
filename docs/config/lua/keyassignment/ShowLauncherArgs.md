@@ -13,6 +13,11 @@ The arguments are a lua table with the following keys:
   `"Select an item and press Enter=launch  Esc=cancel  /=filter"` {{since('nightly', inline=True)}}
 * `fuzzy_help_text` - a string to display when in fuzzy finding mode. Defaults to:
   `"Fuzzy matching: "` {{since('nightly', inline=True)}}
+* `alphabet` - a string of unique characters. The characters in the string are used
+  to calculate one or two click shortcuts that can be used to quickly choose from
+  the InputSelector when in the default mode. Defaults to:
+  `"1234567890abcdefghilmnopqrstuvwxyz"`. (Without j/k so they can be used for movement
+  up and down.) {{since('nightly', inline=True)}}
 
 The possible flags are listed below. You must explicitly list each item that you
 want to include in the launcher. If you only specify `"FUZZY"` then you will see
