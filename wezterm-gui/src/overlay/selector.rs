@@ -146,6 +146,8 @@ impl SelectorState {
                 } else {
                     changes.push(Change::Text(" ".repeat(max_label_len + 3)));
                 }
+            } else if !self.always_fuzzy {
+                changes.push(Change::Text(" ".repeat(max_label_len + 3)));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
