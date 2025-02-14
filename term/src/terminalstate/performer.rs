@@ -201,11 +201,16 @@ impl<'a> Performer<'a> {
                 g,
                 self.pen
             );
+            let mut attr_edited = pen.clone();
+            attr_edited.set_edited(true);
             self.screen_mut()
-                .set_cell_grapheme(x, y, g, print_width, pen, seqno);
+                .set_cell_grapheme(x, y, g, print_width, attr_edited, seqno);
+
+            if !wrappable || self.cursor.x + print_width == width {
+                self.cursor.x += print_width;
+            }
 
             if !wrappable {
-                self.cursor.x += print_width;
                 self.wrap_next = false;
             } else {
                 self.wrap_next = self.dec_auto_wrap;
@@ -643,7 +648,7 @@ impl<'a> Performer<'a> {
                     line.resize(col_range.end, seqno);
                     line.fill_range(
                         col_range.clone(),
-                        &Cell::new('E', CellAttributes::default()),
+                        &Cell::new('E', CellAttributes::new_edited()),
                         seqno,
                     );
                 }

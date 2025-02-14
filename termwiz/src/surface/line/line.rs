@@ -136,13 +136,15 @@ impl Line {
         unicode_version: Option<UnicodeVersion>,
     ) -> Line {
         let mut cells = Vec::new();
+        let mut edited_attr = attrs.clone();
+        edited_attr.set_edited(true);
 
         for sub in Graphemes::new(s) {
-            let cell = Cell::new_grapheme(sub, attrs.clone(), unicode_version);
+            let cell = Cell::new_grapheme(sub, edited_attr.clone(), unicode_version);
             let width = cell.width();
             cells.push(cell);
             for _ in 1..width {
-                cells.push(Cell::new(' ', attrs.clone()));
+                cells.push(Cell::new(' ', edited_attr.clone()));
             }
         }
 
@@ -196,7 +198,7 @@ impl Line {
     /// Returns the list of resultant line(s)
     pub fn wrap(self, width: usize, seqno: SequenceNo) -> Vec<Self> {
         let mut cells: Vec<CellRef> = self.visible_cells().collect();
-        if let Some(end_idx) = cells.iter().rposition(|c| c.str() != " ") {
+        if let Some(end_idx) = cells.iter().rposition(|c| c.attrs().edited()) {
             cells.truncate(end_idx + 1);
 
             let mut lines: Vec<Self> = vec![];
@@ -225,6 +227,7 @@ impl Line {
 
             lines
         } else {
+            cells.truncate(0);
             vec![self]
         }
     }
@@ -746,11 +749,6 @@ impl Line {
         }
 
         if let CellStorage::C(cl) = &mut self.cells {
-            if idx > cl.len() && text == " " && attr == CellAttributes::blank() {
-                // Appending blank beyond end of line; is already
-                // implicitly blank
-                return;
-            }
             while cl.len() < idx {
                 // Fill out any implied blanks until we can append
                 // their intended cell content
@@ -799,11 +797,6 @@ impl Line {
         }
 
         if let CellStorage::C(cl) = &mut self.cells {
-            if idx > cl.len() && cell == Cell::blank() {
-                // Appending blank beyond end of line; is already
-                // implicitly blank
-                return;
-            }
             while cl.len() < idx {
                 // Fill out any implied blanks until we can append
                 // their intended cell content
@@ -847,9 +840,10 @@ impl Line {
         &mut self,
         mut start_idx: usize,
         text: &str,
-        attr: CellAttributes,
+        mut attr: CellAttributes,
         seqno: SequenceNo,
     ) {
+        attr.set_edited(true);
         for (i, c) in Graphemes::new(text).enumerate() {
             let cell = Cell::new_grapheme(c, attr.clone(), None);
             let width = cell.width();
@@ -962,11 +956,19 @@ impl Line {
 
         let def_attr = CellAttributes::blank();
         let cells = self.coerce_vec_storage();
-        if let Some(end_idx) = cells
+        let truncate_len = if let Some(end_idx) = cells
             .iter()
             .rposition(|c| c.str() != " " || c.attrs() != &def_attr)
         {
-            cells.resize_with(end_idx + 1, Cell::blank);
+            Some(end_idx + 1)
+        } else if !cells.is_empty() {
+            Some(0)
+        } else {
+            None
+        };
+
+        if let Some(truncate_len) = truncate_len {
+            cells.truncate(truncate_len);
             self.update_last_change_seqno(seqno);
             self.invalidate_zones();
         }
