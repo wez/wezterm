@@ -181,12 +181,12 @@ struct LauncherState {
     pane_id: PaneId,
     window: ::window::Window,
     filtering: bool,
-    flags: LauncherFlags,
     help_text: String,
     fuzzy_help_text: String,
     labels: Vec<String>,
     alphabet: String,
     selection: String,
+    always_fuzzy: bool,
 }
 
 impl LauncherState {
@@ -420,6 +420,8 @@ impl LauncherState {
                 } else {
                     changes.push(Change::Text(" ".repeat(max_label_len + 3)));
                 }
+            } else if !self.always_fuzzy {
+                changes.push(Change::Text(" ".repeat(max_label_len + 3)));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -538,9 +540,7 @@ impl LauncherState {
                     if !self.filtering {
                         self.selection.pop();
                     } else {
-                        if self.filter_term.pop().is_none()
-                            && !self.flags.contains(LauncherFlags::FUZZY)
-                        {
+                        if self.filter_term.pop().is_none() && !self.always_fuzzy {
                             self.filtering = false;
                         }
                         self.update_filter();
@@ -633,6 +633,7 @@ pub fn launcher(
     window: ::window::Window,
     initial_choice_idx: usize,
 ) -> anyhow::Result<()> {
+    let filtering = args.flags.contains(LauncherFlags::FUZZY);
     let mut state = LauncherState {
         active_idx: initial_choice_idx,
         max_items: 0,
@@ -642,13 +643,13 @@ pub fn launcher(
         filter_term: String::new(),
         filtered_entries: vec![],
         window,
-        filtering: args.flags.contains(LauncherFlags::FUZZY),
-        flags: args.flags,
+        filtering,
         help_text: args.help_text.clone(),
         fuzzy_help_text: args.fuzzy_help_text.clone(),
         labels: vec![],
         selection: String::new(),
         alphabet: args.alphabet.clone(),
+        always_fuzzy: filtering,
     };
 
     term.set_raw_mode()?;
