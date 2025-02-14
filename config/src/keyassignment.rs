@@ -19,6 +19,7 @@ pub struct LauncherActionArgs {
     pub title: Option<String>,
     pub help_text: Option<String>,
     pub fuzzy_help_text: Option<String>,
+    pub alphabet: Option<String>,
 }
 
 bitflags::bitflags! {
