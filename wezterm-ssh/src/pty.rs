@@ -26,8 +26,8 @@ pub(crate) struct ResizePty {
 pub struct SshPty {
     pub(crate) channel: ChannelId,
     pub(crate) tx: Option<SessionSender>,
-    pub(crate) reader: FileDescriptor,
-    pub(crate) writer: FileDescriptor,
+    pub reader: FileDescriptor,
+    pub writer: FileDescriptor,
     pub(crate) size: Mutex<PtySize>,
 }
 
