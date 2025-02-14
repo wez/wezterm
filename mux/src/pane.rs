@@ -170,7 +170,6 @@ pub trait Pane: Downcast + Send + Sync {
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
     fn get_cursor_position(&self) -> StableCursorPosition;
-    fn set_cursor_position(&self, _x: usize, _y: usize) {}
 
     fn get_current_seqno(&self) -> SequenceNo;
 

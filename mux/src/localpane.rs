@@ -23,8 +23,8 @@ use std::io::{Result as IoResult, Write};
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use termwiz::escape::csi::{Cursor, Sgr, CSI};
-use termwiz::escape::{Action, DeviceControlMode, OneBased};
+use termwiz::escape::csi::{Sgr, CSI};
+use termwiz::escape::{Action, DeviceControlMode};
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo};
 use url::Url;
@@ -169,17 +169,6 @@ impl Pane for LocalPane {
             cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
         }
         cursor
-    }
-
-    fn set_cursor_position(&self, x: usize, y: usize) {
-        self.terminal
-            .lock()
-            .perform_actions(vec![Action::CSI(CSI::Cursor(
-                Cursor::CharacterAndLinePosition {
-                    col: OneBased::from_zero_based(x as u32),
-                    line: OneBased::from_zero_based(y as u32),
-                },
-            ))]);
     }
 
     fn get_keyboard_encoding(&self) -> KeyboardEncoding {

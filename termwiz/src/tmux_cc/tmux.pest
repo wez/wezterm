@@ -48,3 +48,21 @@ line = _{ (
 ) }
 
 line_entire = _{ SOI ~ line ~ EOI }
+
+// layout section:
+// The tmux layout has three cases: single pane, horizontal split or vertical split.
+// horizontal split can be nested in vertical split
+// vertical split can be nested in horizontal split
+// layout pane:       widthxheight,left,top,id
+// layout split pane: widthxheight,left,top
+// layout horizontal: widthxheight,left,top{...}
+// layout vertical:   widthxheight,left,top[...]
+layout_split_pane = {number ~ "x" ~ number ~ "," ~ number ~ "," ~ number }
+layout_pane = {number ~ "x" ~ number ~ "," ~ number ~ "," ~ number ~ "," ~ number}
+layout_split_horizontal = { layout_split_pane ~ "{" ~ (layout_split_vertical | layout_pane) ~ ("," ~ (layout_split_vertical | layout_pane))* ~ "}" }
+layout_split_vertical = { layout_split_pane ~ "[" ~ (layout_split_horizontal | layout_pane) ~ ("," ~ (layout_split_horizontal | layout_pane))* ~ "]" }
+layout_window = _{ (
+    layout_split_horizontal |
+    layout_split_vertical |
+    layout_pane
+)}
