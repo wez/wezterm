@@ -19,6 +19,7 @@ use crate::ssh::{SshBackend, SshDomain};
 use crate::tls::{TlsDomainClient, TlsDomainServer};
 use crate::units::Dimension;
 use crate::unix::UnixDomain;
+use crate::window::MacOSWindowAppearance;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
@@ -546,6 +547,10 @@ pub struct Config {
     /// Only works on MacOS
     #[dynamic(default)]
     pub macos_window_background_blur: i64,
+
+    /// Explicitly sets the window appearance on macOS.
+    #[dynamic(default)]
+    pub macos_window_appearance: MacOSWindowAppearance,
 
     /// Only works on Windows
     #[dynamic(default)]
