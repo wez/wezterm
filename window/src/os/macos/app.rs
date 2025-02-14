@@ -5,6 +5,7 @@ use crate::menu::{Menu, MenuItem};
 use crate::{ApplicationEvent, Connection};
 use cocoa::appkit::NSApplicationTerminateReply;
 use cocoa::base::id;
+use cocoa::foundation::NSArray;
 use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
 use config::WindowCloseConfirmation;
@@ -68,27 +69,27 @@ extern "C" fn application_will_finish_launching(
     log::debug!("application_will_finish_launching");
 }
 
-extern "C" fn application_did_finish_launching(this: &mut Object, _sel: Sel, _notif: *mut Object) {
+extern "C" fn application_did_finish_launching(_self: &mut Object, _sel: Sel, _notif: *mut Object) {
     log::debug!("application_did_finish_launching");
-    unsafe {
-        (*this).set_ivar("launched", YES);
-    }
 }
 
 extern "C" fn application_open_untitled_file(
-    this: &mut Object,
+    _self: &mut Object,
     _sel: Sel,
-    _app: *mut Object,
+    app: *mut Object,
 ) -> BOOL {
-    let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    log::debug!("application_open_untitled_file launched={launched}");
-    if let Some(conn) = Connection::get() {
-        if launched == YES {
-            conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
-                KeyAssignment::SpawnWindow,
-            ));
+    log::debug!("application_open_untitled_file");
+    unsafe {
+        let windows: id = msg_send![app, windows];
+        let windows_count = windows.count();
+        if windows_count == 0 {
+            if let Some(conn) = Connection::get() {
+                conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
+                    KeyAssignment::SpawnWindow,
+                ));
+                return YES;
+            }
         }
-        return YES;
     }
     NO
 }
@@ -113,19 +114,23 @@ extern "C" fn wezterm_perform_key_assignment(
 }
 
 extern "C" fn application_open_file(
-    this: &mut Object,
+    _self: &mut Object,
     _sel: Sel,
     _app: *mut Object,
     file_name: *mut Object,
-) {
-    let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    if launched == YES {
-        let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
-        if let Some(conn) = Connection::get() {
-            log::debug!("application_open_file {file_name}");
+) -> BOOL {
+    let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
+    let path = std::path::Path::new(&file_name);
+    if let Some(conn) = Connection::get() {
+        log::debug!("application_open_file {file_name}");
+        if path.is_dir() {
+            conn.dispatch_app_event(ApplicationEvent::OpenDirectory(file_name));
+        } else {
             conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
         }
+        return YES;
     }
+    NO
 }
 
 extern "C" fn application_dock_menu(
@@ -147,8 +152,6 @@ fn get_class() -> &'static Class {
         let mut cls = ClassDecl::new(CLS_NAME, class!(NSWindow))
             .expect("Unable to register application class");
 
-        cls.add_ivar::<BOOL>("launched");
-
         unsafe {
             cls.add_method(
                 sel!(applicationShouldTerminate:),
@@ -164,7 +167,7 @@ fn get_class() -> &'static Class {
             );
             cls.add_method(
                 sel!(application:openFile:),
-                application_open_file as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object),
+                application_open_file as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object) -> BOOL,
             );
             cls.add_method(
                 sel!(applicationDockMenu:),
@@ -191,7 +194,6 @@ pub fn create_app_delegate() -> StrongPtr {
     unsafe {
         let delegate: *mut Object = msg_send![cls, alloc];
         let delegate: *mut Object = msg_send![delegate, init];
-        (*delegate).set_ivar("launched", NO);
         StrongPtr::new(delegate)
     }
 }
