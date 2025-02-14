@@ -168,8 +168,16 @@ END
             .join("WezTerm.app")
             .join("Contents")
             .join("Info.plist");
-        let build_target_dir = std::env::var("CARGO_TARGET_DIR")
-            .and_then(|s| Ok(std::path::PathBuf::from(s)))
+        let build_target_dir = std::env::var("OUT_DIR")
+            .map(|s| {
+                let mut path = std::path::PathBuf::from(s);
+                // OUT_DIR form is:
+                // $CARGO_TARGET_DIR/target/{profile}/build/wezterm-gui-<unique_build_path>/out
+                for _ in 0..3 {
+                    path.pop();
+                } // drop /build/wezterm-gui-<unique_build_path>/out
+                path
+            })
             .unwrap_or(repo_dir.join("target").join(profile));
         let dest_plist = build_target_dir.join("Info.plist");
         println!("cargo:rerun-if-changed=assets/macos/WezTerm.app/Contents/Info.plist");
