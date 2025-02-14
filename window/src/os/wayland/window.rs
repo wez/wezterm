@@ -883,11 +883,11 @@ impl WaylandWindowInner {
                         frame.resize(w.try_into().unwrap(), h.try_into().unwrap());
                         let outer_size = frame.add_borders(w, h);
                         let (x, y) = frame.location();
-                        window.set_window_geometry(
-                            x.try_into().unwrap(),
-                            y.try_into().unwrap(),
-                            outer_size.0,
-                            outer_size.1,
+                        window.xdg_surface().set_window_geometry(
+                            x,
+                            y,
+                            outer_size.0.try_into().unwrap(),
+                            outer_size.1.try_into().unwrap(),
                         );
                     }
                     _ => {
