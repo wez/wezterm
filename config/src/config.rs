@@ -1675,7 +1675,7 @@ pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         // 2) include terminating _, / or - characters, if any
         hyperlink::Rule::new(hyperlink::GENERIC_HYPERLINK_PATTERN, "$0").unwrap(),
         // implicit mailto link
-        hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+        hyperlink::Rule::new(r"\b[\w\.-]+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
 }
 
