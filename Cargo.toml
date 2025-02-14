@@ -209,7 +209,7 @@ tar = "0.4"
 tempfile = "3.16"
 terminfo = "0.9"
 termios = "0.3"
-termwiz = { path = "termwiz" }
+termwiz = { version="0.24.0", path = "termwiz" }
 termwiz-funcs = { path = "lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
 thiserror = "1.0"

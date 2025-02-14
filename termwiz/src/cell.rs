@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
+use std::collections::HashMap;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -647,7 +648,7 @@ impl TeenyString {
     pub fn from_str(
         s: &str,
         width: Option<usize>,
-        unicode_version: Option<UnicodeVersion>,
+        unicode_version: Option<&UnicodeVersion>,
     ) -> Self {
         // De-fang the input text such that it has no special meaning
         // to a terminal.  All control and movement characters are rewritten
@@ -843,7 +844,7 @@ impl Cell {
     pub fn new_grapheme(
         text: &str,
         attrs: CellAttributes,
-        unicode_version: Option<UnicodeVersion>,
+        unicode_version: Option<&UnicodeVersion>,
     ) -> Self {
         let storage = TeenyString::from_str(text, None, unicode_version);
 
@@ -881,10 +882,11 @@ impl Cell {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnicodeVersion {
     pub version: u8,
     pub ambiguous_are_wide: bool,
+    pub cellwidths: Option<Arc<HashMap<u32, u8>>>,
 }
 
 impl UnicodeVersion {
@@ -892,6 +894,7 @@ impl UnicodeVersion {
         Self {
             version,
             ambiguous_are_wide: false,
+            cellwidths: None,
         }
     }
 
@@ -912,6 +915,16 @@ impl UnicodeVersion {
     }
 
     #[inline]
+    fn wcwidth(&self, c: char) -> usize {
+        if let Some(ref cellwidths) = self.cellwidths {
+            if let Some(width) = cellwidths.get(&(c as u32)) {
+                return (*width).into()
+            }
+        }
+        self.width(WCWIDTH_TABLE.classify(c))
+    }
+
+    #[inline]
     pub fn idx(&self) -> usize {
         (if self.version > 9 { 2 } else { 0 }) | (if self.ambiguous_are_wide { 1 } else { 0 })
     }
@@ -920,13 +933,14 @@ impl UnicodeVersion {
 pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
     version: 14,
     ambiguous_are_wide: false,
+    cellwidths: None,
 };
 
 /// Returns the number of cells visually occupied by a sequence
 /// of graphemes.
 /// Calls through to `grapheme_column_width` for each grapheme
 /// and sums up the length.
-pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
+pub fn unicode_column_width(s: &str, version: Option<&UnicodeVersion>) -> usize {
     Graphemes::new(s)
         .map(|g| grapheme_column_width(g, version))
         .sum()
@@ -962,8 +976,8 @@ pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
 /// The terminal emulator can then pass the unicode version through to
 /// the Cell that is used to hold a grapheme, and that per-Cell version
 /// can then be used to calculate width.
-pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
-    let version = version.as_ref().unwrap_or(&LATEST_UNICODE_VERSION);
+pub fn grapheme_column_width(s: &str, version: Option<&UnicodeVersion>) -> usize {
+    let version = version.as_ref().unwrap_or(&&LATEST_UNICODE_VERSION);
 
     // Optimization: if there is a single byte we can directly cast
     // that byte as a char which will be in the range 0.255.
@@ -977,13 +991,11 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
     // cannot be a sequence with a variation selector, so we don't
     // need to requested `Presentation` for it.
     if s.len() == 1 {
-        let c = WCWIDTH_TABLE.classify(s.as_bytes()[0] as char);
-        return version.width(c);
+        return version.wcwidth(s.as_bytes()[0] as char);
     }
 
     // Slow path: `s.chars()` will dominate and pull up the minimum
     // runtime to ~20ns
-
     if version.version >= 14 {
         // Lookup the grapheme to see if the presentation of
         // the grapheme forces the width. We can bypass
@@ -999,8 +1011,7 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
     // Otherwise, classify and sum up
     let mut width = 0;
     for c in s.chars() {
-        let c = WCWIDTH_TABLE.classify(c);
-        width += version.width(c);
+        width += version.wcwidth(c);
     }
 
     width.min(2)
