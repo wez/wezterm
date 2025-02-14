@@ -265,13 +265,13 @@ impl super::TermWindow {
             Some(tab) => tab,
             None => return,
         };
-        let delta = match split.direction {
-            SplitDirection::Horizontal => (x as isize).saturating_sub(split.left as isize),
-            SplitDirection::Vertical => (y as isize).saturating_sub(split.top as isize),
+        let (left_or_top, changed) = match split.direction {
+            SplitDirection::Horizontal => (x as isize, split.left as isize != x as isize),
+            SplitDirection::Vertical => (y as isize, split.top as isize != y as isize),
         };
 
-        if delta != 0 {
-            tab.resize_split_by(split.index, delta);
+        if changed {
+            tab.resize_split_to(split.index, left_or_top);
             if let Some(split) = tab.iter_splits().into_iter().nth(split.index) {
                 item.item_type = UIItemType::Split(split);
                 context.invalidate();
