@@ -1,5 +1,6 @@
 use super::quickselect;
 use crate::scripting::guiwin::GuiWin;
+use config::configuration;
 use config::keyassignment::{InputSelector, InputSelectorEntry, KeyAssignment};
 use mux::termwiztermtab::TermWizTerminal;
 use mux_lua::MuxPane;
@@ -119,6 +120,11 @@ impl SelectorState {
         let max_label_len = labels.iter().map(|s| s.len()).max().unwrap_or(0);
         let mut labels_iter = labels.into_iter();
 
+        let config = configuration();
+        let colors = &config.resolved_palette;
+        let input_selector_label_fg = colors.input_selector_label_fg;
+        let input_selector_label_bg = colors.input_selector_label_bg;
+
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
             .iter()
@@ -142,7 +148,23 @@ impl SelectorState {
             // and we are not filtering
             if !self.filtering {
                 if let Some(label) = labels_iter.next() {
+                    if let Some(input_selector_label_bg) = input_selector_label_bg {
+                        changes.push(
+                            AttributeChange::Background(input_selector_label_bg.into()).into(),
+                        );
+                    }
+                    if let Some(input_selector_label_fg) = input_selector_label_fg {
+                        changes.push(
+                            AttributeChange::Foreground(input_selector_label_fg.into()).into(),
+                        );
+                    }
                     changes.push(Change::Text(format!(" {label:>max_label_len$}. ")));
+                    if input_selector_label_bg.is_some() {
+                        changes.push(AttributeChange::Background(ColorAttribute::Default).into());
+                    }
+                    if input_selector_label_fg.is_some() {
+                        changes.push(AttributeChange::Foreground(ColorAttribute::Default).into());
+                    }
                 } else {
                     changes.push(Change::Text(" ".repeat(max_label_len + 3)));
                 }
