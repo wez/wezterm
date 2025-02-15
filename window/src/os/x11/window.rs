@@ -1801,6 +1801,17 @@ impl XWindowInner {
         });
     }
 
+    /// Get position of the top left corner of client region of the window.
+    fn get_window_position(&mut self) -> anyhow::Result<ScreenPoint> {
+        let geom = self
+            .conn()
+            .send_and_wait_request(&xcb::x::GetGeometry {
+                drawable: xcb::x::Drawable::Window(self.window_id),
+            })
+            .context("querying geometry")?;
+        Ok(ScreenPoint::new(geom.x().into(), geom.y().into()))
+    }
+
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
         if title == self.title {
@@ -2079,6 +2090,10 @@ impl WindowOps for XWindow {
             inner.window_drag_position.replace(coords);
             Ok(())
         });
+    }
+
+    fn get_window_position(&self) -> Future<ScreenPoint> {
+        XConnection::with_window_inner(self.0, move |inner| inner.get_window_position())
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {

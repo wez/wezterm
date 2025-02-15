@@ -659,6 +659,11 @@ impl WindowInner {
         .detach();
     }
 
+    fn get_window_position(&self) -> ScreenPoint {
+        let hwnd = self.hwnd.0;
+        client_to_screen(hwnd, Point::new(0, 0))
+    }
+
     fn set_title(&mut self, title: &str) {
         let title = wide_string(title);
         unsafe {
@@ -955,6 +960,10 @@ impl WindowOps for Window {
             inner.set_window_position(coords);
             Ok(())
         });
+    }
+
+    fn get_window_position(&self) -> Future<ScreenPoint> {
+        Connection::with_window_inner(self.0, move |inner| Ok(inner.get_window_position()))
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {

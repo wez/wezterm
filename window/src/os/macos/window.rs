@@ -806,6 +806,10 @@ impl WindowOps for Window {
         });
     }
 
+    fn get_window_position(&self) -> Future<ScreenPoint> {
+        Connection::with_window_inner(self.id, move |inner| Ok(inner.get_window_position()))
+    }
+
     fn set_window_position(&self, coords: ScreenPoint) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_window_position(coords);
@@ -1227,6 +1231,20 @@ impl WindowInner {
 
     fn set_window_position(&self, coords: ScreenPoint) {
         set_window_position(*self.window, coords);
+    }
+
+    fn get_window_position(&self) -> ScreenPoint {
+        unsafe {
+            let frame = NSWindow::frame(*self.window);
+            let content_frame = NSWindow::contentRectForFrameRect_(*self.window, frame);
+            let delta_x = content_frame.origin.x - frame.origin.x;
+            let delta_y = content_frame.origin.y - frame.origin.y;
+            let cartesian = NSPoint::new(
+                frame.origin.x as f64 + delta_x,
+                frame.origin.y as f64 + delta_y + content_frame.size.height,
+            );
+            cartesian_to_screen_point(cartesian)
+        }
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {

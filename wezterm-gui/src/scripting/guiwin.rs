@@ -61,6 +61,22 @@ impl UserData for GuiWin {
                 Ok(())
             },
         );
+        methods.add_async_method("get_position", |_, this, _: ()| async move {
+            let p = this
+                .window
+                .get_window_position()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+            #[derive(FromDynamic, ToDynamic)]
+            struct Point {
+                x: isize,
+                y: isize,
+            }
+            impl_lua_conversion_dynamic!(Point);
+            let p = Point { x: p.x, y: p.y };
+            Ok(p)
+        });
         methods.add_method("set_position", |_, this, (x, y): (isize, isize)| {
             this.window.set_window_position(euclid::point2(x, y));
             Ok(())
