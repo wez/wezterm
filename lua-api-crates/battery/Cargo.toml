@@ -7,8 +7,8 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-starship-battery = "0.8"
-config = { path = "../../config" }
-wezterm-dynamic = { path = "../../wezterm-dynamic" }
-luahelper = { path = "../../luahelper" }
+anyhow.workspace = true
+config.workspace = true
+luahelper.workspace = true
+starship-battery.workspace = true
+wezterm-dynamic.workspace = true

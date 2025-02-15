@@ -17,40 +17,39 @@ vendored-openssl-ssh2 = ["ssh2/vendored-openssl"]
 vendored-openssl-libssh-rs = ["libssh-rs/vendored-openssl"]
 
 [dependencies]
-anyhow = "1.0"
-base64 = "0.22"
-bitflags = "1.3"
-camino = "1.0"
-dirs-next = "2.0"
-filedescriptor = { version="0.8", path = "../filedescriptor" }
-filenamegen = "0.2.6"
-gethostname = "0.5"
-libc = "0.2"
-log = "0.4"
-portable-pty = { version="0.9", path = "../pty" }
-regex = "1"
-smol = "2.0"
-ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}
-libssh-rs = {version="0.3.5", features=["vendored"], optional = true}
+anyhow.workspace = true
+base64.workspace = true
+bitflags.workspace = true
+camino.workspace = true
+dirs-next.workspace = true
+filedescriptor.workspace = true
+filenamegen.workspace = true
+gethostname.workspace = true
+libc.workspace = true
+libssh-rs = {workspace=true, features=["vendored"], optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
-thiserror = "1.0"
-socket2 = "0.5"
-wezterm-uds = { path = "../wezterm-uds" }
+log.workspace = true
+portable-pty.workspace = true
+regex.workspace = true
+smol.workspace = true
+socket2.workspace = true
+ssh2 = {workspace=true, features=["openssl-on-win32"], optional = true}
+thiserror.workspace = true
+wezterm-uds.workspace = true
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
-async_ossl = { path = "../async_ossl" }
+async_ossl.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-passfd = "0.1.6"
+passfd.workspace = true
 
 [dev-dependencies]
-assert_fs = "1.0.4"
-clap = {version="4.0", features=["derive"]}
-k9 = "0.12.0"
-once_cell = "1.8"
-predicates = "3.0"
-env_logger = "0.11"
-rstest = "0.21"
-shell-words = "1.1"
-termwiz = { version = "0.23", path = "../termwiz" }
-whoami = "1.5"
+assert_fs.workspace = true
+clap.workspace = true
+env_logger.workspace = true
+k9.workspace = true
+predicates.workspace = true
+rstest.workspace = true
+shell-words.workspace = true
+termwiz.workspace = true
+whoami.workspace = true

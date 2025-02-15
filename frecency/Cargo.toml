@@ -7,9 +7,9 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = {version="0.4", default-features=false}
-serde = {version="1.0", features = ["derive"]}
-serde_with = {version="2.0", features = ["chrono_0_4"]}
+chrono.workspace = true
+serde = {workspace=true, features = ["derive"]}
+serde_with.workspace = true
 
 [dev-dependencies]
-serde_json = "1.0"
+serde_json.workspace = true

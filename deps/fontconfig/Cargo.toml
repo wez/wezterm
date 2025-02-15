@@ -8,7 +8,7 @@ build = "build.rs"
 publish = false
 
 [dependencies]
-libc = "~0.2"
+libc.workspace = true
 
 [build-dependencies]
-pkg-config = "0.3"
+pkg-config.workspace = true

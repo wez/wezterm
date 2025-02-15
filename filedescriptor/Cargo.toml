@@ -11,11 +11,11 @@ readme = "README.md"
 keywords = ["socketpair", "pipe", "poll", "filedescriptor"]
 
 [dependencies]
-thiserror = "1.0"
-libc = "0.2"
+thiserror.workspace = true
+libc.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = [
+winapi = { workspace=true, features = [
     "winuser",
     "handleapi",
     "fileapi",

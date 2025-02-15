@@ -42,7 +42,7 @@ use downcast_rs::{impl_downcast, Downcast};
 #[cfg(unix)]
 use libc;
 #[cfg(feature = "serde_support")]
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use std::io::Result as IoResult;
 #[cfg(windows)]
 use std::os::windows::prelude::{AsRawHandle, RawHandle};

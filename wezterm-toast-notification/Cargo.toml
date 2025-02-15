@@ -9,28 +9,28 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wezterm-open-url = { path = "../wezterm-open-url" }
-log = "0.4"
+log.workspace = true
+wezterm-open-url.workspace = true
 
 [target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
-serde = {version="1.0", features = ["derive"]}
-zbus = "4.2"
-zvariant = "4.0"
-async-io = "2.3"
-futures-util = "0.3"
+async-io.workspace = true
+futures-util.workspace = true
+serde = {workspace=true, features = ["derive"]}
+zbus.workspace = true
+zvariant.workspace = true
 
 [target.'cfg(target_os="macos")'.dependencies]
-block2 = "0.6"
-objc2 = "0.6"
-objc2-user-notifications = "0.3"
-objc2-foundation = "0.3"
-uuid.workspace = true
+block2.workspace = true
+objc2.workspace = true
+objc2-user-notifications.workspace = true
+objc2-foundation.workspace = true
+uuid = { workspace=true, features=["v4", "fast-rng"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { version="0.33.0", features = [
+windows = { workspace=true, features = [
     "Data_Xml_Dom",
     "Foundation",
     "UI_Notifications",
     "Win32_Foundation",
 ]}
-xml-rs = "0.8"
+xml-rs.workspace = true

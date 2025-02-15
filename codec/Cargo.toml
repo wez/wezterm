@@ -8,21 +8,21 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-config = { path = "../config" }
-leb128 = "0.2"
-log = "0.4"
-metrics = "0.23"
-mux = { path = "../mux" }
-portable-pty = { path = "../pty", features = ["serde_support"]}
-rangeset = { path = "../rangeset" }
-serde = {version="1.0", features = ["rc", "derive"]}
-smol = "2.0"
-termwiz = { path = "../termwiz" }
-thiserror = "1.0"
-varbincode = "0.1"
-wezterm-term = { path = "../term", features=["use_serde"] }
-zstd = "0.11"
+anyhow.workspace = true
+config.workspace = true
+leb128.workspace = true
+log.workspace = true
+metrics.workspace = true
+mux.workspace = true
+portable-pty = { workspace = true, features = ["serde_support"]}
+rangeset.workspace = true
+serde = {workspace=true, features = ["rc", "derive"]}
+smol.workspace = true
+termwiz.workspace = true
+thiserror.workspace = true
+varbincode.workspace = true
+wezterm-term = { workspace=true, features=["use_serde"] }
+zstd.workspace = true
 
 [dev-dependencies]
-base91 = { path = "../base91" }
+base91.workspace = true

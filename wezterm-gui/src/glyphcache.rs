@@ -13,7 +13,6 @@ use image::{
     AnimationDecoder, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat, ImageResult, Limits,
 };
 use lfucache::LfuCache;
-use once_cell::sync::Lazy;
 use ordered_float::NotNan;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -21,7 +20,7 @@ use std::io::Seek;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryRecvError};
-use std::sync::{Arc, MutexGuard};
+use std::sync::{Arc, LazyLock, MutexGuard};
 use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
@@ -385,7 +384,7 @@ struct FrameState {
 impl FrameState {
     fn new(rx: Receiver<DecodedFrame>) -> Self {
         const BLACK_SIZE: usize = 8;
-        static BLACK: Lazy<BlobLease> = Lazy::new(|| {
+        static BLACK: LazyLock<BlobLease> = LazyLock::new(|| {
             let mut data = vec![];
             for _ in 0..BLACK_SIZE * BLACK_SIZE {
                 data.extend_from_slice(&[0, 0, 0, 0xff]);

@@ -6,10 +6,10 @@ edition = "2018"
 publish = false
 
 [dependencies]
-num = "0.4"
+num.workspace = true
 
 [dev-dependencies]
-criterion = "0.5"
+criterion.workspace = true
 
 [[bench]]
 name = "rangeset"

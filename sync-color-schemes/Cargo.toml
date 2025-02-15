@@ -7,22 +7,22 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-color-funcs = { path = "../lua-api-crates/color-funcs" }
-config = { path = "../config" }
-env_logger = "0.11"
-futures = "0.3"
-lazy_static = "1.4"
-libflate = "2"
-log = "0.4"
-reqwest = "0.12"
-rusqlite = {version="0.30", features=["bundled", "blob"]}
-serde = {version="1.0", features=["derive"]}
-serde_json = "1.0"
-serde_yaml = "0.9"
-sqlite-cache = {git="https://github.com/losfair/sqlite-cache", rev="0961b50385ff189bb12742716331c05ed0bf7805" }
-tar = "0.4"
-tempfile = "3.3"
-tokio = { version = "1.19", features = ["rt-multi-thread", "sync", "macros"] }
-toml = "0.8"
-wezterm-dynamic = { path = "../wezterm-dynamic" }
+anyhow.workspace = true
+color-funcs.workspace = true
+config.workspace = true
+env_logger.workspace = true
+futures.workspace = true
+lazy_static.workspace = true
+libflate.workspace = true
+log.workspace = true
+reqwest.workspace = true
+rusqlite = {workspace=true, features=["bundled", "blob"]}
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+sqlite-cache.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+tokio = { workspace=true, features = ["rt-multi-thread", "sync", "macros"] }
+toml.workspace = true
+wezterm-dynamic.workspace = true

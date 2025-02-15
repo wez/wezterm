@@ -4,6 +4,8 @@ tags:
 ---
 # `window_content_alignment`
 
+{{since('nightly')}}
+
 Controls the alignment of the terminal cells inside the window.
 
 When window size is not a multiple of terminal cell size, terminal cells will be slightly smaller than the window, and leave a small gap between the two.

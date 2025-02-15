@@ -8,7 +8,7 @@ build = "build.rs"
 publish = false
 
 [dependencies]
-freetype = { path = "../freetype" }
+freetype.workspace = true
 
 [build-dependencies]
-cc = {version="1.0", features = ["parallel"]}
+cc.workspace = true

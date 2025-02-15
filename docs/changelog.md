@@ -179,6 +179,8 @@ As features stabilize some brief notes about them will accumulate here.
   was enabled. Thanks @psyclaudeZ! #6391 #4061
 * `wezterm cli split-pane --move-pane-id` could kill panes. Thanks to @scauligi!
   #6028 #6029
+* Glyph '┽', was rendering as '┥' when `custom_block_glyphs` was enabled.
+  Thanks to @bew! #6661 #6655
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg

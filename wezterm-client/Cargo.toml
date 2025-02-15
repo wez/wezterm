@@ -8,38 +8,38 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-async-trait = "0.1"
-async_ossl = { path = "../async_ossl" }
-async-io = "2.3"
-codec = { path = "../codec" }
-config = { path = "../config" }
-filedescriptor = { version="0.8", path = "../filedescriptor" }
-futures = "0.3"
-lazy_static = "1.4"
-log = "0.4"
-libc = "0.2"
-lru = "0.12"
-metrics = "0.23"
-mux = { path = "../mux" }
-openssl = "0.10.57"
-parking_lot = "0.12"
-portable-pty = { path = "../pty", features = ["serde_support"]}
-promise = { path = "../promise" }
-rangeset = { path = "../rangeset" }
-ratelim= { path = "../ratelim" }
-smol = "2.0"
-termwiz = { path = "../termwiz" }
-textwrap = "0.16"
-thiserror = "1.0"
-umask = { path = "../umask" }
-url = "2"
-wezterm-dynamic = { path = "../wezterm-dynamic" }
-wezterm-ssh = { path = "../wezterm-ssh" }
-wezterm-term = { path = "../term", features=["use_serde"] }
-wezterm-uds = { path = "../wezterm-uds" }
+anyhow.workspace = true
+async-io.workspace = true
+async-trait.workspace = true
+async_ossl.workspace = true
+codec.workspace = true
+config.workspace = true
+filedescriptor.workspace = true
+futures.workspace = true
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
+lru.workspace = true
+metrics.workspace = true
+mux.workspace = true
+openssl.workspace = true
+parking_lot.workspace = true
+portable-pty = { workspace=true, features = ["serde_support"]}
+promise.workspace = true
+rangeset.workspace = true
+ratelim.workspace = true
+smol.workspace = true
+termwiz.workspace = true
+textwrap.workspace = true
+thiserror.workspace = true
+umask.workspace = true
+url.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-ssh.workspace = true
+wezterm-term = { workspace=true, features=["use_serde"] }
+wezterm-uds.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = [
+winapi = { workspace=true, features = [
     "winuser",
 ]}
