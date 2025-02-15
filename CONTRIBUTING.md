@@ -111,7 +111,7 @@ to reviewing the code.
 
 ## Submitting a Pull Request
 
-After considering all of the above, and once you're prepared your contribution
+After considering all of the above, and once you've prepared your contribution
 and are ready to submit it, you'll need to create a pull request.
 
 If you're new to GitHub pull requests, read through
