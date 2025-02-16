@@ -2716,6 +2716,11 @@ impl TermWindow {
                     w.hide();
                 }
             }
+            HideOtherApplications => {
+                if let Some(w) = window.as_ref() {
+                    w.hide_other_apps();
+                }
+            }
             Show => {
                 if let Some(w) = window.as_ref() {
                     w.show();

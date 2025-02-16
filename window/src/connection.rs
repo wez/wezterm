@@ -68,6 +68,11 @@ pub trait ConnectionOps {
         Appearance::Light
     }
 
+    /// Hide all other applications.
+    /// This actions hides the windows of the other applications while
+    /// preserving focus on it.
+    fn hide_other_applications(&self) {}
+
     /// Hide the application.
     /// This actions hides all of the windows of the application and switches
     /// focus away from it.
