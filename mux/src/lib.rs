@@ -1,5 +1,6 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{CachePolicy, Pane, PaneId};
+use crate::serial::InputSerial;
 use crate::ssh_agent::AgentProxy;
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
@@ -40,6 +41,7 @@ pub mod domain;
 pub mod localpane;
 pub mod pane;
 pub mod renderable;
+pub mod serial;
 pub mod ssh;
 pub mod ssh_agent;
 pub mod tab;
@@ -81,7 +83,10 @@ pub enum MuxNotification {
         tab_id: TabId,
         window_id: WindowId,
     },
-    PaneFocused(PaneId),
+    PaneFocused {
+        pane_id: PaneId,
+        pane_focus_serial: Option<InputSerial>,
+    },
     TabResized(TabId),
     TabTitleChanged {
         tab_id: TabId,
@@ -113,6 +118,7 @@ pub struct Mux {
     num_panes_by_workspace: RwLock<HashMap<String, usize>>,
     main_thread_id: std::thread::ThreadId,
     agent: Option<AgentProxy>,
+    pane_focus_serial: RwLock<InputSerial>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -444,6 +450,7 @@ impl Mux {
             num_panes_by_workspace: RwLock::new(HashMap::new()),
             main_thread_id: std::thread::current().id(),
             agent,
+            pane_focus_serial: RwLock::new(InputSerial::empty()),
         }
     }
 
@@ -1384,6 +1391,16 @@ impl Mux {
         }
 
         Ok((tab, pane, window_id))
+    }
+
+    pub fn current_pane_focus_serial(&self) -> InputSerial {
+        *self.pane_focus_serial.read()
+    }
+
+    pub fn increment_pane_focus_serial(&self) -> InputSerial {
+        let mut pane_focus_serial = self.pane_focus_serial.write();
+        *pane_focus_serial = InputSerial::now();
+        *pane_focus_serial
     }
 }
 

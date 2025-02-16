@@ -12,6 +12,7 @@ use mux::pane::{
     Pattern, SearchResult, WithPaneLines,
 };
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::serial::InputSerial;
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
@@ -214,7 +215,10 @@ impl ClientPane {
 
                 self.client.expire_stale_mappings();
             }
-            Pdu::PaneFocused(PaneFocused { pane_id }) => {
+            Pdu::PaneFocused(PaneFocused {
+                pane_id,
+                pane_focus_serial,
+            }) => {
                 // We get here whenever the pane focus is changed on the
                 // server. That might be due to the user here in the GUI
                 // doing things, or it may be due to a "remote"
@@ -227,8 +231,13 @@ impl ClientPane {
                 log::trace!("advised of remote pane focus: {pane_id}");
 
                 let mux = Mux::get();
-                if let Err(err) = mux.focus_pane_and_containing_tab(self.local_pane_id) {
-                    log::error!("Error reconciling remote PaneFocused notification: {err:#}");
+                let client_pane_focus_serial = mux.current_pane_focus_serial();
+                if pane_focus_serial.is_none_or(|server_pane_focus_serial| {
+                    server_pane_focus_serial >= client_pane_focus_serial
+                }) {
+                    if let Err(err) = mux.focus_pane_and_containing_tab(self.local_pane_id) {
+                        log::error!("Error reconciling remote PaneFocused notification: {err:#}");
+                    }
                 }
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
@@ -580,13 +589,17 @@ impl Pane for ClientPane {
         let mut focused_pane = self.client.focused_remote_pane_id.lock().unwrap();
         if *focused_pane != Some(self.remote_pane_id) {
             focused_pane.replace(self.remote_pane_id);
+            let mux = Mux::get();
             let client = Arc::clone(&self.client);
             let remote_pane_id = self.remote_pane_id;
+            let pane_focus_serial = Some(mux.increment_pane_focus_serial());
+
             promise::spawn::spawn(async move {
                 client
                     .client
                     .set_focused_pane_id(SetFocusedPane {
                         pane_id: remote_pane_id,
+                        pane_focus_serial,
                     })
                     .await
             })
