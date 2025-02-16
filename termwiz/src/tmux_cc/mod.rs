@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use parser::Rule;
 use pest::iterators::{Pair, Pairs};
 use pest::Parser as _;
@@ -7,7 +7,7 @@ pub type TmuxWindowId = u64;
 pub type TmuxPaneId = u64;
 pub type TmuxSessionId = u64;
 
-mod parser {
+pub mod parser {
     use pest_derive::Parser;
     #[derive(Parser)]
     #[grammar = "tmux_cc/tmux.pest"]
@@ -21,13 +21,6 @@ pub struct Guarded {
     pub number: u64,
     pub flags: i64,
     pub output: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WindowLayout {
-    pub layout_id: String,
-    pub width: u64,
-    pub height: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,10 +87,26 @@ pub enum Event {
     },
     LayoutChange {
         window: TmuxWindowId,
-        layout: WindowLayout,
-        visible_layout: Option<WindowLayout>,
+        layout: String,
+        visible_layout: Option<String>,
         raw_flags: Option<String>,
     },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PaneLayout {
+    pub pane_id: TmuxPaneId,
+    pub pane_width: u64,
+    pub pane_height: u64,
+    pub pane_left: u64,
+    pub pane_top: u64,
+}
+
+#[derive(Debug)]
+pub enum WindowLayout {
+    SplitVertical(Vec<PaneLayout>),
+    SplitHorizontal(Vec<PaneLayout>),
+    SinglePane(PaneLayout),
 }
 
 fn parse_pane_id(pair: Pair<Rule>) -> anyhow::Result<TmuxPaneId> {
@@ -157,29 +166,6 @@ fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
     let number = pairs.next().unwrap().as_str().parse::<u64>()?;
     let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
     Ok((timestamp, number, flags))
-}
-
-/// Parses a window_layout line, for example "b25d,80x24,0,0,0"
-fn parse_window_layout(pair: Pair<Rule>) -> Option<WindowLayout> {
-    match pair.as_rule() {
-        Rule::window_layout => {
-            let mut pairs = pair.into_inner();
-            let layout_id_option = pairs.next()?.as_str().parse::<String>().ok();
-            let width_option = pairs.next()?.as_str().parse::<u64>().ok();
-            let height_option = pairs.next()?.as_str().parse::<u64>().ok();
-            if let (Some(layout_id), Some(width), Some(height)) =
-                (layout_id_option, width_option, height_option)
-            {
-                return Some(WindowLayout {
-                    layout_id,
-                    width,
-                    height,
-                });
-            }
-            return None;
-        }
-        _ => None,
-    }
 }
 
 fn parse_line(line: &str) -> anyhow::Result<Event> {
@@ -285,8 +271,8 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
         Rule::layout_change => {
             let mut pairs = pair.into_inner();
             let window = parse_window_id(pairs.next().unwrap())?;
-            let layout = pairs.next().and_then(parse_window_layout).unwrap();
-            let visible_layout = pairs.next().and_then(parse_window_layout);
+            let layout = unvis(pairs.next().unwrap().as_str())?;
+            let visible_layout = pairs.next().map(|pair| pair.as_str().to_owned());
             let raw_flags = pairs.next().map(|r| r.as_str().to_owned());
             Ok(Event::LayoutChange {
                 window,
@@ -295,17 +281,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
                 raw_flags,
             })
         }
-        Rule::pane_id
-        | Rule::word
-        | Rule::client_name
-        | Rule::window_id
-        | Rule::session_id
-        | Rule::window_layout
-        | Rule::any_text
-        | Rule::line
-        | Rule::line_entire
-        | Rule::EOI
-        | Rule::number => unreachable!(),
+        _ => unreachable!(),
     }
 }
 
@@ -474,6 +450,113 @@ pub fn unvis(s: &str) -> anyhow::Result<String> {
 
     String::from_utf8(result)
         .map_err(|err| anyhow::anyhow!("Unescaped string is not valid UTF8: {}", err))
+}
+
+fn parse_layout_pane(pair: Pair<Rule>) -> anyhow::Result<PaneLayout> {
+    let mut pairs = pair.into_inner();
+
+    let pane_width = pairs
+        .next()
+        .ok_or_else(|| anyhow!("wrong pane layout format"))?
+        .as_str()
+        .parse()?;
+    let pane_height = pairs
+        .next()
+        .ok_or_else(|| anyhow!("wrong pane layout format"))?
+        .as_str()
+        .parse()?;
+    let pane_left = pairs
+        .next()
+        .ok_or_else(|| anyhow!("wrong pane layout format"))?
+        .as_str()
+        .parse()?;
+    let pane_top = pairs
+        .next()
+        .ok_or_else(|| anyhow!("wrong pane layout format"))?
+        .as_str()
+        .parse()?;
+
+    let pane_id = match pairs.next() {
+        Some(x) => x.as_str().parse()?,
+        None => 0,
+    };
+
+    return Ok(PaneLayout {
+        pane_id,
+        pane_width,
+        pane_height,
+        pane_left,
+        pane_top,
+    });
+}
+
+fn parse_layout_inner(
+    mut pairs: Pairs<Rule>,
+    result: &mut Vec<WindowLayout>,
+) -> anyhow::Result<Vec<PaneLayout>> {
+    let mut stack = Vec::new();
+
+    while let Some(pair) = pairs.next() {
+        let rule = pair.as_rule();
+        match rule {
+            Rule::layout_split_horizontal | Rule::layout_split_vertical => {
+                let mut pairs_inner = pair.into_inner();
+                let pair = pairs_inner
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("no pairs!?"))?;
+                let mut pane = parse_layout_pane(pair)?;
+
+                if result.is_empty() {
+                    // Fake one, to flag it is not a TmuxLayout::SinglePane will pop
+                    result.push(WindowLayout::SplitHorizontal(vec![]));
+                }
+
+                let mut layout_inner = parse_layout_inner(pairs_inner, result)?;
+
+                let last_item = layout_inner
+                    .pop()
+                    .ok_or_else(|| anyhow::anyhow!("wrong layout format"))?;
+
+                pane.pane_id = last_item.pane_id;
+
+                layout_inner.insert(0, pane.clone());
+
+                if let Rule::layout_split_horizontal = rule {
+                    result.insert(0, WindowLayout::SplitHorizontal(layout_inner));
+                } else {
+                    result.insert(0, WindowLayout::SplitVertical(layout_inner));
+                }
+
+                stack.push(pane);
+            }
+            Rule::layout_pane => {
+                let pane = parse_layout_pane(pair)?;
+
+                // SinglePane
+                if result.is_empty() {
+                    result.insert(0, WindowLayout::SinglePane(pane));
+                    return Ok(stack);
+                }
+
+                stack.push(pane);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(stack)
+}
+
+pub fn parse_layout(layout: &str) -> anyhow::Result<Vec<WindowLayout>> {
+    let mut result = Vec::new();
+    let pairs = parser::TmuxParser::parse(Rule::layout_window, layout)?;
+
+    let _ = parse_layout_inner(pairs, &mut result)?;
+    if result.len() > 1 {
+        let _ = result.pop();
+    }
+
+    Ok(result)
 }
 
 pub struct Parser {
@@ -664,6 +747,8 @@ in
 here
 %end 1604279270 310 0
 %window-add @1
+%window-close @38
+%unlinked-window-close @39
 %sessions-changed
 %session-changed $1 1
 %client-session-changed /dev/pts/5 $1 home
@@ -692,6 +777,8 @@ here
                     output: "stuff\nin\nhere\n".to_owned()
                 }),
                 Event::WindowAdd { window: 1 },
+                Event::WindowClose { window: 38 },
+                Event::WindowClose { window: 39 },
                 Event::SessionsChanged,
                 Event::SessionChanged {
                     session: 1,
@@ -707,26 +794,14 @@ here
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout: WindowLayout {
-                        layout_id: "b25d".to_owned(),
-                        width: 80,
-                        height: 24
-                    },
+                    layout: "b25d,80x24,0,0,0".to_owned(),
                     visible_layout: None,
                     raw_flags: None
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout: WindowLayout {
-                        layout_id: "cafd".to_owned(),
-                        width: 120,
-                        height: 29
-                    },
-                    visible_layout: Some(WindowLayout {
-                        layout_id: "cafd".to_owned(),
-                        width: 120,
-                        height: 29
-                    }),
+                    layout: "cafd,120x29,0,0,0".to_owned(),
+                    visible_layout: Some("cafd,120x29,0,0,0".to_owned()),
                     raw_flags: Some("*".to_owned())
                 },
                 Event::Output {
@@ -753,5 +828,59 @@ here
             ],
             events
         );
+    }
+
+    #[test]
+    fn test_parse_layout() {
+        let layout_case1 = "158x40,0,0,72".to_string();
+        let layout_case2 = "158x40,0,0[158x20,0,0,69,158x19,0,21{79x19,0,21,70,78x19,80,21[78x9,80,21,71,78x9,80,31,73]}]".to_string();
+        let layout_case3 = "158x40,0,0{79x40,0,0[79x20,0,0,74,79x19,0,21{39x19,0,21,76,39x19,40,21,77}],78x40,80,0,75}".to_string();
+
+        let mut layout = parse_layout(layout_case1.get(0..).unwrap()).unwrap();
+        let l = layout.pop().unwrap();
+        assert!(if let WindowLayout::SinglePane(p) = l {
+            assert_eq!(p.pane_width, 158);
+            assert_eq!(p.pane_height, 40);
+            assert_eq!(p.pane_left, 0);
+            assert_eq!(p.pane_top, 0);
+            assert_eq!(p.pane_id, 72);
+            true
+        } else {
+            false
+        });
+
+        layout = parse_layout(layout_case2.get(0..).unwrap()).unwrap();
+        assert!(if let WindowLayout::SplitVertical(_x) = &layout[0] {
+            true
+        } else {
+            false
+        });
+        assert!(if let WindowLayout::SplitHorizontal(_x) = &layout[1] {
+            true
+        } else {
+            false
+        });
+        assert!(if let WindowLayout::SplitVertical(_x) = &layout[2] {
+            true
+        } else {
+            false
+        });
+
+        layout = parse_layout(layout_case3.get(0..).unwrap()).unwrap();
+        assert!(if let WindowLayout::SplitHorizontal(_x) = &layout[0] {
+            true
+        } else {
+            false
+        });
+        assert!(if let WindowLayout::SplitVertical(_x) = &layout[1] {
+            true
+        } else {
+            false
+        });
+        assert!(if let WindowLayout::SplitHorizontal(_x) = &layout[2] {
+            true
+        } else {
+            false
+        });
     }
 }
