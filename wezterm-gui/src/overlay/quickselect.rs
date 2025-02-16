@@ -14,12 +14,13 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::cell::{Cell, CellAttributes};
-use termwiz::color::AnsiColor;
+use termwiz::color::{AnsiColor, ColorAttribute};
 use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
+    Clipboard, Intensity, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
+    Underline,
 };
 use window::WindowOps;
 
@@ -545,7 +546,10 @@ impl Pane for QuickSelectOverlay {
             fn with_lines_mut(&mut self, first_row: StableRowIndex, lines: &mut [&mut Line]) {
                 let mut overlay_lines = vec![];
 
+                let config = &self.renderer.config;
                 let colors = self.renderer.config.resolved_palette.clone();
+                let disable_attr_for_non_matching_text =
+                    config.disable_attributes_for_non_matching_text_in_quick_select;
 
                 // Process the lines; for the search row we want to render instead
                 // the search UI.
@@ -575,47 +579,65 @@ impl Pane for QuickSelectOverlay {
                         );
                         self.renderer.last_bar_pos = Some(self.search_row);
                         line.clear_appdata();
-                    } else if let Some(matches) = self.renderer.by_line.get(&stable_idx) {
-                        for m in matches {
-                            // highlight
-                            for cell_idx in m.range.clone() {
-                                if let Some(cell) =
-                                    line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
-                                {
-                                    cell.attrs_mut()
-                                        .set_background(
-                                            colors
-                                                .quick_select_match_bg
-                                                .unwrap_or(AnsiColor::Black.into()),
-                                        )
-                                        .set_foreground(
-                                            colors
-                                                .quick_select_match_fg
-                                                .unwrap_or(AnsiColor::Green.into()),
-                                        )
-                                        .set_reverse(false);
-                                }
-                            }
-                            for (idx, c) in m.label.chars().enumerate() {
-                                let mut attr = line
-                                    .get_cell(idx)
-                                    .map(|cell| cell.attrs().clone())
-                                    .unwrap_or_else(|| CellAttributes::default());
-                                attr.set_background(
-                                    colors
-                                        .quick_select_label_bg
-                                        .unwrap_or(AnsiColor::Black.into()),
-                                )
-                                .set_foreground(
-                                    colors
-                                        .quick_select_label_fg
-                                        .unwrap_or(AnsiColor::Olive.into()),
-                                )
-                                .set_reverse(false);
-                                line.set_cell(m.range.start + idx, Cell::new(c, attr), SEQ_ZERO);
+                    } else {
+                        if disable_attr_for_non_matching_text {
+                            for cell in line.cells_mut_for_attr_changes_only().iter_mut() {
+                                cell.attrs_mut()
+                                    .set_background(ColorAttribute::Default)
+                                    .set_foreground(ColorAttribute::Default)
+                                    .set_reverse(false)
+                                    .set_intensity(Intensity::Normal)
+                                    .set_underline(Underline::None);
                             }
                         }
-                        line.clear_appdata();
+                        if let Some(matches) = self.renderer.by_line.get(&stable_idx) {
+                            for m in matches {
+                                // highlight
+                                for cell_idx in m.range.clone() {
+                                    if let Some(cell) =
+                                        line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
+                                    {
+                                        cell.attrs_mut()
+                                            .set_background(
+                                                colors
+                                                    .quick_select_match_bg
+                                                    .unwrap_or(AnsiColor::Black.into()),
+                                            )
+                                            .set_foreground(
+                                                colors
+                                                    .quick_select_match_fg
+                                                    .unwrap_or(AnsiColor::Green.into()),
+                                            )
+                                            .set_reverse(false);
+                                    }
+                                }
+                                for (idx, c) in m.label.chars().enumerate() {
+                                    let mut attr = line
+                                        .get_cell(idx)
+                                        .map(|cell| cell.attrs().clone())
+                                        .unwrap_or_else(|| CellAttributes::default());
+                                    attr.set_background(
+                                        colors
+                                            .quick_select_label_bg
+                                            .unwrap_or(AnsiColor::Black.into()),
+                                    )
+                                    .set_foreground(
+                                        colors
+                                            .quick_select_label_fg
+                                            .unwrap_or(AnsiColor::Olive.into()),
+                                    )
+                                    .set_reverse(false);
+                                    line.set_cell(
+                                        m.range.start + idx,
+                                        Cell::new(c, attr),
+                                        SEQ_ZERO,
+                                    );
+                                }
+                            }
+                            line.clear_appdata();
+                        } else if disable_attr_for_non_matching_text {
+                            line.clear_appdata();
+                        }
                     }
                     overlay_lines.push(line);
                 }

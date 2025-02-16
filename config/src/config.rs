@@ -420,6 +420,8 @@ pub struct Config {
     pub quick_select_patterns: Vec<String>,
     #[dynamic(default = "default_alphabet")]
     pub quick_select_alphabet: String,
+    #[dynamic(default)]
+    pub disable_attributes_for_non_matching_text_in_quick_select: bool,
 
     #[dynamic(default)]
     pub mouse_bindings: Vec<Mouse>,
