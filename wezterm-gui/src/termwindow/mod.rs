@@ -2343,6 +2343,7 @@ impl TermWindow {
             flags: LauncherFlags::TABS,
             help_text: None,
             fuzzy_help_text: None,
+            alphabet: None,
         };
         self.show_launcher_impl(args, active_tab_idx);
     }
@@ -2358,6 +2359,7 @@ impl TermWindow {
                 | LauncherFlags::COMMANDS,
             help_text: None,
             fuzzy_help_text: None,
+            alphabet: None,
         };
         self.show_launcher_impl(args, 0);
     }
@@ -2394,6 +2396,9 @@ impl TermWindow {
             .fuzzy_help_text
             .unwrap_or("Fuzzy matching: ".to_string());
 
+        let config = &self.config;
+        let alphabet = args.alphabet.unwrap_or(config.launcher_alphabet.clone());
+
         promise::spawn::spawn(async move {
             let args = LauncherArgs::new(
                 &title,
@@ -2403,6 +2408,7 @@ impl TermWindow {
                 domain_id_of_current_pane,
                 &help_text,
                 &fuzzy_help_text,
+                &alphabet,
             )
             .await;
 
@@ -2743,6 +2749,7 @@ impl TermWindow {
                     flags: args.flags,
                     help_text: args.help_text.clone(),
                     fuzzy_help_text: args.fuzzy_help_text.clone(),
+                    alphabet: args.alphabet.clone(),
                 };
                 self.show_launcher_impl(args, 0);
             }

@@ -5,6 +5,7 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
+use super::quickselect;
 use crate::commands::derive_command_from_key_assignment;
 use crate::inputmap::InputMap;
 use crate::overlay::selector::{matcher_pattern, matcher_score};
@@ -59,6 +60,7 @@ pub struct LauncherArgs {
     workspaces: Vec<String>,
     help_text: String,
     fuzzy_help_text: String,
+    alphabet: String,
 }
 
 impl LauncherArgs {
@@ -71,6 +73,7 @@ impl LauncherArgs {
         domain_id_of_current_tab: DomainId,
         help_text: &str,
         fuzzy_help_text: &str,
+        alphabet: &str,
     ) -> Self {
         let mux = Mux::get();
 
@@ -161,6 +164,7 @@ impl LauncherArgs {
             active_workspace,
             help_text: help_text.to_string(),
             fuzzy_help_text: fuzzy_help_text.to_string(),
+            alphabet: alphabet.to_string(),
         }
     }
 }
@@ -177,9 +181,12 @@ struct LauncherState {
     pane_id: PaneId,
     window: ::window::Window,
     filtering: bool,
-    flags: LauncherFlags,
     help_text: String,
     fuzzy_help_text: String,
+    labels: Vec<String>,
+    alphabet: String,
+    selection: String,
+    always_fuzzy: bool,
 }
 
 impl LauncherState {
@@ -360,6 +367,14 @@ impl LauncherState {
     fn render(&mut self, term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
+        let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
+        if max_items != self.max_items {
+            self.labels = quickselect::compute_labels_for_alphabet_with_preserved_case(
+                &self.alphabet,
+                self.filtered_entries.len().min(max_items + 1),
+            );
+            self.max_items = max_items;
+        }
 
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
@@ -374,7 +389,9 @@ impl LauncherState {
             Change::AllAttributes(CellAttributes::default()),
         ];
 
-        let max_items = self.max_items;
+        let labels = &self.labels;
+        let max_label_len = labels.iter().map(|s| s.len()).max().unwrap_or(0);
+        let mut labels_iter = labels.into_iter();
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
@@ -394,8 +411,17 @@ impl LauncherState {
                 attr.set_reverse(true);
             }
 
-            if row_num < 9 && !self.filtering {
-                changes.push(Change::Text(format!(" {}. ", row_num + 1)));
+            // from above we know that row_num <= max_items
+            // show labels as long as we have more labels left
+            // and we are not filtering
+            if !self.filtering {
+                if let Some(label) = labels_iter.next() {
+                    changes.push(Change::Text(format!(" {label:>max_label_len$}. ")));
+                } else {
+                    changes.push(Change::Text(" ".repeat(max_label_len + 3)));
+                }
+            } else if !self.always_fuzzy {
+                changes.push(Change::Text(" ".repeat(max_label_len + 3)));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -464,22 +490,29 @@ impl LauncherState {
             match event {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
-                    ..
-                }) if !self.filtering && c >= '1' && c <= '9' => {
-                    if self.launch(self.top_row + (c as u32 - '1' as u32) as usize) {
-                        break;
+                    modifiers: Modifiers::NONE,
+                }) if !self.filtering && self.alphabet.contains(c) => {
+                    self.selection.push(c);
+                    if let Some(pos) = self.labels.iter().position(|x| *x == self.selection) {
+                        // since the number of labels is always <= self.max_items
+                        // by construction, we have pos as usize <= self.max_items
+                        // for free
+                        self.active_idx = self.top_row + pos as usize;
+                        if self.launch(self.active_idx) {
+                            break;
+                        }
                     }
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('j'),
                     ..
-                }) if !self.filtering => {
+                }) if !self.filtering && !self.alphabet.contains("j") => {
                     self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('k'),
                     ..
-                }) if !self.filtering => {
+                }) if !self.filtering && !self.alphabet.contains("k") => {
                     self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
@@ -504,12 +537,14 @@ impl LauncherState {
                     key: KeyCode::Backspace,
                     ..
                 }) => {
-                    if self.filter_term.pop().is_none()
-                        && !self.flags.contains(LauncherFlags::FUZZY)
-                    {
-                        self.filtering = false;
+                    if !self.filtering {
+                        self.selection.pop();
+                    } else {
+                        if self.filter_term.pop().is_none() && !self.always_fuzzy {
+                            self.filtering = false;
+                        }
+                        self.update_filter();
                     }
-                    self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('G') | KeyCode::Char('['),
@@ -583,9 +618,6 @@ impl LauncherState {
                         break;
                     }
                 }
-                InputEvent::Resized { rows, .. } => {
-                    self.max_items = rows.saturating_sub(ROW_OVERHEAD);
-                }
                 _ => {}
             }
             self.render(term)?;
@@ -601,21 +633,23 @@ pub fn launcher(
     window: ::window::Window,
     initial_choice_idx: usize,
 ) -> anyhow::Result<()> {
-    let size = term.get_screen_size()?;
-    let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
+    let filtering = args.flags.contains(LauncherFlags::FUZZY);
     let mut state = LauncherState {
         active_idx: initial_choice_idx,
-        max_items,
+        max_items: 0,
         pane_id: args.pane_id,
         top_row: 0,
         entries: vec![],
         filter_term: String::new(),
         filtered_entries: vec![],
         window,
-        filtering: args.flags.contains(LauncherFlags::FUZZY),
-        flags: args.flags,
+        filtering,
         help_text: args.help_text.clone(),
         fuzzy_help_text: args.fuzzy_help_text.clone(),
+        labels: vec![],
+        selection: String::new(),
+        alphabet: args.alphabet.clone(),
+        always_fuzzy: filtering,
     };
 
     term.set_raw_mode()?;

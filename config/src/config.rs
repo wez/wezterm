@@ -414,6 +414,9 @@ pub struct Config {
     pub disable_default_key_bindings: bool,
     pub leader: Option<LeaderKey>,
 
+    #[dynamic(default = "default_num_alphabet")]
+    pub launcher_alphabet: String,
+
     #[dynamic(default)]
     pub disable_default_quick_select_patterns: bool,
     #[dynamic(default)]
@@ -1802,6 +1805,10 @@ fn default_status_update_interval() -> u64 {
 
 fn default_alternate_buffer_wheel_scroll_speed() -> u8 {
     3
+}
+
+fn default_num_alphabet() -> String {
+    "1234567890abcdefghilmnopqrstuvwxyz".to_string()
 }
 
 fn default_alphabet() -> String {
