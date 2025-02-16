@@ -309,11 +309,15 @@ impl TmuxDomainState {
             };
 
             if let Some(local_pane) = local_pane {
-                self.set_pane_cursor_position(
-                    &local_pane,
-                    pane.cursor_x as usize,
-                    pane.cursor_y as usize,
-                );
+                // When we run ListAllPanes on a new created window, the pane sometimes have not
+                // output yet, so all positions are 0
+                if (pane.cursor_x + pane.cursor_y) != 0 {
+                    self.set_pane_cursor_position(
+                        &local_pane,
+                        pane.cursor_x as usize,
+                        pane.cursor_y as usize,
+                    );
+                }
                 if pane.pane_active {
                     let gui_tabs = self.gui_tabs.lock();
 
@@ -337,7 +341,7 @@ impl TmuxDomainState {
         Ok(())
     }
 
-    fn sync_window_state(&self, windows: &[WindowItem]) -> anyhow::Result<()> {
+    fn sync_window_state(&self, windows: &[WindowItem], new_window: bool) -> anyhow::Result<()> {
         let Some(current_session) = *self.tmux_session.lock() else {
             return Ok(());
         };
@@ -488,8 +492,11 @@ impl TmuxDomainState {
                 }
             };
 
-            for p in local_tab.panes.iter() {
-                self.cmd_queue.lock().push_back(Box::new(CapturePane(*p)));
+            // For new window, we wait for nature ouput instead of capturing
+            if !new_window {
+                for p in local_tab.panes.iter() {
+                    self.cmd_queue.lock().push_back(Box::new(CapturePane(*p)));
+                }
             }
 
             // To keep the active window last one to make it active after set the focus pane
@@ -830,7 +837,12 @@ impl TmuxCommand for ListAllWindows {
         let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-                return tmux_domain.inner.sync_window_state(&items);
+                let new_window = if let Some(_x) = self.window_id {
+                    true
+                } else {
+                    false
+                };
+                return tmux_domain.inner.sync_window_state(&items, new_window);
             }
         }
         anyhow::bail!("Tmux domain lost");
