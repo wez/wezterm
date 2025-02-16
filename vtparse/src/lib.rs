@@ -295,7 +295,7 @@ impl VTActor for CollectingVTActor {
 
 const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC: usize = 64;
-const MAX_PARAMS: usize = 32;
+const MAX_PARAMS: usize = 256;
 
 struct OscState {
     buffer: Vec<u8>,
@@ -367,7 +367,7 @@ pub struct VTParser {
 /// and I are intermediate bytes in the range 0x20-0x2F
 /// and F is the final byte in the range 0x40-0x7E
 ///
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum CsiParam {
     Integer(i64),
     P(u8),
@@ -422,7 +422,7 @@ impl VTParser {
                 full: false,
             },
 
-            params: Default::default(),
+            params: [CsiParam::default(); MAX_PARAMS],
             num_params: 0,
             params_full: false,
             current_param: None,
@@ -894,43 +894,25 @@ mod test {
 
     #[test]
     fn test_csi_too_many_params() {
+        // Due to the much higher CSI element limit,
+        // we must construct this test differently.
+        let mut input = "\x1b[0".to_string();
+        let mut params = vec![CsiParam::default()];
+
+        for n in 1..=127 {
+            input.push_str(&format!(";{n}"));
+            params.push(CsiParam::P(b';'));
+            params.push(CsiParam::Integer(n));
+        }
+        input.push_str(";128");
+
+        input.push('p');
+        params.push(CsiParam::P(b';'));
+
         assert_eq!(
-            parse_as_vec(b"\x1b[0;1;2;3;4;5;6;7;8;9;0;1;2;3;4;51;6p"),
+            parse_as_vec(input.as_bytes()),
             vec![VTAction::CsiDispatch {
-                params: vec![
-                    CsiParam::Integer(0),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(1),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(2),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(3),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(4),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(5),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(6),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(7),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(8),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(9),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(0),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(1),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(2),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(3),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(4),
-                    CsiParam::P(b';'),
-                    CsiParam::Integer(51),
-                    CsiParam::P(b';'),
-                ],
+                params: params,
                 parameters_truncated: false,
                 byte: b'p'
             }]
