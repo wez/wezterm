@@ -2396,9 +2396,8 @@ impl TermWindow {
             .fuzzy_help_text
             .unwrap_or("Fuzzy matching: ".to_string());
 
-        let alphabet = args
-            .alphabet
-            .unwrap_or("1234567890abcdefghilmnopqrstuvwxyz".to_string());
+        let config = &self.config;
+        let alphabet = args.alphabet.unwrap_or(config.launcher_alphabet.clone());
 
         promise::spawn::spawn(async move {
             let args = LauncherArgs::new(
