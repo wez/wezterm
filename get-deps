@@ -209,7 +209,7 @@ arch_deps() {
   fi
 }
 
-bsd_deps() {
+freebsd_deps() {
   PKG="$SUDO pkg"
   $PKG install -y \
     'cmake' \
@@ -238,6 +238,23 @@ bsd_deps() {
     'xcb-util-wm' \
     'z' \
     'zip'
+}
+
+netbsd_deps() {
+  PKG="$SUDO pkgin"
+  $PKG -y install \
+    'bash' \
+    'fontconfig' \
+    'git-base' \
+    'hicolor-icon-theme' \
+    'libX11' \
+    'libxkbcommon' \
+    'pkgconf' \
+    'rust' \
+    'wayland' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xorgproto'
 }
 
 gentoo_deps() {
@@ -322,11 +339,14 @@ fallback_method() {
       echo "skipping darwin*/msys"
     ;;
     freebsd*)
-      bsd_deps
+      freebsd_deps
     ;;
     ''|linux-gnu)
       # catch and known OSTYPE
       echo "\$OSTYPE is '$OSTYPE'"
+    ;;
+    netbsd*)
+      netbsd_deps
     ;;
     *)
       NOTFOUND=1
@@ -338,6 +358,8 @@ fallback_method() {
 
 if test -e /etc/os-release; then
   . /etc/os-release
+else
+  ID=$(uname -s | tr '[:upper:]' '[:lower:]')
 fi
 
 set -e
@@ -356,7 +378,10 @@ case $ID in
     debian_deps
   ;;
   freebsd) # available since 13.0
-    bsd_deps
+    freebsd_deps
+  ;;
+  netbsd*)
+    netbsd_deps
   ;;
   arch|artix)
     arch_deps
