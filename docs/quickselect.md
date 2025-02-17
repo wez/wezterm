@@ -28,3 +28,7 @@ text, and cancel quick select mode.
 Pressing `ESCAPE` will cancel quick select mode.
 
 ![Screenshot demonstrating the quickselect text highlights](screenshots/wezterm-quick-select.png)
+
+{{since('nightly')}}
+
+A configuration option [disable_attributes_for_non_matching_text_in_quick_select](config/lua/config/disable_attributes_for_non_matching_text_in_quick_select.md) has been added to disable attributes for non matching text in Quick Select mode.
