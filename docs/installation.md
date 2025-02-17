@@ -10,5 +10,6 @@ source, you may also build it for yourself.
  - [macOS](install/macos.md)
  - [Linux](install/linux.md)
  - [FreeBSD](install/freebsd.md)
+ - [NetBSD](install/netbsd.md)
  - [Build from source](install/source.md)
 
