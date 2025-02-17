@@ -19,8 +19,8 @@ use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, Intensity, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
-    Underline,
+    Blink, Clipboard, Intensity, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    TerminalSize, Underline,
 };
 use window::WindowOps;
 
@@ -583,11 +583,16 @@ impl Pane for QuickSelectOverlay {
                         if disable_attr_for_non_matching_text {
                             for cell in line.cells_mut_for_attr_changes_only().iter_mut() {
                                 cell.attrs_mut()
-                                    .set_background(ColorAttribute::Default)
-                                    .set_foreground(ColorAttribute::Default)
-                                    .set_reverse(false)
                                     .set_intensity(Intensity::Normal)
-                                    .set_underline(Underline::None);
+                                    .set_underline(Underline::None)
+                                    .set_italic(false)
+                                    .set_blink(Blink::None)
+                                    .set_reverse(false)
+                                    .set_strikethrough(false)
+                                    .set_invisible(false)
+                                    .set_foreground(ColorAttribute::Default)
+                                    .set_background(ColorAttribute::Default)
+                                    .set_hyperlink(None);
                             }
                         }
                         if let Some(matches) = self.renderer.by_line.get(&stable_idx) {
