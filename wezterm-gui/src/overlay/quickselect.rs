@@ -547,7 +547,7 @@ impl Pane for QuickSelectOverlay {
                 let mut overlay_lines = vec![];
 
                 let config = &self.renderer.config;
-                let colors = self.renderer.config.resolved_palette.clone();
+                let colors = config.resolved_palette.clone();
                 let disable_attr_for_non_matching_text =
                     config.disable_attributes_for_non_matching_text_in_quick_select;
 
