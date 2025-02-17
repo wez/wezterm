@@ -1648,8 +1648,9 @@ impl KeyEvent {
         {
             // Check for simple text generating keys
             match &self.key {
+                // Don't send legacy codes with DEL and ESC
+                Char('\x1b') | Char('\x7f') => {}
                 Char('\x08') => return '\x7f'.to_string(),
-                Char('\x7f') => return '\x08'.to_string(),
                 Char(c) => return c.to_string(),
                 _ => {}
             }
@@ -3127,6 +3128,59 @@ mod test {
             }
             .encode_kitty(flags),
             "\u{1b}[102;14u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_4785() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES;
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('\x7f'),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[3;1~".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Char('\x7f'),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
+                },
+                Some(PhysKeyCode::KeypadDelete)
+            )
+            .encode_kitty(flags),
+            "\x1b[57426;1u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('\x1b'),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\u{1b}[27;1u".to_string()
         );
     }
 }
