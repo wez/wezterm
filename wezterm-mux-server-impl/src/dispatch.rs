@@ -5,6 +5,7 @@ use codec::{DecodedPdu, Pdu};
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;
+use std::sync::{Arc, Mutex};
 use wezterm_uds::UnixStream;
 
 #[cfg(unix)]
@@ -44,7 +45,7 @@ where
     // Fed by: SessionHandler responses, scheduled pane pushes, and notifications.
     let (write_tx, write_rx) = smol::channel::unbounded::<DecodedPdu>();
 
-    // Channel for mux notifications to be processed by the reader task.
+    // Channel for mux notifications to be processed by the notification task.
     let (notif_tx, notif_rx) = smol::channel::unbounded::<MuxNotification>();
 
     let pdu_sender = PduSender::new({
@@ -55,7 +56,7 @@ where
                 .map_err(|e| anyhow::anyhow!("{:?}", e))
         }
     });
-    let mut handler = SessionHandler::new(pdu_sender);
+    let handler = Arc::new(Mutex::new(SessionHandler::new(pdu_sender)));
 
     {
         let mux = Mux::get();
@@ -93,143 +94,140 @@ where
         Ok(())
     };
 
-    // Reader task: handle client requests and mux notifications.
+    // Reader task: decode client requests and dispatch to handler.
     // Never writes to stream — all PDUs go through write_tx.
-    //
-    // IMPORTANT: decode_async is NOT cancellation-safe. It reads bytes
-    // incrementally (leb128 byte-by-byte), so dropping it mid-read loses
-    // consumed bytes and corrupts the stream. Therefore we must NOT race
-    // decode_async against notifications. Instead, drain notifications
-    // non-blockingly between PDU decodes.
-    let reader_fut = async {
-        let mut reader = reader;
+    let reader_fut = {
+        let handler = Arc::clone(&handler);
+        async move {
+            let mut reader = reader;
 
-        loop {
-            // Drain all pending notifications before blocking on the next PDU.
-            // Notifications that arrive during decode_async will be processed
-            // on the next loop iteration. This is acceptable because:
-            // - The client polls for render changes periodically, so decodes
-            //   complete regularly even when the user is idle.
-            // - schedule_pane_push and send_pdu are non-blocking (they enqueue
-            //   work for the writer task or spawn_into_main_thread).
-            drain_notifications(&mut handler, &write_tx, &notif_rx);
-
-            match Pdu::decode_async(&mut reader, None).await {
-                Ok(decoded) => {
-                    handler.process_one(decoded);
-                }
-                Err(err) => {
-                    if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
-                        if err.kind() == std::io::ErrorKind::UnexpectedEof {
-                            return Ok(());
-                        }
+            loop {
+                match Pdu::decode_async(&mut reader, None).await {
+                    Ok(decoded) => {
+                        handler.lock().unwrap().process_one(decoded);
                     }
-                    return Err(err).context("reading Pdu from client");
+                    Err(err) => {
+                        if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
+                            if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                                return Ok(());
+                            }
+                        }
+                        return Err(err).context("reading Pdu from client");
+                    }
                 }
             }
         }
     };
 
-    // Run both tasks concurrently; first to finish terminates both
-    smol::future::race(writer_fut, reader_fut).await
+    // Notification task: receive mux notifications and dispatch to handler.
+    // Runs independently so notifications are processed promptly even when
+    // decode_async is blocked waiting for client data.
+    let notif_fut = async {
+        while let Ok(notif) = notif_rx.recv().await {
+            handle_notification(&handler, &write_tx, notif);
+        }
+        Ok(())
+    };
+
+    // Run all three tasks concurrently; first to finish terminates all
+    smol::future::race(writer_fut, smol::future::race(reader_fut, notif_fut)).await
 }
 
-/// Drain all pending notifications from the channel without blocking.
-fn drain_notifications(
-    handler: &mut SessionHandler,
+/// Handle a single mux notification.
+fn handle_notification(
+    handler: &Arc<Mutex<SessionHandler>>,
     write_tx: &smol::channel::Sender<DecodedPdu>,
-    notif_rx: &smol::channel::Receiver<MuxNotification>,
+    notif: MuxNotification,
 ) {
-    while let Ok(notif) = notif_rx.try_recv() {
-        match notif {
-            MuxNotification::PaneOutput(pane_id) => {
-                handler.schedule_pane_push(pane_id);
-            }
-            MuxNotification::Alert { pane_id, alert } => {
-                {
-                    let per_pane = handler.per_pane(pane_id);
-                    let mut per_pane = per_pane.lock().unwrap();
-                    per_pane.notifications.push(alert);
-                }
-                handler.schedule_pane_push(pane_id);
-            }
-            MuxNotification::PaneRemoved(pane_id) => {
-                send_pdu(write_tx, Pdu::PaneRemoved(codec::PaneRemoved { pane_id }));
-            }
-            MuxNotification::AssignClipboard {
-                pane_id,
-                selection,
-                clipboard,
-            } => {
-                send_pdu(
-                    write_tx,
-                    Pdu::SetClipboard(codec::SetClipboard {
-                        pane_id,
-                        clipboard,
-                        selection,
-                    }),
-                );
-            }
-            MuxNotification::TabAddedToWindow { tab_id, window_id } => {
-                send_pdu(
-                    write_tx,
-                    Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id }),
-                );
-            }
-            MuxNotification::WindowWorkspaceChanged(window_id) => {
-                let workspace = {
-                    let mux = Mux::get();
-                    mux.get_window(window_id)
-                        .map(|w| w.get_workspace().to_string())
-                };
-                if let Some(workspace) = workspace {
-                    send_pdu(
-                        write_tx,
-                        Pdu::WindowWorkspaceChanged(codec::WindowWorkspaceChanged {
-                            window_id,
-                            workspace,
-                        }),
-                    );
-                }
-            }
-            MuxNotification::PaneFocused(pane_id) => {
-                send_pdu(write_tx, Pdu::PaneFocused(codec::PaneFocused { pane_id }));
-            }
-            MuxNotification::TabResized(tab_id) => {
-                send_pdu(write_tx, Pdu::TabResized(codec::TabResized { tab_id }));
-            }
-            MuxNotification::TabTitleChanged { tab_id, title } => {
-                send_pdu(
-                    write_tx,
-                    Pdu::TabTitleChanged(codec::TabTitleChanged { tab_id, title }),
-                );
-            }
-            MuxNotification::WindowTitleChanged { window_id, title } => {
-                send_pdu(
-                    write_tx,
-                    Pdu::WindowTitleChanged(codec::WindowTitleChanged { window_id, title }),
-                );
-            }
-            MuxNotification::WorkspaceRenamed {
-                old_workspace,
-                new_workspace,
-            } => {
-                send_pdu(
-                    write_tx,
-                    Pdu::RenameWorkspace(codec::RenameWorkspace {
-                        old_workspace,
-                        new_workspace,
-                    }),
-                );
-            }
-            MuxNotification::PaneAdded(_) => {}
-            MuxNotification::SaveToDownloads { .. } => {}
-            MuxNotification::WindowRemoved(_) => {}
-            MuxNotification::WindowCreated(_) => {}
-            MuxNotification::WindowInvalidated(_) => {}
-            MuxNotification::ActiveWorkspaceChanged(_) => {}
-            MuxNotification::Empty => {}
+    match notif {
+        MuxNotification::PaneOutput(pane_id) => {
+            handler.lock().unwrap().schedule_pane_push(pane_id);
         }
+        MuxNotification::Alert { pane_id, alert } => {
+            let mut handler = handler.lock().unwrap();
+            {
+                let per_pane = handler.per_pane(pane_id);
+                let mut per_pane = per_pane.lock().unwrap();
+                per_pane.notifications.push(alert);
+            }
+            handler.schedule_pane_push(pane_id);
+        }
+        MuxNotification::PaneRemoved(pane_id) => {
+            send_pdu(write_tx, Pdu::PaneRemoved(codec::PaneRemoved { pane_id }));
+        }
+        MuxNotification::AssignClipboard {
+            pane_id,
+            selection,
+            clipboard,
+        } => {
+            send_pdu(
+                write_tx,
+                Pdu::SetClipboard(codec::SetClipboard {
+                    pane_id,
+                    clipboard,
+                    selection,
+                }),
+            );
+        }
+        MuxNotification::TabAddedToWindow { tab_id, window_id } => {
+            send_pdu(
+                write_tx,
+                Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id }),
+            );
+        }
+        MuxNotification::WindowWorkspaceChanged(window_id) => {
+            let workspace = {
+                let mux = Mux::get();
+                mux.get_window(window_id)
+                    .map(|w| w.get_workspace().to_string())
+            };
+            if let Some(workspace) = workspace {
+                send_pdu(
+                    write_tx,
+                    Pdu::WindowWorkspaceChanged(codec::WindowWorkspaceChanged {
+                        window_id,
+                        workspace,
+                    }),
+                );
+            }
+        }
+        MuxNotification::PaneFocused(pane_id) => {
+            send_pdu(write_tx, Pdu::PaneFocused(codec::PaneFocused { pane_id }));
+        }
+        MuxNotification::TabResized(tab_id) => {
+            send_pdu(write_tx, Pdu::TabResized(codec::TabResized { tab_id }));
+        }
+        MuxNotification::TabTitleChanged { tab_id, title } => {
+            send_pdu(
+                write_tx,
+                Pdu::TabTitleChanged(codec::TabTitleChanged { tab_id, title }),
+            );
+        }
+        MuxNotification::WindowTitleChanged { window_id, title } => {
+            send_pdu(
+                write_tx,
+                Pdu::WindowTitleChanged(codec::WindowTitleChanged { window_id, title }),
+            );
+        }
+        MuxNotification::WorkspaceRenamed {
+            old_workspace,
+            new_workspace,
+        } => {
+            send_pdu(
+                write_tx,
+                Pdu::RenameWorkspace(codec::RenameWorkspace {
+                    old_workspace,
+                    new_workspace,
+                }),
+            );
+        }
+        MuxNotification::PaneAdded(_) => {}
+        MuxNotification::SaveToDownloads { .. } => {}
+        MuxNotification::WindowRemoved(_) => {}
+        MuxNotification::WindowCreated(_) => {}
+        MuxNotification::WindowInvalidated(_) => {}
+        MuxNotification::ActiveWorkspaceChanged(_) => {}
+        MuxNotification::Empty => {}
     }
 }
 
