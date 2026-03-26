@@ -2,7 +2,6 @@ use crate::sessionhandler::{PduSender, SessionHandler};
 use anyhow::Context;
 use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
-use futures::FutureExt;
 use mux::{Mux, MuxNotification};
 use smol::prelude::*;
 use smol::Async;
@@ -15,13 +14,6 @@ pub trait AsRawDesc: std::os::windows::io::AsRawSocket + std::os::windows::io::A
 
 impl AsRawDesc for UnixStream {}
 impl AsRawDesc for AsyncSslStream {}
-
-#[derive(Debug)]
-enum Item {
-    Notif(MuxNotification),
-    WritePdu(DecodedPdu),
-    Readable,
-}
 
 pub async fn process<T>(stream: T) -> anyhow::Result<()>
 where
@@ -36,7 +28,7 @@ where
     process_async(stream).await
 }
 
-pub async fn process_async<T>(mut stream: Async<T>) -> anyhow::Result<()>
+pub async fn process_async<T>(stream: Async<T>) -> anyhow::Result<()>
 where
     T: 'static,
     T: std::io::Read,
@@ -46,13 +38,20 @@ where
 {
     log::trace!("process_async called");
 
-    let (item_tx, item_rx) = smol::channel::unbounded::<Item>();
+    let (reader, writer) = futures::AsyncReadExt::split(stream);
+
+    // Channel for PDUs to be written to the client.
+    // Fed by: SessionHandler responses, scheduled pane pushes, and notifications.
+    let (write_tx, write_rx) = smol::channel::unbounded::<DecodedPdu>();
+
+    // Channel for mux notifications to be processed by the reader task.
+    let (notif_tx, notif_rx) = smol::channel::unbounded::<MuxNotification>();
 
     let pdu_sender = PduSender::new({
-        let item_tx = item_tx.clone();
+        let write_tx = write_tx.clone();
         move |pdu| {
-            item_tx
-                .try_send(Item::WritePdu(pdu))
+            write_tx
+                .try_send(pdu)
                 .map_err(|e| anyhow::anyhow!("{:?}", e))
         }
     });
@@ -60,65 +59,93 @@ where
 
     {
         let mux = Mux::get();
-        let tx = item_tx.clone();
-        mux.subscribe(move |n| tx.try_send(Item::Notif(n)).is_ok());
+        mux.subscribe(move |n| notif_tx.try_send(n).is_ok());
     }
 
-    loop {
-        let rx_msg = item_rx.recv();
-        let wait_for_read = stream.readable().map(|_| Ok(Item::Readable));
+    // Writer task: drain write channel, encode + flush to stream.
+    // Independent of reading — never blocks the reader.
+    let writer_fut = async {
+        let mut writer = writer;
 
-        match smol::future::or(rx_msg, wait_for_read).await {
-            Ok(Item::Readable) => {
-                let decoded = match Pdu::decode_async(&mut stream, None).await {
-                    Ok(data) => data,
-                    Err(err) => {
-                        if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
-                            if err.kind() == std::io::ErrorKind::UnexpectedEof {
-                                // Client disconnected: no need to make a noise
-                                return Ok(());
-                            }
-                        }
-                        return Err(err).context("reading Pdu from client");
-                    }
-                };
-                handler.process_one(decoded);
-            }
-            Ok(Item::WritePdu(decoded)) => {
-                match decoded.pdu.encode_async(&mut stream, decoded.serial).await {
-                    Ok(()) => {}
-                    Err(err) => {
-                        if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
-                            if err.kind() == std::io::ErrorKind::BrokenPipe {
-                                // Client disconnected: no need to make a noise
-                                return Ok(());
-                            }
-                        }
-                        return Err(err).context("encoding PDU to client");
-                    }
-                };
-                match stream.flush().await {
-                    Ok(()) => {}
-                    Err(err) => {
+        while let Ok(decoded) = write_rx.recv().await {
+            match decoded.pdu.encode_async(&mut writer, decoded.serial).await {
+                Ok(()) => {}
+                Err(err) => {
+                    if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
                         if err.kind() == std::io::ErrorKind::BrokenPipe {
-                            // Client disconnected: no need to make a noise
                             return Ok(());
                         }
-                        return Err(err).context("flushing PDU to client");
                     }
+                    return Err(err).context("encoding PDU to client");
+                }
+            };
+            match writer.flush().await {
+                Ok(()) => {}
+                Err(err) => {
+                    if err.kind() == std::io::ErrorKind::BrokenPipe {
+                        return Ok(());
+                    }
+                    return Err(err).context("flushing PDU to client");
                 }
             }
-            Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
+        }
+
+        Ok(())
+    };
+
+    // Reader task: handle client requests and mux notifications.
+    // Never writes to stream — all PDUs go through write_tx.
+    //
+    // IMPORTANT: decode_async is NOT cancellation-safe. It reads bytes
+    // incrementally (leb128 byte-by-byte), so dropping it mid-read loses
+    // consumed bytes and corrupts the stream. Therefore we must NOT race
+    // decode_async against notifications. Instead, drain notifications
+    // non-blockingly between PDU decodes.
+    let reader_fut = async {
+        let mut reader = reader;
+
+        loop {
+            // Drain all pending notifications before blocking on the next PDU.
+            // Notifications that arrive during decode_async will be processed
+            // on the next loop iteration. This is acceptable because:
+            // - The client polls for render changes periodically, so decodes
+            //   complete regularly even when the user is idle.
+            // - schedule_pane_push and send_pdu are non-blocking (they enqueue
+            //   work for the writer task or spawn_into_main_thread).
+            drain_notifications(&mut handler, &write_tx, &notif_rx);
+
+            match Pdu::decode_async(&mut reader, None).await {
+                Ok(decoded) => {
+                    handler.process_one(decoded);
+                }
+                Err(err) => {
+                    if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
+                        if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                            return Ok(());
+                        }
+                    }
+                    return Err(err).context("reading Pdu from client");
+                }
+            }
+        }
+    };
+
+    // Run both tasks concurrently; first to finish terminates both
+    smol::future::race(writer_fut, reader_fut).await
+}
+
+/// Drain all pending notifications from the channel without blocking.
+fn drain_notifications(
+    handler: &mut SessionHandler,
+    write_tx: &smol::channel::Sender<DecodedPdu>,
+    notif_rx: &smol::channel::Receiver<MuxNotification>,
+) {
+    while let Ok(notif) = notif_rx.try_recv() {
+        match notif {
+            MuxNotification::PaneOutput(pane_id) => {
                 handler.schedule_pane_push(pane_id);
             }
-            Ok(Item::Notif(MuxNotification::PaneAdded(_pane_id))) => {}
-            Ok(Item::Notif(MuxNotification::PaneRemoved(pane_id))) => {
-                Pdu::PaneRemoved(codec::PaneRemoved { pane_id })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
-            }
-            Ok(Item::Notif(MuxNotification::Alert { pane_id, alert })) => {
+            MuxNotification::Alert { pane_id, alert } => {
                 {
                     let per_pane = handler.per_pane(pane_id);
                     let mut per_pane = per_pane.lock().unwrap();
@@ -126,88 +153,87 @@ where
                 }
                 handler.schedule_pane_push(pane_id);
             }
-            Ok(Item::Notif(MuxNotification::SaveToDownloads { .. })) => {}
-            Ok(Item::Notif(MuxNotification::AssignClipboard {
+            MuxNotification::PaneRemoved(pane_id) => {
+                send_pdu(write_tx, Pdu::PaneRemoved(codec::PaneRemoved { pane_id }));
+            }
+            MuxNotification::AssignClipboard {
                 pane_id,
                 selection,
                 clipboard,
-            })) => {
-                Pdu::SetClipboard(codec::SetClipboard {
-                    pane_id,
-                    clipboard,
-                    selection,
-                })
-                .encode_async(&mut stream, 0)
-                .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            } => {
+                send_pdu(
+                    write_tx,
+                    Pdu::SetClipboard(codec::SetClipboard {
+                        pane_id,
+                        clipboard,
+                        selection,
+                    }),
+                );
             }
-            Ok(Item::Notif(MuxNotification::TabAddedToWindow { tab_id, window_id })) => {
-                Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            MuxNotification::TabAddedToWindow { tab_id, window_id } => {
+                send_pdu(
+                    write_tx,
+                    Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id }),
+                );
             }
-            Ok(Item::Notif(MuxNotification::WindowRemoved(_window_id))) => {}
-            Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
-            Ok(Item::Notif(MuxNotification::WindowInvalidated(_window_id))) => {}
-            Ok(Item::Notif(MuxNotification::WindowWorkspaceChanged(window_id))) => {
+            MuxNotification::WindowWorkspaceChanged(window_id) => {
                 let workspace = {
                     let mux = Mux::get();
                     mux.get_window(window_id)
                         .map(|w| w.get_workspace().to_string())
                 };
                 if let Some(workspace) = workspace {
-                    Pdu::WindowWorkspaceChanged(codec::WindowWorkspaceChanged {
-                        window_id,
-                        workspace,
-                    })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                    stream.flush().await.context("flushing PDU to client")?;
+                    send_pdu(
+                        write_tx,
+                        Pdu::WindowWorkspaceChanged(codec::WindowWorkspaceChanged {
+                            window_id,
+                            workspace,
+                        }),
+                    );
                 }
             }
-            Ok(Item::Notif(MuxNotification::PaneFocused(pane_id))) => {
-                Pdu::PaneFocused(codec::PaneFocused { pane_id })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            MuxNotification::PaneFocused(pane_id) => {
+                send_pdu(write_tx, Pdu::PaneFocused(codec::PaneFocused { pane_id }));
             }
-            Ok(Item::Notif(MuxNotification::TabResized(tab_id))) => {
-                Pdu::TabResized(codec::TabResized { tab_id })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            MuxNotification::TabResized(tab_id) => {
+                send_pdu(write_tx, Pdu::TabResized(codec::TabResized { tab_id }));
             }
-            Ok(Item::Notif(MuxNotification::TabTitleChanged { tab_id, title })) => {
-                Pdu::TabTitleChanged(codec::TabTitleChanged { tab_id, title })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            MuxNotification::TabTitleChanged { tab_id, title } => {
+                send_pdu(
+                    write_tx,
+                    Pdu::TabTitleChanged(codec::TabTitleChanged { tab_id, title }),
+                );
             }
-            Ok(Item::Notif(MuxNotification::WindowTitleChanged { window_id, title })) => {
-                Pdu::WindowTitleChanged(codec::WindowTitleChanged { window_id, title })
-                    .encode_async(&mut stream, 0)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            MuxNotification::WindowTitleChanged { window_id, title } => {
+                send_pdu(
+                    write_tx,
+                    Pdu::WindowTitleChanged(codec::WindowTitleChanged { window_id, title }),
+                );
             }
-            Ok(Item::Notif(MuxNotification::WorkspaceRenamed {
+            MuxNotification::WorkspaceRenamed {
                 old_workspace,
                 new_workspace,
-            })) => {
-                Pdu::RenameWorkspace(codec::RenameWorkspace {
-                    old_workspace,
-                    new_workspace,
-                })
-                .encode_async(&mut stream, 0)
-                .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+            } => {
+                send_pdu(
+                    write_tx,
+                    Pdu::RenameWorkspace(codec::RenameWorkspace {
+                        old_workspace,
+                        new_workspace,
+                    }),
+                );
             }
-            Ok(Item::Notif(MuxNotification::ActiveWorkspaceChanged(_))) => {}
-            Ok(Item::Notif(MuxNotification::Empty)) => {}
-            Err(err) => {
-                log::error!("process_async Err {}", err);
-                return Ok(());
-            }
+            MuxNotification::PaneAdded(_) => {}
+            MuxNotification::SaveToDownloads { .. } => {}
+            MuxNotification::WindowRemoved(_) => {}
+            MuxNotification::WindowCreated(_) => {}
+            MuxNotification::WindowInvalidated(_) => {}
+            MuxNotification::ActiveWorkspaceChanged(_) => {}
+            MuxNotification::Empty => {}
         }
     }
+}
+
+/// Helper to send a unilateral PDU (serial 0) to the write channel.
+fn send_pdu(write_tx: &smol::channel::Sender<DecodedPdu>, pdu: Pdu) {
+    let _ = write_tx.try_send(DecodedPdu { serial: 0, pdu });
 }
