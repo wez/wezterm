@@ -127,6 +127,17 @@ pub struct Config {
     #[dynamic(default)]
     pub bold_brightens_ansi_colors: BoldBrightening,
 
+    /// Controls the brightness of text rendered with the dim/faint SGR attribute
+    /// (SGR 2, `Intensity::Half`).  This is a multiplier applied to the RGB
+    /// components of the foreground color.  A value of `1.0` (the default) means
+    /// no additional dimming beyond the lighter font weight that WezTerm already
+    /// selects for dim text.  Lower values make dim text progressively darker;
+    /// `0.5` halves the brightness, `0.0` renders it as black.
+    /// This multiplier is applied on top of the font-weight substitution, so both
+    /// effects are active simultaneously.
+    #[dynamic(default = "default_dim_tint_factor")]
+    pub dim_tint_factor: f64,
+
     /// The color palette
     pub colors: Option<Palette>,
 
@@ -904,6 +915,10 @@ impl_lua_conversion_dynamic!(Config);
 
 fn default_one() -> usize {
     1
+}
+
+fn default_dim_tint_factor() -> f64 {
+    1.0
 }
 
 fn default_ulimit_nofile() -> u64 {

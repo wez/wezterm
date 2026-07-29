@@ -910,7 +910,7 @@ fn resolve_fg_color_attr(
     config: &ConfigHandle,
     style: &config::TextStyle,
 ) -> LinearRgba {
-    match fg {
+    let color = match fg {
         wezterm_term::color::ColorAttribute::Default => {
             if let Some(fg) = style.foreground {
                 fg.into()
@@ -934,7 +934,18 @@ fn resolve_fg_color_attr(
         }
         _ => palette.resolve_fg(fg),
     }
-    .to_linear()
+    .to_linear();
+
+    // Apply dim_tint_factor when the cell has the dim/faint SGR attribute
+    // (Intensity::Half).  A factor of 1.0 (the default) is a no-op; values
+    // below 1.0 darken the color proportionally.
+    if attrs.intensity() == wezterm_term::Intensity::Half {
+        let factor = config.dim_tint_factor as f32;
+        let (r, g, b, a) = color.tuple();
+        LinearRgba::with_components(r * factor, g * factor, b * factor, a)
+    } else {
+        color
+    }
 }
 
 fn update_next_frame_time(storage: &mut Option<Instant>, next_due: Option<Instant>) {
