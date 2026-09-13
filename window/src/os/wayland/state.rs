@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use smithay_client_toolkit::activation::{ActivationHandler, ActivationState, RequestDataExt};
 use smithay_client_toolkit::compositor::{CompositorState, SurfaceData};
 use smithay_client_toolkit::data_device_manager::data_device::DataDevice;
 use smithay_client_toolkit::data_device_manager::data_source::CopyPasteSource;
@@ -23,12 +24,14 @@ use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::subcompositor::SubcompositorState;
 use smithay_client_toolkit::{
-    delegate_compositor, delegate_data_device, delegate_output, delegate_pointer, delegate_primary_selection, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
+    delegate_activation, delegate_compositor, delegate_data_device, delegate_output, delegate_pointer, delegate_primary_selection, delegate_registry, delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window, registry_handlers
 };
 use wayland_client::backend::ObjectId;
 use wayland_client::globals::GlobalList;
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{delegate_dispatch, Connection, QueueHandle};
 use wayland_protocols::ext::background_effect::v1::client::ext_background_effect_manager_v1::ExtBackgroundEffectManagerV1;
 use wayland_protocols::wp::text_input::zv3::client::zwp_text_input_manager_v3::ZwpTextInputManagerV3;
@@ -53,10 +56,13 @@ pub(super) struct WaylandState {
     pub(super) output_manager: Option<OutputManagerState>,
     pub(super) seat: SeatState,
     pub(super) xdg: XdgShell,
+    pub(super) activation: Option<ActivationState>,
     pub(super) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
     pub(super) active_surface_id: RefCell<Option<ObjectId>>,
     pub(super) last_serial: RefCell<u32>,
+    pub(super) last_press_serial: RefCell<u32>,
+    pub(super) focused_surface: RefCell<Option<WlSurface>>,
     pub(super) keyboard: Option<WlKeyboard>,
     pub(super) keyboard_mapper: Option<KeyboardWithFallback>,
     pub(super) key_repeat_delay: i32,
@@ -121,8 +127,11 @@ impl WaylandState {
             windows: RefCell::new(HashMap::new()),
             seat: SeatState::new(globals, qh),
             xdg: XdgShell::bind(globals, qh)?,
+            activation: ActivationState::bind(globals, qh).ok(),
             active_surface_id: RefCell::new(None),
             last_serial: RefCell::new(0),
+            last_press_serial: RefCell::new(0),
+            focused_surface: RefCell::new(None),
             keyboard: None,
             keyboard_mapper: None,
             key_repeat_rate: 25,
@@ -153,6 +162,41 @@ impl ProvidesRegistryState for WaylandState {
     }
 
     registry_handlers![OutputState, SeatState];
+}
+
+pub(super) struct ActivationRequest {
+    pub(super) app_id: String,
+    pub(super) seat_and_serial: Option<(WlSeat, u32)>,
+    pub(super) requesting_surface: Option<WlSurface>,
+    pub(super) surface_to_activate: WlSurface,
+}
+
+impl RequestDataExt for ActivationRequest {
+    fn app_id(&self) -> Option<&str> {
+        Some(&self.app_id)
+    }
+
+    fn seat_and_serial(&self) -> Option<(&WlSeat, u32)> {
+        self.seat_and_serial
+            .as_ref()
+            .map(|(seat, serial)| (seat, *serial))
+    }
+
+    fn surface(&self) -> Option<&WlSurface> {
+        self.requesting_surface.as_ref()
+    }
+}
+
+impl ActivationHandler for WaylandState {
+    type RequestData = ActivationRequest;
+
+    fn new_token(&mut self, token: String, data: &Self::RequestData) {
+        let Some(activation) = self.activation.as_ref() else {
+            return;
+        };
+        // A refused request still yields a token; undetectable here.
+        activation.activate::<Self>(&data.surface_to_activate, token);
+    }
 }
 
 impl ShmHandler for WaylandState {
@@ -192,6 +236,8 @@ delegate_seat!(WaylandState);
 delegate_data_device!(WaylandState);
 
 delegate_pointer!(WaylandState, pointer: [PointerUserData]);
+
+delegate_activation!(WaylandState, ActivationRequest);
 
 delegate_xdg_shell!(WaylandState);
 delegate_xdg_window!(WaylandState);
