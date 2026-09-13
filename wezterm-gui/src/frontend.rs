@@ -82,6 +82,17 @@ impl GuiFrontEnd {
                         let mux = Mux::get();
                         if let Err(err) = mux.focus_pane_and_containing_tab(pane_id) {
                             log::error!("Error reconciling PaneFocused notification: {err:#}");
+                            return;
+                        }
+
+                        if let Some((_domain_id, mux_window_id, _tab_id)) =
+                            mux.resolve_pane_id(pane_id)
+                        {
+                            if let Some(gui_win) = try_front_end()
+                                .and_then(|fe| fe.gui_window_for_mux_window(mux_window_id))
+                            {
+                                gui_win.window.focus();
+                            }
                         }
                     })
                     .detach();
