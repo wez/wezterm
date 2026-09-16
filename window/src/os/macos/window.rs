@@ -111,6 +111,87 @@ enum ImeDisposition {
     Continue,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PendingImeKey {
+    virtual_key: u16,
+    key_is_down: bool,
+}
+
+#[derive(Debug, Clone)]
+struct ImeLastEvent {
+    virtual_key: u16,
+    event: KeyEvent,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum UnclaimedImeKeyAction {
+    /// The selected input source is a keyboard layout, so the lack of an
+    /// NSTextInputClient callback means that it is safe to process the native
+    /// key event ourselves.
+    DispatchNormally,
+    /// The IME swallowed an auto-repeat for the same key that it previously
+    /// committed. Replay that committed event.
+    ReplayCached,
+    /// A real input method may have consumed the key as part of its internal
+    /// state, so don't leak it through to the terminal.
+    Swallow,
+}
+
+fn action_for_unclaimed_ime_key(
+    is_repeat: bool,
+    input_source_is_keyboard_layout: bool,
+    virtual_key: u16,
+    cached_virtual_key: Option<u16>,
+) -> UnclaimedImeKeyAction {
+    if input_source_is_keyboard_layout {
+        UnclaimedImeKeyAction::DispatchNormally
+    } else if is_repeat && cached_virtual_key == Some(virtual_key) {
+        UnclaimedImeKeyAction::ReplayCached
+    } else {
+        UnclaimedImeKeyAction::Swallow
+    }
+}
+
+#[cfg(test)]
+mod ime_tests {
+    use super::{action_for_unclaimed_ime_key, UnclaimedImeKeyAction};
+
+    const J: u16 = 38;
+    const K: u16 = 40;
+
+    #[test]
+    fn keyboard_layout_dispatches_unclaimed_rapid_key_press() {
+        assert_eq!(
+            action_for_unclaimed_ime_key(false, true, K, Some(J)),
+            UnclaimedImeKeyAction::DispatchNormally
+        );
+    }
+
+    #[test]
+    fn keyboard_layout_does_not_replay_a_stale_repeat() {
+        assert_eq!(
+            action_for_unclaimed_ime_key(true, true, K, Some(J)),
+            UnclaimedImeKeyAction::DispatchNormally
+        );
+    }
+
+    #[test]
+    fn input_method_only_replays_a_matching_repeat() {
+        assert_eq!(
+            action_for_unclaimed_ime_key(true, false, J, Some(J)),
+            UnclaimedImeKeyAction::ReplayCached
+        );
+        assert_eq!(
+            action_for_unclaimed_ime_key(true, false, K, Some(J)),
+            UnclaimedImeKeyAction::Swallow
+        );
+        assert_eq!(
+            action_for_unclaimed_ime_key(false, false, J, Some(J)),
+            UnclaimedImeKeyAction::Swallow
+        );
+    }
+}
+
 #[repr(C)]
 struct NSRange(cocoa::foundation::NSRange);
 
@@ -511,7 +592,7 @@ impl Window {
                 hscroll_remainder: 0.,
                 vscroll_remainder: 0.,
                 last_wheel: Instant::now(),
-                key_is_down: None,
+                pending_ime_key: None,
                 dead_pending: None,
                 fullscreen: None,
                 config: config.clone(),
@@ -1618,9 +1699,10 @@ struct Inner {
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     last_wheel: Instant,
-    /// We use this to avoid double-emitting events when
-    /// procesing key-up events.
-    key_is_down: Option<bool>,
+    /// The native key event currently being interpreted by the IME. IME
+    /// callbacks are normally synchronous, but can also be invoked without a
+    /// native key event for input such as dictation.
+    pending_ime_key: Option<PendingImeKey>,
 
     /// First in a dead-key sequence
     dead_pending: Option<DeadKeyState>,
@@ -1637,7 +1719,7 @@ struct Inner {
     /// so that we can use it to generate a repeat in the cases
     /// where the IME mysteriously swallows repeats but only
     /// for certain keys.
-    ime_last_event: Option<KeyEvent>,
+    ime_last_event: Option<ImeLastEvent>,
 
     /// Whether we're in live resize
     live_resizing: bool,
@@ -1744,6 +1826,10 @@ impl Keyboard {
             }
         };
         Self { _kbd, layout_data }
+    }
+
+    fn is_keyboard_layout(&self) -> bool {
+        self.layout_data.is_some()
     }
 
     /// A wrapper around UCKeyTranslate
@@ -2077,7 +2163,8 @@ impl WindowView {
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
 
-            let key_is_down = inner.key_is_down.take().unwrap_or(true);
+            let pending_key = inner.pending_ime_key.take();
+            let key_is_down = pending_key.map(|key| key.key_is_down).unwrap_or(true);
 
             let key = KeyCode::composed(s);
 
@@ -2094,7 +2181,10 @@ impl WindowView {
             inner
                 .events
                 .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-            inner.ime_last_event.replace(event.clone());
+            inner.ime_last_event = pending_key.map(|key| ImeLastEvent {
+                virtual_key: key.virtual_key,
+                event: event.clone(),
+            });
             inner.events.dispatch(WindowEvent::KeyEvent(event));
             inner.ime_state = ImeDisposition::Acted;
         }
@@ -2719,7 +2809,10 @@ impl WindowView {
         if key_is_down && use_ime && forward_to_ime {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
-                inner.key_is_down.replace(key_is_down);
+                inner.pending_ime_key.replace(PendingImeKey {
+                    virtual_key,
+                    key_is_down,
+                });
                 inner.ime_state = ImeDisposition::None;
                 inner.ime_text.clear();
             }
@@ -2730,6 +2823,10 @@ impl WindowView {
 
                 if let Some(myself) = Self::get_this(this) {
                     let mut inner = myself.inner.borrow_mut();
+                    // Any callback associated with this event has run by now.
+                    // Don't let an asynchronous IME callback pick up stale
+                    // native-key metadata.
+                    inner.pending_ime_key.take();
                     log::trace!(
                         "IME state: {:?}, last_event: {:?}",
                         inner.ime_state,
@@ -2759,32 +2856,59 @@ impl WindowView {
                             return;
                         }
                         ImeDisposition::None => {
-                            // The IME clocked something in its state,
-                            // but didn't call one of our callbacks.
-                            // In theory, we should stop here, but the IME
-                            // mysteriously swallows key repeats for certain
-                            // keys (i.e. b, f, j, m, p, q, v, x) but not others.
-                            // To compensate for that, if the current event
-                            // is a repeat, and the IME previously generated
-                            // `Acted`, we will assume that we're safe to replay
-                            // that last action.
-                            if is_a_repeat {
-                                if let Some(event) =
-                                    inner.ime_last_event.as_ref().map(|e| e.clone())
-                                {
+                            // The input system didn't call one of our
+                            // NSTextInputClient methods. ApplePressAndHold can
+                            // get into this state for both rapid key presses and
+                            // repeats. A keyboard layout has no composition
+                            // state to protect, so dispatch its native event
+                            // normally. For an actual input method, preserve the
+                            // old conservative behavior and only replay a repeat
+                            // when the cached event came from the same key.
+                            let cached_virtual_key = inner
+                                .ime_last_event
+                                .as_ref()
+                                .map(|cached| cached.virtual_key);
+                            let action = action_for_unclaimed_ime_key(
+                                is_a_repeat,
+                                Keyboard::new().is_keyboard_layout(),
+                                virtual_key,
+                                cached_virtual_key,
+                            );
+
+                            match action {
+                                UnclaimedImeKeyAction::ReplayCached => {
+                                    let event = inner
+                                        .ime_last_event
+                                        .as_ref()
+                                        .expect("cached IME event must match the current key")
+                                        .event
+                                        .clone();
                                     inner.events.dispatch(WindowEvent::KeyEvent(event));
                                     return;
                                 }
+                                UnclaimedImeKeyAction::DispatchNormally => {
+                                    log::trace!(
+                                        "IME produced no callback for keyboard-layout key {}; \
+                                         dispatching the native event normally",
+                                        virtual_key
+                                    );
+                                    inner.ime_last_event.take();
+                                    inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                                        DeadKeyStatus::None,
+                                    ));
+                                }
+                                UnclaimedImeKeyAction::Swallow => {
+                                    let status = if inner.ime_text.is_empty() {
+                                        DeadKeyStatus::None
+                                    } else {
+                                        DeadKeyStatus::Composing(inner.ime_text.clone())
+                                    };
+                                    inner
+                                        .events
+                                        .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
+                                    return;
+                                }
                             }
-                            let status = if inner.ime_text.is_empty() {
-                                DeadKeyStatus::None
-                            } else {
-                                DeadKeyStatus::Composing(inner.ime_text.clone())
-                            };
-                            inner
-                                .events
-                                .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
-                            return;
                         }
                     }
                 }
