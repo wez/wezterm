@@ -57,6 +57,25 @@ mod test {
     }
 }
 
+/// Returns true if we appear to be running inside WSL.
+///
+/// This matters when probing: wsl.exe relays the session through ConPTY,
+/// which answers some queries itself (DA1, `CSI 18 t`) right away while
+/// only forwarding others (`CSI 16 t`) to the outer terminal, so the
+/// responses can arrive in a different order than they were requested.
+fn running_under_wsl() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        // "microsoft" is usually part of the kernel version string,
+        // in some cases it is in the release string instead. Both are
+        // present in /proc/version.
+        if let Ok(version) = std::fs::read_to_string("/proc/version") {
+            return version.to_ascii_lowercase().contains("microsoft");
+        }
+    }
+    false
+}
+
 /// This struct is a helper that uses probing to determine specific capabilities
 /// of the associated Terminal instance.
 /// It will write and read data to and from the associated Terminal.
@@ -149,11 +168,13 @@ impl<'a> ProbeCapabilities<'a> {
             write!(self.write, "{TMUX_BEGIN}{query_pixels}{TMUX_END}")?;
         }
 
-        if is_tmux || cfg!(windows) {
+        if is_tmux || cfg!(windows) || running_under_wsl() {
             self.write.flush()?;
             // I really wanted to avoid a delay here, but tmux and conpty will
             // both re-order the response to dev_attributes before sending the
             // response for the passthru of query_pixels if we don't delay.
+            // conpty is also in the mix for WSL sessions (wsl.exe runs inside
+            // of it), even though we are a unix binary in that case.
             // The delay is potentially imperfect for things like a laggy ssh
             // connection. The consequence of the timing being wrong is that
             // we won't be able to reason about the pixel dimensions, which is

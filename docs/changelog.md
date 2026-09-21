@@ -164,6 +164,11 @@ As features stabilize some brief notes about them will accumulate here.
   alternate screen for panes in a `wezterm connect` domain, because the client
   always reported the alternate screen as inactive. The server now advises the
   client of the alternate screen state. #4922
+* `wezterm imgcat` panicked with `attempt to divide by zero` when the terminal
+  didn't report its cell size in pixels, eg: under WSL (where ConPTY answers
+  DA1 ahead of forwarding the `CSI 16 t` query) or with tmux < 3.2. WSL
+  sessions are now also treated like ConPTY when adjusting the cursor around
+  the image, so the shell prompt no longer overwrites it. #4912 #5522 #6781
 * macOS: Fix window border when opacity<1 and shadow enabled.
   Thanks to @Adams-Galaxy! #8038 #5158
 * perf: Terminal images were hashed three times each on the transmit path; the sha256
