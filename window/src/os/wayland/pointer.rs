@@ -213,7 +213,10 @@ impl WaylandState {
                 };
 
                 let wid = SurfaceUserData::from_wl(parent_surface).window_id;
-                let mut inner = windows.get(&wid).unwrap().borrow_mut();
+                let mut inner = match windows.get(&wid) {
+                    Some(inner) => inner.borrow_mut(),
+                    None => continue,
+                };
 
                 match evt.kind {
                     PointerEventKind::Enter { .. } => {
