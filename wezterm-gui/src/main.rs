@@ -510,10 +510,8 @@ impl Publish {
             return Self::NoConnectNoPublish;
         }
 
-        if config::is_config_overridden() {
-            // They're using a specific config file: assume that it is
-            // different from the running gui
-            log::trace!("skip existing gui: config is different");
+        if config::has_non_file_config_overrides() {
+            log::trace!("skip existing gui: config has non-file overrides");
             return Self::NoConnectNoPublish;
         }
 
@@ -529,6 +527,19 @@ impl Publish {
         match self {
             Self::TryPathOrPublish(_) | Self::NoConnectButPublish => true,
             Self::NoConnectNoPublish => false,
+        }
+    }
+
+    fn same_config_file(
+        running: Option<&std::path::Path>,
+        current: Option<&std::path::Path>,
+    ) -> bool {
+        match (running, current) {
+            (None, None) => true,
+            (Some(running), Some(current)) => {
+                running.is_absolute() && current.is_absolute() && running == current
+            }
+            _ => false,
         }
     }
 
@@ -560,9 +571,12 @@ impl Publish {
                             anyhow::bail!(
                                 "Running GUI is a different executable from us, will start a new one");
                         }
-                        if vers.config_file_path
-                            != std::env::var_os("WEZTERM_CONFIG_FILE").map(Into::into)
-                        {
+                        let current_config_file = std::env::var_os("WEZTERM_CONFIG_FILE")
+                            .map(PathBuf::from);
+                        if !Self::same_config_file(
+                            vers.config_file_path.as_deref(),
+                            current_config_file.as_deref(),
+                        ) {
                             *self = Publish::NoConnectNoPublish;
                             anyhow::bail!(
                                 "Running GUI has different config from us, will start a new one"
@@ -645,6 +659,43 @@ impl Publish {
         } else {
             Ok(false)
         }
+    }
+}
+
+#[cfg(test)]
+mod publish_tests {
+    use super::Publish;
+    use std::path::Path;
+
+    #[test]
+    fn identical_absolute_config_can_reuse_gui() {
+        let file = Path::new(if cfg!(windows) {
+            r"C:\clud\wezterm.lua"
+        } else {
+            "/opt/clud/wezterm.lua"
+        });
+        assert!(Publish::same_config_file(Some(file), Some(file)));
+    }
+
+    #[test]
+    fn different_or_relative_config_cannot_reuse_gui() {
+        let first = Path::new(if cfg!(windows) {
+            r"C:\first\wezterm.lua"
+        } else {
+            "/first/wezterm.lua"
+        });
+        let second = Path::new(if cfg!(windows) {
+            r"C:\second\wezterm.lua"
+        } else {
+            "/second/wezterm.lua"
+        });
+        assert!(!Publish::same_config_file(Some(first), Some(second)));
+        assert!(!Publish::same_config_file(Some(first), None));
+        assert!(!Publish::same_config_file(None, Some(first)));
+        assert!(!Publish::same_config_file(
+            Some(Path::new("wezterm.lua")),
+            Some(Path::new("wezterm.lua"))
+        ));
     }
 }
 

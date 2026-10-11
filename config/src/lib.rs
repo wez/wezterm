@@ -416,9 +416,13 @@ pub fn set_config_overrides(items: &[(String, String)]) -> anyhow::Result<()> {
 }
 
 pub fn is_config_overridden() -> bool {
-    CONFIG_SKIP.load(Ordering::Relaxed)
-        || !CONFIG_OVERRIDES.lock().unwrap().is_empty()
-        || CONFIG_FILE_OVERRIDE.lock().unwrap().is_some()
+    has_non_file_config_overrides() || CONFIG_FILE_OVERRIDE.lock().unwrap().is_some()
+}
+
+/// Config files can be identified by their loaded path when deciding whether
+/// to reuse a GUI. Skipping config or applying CLI value overrides cannot.
+pub fn has_non_file_config_overrides() -> bool {
+    CONFIG_SKIP.load(Ordering::Relaxed) || !CONFIG_OVERRIDES.lock().unwrap().is_empty()
 }
 
 /// Discard the current configuration and replace it with
