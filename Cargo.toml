@@ -211,6 +211,7 @@ starship-battery = "0.10"
 strsim = "0.11"
 syn = "1.0"
 tabout = { path = "tabout" }
+taffy = "0.9"
 tar = "0.4"
 tempfile = "3.20"
 terminfo = "0.9"

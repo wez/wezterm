@@ -8,6 +8,9 @@ use crate::termwindow::{UIItem, UIItemType};
 use crate::utilsprites::RenderMetrics;
 use config::{Dimension, DimensionContext, TabBarColors};
 use std::rc::Rc;
+use taffy::TaffyTree;
+use taffy::style::{AvailableSpace, Dimension as TaffyDim, FlexDirection};
+use taffy::geometry::Size as TaffySize;
 use wezterm_font::LoadedFont;
 use wezterm_term::color::{ColorAttribute, ColorPalette};
 use window::{IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
@@ -369,9 +372,10 @@ impl crate::TermWindow {
                 _ => 0.,
             })
             .sum();
+        let cell_width = metrics.cell_size.width as f32;
         let max_tab_width = ((self.dimensions.pixel_width as f32 / num_tabs)
-            - (1.5 * metrics.cell_size.width as f32))
-            .max(0.);
+            - (1.5 * cell_width))
+            .max(cell_width * 3.0);
 
         // Reserve space for the native titlebar buttons
         if self
@@ -511,6 +515,9 @@ impl crate::TermWindow {
             &tabs,
         )?;
 
+        // Use Taffy to redistribute tab widths so tabs fill the bar
+        self.flex_fill_tab_bar(&mut computed)?;
+
         computed.translate(euclid::vec2(
             0.,
             if self.config.tab_bar_at_bottom {
@@ -522,6 +529,178 @@ impl crate::TermWindow {
         ));
 
         Ok(computed)
+    }
+
+    /// Post-process the computed tab bar to redistribute space among tabs
+    /// using Taffy's flexbox layout, so tabs stretch to fill the bar.
+    fn flex_fill_tab_bar(&self, computed: &mut ComputedElement) -> anyhow::Result<()> {
+        /// Minimum pixel delta to apply adjustments; avoids sub-pixel jitter.
+        const PIXEL_EPSILON: f32 = 0.5;
+
+        let root_content_width = computed.content_rect.width();
+        if root_content_width <= 0.0 {
+            return Ok(());
+        }
+
+        let root_children = match &computed.content {
+            ComputedElementContent::Children(kids) => kids,
+            _ => return Ok(()),
+        };
+
+        // Find the tab container by looking for the child whose descendants
+        // contain the most Tab elements (robust to zindex changes).
+        let tab_container_idx = root_children
+            .iter()
+            .enumerate()
+            .filter_map(|(i, child)| {
+                let count = match &child.content {
+                    ComputedElementContent::Children(grandkids) => grandkids
+                        .iter()
+                        .filter(|gk| {
+                            matches!(
+                                &gk.item_type,
+                                Some(UIItemType::TabBar(TabBarItem::Tab { .. }))
+                            )
+                        })
+                        .count(),
+                    _ => 0,
+                };
+                if count > 0 {
+                    Some((i, count))
+                } else {
+                    None
+                }
+            })
+            .max_by_key(|(_, count)| *count)
+            .map(|(i, _)| i);
+
+        let tab_container_idx = match tab_container_idx {
+            Some(i) => i,
+            None => return Ok(()),
+        };
+
+        // Calculate space used by non-tab-container siblings
+        let non_tab_width: f32 = root_children
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != tab_container_idx)
+            .map(|(_, child)| child.bounds.width())
+            .sum();
+
+        // Extract layout info from tab container before mutable borrow
+        let container_ref = &root_children[tab_container_idx];
+        let container_bounds_width = container_ref.bounds.width();
+        let container_content_min_x = container_ref.content_rect.min_x();
+        let container_content_width = container_ref.content_rect.width();
+        let container_overhead = container_bounds_width - container_content_width;
+        let available_for_tabs = (root_content_width - non_tab_width - container_overhead).max(0.0);
+
+        // Build Taffy tree from tab container's children
+        let mut taffy_tree: TaffyTree<()> = TaffyTree::new();
+        let mut taffy_nodes = vec![];
+
+        if let ComputedElementContent::Children(ref grandkids) = container_ref.content {
+            for kid in grandkids.iter() {
+                let is_tab = matches!(
+                    &kid.item_type,
+                    Some(UIItemType::TabBar(TabBarItem::Tab { .. }))
+                );
+                // Tabs use flex_basis: 0 so Taffy distributes available space
+                // equally among all tabs (regardless of initial computed size).
+                // Non-tab items (e.g. NewTabButton) keep their natural size.
+                let style = taffy::Style {
+                    flex_grow: if is_tab { 1.0 } else { 0.0 },
+                    flex_shrink: if is_tab { 1.0 } else { 0.0 },
+                    flex_basis: if is_tab {
+                        TaffyDim::length(0.0)
+                    } else {
+                        TaffyDim::length(kid.bounds.width())
+                    },
+                    size: TaffySize {
+                        width: TaffyDim::auto(),
+                        height: TaffyDim::length(kid.bounds.height()),
+                    },
+                    ..Default::default()
+                };
+                let node = taffy_tree
+                    .new_leaf(style)
+                    .map_err(|e| anyhow::anyhow!("taffy: {:?}", e))?;
+                taffy_nodes.push(node);
+            }
+        }
+
+        if taffy_nodes.is_empty() {
+            return Ok(());
+        }
+
+        // Create flex container and compute layout
+        let container_style = taffy::Style {
+            display: taffy::style::Display::Flex,
+            flex_direction: FlexDirection::Row,
+            size: TaffySize {
+                width: TaffyDim::length(available_for_tabs),
+                height: TaffyDim::auto(),
+            },
+            ..Default::default()
+        };
+        let root_node = taffy_tree
+            .new_with_children(container_style, &taffy_nodes)
+            .map_err(|e| anyhow::anyhow!("taffy: {:?}", e))?;
+
+        taffy_tree
+            .compute_layout(
+                root_node,
+                TaffySize {
+                    width: AvailableSpace::Definite(available_for_tabs),
+                    height: AvailableSpace::MaxContent,
+                },
+            )
+            .map_err(|e| anyhow::anyhow!("taffy: {:?}", e))?;
+
+        // Collect Taffy results before taking mutable refs
+        let mut layouts: Vec<(f32, f32)> = Vec::with_capacity(taffy_nodes.len());
+        for &taffy_node in &taffy_nodes {
+            let layout = taffy_tree
+                .layout(taffy_node)
+                .map_err(|e| anyhow::anyhow!("taffy: {:?}", e))?;
+            layouts.push((layout.location.x, layout.size.width));
+        }
+
+        // Apply Taffy layout to computed elements
+        let root_children = match &mut computed.content {
+            ComputedElementContent::Children(kids) => kids,
+            _ => return Ok(()),
+        };
+
+        let tab_container = &mut root_children[tab_container_idx];
+        if let ComputedElementContent::Children(ref mut grandkids) = tab_container.content {
+            for (i, kid) in grandkids.iter_mut().enumerate() {
+                if i >= layouts.len() {
+                    break;
+                }
+                let (new_rel_x, new_width) = layouts[i];
+                let new_abs_x = container_content_min_x + new_rel_x;
+                let old_x = kid.bounds.min_x();
+                let dx = new_abs_x - old_x;
+                let width_delta = new_width - kid.bounds.width();
+
+                if width_delta.abs() > PIXEL_EPSILON {
+                    kid.adjust_width(width_delta);
+                }
+                if dx.abs() > PIXEL_EPSILON {
+                    kid.translate(euclid::vec2(dx, 0.));
+                }
+            }
+        }
+
+        // Expand the tab container itself to fill available space
+        let new_container_width = available_for_tabs + container_overhead;
+        let container_width_delta = new_container_width - container_bounds_width;
+        if container_width_delta.abs() > PIXEL_EPSILON {
+            tab_container.adjust_width(container_width_delta);
+        }
+
+        Ok(())
     }
 
     pub fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {

@@ -79,6 +79,7 @@ serde_json.workspace = true
 shlex.workspace = true
 smol.workspace = true
 tabout.workspace = true
+taffy.workspace = true
 tempfile.workspace = true
 terminfo.workspace = true
 termwiz-funcs.workspace = true
