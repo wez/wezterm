@@ -937,9 +937,24 @@ impl TerminalState {
 
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
-    /// in the bracketing, otherwise it is fed to the writer as-is.
     /// De-fang the text by removing any embedded bracketed paste
-    /// sequence that may be present.
+    /// sequence that may be present.  Loops until no more occurrences
+    /// remain, because a single pass of str::replace is not idempotent:
+    /// nested sequences like `\x1b\x1b[200~[200~` can leave a valid
+    /// marker behind after the first sweep.
+    fn defang_paste(text: &str) -> String {
+        let mut result = text.to_string();
+        loop {
+            let prev = result.clone();
+            result = result.replace("\x1b[200~", "").replace("\x1b[201~", "");
+            if result == prev {
+                break;
+            }
+        }
+        result
+    }
+
+    /// in the bracketing, otherwise it is fed to the writer as-is.
     pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
         let mut buf = String::new();
         if self.bracketed_paste {
@@ -953,7 +968,7 @@ impl TerminalState {
         };
 
         let canon = canon.canonicalize(text);
-        let de_fanged = canon.replace("\x1b[200~", "").replace("\x1b[201~", "");
+        let de_fanged = Self::defang_paste(&canon);
         buf.push_str(&de_fanged);
 
         if self.bracketed_paste {
@@ -2882,5 +2897,69 @@ impl TerminalState {
             .last()
             .copied()
             .unwrap_or(self.keyboard_encoding)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defang_paste_no_escape() {
+        assert_eq!(
+            TerminalState::defang_paste("hello world"),
+            "hello world"
+        );
+    }
+
+    #[test]
+    fn defang_paste_single_start() {
+        assert_eq!(
+            TerminalState::defang_paste("\x1b[200~hello"),
+            "hello"
+        );
+    }
+
+    #[test]
+    fn defang_paste_single_end() {
+        assert_eq!(
+            TerminalState::defang_paste("hello\x1b[201~"),
+            "hello"
+        );
+    }
+
+    #[test]
+    fn defang_paste_both() {
+        assert_eq!(
+            TerminalState::defang_paste("\x1b[200~hello\x1b[201~"),
+            "hello"
+        );
+    }
+
+    #[test]
+    fn defang_paste_double_nested_start() {
+        // Reporter's exploit: nesting strips the inner pair first,
+        // leaving the outer escape sequences intact as a valid marker.
+        assert_eq!(
+            TerminalState::defang_paste("\x1b\x1b[200~[200~injected"),
+            "injected"
+        );
+    }
+
+    #[test]
+    fn defang_paste_triple_nested() {
+        assert_eq!(
+            TerminalState::defang_paste("\x1b\x1b\x1b[200~[200~[200~injected"),
+            "injected"
+        );
+    }
+
+    #[test]
+    fn defang_paste_mixed_double_nested() {
+        // Both start and end markers nested
+        assert_eq!(
+            TerminalState::defang_paste("\x1b\x1b[200~[200~hello\x1b\x1b[201~[201~"),
+            "hello"
+        );
     }
 }
