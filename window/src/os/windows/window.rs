@@ -2137,13 +2137,21 @@ unsafe fn ime_composition(
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
-    if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
-        return None;
-    }
-
     let imc = ImmContext::get(hwnd);
 
     let lparam = lparam as DWORD;
+
+    if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
+        // Handle a finished commit by reading the whole result string from
+        // the IME; the default handling would deliver it as a stream of
+        // WM_IME_CHAR/WM_CHAR messages, and characters can be dropped when
+        // committing quickly with some IMEs (observed with Rime/Weasel via
+        // the CUAS bridge on Windows). Composing updates are still left to
+        // the system to render.
+        if lparam & GCS_RESULTSTR == 0 {
+            return None;
+        }
+    }
 
     if lparam == 0 {
         // IME was cancelled
