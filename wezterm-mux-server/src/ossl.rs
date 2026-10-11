@@ -80,7 +80,7 @@ impl OpenSSLNetListener {
                         Ok(stream) => {
                             if let Err(err) = Self::verify_peer_cert(&stream) {
                                 log::error!("problem with peer cert: {}", err);
-                                break;
+                                continue;
                             }
                             spawn_into_main_thread(async move {
                                 log::error!("Making new AsyncSslStream");
