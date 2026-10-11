@@ -35,7 +35,7 @@ pub mod units;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
 
-pub use crate::rasterizer::RasterizedGlyph;
+pub use crate::rasterizer::{RasterizedGlyph, FAKE_ITALIC_SKEW};
 pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 
 #[derive(Debug, Error)]
@@ -260,6 +260,16 @@ impl LoadedFont {
         } else {
             1.0
         }
+    }
+
+    /// True if the rasterizer will apply a synthetic italic skew
+    /// to the glyphs of the font at `font_idx`
+    pub fn synthesize_italic(&self, font_idx: usize) -> bool {
+        self.handles
+            .borrow()
+            .get(font_idx)
+            .map(|p| p.synthesize_italic)
+            .unwrap_or(false)
     }
 
     pub fn rasterize_glyph(
