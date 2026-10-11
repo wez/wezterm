@@ -1146,7 +1146,7 @@ impl WaylandWindowInner {
         }
     }
 
-    pub(crate) fn emit_focus(&mut self, mapper: &mut KeyboardWithFallback, focused: bool) {
+    pub(crate) fn emit_focus(&mut self, mapper: Option<&mut KeyboardWithFallback>, focused: bool) {
         // Clear the modifiers when we change focus, otherwise weird
         // things can happen.  For instance, if we lost focus because
         // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
@@ -1154,7 +1154,9 @@ impl WaylandWindowInner {
         // be left in a broken state.
 
         self.modifiers = Modifiers::NONE;
-        mapper.update_modifier_state(0, 0, 0, 0);
+        if let Some(mapper) = mapper {
+            mapper.update_modifier_state(0, 0, 0, 0);
+        }
         self.key_repeat.take();
         self.events.dispatch(WindowEvent::FocusChanged(focused));
         self.text_cursor.take();
@@ -1180,10 +1182,10 @@ impl WaylandWindowInner {
                     .map(|c| u32::from_ne_bytes(c.try_into().unwrap()))
                     .collect::<Vec<_>>();
                 log::trace!("keyboard event: Enter with keys: {:?}", key_codes);
-                self.emit_focus(mapper, true);
+                self.emit_focus(Some(mapper), true);
             }
             WlKeyboardEvent::Leave { .. } => {
-                self.emit_focus(mapper, false);
+                self.emit_focus(Some(mapper), false);
             }
             WlKeyboardEvent::Key { key, state, .. } => {
                 if let Some(event) = mapper.process_wayland_key(

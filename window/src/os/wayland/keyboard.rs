@@ -110,8 +110,22 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
         };
         let mut inner = win.as_ref().borrow_mut();
         let mapper = state.keyboard_mapper.borrow_mut();
-        let mapper = mapper.as_mut().expect("no keymap");
-        inner.keyboard_event(mapper, event);
+        match mapper.as_mut() {
+            Some(mapper) => inner.keyboard_event(mapper, event),
+            None => {
+                // The compositor is allowed to send `no_keymap` (or to send
+                // the keymap later), and some do so in practice: for example
+                // sway right after an input method keyboard grab ends.
+                // We cannot translate keys without a keymap, but we must
+                // still track focus changes.  The compositor is expected to
+                // send a usable keymap before it delivers any keys.
+                match event {
+                    WlKeyboardEvent::Enter { .. } => inner.emit_focus(None, true),
+                    WlKeyboardEvent::Leave { .. } => inner.emit_focus(None, false),
+                    _ => log::debug!("ignoring keyboard event without a keymap: {event:?}"),
+                }
+            }
+        }
     }
 }
 
