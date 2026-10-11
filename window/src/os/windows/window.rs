@@ -32,29 +32,44 @@ use std::sync::Mutex;
 use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::KeyboardLedStatus;
-use winapi::shared::minwindef::*;
-use winapi::shared::ntdef::*;
-use winapi::shared::windef::*;
-use winapi::shared::winerror::S_OK;
-use winapi::um::imm::*;
-use winapi::um::libloaderapi::GetModuleHandleW;
-use winapi::um::shellapi::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
-use winapi::um::shellscalingapi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
-use winapi::um::sysinfoapi::{GetTickCount, GetVersionExW};
-use winapi::um::uxtheme::{
-    CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
-};
-use winapi::um::wingdi::{LOGFONTW, MAKEPOINTS};
-use winapi::um::winnt::OSVERSIONINFOW;
-use winapi::um::winuser::*;
 use windows::UI::Color as WUIColor;
 use windows::UI::ViewManagement::{UIColorType, UISettings};
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::Graphics::Gdi::*;
+use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows_sys::Win32::System::SystemInformation::{GetTickCount, GetVersionExW, OSVERSIONINFOW};
+use windows_sys::Win32::System::SystemServices::{
+    MK_CONTROL, MK_LBUTTON, MK_MBUTTON, MK_RBUTTON, MK_SHIFT,
+};
+use windows_sys::Win32::UI::Controls::{
+    CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
+};
+use windows_sys::Win32::UI::HiDpi::{
+    AdjustWindowRectExForDpi, GetDpiForMonitor, GetDpiForWindow, GetSystemMetricsForDpi,
+    MDT_EFFECTIVE_DPI,
+};
+use windows_sys::Win32::UI::Input::Ime::{
+    ImmGetContext, ImmReleaseContext, ImmSetCompositionWindow, CFS_EXCLUDE, CFS_POINT,
+    COMPOSITIONFORM, HIMC,
+};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
+use windows_sys::Win32::UI::Shell::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
+use windows_sys::Win32::UI::WindowsAndMessaging::*;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
+
+type BOOL = windows_sys::core::BOOL;
+type DWORD = u32;
+type LONG = i32;
+type LPVOID = *mut std::ffi::c_void;
+type LPCWSTR = *const u16;
+type PVOID = *mut std::ffi::c_void;
+type UINT = u32;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
 const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
+const WM_MOUSELEAVE: UINT = 0x02A;
 
 #[allow(non_snake_case)]
 #[repr(C)]
@@ -67,8 +82,16 @@ pub struct CANDIDATEFORM {
 pub type LPCANDIDATEFORM = *mut CANDIDATEFORM;
 
 extern "system" {
-    pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
-    pub fn ImmSetCandidateWindow(himc: HIMC, lpCandidate: LPCANDIDATEFORM) -> BOOL;
+    pub fn ImmGetCompositionStringW(
+        himc: windows_sys::Win32::UI::Input::Ime::HIMC,
+        index: DWORD,
+        buf: LPVOID,
+        buflen: DWORD,
+    ) -> LONG;
+    pub fn ImmSetCandidateWindow(
+        himc: windows_sys::Win32::UI::Input::Ime::HIMC,
+        lpCandidate: LPCANDIDATEFORM,
+    ) -> BOOL;
 }
 
 lazy_static! {
@@ -78,7 +101,7 @@ lazy_static! {
             ..Default::default()
         };
 
-        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == TRUE {
             osver.dwBuildNumber < 22000
         } else {
             true
@@ -90,7 +113,7 @@ lazy_static! {
             ..Default::default()
         };
 
-        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == TRUE {
             osver.dwBuildNumber >= 22621
         } else {
             true
@@ -271,7 +294,7 @@ impl WindowInner {
 
         unsafe {
             let mut mi: MONITORINFOEXW = std::mem::zeroed();
-            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            mi.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
             let mon = MonitorFromWindow(self.hwnd.0, MONITOR_DEFAULTTONEAREST);
             GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
 
@@ -429,7 +452,7 @@ impl Window {
             // FIXME: this resource is specific to the wezterm build and this should
             // really be made generic for other sorts of windows.
             // The ID is defined in assets/windows/resource.rc
-            hIcon: unsafe { LoadIconW(h_inst, MAKEINTRESOURCEW(0x101)) },
+            hIcon: unsafe { LoadIconW(h_inst, 0x101 as LPCWSTR) },
             hCursor: null_mut(),
             hbrBackground: null_mut(),
             lpszMenuName: null(),
@@ -439,8 +462,7 @@ impl Window {
         if unsafe { RegisterClassW(&class) } == 0 {
             let err = IoError::last_os_error();
             match err.raw_os_error() {
-                Some(code)
-                    if code == winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS as i32 => {}
+                Some(code) if code == ERROR_CLASS_ALREADY_EXISTS as i32 => {}
                 _ => return Err(err.into()),
             }
         }
@@ -575,7 +597,7 @@ impl Window {
 
         // Make window capable of accepting drag and drop
         unsafe {
-            DragAcceptFiles(hwnd.0, winapi::shared::minwindef::TRUE);
+            DragAcceptFiles(hwnd.0, TRUE);
         }
 
         conn.windows
@@ -810,28 +832,30 @@ impl WindowOps for Window {
 
                 let mut inputs: [INPUT; 2] = [
                     INPUT {
-                        type_: INPUT_KEYBOARD,
-                        u: Default::default(),
+                        r#type: INPUT_KEYBOARD,
+                        Anonymous: INPUT_0 {
+                            ki: KEYBDINPUT {
+                                wVk: VK_LMENU as u16,
+                                wScan: alt_sc as u16,
+                                dwFlags: KEYEVENTF_EXTENDEDKEY,
+                                dwExtraInfo: 0,
+                                time: 0,
+                            },
+                        },
                     },
                     INPUT {
-                        type_: INPUT_KEYBOARD,
-                        u: Default::default(),
+                        r#type: INPUT_KEYBOARD,
+                        Anonymous: INPUT_0 {
+                            ki: KEYBDINPUT {
+                                wVk: VK_LMENU as u16,
+                                wScan: alt_sc as u16,
+                                dwFlags: KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
+                                dwExtraInfo: 0,
+                                time: 0,
+                            },
+                        },
                     },
                 ];
-                *inputs[0].u.ki_mut() = KEYBDINPUT {
-                    wVk: VK_LMENU as u16,
-                    wScan: alt_sc as u16,
-                    dwFlags: KEYEVENTF_EXTENDEDKEY,
-                    dwExtraInfo: 0,
-                    time: 0,
-                };
-                *inputs[1].u.ki_mut() = KEYBDINPUT {
-                    wVk: VK_LMENU as u16,
-                    wScan: alt_sc as u16,
-                    dwFlags: KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
-                    dwExtraInfo: 0,
-                    time: 0,
-                };
 
                 // Simulate a key press and release
                 SendInput(
@@ -1048,7 +1072,7 @@ impl WindowOps for Window {
 unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
     let mut log_font = LOGFONTW::default();
     let theme = OpenThemeData(hwnd, wide_string("HEADER").as_ptr());
-    if !theme.is_null() {
+    if theme != 0 {
         let res = GetThemeFont(
             theme,
             hdc,
@@ -1064,7 +1088,7 @@ unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
     }
 
     let res = GetThemeSysFont(theme, extra_constants::TMT_CAPTIONFONT, &mut log_font);
-    if !theme.is_null() {
+    if theme != 0 {
         CloseThemeData(theme);
     }
 
@@ -1083,7 +1107,8 @@ unsafe fn update_title_font(hwnd: HWND) {
 
     let mut font = TITLE_FONT.lock().expect("locking title_font");
     if let Some(lf) = get_title_log_font(hwnd, hdc) {
-        *font = wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok();
+        let log_font = &*(&lf as *const LOGFONTW as *const _);
+        *font = wezterm_font::locator::gdi::parse_log_font(log_font, hdc as _).ok();
     }
 
     ReleaseDC(hwnd, hdc);
@@ -1200,7 +1225,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let result = DefWindowProcW(hwnd, msg, wparam, lparam);
 
     if matches!(
-        result,
+        result as u32,
         HTNOWHERE
             | HTRIGHT
             | HTLEFT
@@ -1229,8 +1254,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
 
     let mut client_rect = RECT::default();
-    let client_rect_is_valid =
-        GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE;
+    let client_rect_is_valid = GetClientRect(hwnd, &mut client_rect) == TRUE;
 
     // Since we are eating the bottom window frame to deal with a Windows 10 bug,
     // we detect resizing in the window client area as a workaround
@@ -1240,27 +1264,27 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
     {
         if cursor_point.x <= (frame_x + padding) {
-            return Some(HTBOTTOMLEFT);
+            return Some(HTBOTTOMLEFT as LRESULT);
         } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-            return Some(HTBOTTOMRIGHT);
+            return Some(HTBOTTOMRIGHT as LRESULT);
         } else {
-            return Some(HTBOTTOM);
+            return Some(HTBOTTOM as LRESULT);
         }
     }
 
     if !is_maximized && cursor_point.y >= 0 && cursor_point.y < frame_y {
         if cursor_point.x <= (frame_x + padding) {
-            return Some(HTTOPLEFT);
+            return Some(HTTOPLEFT as LRESULT);
         } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-            return Some(HTTOPRIGHT);
+            return Some(HTTOPRIGHT as LRESULT);
         } else {
-            return Some(HTTOP);
+            return Some(HTTOP as LRESULT);
         }
     }
 
     if let Some(coords) = inner.window_drag_position {
         if coords == screen_point && inner.saved_placement.is_none() {
-            return Some(HTCAPTION);
+            return Some(HTCAPTION as LRESULT);
         }
     }
 
@@ -1268,12 +1292,12 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     if use_snap_layouts {
         if let Some(max) = inner.maximize_button_position {
             if max.contains(screen_point) {
-                return Some(HTMAXBUTTON);
+                return Some(HTMAXBUTTON as LRESULT);
             }
         }
     }
 
-    Some(HTCLIENT)
+    Some(HTCLIENT as LRESULT)
 }
 
 fn get_window_state(hwnd: HWND) -> WindowState {
@@ -1282,12 +1306,11 @@ fn get_window_state(hwnd: HWND) -> WindowState {
         ..Default::default()
     };
 
-    let placement =
-        if unsafe { GetWindowPlacement(hwnd, &mut placement) } == winapi::shared::minwindef::TRUE {
-            placement.showCmd as i32
-        } else {
-            0
-        };
+    let placement = if unsafe { GetWindowPlacement(hwnd, &mut placement) } == TRUE {
+        placement.showCmd as i32
+    } else {
+        0
+    };
 
     match placement {
         SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
@@ -1319,9 +1342,9 @@ fn get_window_state(hwnd: HWND) -> WindowState {
 /// to tell DWM that we set proper alpha channel info as
 /// a result of rendering our window content.
 fn enable_blur_behind(hwnd: HWND) {
-    use winapi::shared::minwindef::*;
-    use winapi::um::dwmapi::*;
-    use winapi::um::wingdi::*;
+    use windows_sys::Win32::Foundation::*;
+    use windows_sys::Win32::Graphics::Dwm::*;
+    use windows_sys::Win32::Graphics::Gdi::*;
 
     unsafe {
         let region = CreateRectRgn(0, 0, -1, -1);
@@ -1343,8 +1366,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
-    use winapi::um::dwmapi::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute};
-    use winapi::um::uxtheme::MARGINS;
+    use windows_sys::Win32::Graphics::Dwm::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute};
+    use windows_sys::Win32::UI::Controls::MARGINS;
 
     #[allow(non_snake_case)]
     type WINDOWCOMPOSITIONATTRIB = u32;
@@ -1355,7 +1378,7 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     pub struct WINDOWCOMPOSITIONATTRIBDATA {
         Attrib: WINDOWCOMPOSITIONATTRIB,
         pvData: PVOID,
-        cbData: winapi::shared::basetsd::SIZE_T,
+        cbData: usize,
     }
 
     shared_library!(User32,
@@ -1659,22 +1682,23 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
 fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
     let mut modifiers = Modifiers::default();
     let mut buttons = MouseButtons::default();
-    if wparam & MK_CONTROL != 0 {
+    let button_flags = wparam as u32;
+    if button_flags & MK_CONTROL != 0 {
         modifiers |= Modifiers::CTRL;
     }
-    if wparam & MK_SHIFT != 0 {
+    if button_flags & MK_SHIFT != 0 {
         modifiers |= Modifiers::SHIFT;
     }
-    if unsafe { GetKeyState(VK_MENU) } as u16 & 0x8000 != 0 {
+    if unsafe { GetKeyState(VK_MENU as i32) } as u16 & 0x8000 != 0 {
         modifiers |= Modifiers::ALT;
     }
-    if wparam & MK_LBUTTON != 0 {
+    if button_flags & MK_LBUTTON != 0 {
         buttons |= MouseButtons::LEFT;
     }
-    if wparam & MK_MBUTTON != 0 {
+    if button_flags & MK_MBUTTON != 0 {
         buttons |= MouseButtons::MIDDLE;
     }
-    if wparam & MK_RBUTTON != 0 {
+    if button_flags & MK_RBUTTON != 0 {
         buttons |= MouseButtons::RIGHT;
     }
     // TODO: XBUTTON1 and XBUTTON2?
@@ -1682,13 +1706,15 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
 }
 
 fn mouse_coords(lparam: LPARAM) -> Point {
-    let point = MAKEPOINTS(lparam as _);
-    Point::new(point.x as _, point.y as _)
+    let x = lparam as u16 as i16;
+    let y = (lparam >> 16) as u16 as i16;
+    Point::new(x as _, y as _)
 }
 
 fn nc_mouse_coords(hwnd: HWND, lparam: LPARAM) -> Point {
-    let point = MAKEPOINTS(lparam as _);
-    let point = ScreenPoint::new(point.x as _, point.y as _);
+    let x = lparam as u16 as i16;
+    let y = (lparam >> 16) as u16 as i16;
+    let point = ScreenPoint::new(x as _, y as _);
     screen_to_client(hwnd, point)
 }
 
@@ -1851,7 +1877,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             dwHoverTime: 0,
         };
 
-        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == TRUE;
     }
 
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
@@ -1882,7 +1908,7 @@ unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
             dwHoverTime: 0,
         };
 
-        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == TRUE;
     }
 
     if wparam != HTMAXBUTTON as usize {
@@ -1936,14 +1962,15 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     let coords = mouse_coords(lparam);
     let screen_coords = ScreenPoint::new(coords.x, coords.y);
     let coords = screen_to_client(hwnd, screen_coords);
-    let delta = GET_WHEEL_DELTA_WPARAM(wparam);
+    let delta = ((wparam >> 16) as u16) as i16;
+    let wheel_delta = WHEEL_DELTA as i16;
     let scaled_delta = if msg == WM_MOUSEWHEEL {
         delta * (*WHEEL_SCROLL_LINES)
     } else {
         delta * (*WHEEL_SCROLL_CHARS)
     };
-    let mut position = scaled_delta / WHEEL_DELTA;
-    let remainder = scaled_delta % WHEEL_DELTA;
+    let mut position = scaled_delta / wheel_delta;
+    let remainder = scaled_delta % wheel_delta;
     let event = MouseEvent {
         kind: if msg == WM_MOUSEHWHEEL {
             let mut inner = inner.borrow_mut();
@@ -1952,8 +1979,8 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 inner.hscroll_remainder = 0;
             }
             inner.hscroll_remainder += remainder;
-            position += inner.hscroll_remainder / WHEEL_DELTA;
-            inner.hscroll_remainder %= WHEEL_DELTA;
+            position += inner.hscroll_remainder / wheel_delta;
+            inner.hscroll_remainder %= wheel_delta;
             log::trace!(
                 "mouse_hwheel delta={} scaled={} remainder={} pos={}",
                 delta,
@@ -1972,8 +1999,8 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 inner.vscroll_remainder = 0;
             }
             inner.vscroll_remainder += remainder;
-            position += inner.vscroll_remainder / WHEEL_DELTA;
-            inner.vscroll_remainder %= WHEEL_DELTA;
+            position += inner.vscroll_remainder / wheel_delta;
+            inner.vscroll_remainder %= wheel_delta;
             log::trace!(
                 "mouse_wheel delta={} scaled={} remainder={} pos={}",
                 delta,

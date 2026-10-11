@@ -4,10 +4,11 @@ use std::ffi::CStr;
 use std::io::Error as IoError;
 use std::os::raw::c_void;
 use std::ptr::{null, null_mut};
-use winapi::shared::windef::*;
-use winapi::um::libloaderapi::{GetModuleHandleW, *};
-use winapi::um::wingdi::*;
-use winapi::um::winuser::*;
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::Graphics::Gdi::*;
+use windows_sys::Win32::Graphics::OpenGL::*;
+use windows_sys::Win32::System::LibraryLoader::*;
+use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
 pub mod ffi {
     include!(concat!(env!("OUT_DIR"), "/wgl_bindings.rs"));
@@ -52,7 +53,8 @@ impl WglWrapper {
             let err = IoError::last_os_error();
             match err.raw_os_error() {
                 Some(code)
-                    if code == winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS as i32 => {}
+                    if code
+                        == windows_sys::Win32::Foundation::ERROR_CLASS_ALREADY_EXISTS as i32 => {}
                 _ => return Err(err.into()),
             }
         }
@@ -310,7 +312,7 @@ impl GlState {
         };
 
         if rc.is_null() {
-            let err = unsafe { winapi::um::errhandlingapi::GetLastError() };
+            let err = unsafe { windows_sys::Win32::Foundation::GetLastError() };
             anyhow::bail!(
                 "CreateContextAttribsARB failed, GetLastError={} {:x}",
                 err,
@@ -354,7 +356,7 @@ impl GlState {
             cDepthBits: 24,
             cStencilBits: 8,
             cAuxBuffers: 0,
-            iLayerType: PFD_MAIN_PLANE,
+            iLayerType: PFD_MAIN_PLANE as u8,
             bReserved: 0,
             dwLayerMask: 0,
             dwVisibleMask: 0,

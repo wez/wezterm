@@ -51,17 +51,25 @@ wezterm-input-types.workspace = true
 [target."cfg(windows)".dependencies]
 clipboard-win = { workspace = true, features = ["std"] }
 shared_library.workspace = true
-winapi = { workspace=true, features = [
-    "dwmapi",
-    "handleapi",
-    "imm",
-    "libloaderapi",
-    "shellscalingapi",
-    "synchapi",
-    "sysinfoapi",
-    "winerror",
-    "winuser",
-]}
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Devices_Display",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_UI_Controls",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_Ime",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 windows = { workspace=true, features = [
     "UI_ViewManagement",
     "Win32_Devices_Display",

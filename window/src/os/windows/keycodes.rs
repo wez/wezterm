@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use wezterm_input_types::PhysKeyCode;
-use winapi::shared::minwindef::WPARAM;
-use winapi::um::winuser::*;
+use windows_sys::Win32::Foundation::WPARAM;
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
 
 /*
 // Determine the raw, underlying key event

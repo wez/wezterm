@@ -12,22 +12,20 @@ use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use winapi::shared::minwindef::*;
-use winapi::shared::windef::*;
-use winapi::shared::winerror::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
-use winapi::um::shellscalingapi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
-use winapi::um::winbase::INFINITE;
-use winapi::um::wingdi::{
-    DEVMODEW, DISPLAY_DEVICEW, DM_DISPLAYFREQUENCY, QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE,
-};
-use winapi::um::winnt::HANDLE;
-use winapi::um::winuser::*;
 use windows::Win32::Devices::Display::{
     DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QueryDisplayConfig,
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
     DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
     DISPLAYCONFIG_TARGET_DEVICE_NAME,
 };
+use windows_sys::Win32::Devices::Display::{QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE};
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::Graphics::Gdi::*;
+use windows_sys::Win32::System::Diagnostics::Debug::MessageBeep;
+use windows_sys::Win32::System::Threading::INFINITE;
+use windows_sys::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetFocus;
+use windows_sys::Win32::UI::WindowsAndMessaging::*;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -205,7 +203,7 @@ impl ScreenInfoHelper {
         ) -> i32 {
             let info: &mut ScreenInfoHelper = &mut *(data as *mut ScreenInfoHelper);
             let mut mi: MONITORINFOEXW = std::mem::zeroed();
-            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            mi.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
             GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
 
             let mut devmode: DEVMODEW = std::mem::zeroed();
@@ -241,10 +239,12 @@ impl ScreenInfoHelper {
             let screen_info = ScreenInfo {
                 name: monitor_name.clone(),
                 rect: euclid::rect(
-                    mi.rcMonitor.left as isize,
-                    mi.rcMonitor.top as isize,
-                    mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
-                    mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
+                    mi.monitorInfo.rcMonitor.left as isize,
+                    mi.monitorInfo.rcMonitor.top as isize,
+                    mi.monitorInfo.rcMonitor.right as isize
+                        - mi.monitorInfo.rcMonitor.left as isize,
+                    mi.monitorInfo.rcMonitor.bottom as isize
+                        - mi.monitorInfo.rcMonitor.top as isize,
                 ),
                 scale: 1.0,
                 max_fps,
@@ -253,7 +253,7 @@ impl ScreenInfoHelper {
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
 
-            if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
+            if mi.monitorInfo.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
                 info.primary.replace(screen_info.clone());
             }
             if mon == info.active_handle {
@@ -262,7 +262,7 @@ impl ScreenInfoHelper {
 
             info.by_name.insert(monitor_name, screen_info);
 
-            winapi::shared::ntdef::TRUE.into()
+            TRUE.into()
         }
 
         unsafe {
