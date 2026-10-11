@@ -115,6 +115,19 @@ impl crate::TermWindow {
         metrics::histogram!("gui.paint.impl").record(self.last_frame_duration);
         metrics::histogram!("gui.paint.impl.rate").record(1.);
 
+        // When post-process shaders are active, schedule continuous redraws
+        // so that time-based shader effects animate smoothly
+        if self.post_process.is_some() {
+            let mut anim = self.has_animation.borrow_mut();
+            let next = Instant::now() + Duration::from_millis(16);
+            match *anim {
+                Some(existing) if existing <= next => {}
+                _ => {
+                    *anim = Some(next);
+                }
+            }
+        }
+
         // If self.has_animation is some, then the last render detected
         // image attachments with multiple frames, so we also need to
         // invalidate the viewport when the next frame is due

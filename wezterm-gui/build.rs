@@ -1,6 +1,8 @@
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
+    patch_shadertoy_prefix();
+
     #[cfg(windows)]
     {
         use anyhow::Context as _;
@@ -181,5 +183,38 @@ END
                 dest_plist.display()
             ))
             .unwrap();
+    }
+}
+
+/// Apply the wezterm-specific patch to ghostty's verbatim shadertoy prefix.
+fn patch_shadertoy_prefix() {
+    use std::path::Path;
+
+    let crate_root = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    let shaders_dir = Path::new(&crate_root).join("src/termwindow/shaders");
+    let src_file = shaders_dir.join("ghostty_shadertoy_prefix.glsl");
+    let patch_file = shaders_dir.join("ghostty_shadertoy_prefix.patch");
+
+    println!("cargo:rerun-if-changed={}", src_file.display());
+    println!("cargo:rerun-if-changed={}", patch_file.display());
+
+    let out_dir = std::env::var_os("OUT_DIR").expect("OUT_DIR not set");
+    let out_file = Path::new(&out_dir).join("ghostty_shadertoy_prefix_patched.glsl");
+
+    let output = std::process::Command::new("patch")
+        .args(["-p0", "--silent", "-o"])
+        .arg(&out_file)
+        .arg(&src_file)
+        .arg("-i")
+        .arg(&patch_file)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to run `patch`: {}. Is it installed?", e));
+
+    if !output.status.success() {
+        panic!(
+            "failed to patch ghostty shadertoy prefix:\nstdout: {}\nstderr: {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 }

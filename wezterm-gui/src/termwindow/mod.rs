@@ -26,7 +26,7 @@ use crate::termwindow::render::{
     CachedLineState, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
     LineToElementShapeItem,
 };
-use crate::termwindow::webgpu::WebGpuState;
+use crate::termwindow::webgpu::{PostProcessState, WebGpuState};
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -82,6 +82,7 @@ mod prevcursor;
 pub mod render;
 pub mod resize;
 mod selection;
+pub mod shader_import;
 pub mod spawn;
 pub mod webgpu;
 use crate::spawn::SpawnWhere;
@@ -205,6 +206,8 @@ pub struct PaneState {
 
     bell_start: Option<Instant>,
     pub mouse_terminal_coords: Option<(ClickPosition, StableRowIndex)>,
+    /// Cursor render state for the post-process shader uniforms.
+    pub cursor_render_state: crate::termwindow::prevcursor::CursorRenderState,
 }
 
 /// Data used when synchronously formatting pane and window titles
@@ -466,6 +469,9 @@ pub struct TermWindow {
 
     gl: Option<Rc<glium::backend::Context>>,
     webgpu: Option<Rc<WebGpuState>>,
+    post_process: Option<PostProcessState>,
+    last_post_process_time: Option<Instant>,
+    post_process_frame: u32,
     config_subscription: Option<config::ConfigSubscription>,
 }
 
@@ -692,6 +698,9 @@ impl TermWindow {
             os_parameters: None,
             gl: None,
             webgpu: None,
+            post_process: None,
+            last_post_process_time: None,
+            post_process_frame: 0,
             window: None,
             window_background,
             config: config.clone(),
@@ -890,6 +899,7 @@ impl TermWindow {
             myself.load_os_parameters();
             window.show();
             myself.subscribe_to_pane_updates();
+            myself.reload_post_process_shaders();
             myself.emit_window_event("window-config-reloaded", None);
             myself.emit_status_event();
         }
@@ -1838,8 +1848,70 @@ impl TermWindow {
             &self.render_metrics,
         );
 
+        // Reload post-process shaders
+        self.reload_post_process_shaders();
+
         self.invalidate_modal();
         self.emit_window_event("window-config-reloaded", None);
+    }
+
+    /// Create, recreate, or remove post-process state based on current config.
+    /// Only active when using the WebGpu frontend.
+    fn reload_post_process_shaders(&mut self) {
+        use crate::termwindow::webgpu::PostProcessState;
+
+        let shader_paths = &self.config.custom_shaders;
+
+        if shader_paths.is_empty() {
+            if self.post_process.is_some() {
+                log::info!("postprocess: custom_shaders cleared, removing post-process pipeline");
+                self.post_process = None;
+                self.last_post_process_time = None;
+                self.post_process_frame = 0;
+            }
+            return;
+        }
+
+        // Post-process only works with WebGpu backend
+        let webgpu = match self.webgpu.as_ref() {
+            Some(w) => w,
+            None => {
+                if !shader_paths.is_empty() {
+                    log::warn!(
+                        "postprocess: custom_shaders configured but not using WebGpu frontend; \
+                         shaders will be ignored. Set front_end = \"WebGpu\" to enable."
+                    );
+                }
+                self.post_process = None;
+                return;
+            }
+        };
+
+        let config = webgpu.config.borrow();
+        let format = config.format;
+        let width = config.width;
+        let height = config.height;
+        drop(config);
+
+        match PostProcessState::new(&webgpu.device, format, width, height, shader_paths) {
+            Some(state) => {
+                log::info!(
+                    "postprocess: initialized with {} pipeline(s)",
+                    state.pipelines.len()
+                );
+                self.post_process = Some(state);
+                self.last_post_process_time = None;
+                self.post_process_frame = 0;
+            }
+            None => {
+                log::error!(
+                    "postprocess: failed to create post-process state, falling back to no shaders"
+                );
+                self.post_process = None;
+                self.last_post_process_time = None;
+                self.post_process_frame = 0;
+            }
+        }
     }
 
     fn invalidate_modal(&mut self) {
@@ -2112,28 +2184,33 @@ impl TermWindow {
 
     fn update_text_cursor(&mut self, pos: &PositionedPane) {
         if let Some(win) = self.window.as_ref() {
-            let cursor = pos.pane.get_cursor_position();
-            let top = pos.pane.get_dimensions().physical_top;
-            let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-                self.tab_bar_pixel_height().unwrap()
-            } else {
-                0.0
-            };
-            let (padding_left, padding_top) = self.padding_left_top();
-
-            let r = Rect::new(
-                Point::new(
-                    (((cursor.x + pos.left) as isize).max(0) * self.render_metrics.cell_size.width)
-                        .add(padding_left as isize),
-                    ((cursor.y + pos.top as isize - top).max(0)
-                        * self.render_metrics.cell_size.height)
-                        .add(tab_bar_height as isize)
-                        .add(padding_top as isize),
-                ),
-                self.render_metrics.cell_size,
-            );
+            let r = self.cursor_pixel_rect(pos);
             win.set_text_cursor_position(r);
         }
+    }
+
+    /// Compute the cursor's pixel rect in full-window coordinates, matching
+    /// the coordinate space of the post-process shader's `fragCoord`.
+    fn cursor_pixel_rect(&self, pos: &PositionedPane) -> Rect {
+        let cursor = pos.pane.get_cursor_position();
+        let top = pos.pane.get_dimensions().physical_top;
+        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+            self.tab_bar_pixel_height().unwrap()
+        } else {
+            0.0
+        };
+        let (padding_left, padding_top) = self.padding_left_top();
+
+        Rect::new(
+            Point::new(
+                (((cursor.x + pos.left) as isize).max(0) * self.render_metrics.cell_size.width)
+                    .add(padding_left as isize),
+                ((cursor.y + pos.top as isize - top).max(0) * self.render_metrics.cell_size.height)
+                    .add(tab_bar_height as isize)
+                    .add(padding_top as isize),
+            ),
+            self.render_metrics.cell_size,
+        )
     }
 
     fn activate_window(&mut self, window_idx: usize) -> anyhow::Result<()> {

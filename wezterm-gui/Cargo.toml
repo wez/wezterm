@@ -53,6 +53,7 @@ filedescriptor.workspace = true
 finl_unicode.workspace = true
 frecency.workspace = true
 futures.workspace = true
+glslang = "0.8"
 hdrhistogram.workspace = true
 http_req.workspace = true
 image.workspace = true
@@ -65,6 +66,7 @@ metrics.workspace = true
 mlua = {workspace=true, features=["send", "serialize"]}
 mux-lua.workspace = true
 mux.workspace = true
+naga = { version = "25", features = ["spv-in", "wgsl-out"] }
 nucleo-matcher.workspace = true
 ordered-float.workspace = true
 parking_lot.workspace = true
@@ -101,6 +103,8 @@ wezterm-gui-subcommands.workspace = true
 wezterm-mux-server-impl.workspace = true
 wezterm-open-url.workspace = true
 wezterm-ssh.workspace = true
+wezterm-shader-codegen.workspace = true
+wezterm-shader-types.workspace = true
 wezterm-term.workspace = true
 wezterm-toast-notification.workspace = true
 wgpu.workspace = true
@@ -126,3 +130,4 @@ windows = { workspace=true, features = [
 benchmarking.workspace = true
 env_logger.workspace = true
 k9.workspace = true
+naga = { version = "25", features = ["wgsl-in"] }

@@ -1,0 +1,9 @@
+[package]
+name = "wezterm-shader-types"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/wezterm/wezterm"
+description = "shader uniform reflection types"
+license = "MIT"
+
+[dependencies]

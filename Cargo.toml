@@ -13,6 +13,8 @@ members = [
   "wezterm-gui",
   "wezterm-mux-server",
   "wezterm-open-url",
+  "wezterm-shader-codegen",
+  "wezterm-shader-types",
   "wezterm-ssh",
   "wezterm-surface",
   "wezterm-uds",
@@ -255,6 +257,8 @@ wezterm-gui-subcommands = { path = "wezterm-gui-subcommands" }
 wezterm-input-types = { version="0.1", path = "wezterm-input-types", default-features=false }
 wezterm-mux-server-impl = { path = "wezterm-mux-server-impl" }
 wezterm-open-url = { path = "wezterm-open-url" }
+wezterm-shader-codegen = { version="0.1", path="wezterm-shader-codegen" }
+wezterm-shader-types = { version="0.1", path="wezterm-shader-types" }
 wezterm-ssh = { path = "wezterm-ssh" }
 wezterm-surface = { path = "wezterm-surface" }
 wezterm-term = { path = "term" }

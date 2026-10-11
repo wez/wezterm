@@ -35,6 +35,7 @@ pub mod lua;
 pub mod meta;
 mod scheme_data;
 mod serial;
+mod shader;
 mod ssh;
 mod terminal;
 mod tls;
@@ -55,6 +56,7 @@ pub use font::*;
 pub use frontend::*;
 pub use keys::*;
 pub use serial::*;
+pub use shader::*;
 pub use ssh::*;
 pub use terminal::*;
 pub use tls::*;
@@ -634,6 +636,11 @@ impl ConfigInner {
 
         self.notify();
         if self.config.automatically_reload_config {
+            // Watch custom shader files for hot-reload
+            for shader_path in &self.config.custom_shaders {
+                watch_paths.push(shader_path.as_path().to_path_buf());
+            }
+
             for path in watch_paths {
                 self.watch_path(path);
             }

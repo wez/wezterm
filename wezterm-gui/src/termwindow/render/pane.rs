@@ -105,6 +105,27 @@ impl crate::TermWindow {
                 config.text_background_opacity
             });
 
+        // Update the pane's cursor render state for the post-process uniforms.
+        {
+            let cursor_bg = palette.cursor_bg.to_linear();
+            let rect = if cursor.visibility == termwiz::surface::CursorVisibility::Visible {
+                let r = self.cursor_pixel_rect(pos);
+                Some([
+                    r.origin.x as f32,
+                    r.origin.y as f32,
+                    r.size.width as f32,
+                    r.size.height as f32,
+                ])
+            } else {
+                None
+            };
+            let color: [f32; 4] = cursor_bg.into();
+            let time = self.created.elapsed().as_secs_f32();
+            self.pane_state(pane_id)
+                .cursor_render_state
+                .update(rect, color, time);
+        }
+
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let background_rect = {
