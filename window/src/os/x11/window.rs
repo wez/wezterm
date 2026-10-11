@@ -118,6 +118,11 @@ const _NET_WM_MOVERESIZE_CANCEL: u32 = 11;
 
 impl Drop for XWindowInner {
     fn drop(&mut self) {
+        // Drop the event handler first, because it indirectly owns the TermWindow
+        // and its glium resources. Those resources need a still-valid native window
+        // so that make_current() can succeed in their Drop impls.
+        self.drop_event_handler();
+
         if self.window_id != xcb::x::Window::none() {
             if let Some(conn) = self.conn.upgrade() {
                 self.conn()
@@ -158,6 +163,15 @@ impl HasWindowHandle for XWindowInner {
 }
 
 impl XWindowInner {
+    fn drop_event_handler(&mut self) {
+        // The handler captures TermWindow; dropping it before issuing
+        // DestroyWindow keeps the EGL surface valid for glium cleanup.
+        drop(std::mem::replace(
+            &mut self.events,
+            WindowEventSender::new(|_, _| {}),
+        ));
+    }
+
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let conn = self.conn();
 
@@ -1596,6 +1610,10 @@ impl XWindowInner {
         conn.flush()
             .context("flush pending requests prior to issuing DestroyWindow")
             .ok();
+        // Drop the event handler first, because it indirectly owns the TermWindow
+        // and its glium resources. Those resources need a still-valid native window
+        // so that make_current() can succeed in their Drop impls.
+        self.drop_event_handler();
         // Remove the window from the map now, as GL state
         // requires that it is able to make_current() in its
         // Drop impl, and that cannot succeed after we've
