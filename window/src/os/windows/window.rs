@@ -47,8 +47,6 @@ use winapi::um::uxtheme::{
 use winapi::um::wingdi::{LOGFONTW, MAKEPOINTS};
 use winapi::um::winnt::OSVERSIONINFOW;
 use winapi::um::winuser::*;
-use windows::UI::Color as WUIColor;
-use windows::UI::ViewManagement::{UIColorType, UISettings};
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -132,8 +130,21 @@ pub(crate) struct WindowInner {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Window(HWindow);
 
-fn wuicolor_to_linearrgba(color: WUIColor) -> LinearRgba {
-    LinearRgba::with_srgba(color.R, color.G, color.B, 255)
+fn dwm_color_to_linearrgba(color: u32) -> LinearRgba {
+    LinearRgba::with_srgba(color as u8, (color >> 8) as u8, (color >> 16) as u8, 255)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_dwm_abgr_color() {
+        assert_eq!(
+            dwm_color_to_linearrgba(0xffd47800),
+            LinearRgba::with_srgba(0, 120, 212, 255)
+        );
+    }
 }
 
 fn rect_width(r: &RECT) -> i32 {
@@ -989,13 +1000,11 @@ impl WindowOps for Window {
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
 
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let use_accent = hkcu
-            .open_subkey("SOFTWARE\\Microsoft\\Windows\\DWM")?
-            .get_value::<u32, _>("ColorPrevalence")?;
-        let settings = UISettings::new()?;
+        let dwm = hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\DWM")?;
+        let use_accent = dwm.get_value::<u32, _>("ColorPrevalence")?;
         let top_border_color = if has_focus {
             if use_accent == 1 {
-                wuicolor_to_linearrgba(settings.GetColorValue(UIColorType::Accent)?)
+                dwm_color_to_linearrgba(dwm.get_value::<u32, _>("AccentColor")?)
             } else {
                 if *IS_WIN10 {
                     LinearRgba(0.01, 0.01, 0.01, 0.67)

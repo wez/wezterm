@@ -63,7 +63,6 @@ winapi = { workspace=true, features = [
     "winuser",
 ]}
 windows = { workspace=true, features = [
-    "UI_ViewManagement",
     "Win32_Devices_Display",
 ]}
 winreg.workspace = true
