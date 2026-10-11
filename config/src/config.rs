@@ -658,6 +658,16 @@ pub struct Config {
     #[dynamic(default = "default_anim_fps")]
     pub animation_fps: u8,
 
+    /// Whether to enable smooth gliding cursor motion and animated cursor trail.
+    /// Defaults to true.
+    #[dynamic(default = "default_cursor_trail")]
+    pub cursor_trail: bool,
+
+    /// Decay time in seconds for the cursor trail (e.g. 0.30 for 300ms).
+    /// Defaults to 0.30.
+    #[dynamic(default = "default_cursor_trail_decay")]
+    pub cursor_trail_decay: f64,
+
     #[dynamic(default)]
     pub text_min_contrast_ratio: Option<f32>,
 
@@ -1686,6 +1696,14 @@ fn default_ratelimit_line_prefetches_per_second() -> u32 {
 
 fn default_cursor_blink_rate() -> u64 {
     800
+}
+
+fn default_cursor_trail() -> bool {
+    true
+}
+
+fn default_cursor_trail_decay() -> f64 {
+    0.30
 }
 
 fn default_text_blink_rate() -> u64 {

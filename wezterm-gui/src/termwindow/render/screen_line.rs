@@ -366,74 +366,79 @@ impl crate::TermWindow {
                 + (phys(params.cursor.x, num_cols, direction) as f32 * cell_width);
 
             if let Some(shape) = cursor_shape {
-                let cursor_layer = match shape {
-                    CursorShape::BlinkingBar | CursorShape::SteadyBar => 2,
-                    _ => 0,
-                };
-                let mut quad = layers
-                    .allocate(cursor_layer)
-                    .with_context(|| format!("layers.allocate({cursor_layer})"))?;
-                quad.set_hsv(hsv);
-                quad.set_has_color(false);
+                if params.config.cursor_trail && params.is_active {
+                    // Rendered in paint_pane on layer 2 for smooth sub-cell animation
+                } else {
+                    let cursor_layer = match shape {
+                        CursorShape::BlinkingBar | CursorShape::SteadyBar => 2,
+                        _ => 0,
+                    };
+                    let mut quad = layers
+                        .allocate(cursor_layer)
+                        .with_context(|| format!("layers.allocate({cursor_layer})"))?;
+                    quad.set_hsv(hsv);
+                    quad.set_has_color(false);
 
-                let mut draw_basic = true;
+                    let mut draw_basic = true;
 
-                if params.password_input {
-                    let attrs = cursor_cell
-                        .as_ref()
-                        .map(|cell| cell.attrs().clone())
-                        .unwrap_or_else(|| CellAttributes::blank());
+                    if params.password_input {
+                        let attrs = cursor_cell
+                            .as_ref()
+                            .map(|cell| cell.attrs().clone())
+                            .unwrap_or_else(|| CellAttributes::blank());
 
-                    let glyph = self
-                        .resolve_lock_glyph(
-                            &TextStyle::default(),
-                            &attrs,
-                            params.font.as_ref(),
-                            gl_state,
-                            &params.render_metrics,
-                        )
-                        .context("resolve_lock_glyph")?;
+                        let glyph = self
+                            .resolve_lock_glyph(
+                                &TextStyle::default(),
+                                &attrs,
+                                params.font.as_ref(),
+                                gl_state,
+                                &params.render_metrics,
+                            )
+                            .context("resolve_lock_glyph")?;
 
-                    if let Some(sprite) = &glyph.texture {
-                        let width = sprite.coords.size.width as f32 * glyph.scale as f32;
-                        let height =
-                            sprite.coords.size.height as f32 * glyph.scale as f32 * height_scale;
-
-                        let pos_y = pos_y
-                            + cell_height
-                            + (params.render_metrics.descender.get() as f32
-                                - (glyph.y_offset + glyph.bearing_y).get() as f32)
+                        if let Some(sprite) = &glyph.texture {
+                            let width = sprite.coords.size.width as f32 * glyph.scale as f32;
+                            let height = sprite.coords.size.height as f32
+                                * glyph.scale as f32
                                 * height_scale;
 
-                        let pos_x = pos_x + (glyph.x_offset + glyph.bearing_x).get() as f32;
-                        quad.set_position(pos_x, pos_y, pos_x + width, pos_y + height);
-                        quad.set_texture(sprite.texture_coords());
-                        draw_basic = false;
+                            let pos_y = pos_y
+                                + cell_height
+                                + (params.render_metrics.descender.get() as f32
+                                    - (glyph.y_offset + glyph.bearing_y).get() as f32)
+                                    * height_scale;
+
+                            let pos_x = pos_x + (glyph.x_offset + glyph.bearing_x).get() as f32;
+                            quad.set_position(pos_x, pos_y, pos_x + width, pos_y + height);
+                            quad.set_texture(sprite.texture_coords());
+                            draw_basic = false;
+                        }
                     }
-                }
 
-                if draw_basic {
-                    quad.set_position(
-                        pos_x,
-                        pos_y,
-                        pos_x + (cursor_range.end - cursor_range.start) as f32 * cell_width,
-                        pos_y + cell_height,
-                    );
-                    quad.set_texture(
-                        gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cursor_sprite(
-                                Some(shape),
-                                &params.render_metrics,
-                                (cursor_range.end - cursor_range.start) as u8,
-                            )?
-                            .texture_coords(),
-                    );
-                }
+                    if draw_basic {
+                        quad.set_position(
+                            pos_x,
+                            pos_y,
+                            pos_x + (cursor_range.end - cursor_range.start) as f32 * cell_width,
+                            pos_y + cell_height,
+                        );
+                        quad.set_texture(
+                            gl_state
+                                .glyph_cache
+                                .borrow_mut()
+                                .cursor_sprite(
+                                    Some(shape),
+                                    &params.render_metrics,
+                                    (cursor_range.end - cursor_range.start) as u8,
+                                )?
+                                .texture_coords(),
+                        );
+                    }
 
-                quad.set_fg_color(cursor_border_color);
-                quad.set_alt_color_and_mix_value(cursor_border_color_alt, cursor_border_mix);
+                    quad.set_fg_color(cursor_border_color);
+                    quad.set_alt_color_and_mix_value(cursor_border_color_alt, cursor_border_mix);
+                }
             }
         }
 

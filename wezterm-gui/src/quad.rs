@@ -105,6 +105,13 @@ pub trait QuadTrait {
 
     fn set_hsv(&mut self, hsv: Option<HsbTransform>);
     fn set_position(&mut self, left: f32, top: f32, right: f32, bottom: f32);
+    fn set_quad_corners(
+        &mut self,
+        top_left: (f32, f32),
+        top_right: (f32, f32),
+        bot_left: (f32, f32),
+        bot_right: (f32, f32),
+    );
 }
 
 pub enum QuadImpl<'a> {
@@ -152,6 +159,19 @@ impl<'a> QuadTrait for QuadImpl<'a> {
         match self {
             Self::Vert(q) => q.set_position(left, top, right, bottom),
             Self::Boxed(q) => q.set_position(left, top, right, bottom),
+        }
+    }
+
+    fn set_quad_corners(
+        &mut self,
+        top_left: (f32, f32),
+        top_right: (f32, f32),
+        bot_left: (f32, f32),
+        bot_right: (f32, f32),
+    ) {
+        match self {
+            Self::Vert(q) => q.set_quad_corners(top_left, top_right, bot_left, bot_right),
+            Self::Boxed(q) => q.set_quad_corners(top_left, top_right, bot_left, bot_right),
         }
     }
 }
@@ -204,6 +224,19 @@ impl<'a> QuadTrait for Quad<'a> {
         self.vert[V_TOP_RIGHT].position = [right, top];
         self.vert[V_BOT_LEFT].position = [left, bottom];
         self.vert[V_BOT_RIGHT].position = [right, bottom];
+    }
+
+    fn set_quad_corners(
+        &mut self,
+        top_left: (f32, f32),
+        top_right: (f32, f32),
+        bot_left: (f32, f32),
+        bot_right: (f32, f32),
+    ) {
+        self.vert[V_TOP_LEFT].position = [top_left.0, top_left.1];
+        self.vert[V_TOP_RIGHT].position = [top_right.0, top_right.1];
+        self.vert[V_BOT_LEFT].position = [bot_left.0, bot_left.1];
+        self.vert[V_BOT_RIGHT].position = [bot_right.0, bot_right.1];
     }
 }
 
@@ -258,6 +291,20 @@ impl QuadTrait for BoxedQuad {
 
     fn set_position(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
         self.position = (left, top, right, bottom);
+    }
+
+    fn set_quad_corners(
+        &mut self,
+        top_left: (f32, f32),
+        top_right: (f32, f32),
+        bot_left: (f32, f32),
+        bot_right: (f32, f32),
+    ) {
+        let left = top_left.0.min(bot_left.0);
+        let right = top_right.0.max(bot_right.0);
+        let top = top_left.1.min(top_right.1);
+        let bottom = bot_left.1.max(bot_right.1);
+        self.set_position(left, top, right, bottom);
     }
 }
 

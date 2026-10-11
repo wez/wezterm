@@ -1,6 +1,9 @@
-use crate::quad::{HeapQuadAllocator, QuadTrait, TripleLayerQuadAllocator};
+use crate::quad::{
+    HeapQuadAllocator, QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait,
+};
 use crate::selection::SelectionRange;
 use crate::termwindow::box_model::*;
+use crate::termwindow::cursortrail::CursorTrailState;
 use crate::termwindow::render::{
     same_hyperlink, CursorProperties, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
     RenderScreenLineParams,
@@ -571,13 +574,141 @@ impl crate::TermWindow {
             }
         }
 
-        /*
-        if let Some(zone) = zone {
-            // TODO: render a thingy to jump to prior prompt
+        if pos.is_active && self.config.cursor_trail {
+            self.paint_cursor_trail(pos, layers, current_viewport, &dims, &palette)?;
         }
-        */
+
         metrics::histogram!("paint_pane.lines").record(start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());
+
+        Ok(())
+    }
+
+    pub fn paint_cursor_trail(
+        &mut self,
+        pos: &PositionedPane,
+        layers: &mut TripleLayerQuadAllocator,
+        current_viewport: Option<StableRowIndex>,
+        dims: &RenderableDimensions,
+        palette: &ColorPalette,
+    ) -> anyhow::Result<()> {
+        let cursor = pos.pane.get_cursor_position();
+        if cursor.visibility != termwiz::surface::CursorVisibility::Visible {
+            return Ok(());
+        }
+
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let (padding_left, padding_top) = self.padding_left_top();
+        let border = self.get_os_border();
+        let tab_bar_height = if self.show_tab_bar {
+            self.tab_bar_pixel_height()
+                .context("tab_bar_pixel_height")?
+        } else {
+            0.
+        };
+        let (top_bar_height, _) = if self.config.tab_bar_at_bottom {
+            (0.0, tab_bar_height)
+        } else {
+            (tab_bar_height, 0.0)
+        };
+
+        let left_pixel_x = padding_left + border.left.get() as f32 + (pos.left as f32 * cell_width);
+        let top_pixel_y =
+            top_bar_height + padding_top + border.top.get() as f32 + (pos.top as f32 * cell_height);
+
+        let viewport_top = current_viewport.unwrap_or(dims.physical_top);
+        let rel_row = cursor.y - viewport_top;
+
+        if rel_row < 0 || rel_row >= dims.viewport_rows as StableRowIndex {
+            return Ok(());
+        }
+
+        // The cursor always renders in brick rectangle mode (full cell)
+        let cursor_w = cell_width;
+        let cursor_h = cell_height;
+
+        let target_x = left_pixel_x + (cursor.x as f32 * cell_width);
+        let target_y = top_pixel_y + (rel_row as f32 * cell_height);
+
+        let left_offset = self.dimensions.pixel_width as f32 / 2.0;
+        let top_offset = self.dimensions.pixel_height as f32 / 2.0;
+
+        let decay = self.config.cursor_trail_decay as f32;
+        let now = Instant::now();
+
+        let max_snap_distance = (cell_width * 200.0).max(cell_height * 60.0);
+
+        let (still_animating, corners_x, corners_y, _trail_opacity) = {
+            let mut trails = self.cursor_trail.borrow_mut();
+            let trail_state = trails
+                .entry(pos.pane.pane_id())
+                .or_insert_with(CursorTrailState::new);
+
+            trail_state.set_target(
+                target_x,
+                target_y,
+                cell_width,
+                cell_height,
+                max_snap_distance,
+            );
+
+            let animating = trail_state.tick(now, decay, cell_width, cell_height);
+            (
+                animating,
+                trail_state.corner_x,
+                trail_state.corner_y,
+                trail_state.opacity,
+            )
+        };
+
+        if still_animating {
+            let max_fps = (self.config.max_fps as u64).max(60);
+            let interval = std::time::Duration::from_nanos(1_000_000_000 / max_fps);
+            self.update_next_frame_time(Some(now + interval));
+        }
+
+        let cursor_color = palette.cursor_bg.to_linear();
+        let gl_state = self.render_state.as_ref().unwrap();
+        let filled_box = gl_state.util_sprites.filled_box.texture_coords();
+
+        // 1. Render the single continuous stretched trail quad (Kitty's trail architecture)
+        // Corner 0: top-right, 1: bottom-right, 2: bottom-left, 3: top-left
+        if still_animating {
+            let top_left = (corners_x[3] - left_offset, corners_y[3] - top_offset);
+            let top_right = (corners_x[0] - left_offset, corners_y[0] - top_offset);
+            let bot_left = (corners_x[2] - left_offset, corners_y[2] - top_offset);
+            let bot_right = (corners_x[1] - left_offset, corners_y[1] - top_offset);
+
+            if let Ok(mut quad) = layers.allocate(0) {
+                quad.set_quad_corners(top_left, top_right, bot_left, bot_right);
+                quad.set_texture(filled_box);
+                quad.set_is_background();
+                quad.set_fg_color(cursor_color);
+                quad.set_hsv(None);
+            }
+        }
+
+        // 2. Render the active solid brick rectangle cursor (full cell width x height)
+        let cursor_left = target_x - left_offset;
+        let cursor_top = target_y - top_offset;
+        let cursor_right = cursor_left + cursor_w;
+        let cursor_bottom = cursor_top + cursor_h;
+
+        let focused = self.focused.is_some();
+        let cursor_alpha = if !focused {
+            0.6 // Clean dimming when unfocused
+        } else {
+            1.0 // Strictly 100% solid brick rectangle with no translucency
+        };
+
+        if let Ok(mut quad) = layers.allocate(0) {
+            quad.set_position(cursor_left, cursor_top, cursor_right, cursor_bottom);
+            quad.set_texture(filled_box);
+            quad.set_is_background();
+            quad.set_fg_color(cursor_color.mul_alpha(cursor_alpha));
+            quad.set_hsv(None);
+        }
 
         Ok(())
     }
