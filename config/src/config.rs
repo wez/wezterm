@@ -272,6 +272,14 @@ pub struct Config {
     #[dynamic(default)]
     pub enable_checksum_rectangular_area: bool,
 
+    /// Whether `CSI 2 J` (erase the whole display, as sent by eg: `clear`)
+    /// should scroll the screen contents into the scrollback instead of
+    /// erasing them in place.
+    /// Disabled by default because erasing in place is what the spec
+    /// describes and what xterm does.
+    #[dynamic(default)]
+    pub erase_display_scrolls_into_scrollback: bool,
+
     /// Specifies the width of a new window, expressed in character cells
     #[dynamic(default = "default_initial_cols", validate = "validate_row_or_col")]
     pub initial_cols: u16,

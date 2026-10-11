@@ -77,6 +77,11 @@ As features stabilize some brief notes about them will accumulate here.
   easier to spot the remaining candidates. Thanks to @mr-felixoid and @bew! #7752
 
 #### New
+* [erase_display_scrolls_into_scrollback](config/lua/config/erase_display_scrolls_into_scrollback.md)
+  option to make `CSI 2 J` (as sent by `clear -x` and the shell's `Ctrl-L`)
+  scroll the screen into the scrollback instead of erasing it in place. Off by
+  default, which leaves the spec behavior unchanged. Thanks to @dylanpulver!
+  #8105
 * [command_palette_line_height](config/lua/config/command_palette_line_height.md)
   option to scale the vertical spacing of rows in the command palette,
   independently of [line_height](config/lua/config/line_height.md) which is for terminal cells only.

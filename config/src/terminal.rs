@@ -86,6 +86,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().enable_checksum_rectangular_area
     }
 
+    fn erase_display_scrolls_into_scrollback(&self) -> bool {
+        self.configuration().erase_display_scrolls_into_scrollback
+    }
+
     fn enable_kitty_keyboard(&self) -> bool {
         self.configuration().enable_kitty_keyboard
     }

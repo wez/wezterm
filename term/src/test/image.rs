@@ -56,7 +56,10 @@ fn kitty_image_with_zero_pixel_dimensions_does_not_panic() {
             pixel_height: 0,
             dpi: 0,
         },
-        Arc::new(TestTermConfig { scrollback: 0 }),
+        Arc::new(TestTermConfig {
+            scrollback: 0,
+            ..Default::default()
+        }),
         "WezTerm",
         "O_o",
         Box::new(Vec::new()),

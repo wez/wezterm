@@ -224,6 +224,15 @@ pub trait TerminalConfiguration: Downcast + std::fmt::Debug + Send + Sync {
         false
     }
 
+    /// When true, `CSI 2 J` (erase the whole display) on the primary
+    /// screen first scrolls the screen contents into the scrollback,
+    /// rather than erasing them in place.
+    /// This is not the behavior described by the spec, so it is
+    /// disabled by default.
+    fn erase_display_scrolls_into_scrollback(&self) -> bool {
+        false
+    }
+
     fn log_unknown_escape_sequences(&self) -> bool {
         false
     }

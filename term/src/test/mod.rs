@@ -43,9 +43,10 @@ struct TestTerm {
     term: Terminal,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TestTermConfig {
     scrollback: usize,
+    erase_display_scrolls_into_scrollback: bool,
 }
 impl TerminalConfiguration for TestTermConfig {
     fn scrollback_size(&self) -> usize {
@@ -59,10 +60,25 @@ impl TerminalConfiguration for TestTermConfig {
     fn enable_kitty_graphics(&self) -> bool {
         true
     }
+
+    fn erase_display_scrolls_into_scrollback(&self) -> bool {
+        self.erase_display_scrolls_into_scrollback
+    }
 }
 
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
+        Self::new_with_config(
+            height,
+            width,
+            TestTermConfig {
+                scrollback,
+                ..Default::default()
+            },
+        )
+    }
+
+    fn new_with_config(height: usize, width: usize, config: TestTermConfig) -> Self {
         let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
@@ -76,7 +92,7 @@ impl TestTerm {
                 pixel_height: height * 16,
                 dpi: 0,
             },
-            Arc::new(TestTermConfig { scrollback }),
+            Arc::new(config),
             "WezTerm",
             "O_o",
             Box::new(Vec::new()),

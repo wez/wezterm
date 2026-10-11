@@ -2239,7 +2239,41 @@ impl TerminalState {
                 self.perform_csi_edit(Edit::EraseInLine(EraseInLine::EraseToStartOfLine));
                 0..cy
             }
-            EraseInDisplay::EraseDisplay => 0..rows,
+            EraseInDisplay::EraseDisplay => {
+                if self.config.erase_display_scrolls_into_scrollback()
+                    && !self.screen.is_alt_screen_active()
+                {
+                    // Move what is on screen into the scrollback before we
+                    // erase it. We only scroll as far as the last row that
+                    // holds something, so that clearing a mostly-empty screen
+                    // doesn't push a screenful of blank lines into the
+                    // scrollback and evict real history.
+                    let num_rows = {
+                        let screen = self.screen();
+                        let phys_range = screen.phys_range(&(0..rows));
+                        let mut num_rows = 0;
+                        screen.with_phys_lines(phys_range, |lines| {
+                            num_rows = lines
+                                .iter()
+                                .rposition(|line| !line.is_whitespace())
+                                .map_or(0, |idx| idx + 1);
+                        });
+                        num_rows
+                    };
+                    if num_rows > 0 {
+                        let bidi_mode = self.get_bidi_mode();
+                        let blank_attr = pen.clone();
+                        self.screen_mut().scroll_up(
+                            &(0..rows),
+                            num_rows,
+                            seqno,
+                            blank_attr,
+                            bidi_mode,
+                        );
+                    }
+                }
+                0..rows
+            }
             EraseInDisplay::EraseScrollback => {
                 self.screen_mut().erase_scrollback();
                 return;
