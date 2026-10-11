@@ -101,19 +101,23 @@ bitflags! {
         /// Maximized along either or both of horizontal or vertical dimensions;
         /// cannot be resized while in this state.
         const MAXIMIZED = 1<<2;
+        /// Tiled by the window manager on all edges (eg: a tiling Wayland
+        /// compositor such as sway). The compositor owns the window size,
+        /// so the application must not resize itself.
+        const TILED = 1<<3;
         /// Minimized or in some kind of off-screen state. Cannot be repainted
         /// while in this state.
-        const HIDDEN = 1<<3;
+        const HIDDEN = 1<<4;
         /// Always on top (floating) window
-        const ALWAYS_ON_TOP = 1<<4;
+        const ALWAYS_ON_TOP = 1<<5;
         /// Always on bottom (docked) window
-        const ALWAYS_ON_BOTTOM = 1<<5;
+        const ALWAYS_ON_BOTTOM = 1<<6;
     }
 }
 
 impl WindowState {
     pub fn can_resize(self) -> bool {
-        !self.intersects(Self::FULL_SCREEN | Self::MAXIMIZED)
+        !self.intersects(Self::FULL_SCREEN | Self::MAXIMIZED | Self::TILED)
     }
 
     pub fn can_paint(self) -> bool {

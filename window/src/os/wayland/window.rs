@@ -1415,6 +1415,15 @@ impl WaylandState {
                 if configure.state.contains(SCTKWindowState::MAXIMIZED) {
                     state |= WindowState::MAXIMIZED;
                 }
+                // A tiling compositor (eg: sway) owns the window size; record
+                // the tiled state so that we don't fight the compositor by
+                // speculatively resizing ourselves to preserve rows/cols.
+                // SCTKWindowState::TILED is the alias for all four tiled edges,
+                // so this only matches when every edge is pinned by the
+                // compositor.
+                if configure.state.contains(SCTKWindowState::TILED) {
+                    state |= WindowState::TILED;
+                }
 
                 log::debug!(
                     "Config: self.window_state={:?}, states: {:?} {:?}",
