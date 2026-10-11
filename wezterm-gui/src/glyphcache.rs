@@ -27,8 +27,28 @@ use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_blob_leases::{BlobLease, BlobManager, BoxedReader};
 use wezterm_font::units::*;
-use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
+use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId, FAKE_ITALIC_SKEW};
 use wezterm_term::Underline;
+
+/// Compute the maximum width in pixels that the rasterized glyph for
+/// `num_cells` cells may occupy before it gets scaled down to fit.
+/// A synthetic italic slant is applied as a shear that widens the ink
+/// by up to `FAKE_ITALIC_SKEW` * height by design; that growth is
+/// expected and shouldn't count as overflow, otherwise a two-cell
+/// glyph is shrunk to half its size.
+/// <https://github.com/wezterm/wezterm/issues/8246>
+fn allowed_glyph_pixel_width(
+    cell_width: f64,
+    num_cells: f64,
+    glyph_height: usize,
+    synthesize_italic: bool,
+) -> f64 {
+    let mut max = cell_width * (num_cells + 0.25);
+    if synthesize_italic {
+        max += FAKE_ITALIC_SKEW * glyph_height as f64;
+    }
+    max
+}
 
 static FRAME_ERROR_REPORTED: AtomicBool = AtomicBool::new(false);
 
@@ -744,7 +764,12 @@ impl GlyphCache {
 
         // Maximum width allowed for this glyph based on its unicode width and
         // the dimensions of a cell
-        let max_pixel_width = base_metrics.cell_width.get() * (num_cells + 0.25);
+        let max_pixel_width = allowed_glyph_pixel_width(
+            base_metrics.cell_width.get(),
+            num_cells,
+            glyph.height,
+            font.synthesize_italic(info.font_idx),
+        );
 
         let scale;
 
@@ -1372,5 +1397,38 @@ impl GlyphCache {
         }
 
         self.line_sprite(key, metrics)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regress <https://github.com/wezterm/wezterm/issues/8246>:
+    /// with NSimSun (a font with embedded bitmap strikes) at 28pt the
+    /// cell width is 18.5px and the rasterized ink of a two-cell CJK
+    /// glyph with synthesized bold+italic is 44x36px. The italic skew
+    /// deliberately widens the ink by roughly FAKE_ITALIC_SKEW * height,
+    /// so that much growth must not be treated as overflow; otherwise
+    /// the glyph cache scales the glyph by 1/num_cells == 0.5 and both
+    /// its advance (37 -> 18.5px) and its bitmap end up halved.
+    #[test]
+    fn synthetic_italic_skew_is_not_width_overflow() {
+        let cell_width = 18.5;
+        let num_cells = 2.0;
+        let glyph_width = 44.0;
+        let glyph_height = 36;
+
+        // Without synthesized italics the ink overflows 2.25 cells and
+        // would be scaled down to fit
+        let max = allowed_glyph_pixel_width(cell_width, num_cells, glyph_height, false);
+        assert!((max - 41.625).abs() < 1e-9);
+        assert!(glyph_width > max);
+
+        // With synthesized italics the skew-induced growth is allowed
+        // for, and the same glyph no longer overflows
+        let max = allowed_glyph_pixel_width(cell_width, num_cells, glyph_height, true);
+        assert!((max - 48.825).abs() < 1e-9);
+        assert!(glyph_width <= max);
     }
 }
