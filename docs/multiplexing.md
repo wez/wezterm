@@ -20,6 +20,17 @@ the mouse, clipboard and scrollback features of the terminal.
 Key bindings allow you to spawn new tabs in the default local domain,
 the domain of the current tab, or a specific numbered domain.
 
+Keyboard encoding (including the [Kitty keyboard
+protocol](config/key-encoding.md#kitty-keyboard-protocol)) behaves differently
+per domain: local panes honor Kitty when enabled; `wezterm connect` sessions
+encode on the server side when Kitty is enabled there(`enable_kitty_keyboard =
+true` on the server) 
+
+- panes attached to a tmux session use Xterm encoding only, not possible to
+  enable Kitty Keyboard Protocol.
+- [zellij](https://zellij.dev) support Kitty Keyboard Protocol in wezterm local
+  pane and mux pane
+
 ## SSH Domains
 
 *wezterm also supports [regular ad-hoc ssh connections](ssh.md).

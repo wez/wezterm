@@ -62,6 +62,22 @@ keys (notably: `CMD`/`Super`/`Windows`) to be reported to the application.
 [enable_kitty_keyboard](lua/config/enable_kitty_keyboard.md) controls whether
 wezterm will honor the application requests to modify the keyboard encoding.
 
+### Multiplexing and Kitty keyboard
+
+- **Local panes (default domain):** Kitty keyboard protocol is fully supported.
+  The application’s CSI sequences set the encoding; key events are encoded
+  accordingly and written to the PTY.
+
+- **`wezterm connect` (remote client):** The client sends **SendKeyDown** (raw
+  key + modifiers); the server encodes and writes to the PTY based on the
+  encoding requested by the application (when `enable_kitty_keyboard = true`
+  on the server).
+
+- **attach to tmux:** Kitty keyboard protocol is **not** supported
+  in panes that are attached to a tmux session. Those panes always use Xterm
+  encoding so that keys are passed through to tmux in a compatible way.
+
+- 
 ## Windows
 
 On Windows, [allow_win32_input_mode](lua/config/allow_win32_input_mode.md)

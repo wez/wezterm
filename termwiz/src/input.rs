@@ -10,12 +10,114 @@ use crate::readbuf::ReadBuffer;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
-use wezterm_input_types::ctrl_mapping;
+use wezterm_input_types::{ctrl_mapping, KeyboardLedStatus as InputKeyboardLedStatus};
 
 pub use wezterm_input_types::Modifiers;
 
 pub const CSI: &str = "\x1b[";
 pub const SS3: &str = "\x1bO";
+
+fn to_input_types_key_code(key: KeyCode) -> Option<wezterm_input_types::KeyCode> {
+    use wezterm_input_types::KeyCode as IK;
+    Some(match key {
+        KeyCode::Char(c) => IK::Char(c),
+
+        // termwiz has these as distinct variants; input-types represents them as Char
+        KeyCode::Backspace => IK::Char('\u{8}'),
+        KeyCode::Tab => IK::Char('\t'),
+        KeyCode::Enter => IK::Char('\r'),
+        KeyCode::Escape => IK::Char('\u{1b}'),
+        KeyCode::Delete => IK::Char('\u{7f}'),
+
+        KeyCode::Hyper => IK::Hyper,
+        KeyCode::Super => IK::Super,
+        KeyCode::Meta => IK::Meta,
+        KeyCode::Cancel => IK::Cancel,
+        KeyCode::Clear => IK::Clear,
+        KeyCode::Shift => IK::Shift,
+        KeyCode::LeftShift => IK::LeftShift,
+        KeyCode::RightShift => IK::RightShift,
+        KeyCode::Control => IK::Control,
+        KeyCode::LeftControl => IK::LeftControl,
+        KeyCode::RightControl => IK::RightControl,
+        KeyCode::Alt => IK::Alt,
+        KeyCode::LeftAlt => IK::LeftAlt,
+        KeyCode::RightAlt => IK::RightAlt,
+
+        // termwiz has Menu variants; input-types uses Applications
+        KeyCode::Menu | KeyCode::LeftMenu | KeyCode::RightMenu => IK::Applications,
+
+        KeyCode::Pause => IK::Pause,
+        KeyCode::CapsLock => IK::CapsLock,
+        KeyCode::PageUp => IK::PageUp,
+        KeyCode::PageDown => IK::PageDown,
+        KeyCode::End => IK::End,
+        KeyCode::Home => IK::Home,
+        KeyCode::LeftArrow => IK::LeftArrow,
+        KeyCode::RightArrow => IK::RightArrow,
+        KeyCode::UpArrow => IK::UpArrow,
+        KeyCode::DownArrow => IK::DownArrow,
+        KeyCode::Select => IK::Select,
+        KeyCode::Print => IK::Print,
+        KeyCode::Execute => IK::Execute,
+        KeyCode::PrintScreen => IK::PrintScreen,
+        KeyCode::Insert => IK::Insert,
+        KeyCode::Help => IK::Help,
+        KeyCode::LeftWindows => IK::LeftWindows,
+        KeyCode::RightWindows => IK::RightWindows,
+        KeyCode::Applications => IK::Applications,
+        KeyCode::Sleep => IK::Sleep,
+
+        KeyCode::Numpad0 => IK::Numpad(0),
+        KeyCode::Numpad1 => IK::Numpad(1),
+        KeyCode::Numpad2 => IK::Numpad(2),
+        KeyCode::Numpad3 => IK::Numpad(3),
+        KeyCode::Numpad4 => IK::Numpad(4),
+        KeyCode::Numpad5 => IK::Numpad(5),
+        KeyCode::Numpad6 => IK::Numpad(6),
+        KeyCode::Numpad7 => IK::Numpad(7),
+        KeyCode::Numpad8 => IK::Numpad(8),
+        KeyCode::Numpad9 => IK::Numpad(9),
+        KeyCode::Multiply => IK::Multiply,
+        KeyCode::Add => IK::Add,
+        KeyCode::Separator => IK::Separator,
+        KeyCode::Subtract => IK::Subtract,
+        KeyCode::Decimal => IK::Decimal,
+        KeyCode::Divide => IK::Divide,
+        KeyCode::Function(n) => IK::Function(n),
+        KeyCode::NumLock => IK::NumLock,
+        KeyCode::ScrollLock => IK::ScrollLock,
+        KeyCode::Copy => IK::Copy,
+        KeyCode::Cut => IK::Cut,
+        KeyCode::Paste => IK::Paste,
+        KeyCode::BrowserBack => IK::BrowserBack,
+        KeyCode::BrowserForward => IK::BrowserForward,
+        KeyCode::BrowserRefresh => IK::BrowserRefresh,
+        KeyCode::BrowserStop => IK::BrowserStop,
+        KeyCode::BrowserSearch => IK::BrowserSearch,
+        KeyCode::BrowserFavorites => IK::BrowserFavorites,
+        KeyCode::BrowserHome => IK::BrowserHome,
+        KeyCode::VolumeMute => IK::VolumeMute,
+        KeyCode::VolumeDown => IK::VolumeDown,
+        KeyCode::VolumeUp => IK::VolumeUp,
+        KeyCode::MediaNextTrack => IK::MediaNextTrack,
+        KeyCode::MediaPrevTrack => IK::MediaPrevTrack,
+        KeyCode::MediaStop => IK::MediaStop,
+        KeyCode::MediaPlayPause => IK::MediaPlayPause,
+        KeyCode::ApplicationLeftArrow => IK::ApplicationLeftArrow,
+        KeyCode::ApplicationRightArrow => IK::ApplicationRightArrow,
+        KeyCode::ApplicationUpArrow => IK::ApplicationUpArrow,
+        KeyCode::ApplicationDownArrow => IK::ApplicationDownArrow,
+        KeyCode::KeyPadHome => IK::KeyPadHome,
+        KeyCode::KeyPadEnd => IK::KeyPadEnd,
+        KeyCode::KeyPadPageUp => IK::KeyPadPageUp,
+        KeyCode::KeyPadPageDown => IK::KeyPadPageDown,
+        KeyCode::KeyPadBegin => IK::KeyPadBegin,
+
+        // Internal synthetic keys; do not encode to application input
+        KeyCode::InternalPasteStart | KeyCode::InternalPasteEnd => return None,
+    })
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyboardEncoding {
@@ -244,10 +346,6 @@ impl KeyCode {
         modes: KeyCodeEncodeModes,
         is_down: bool,
     ) -> Result<String> {
-        if !is_down {
-            // We only want down events
-            return Ok(String::new());
-        }
         // We are encoding the key as an xterm-compatible sequence, which does not support
         // positional modifiers.
         let mods = mods.remove_positional_mods();
@@ -273,6 +371,30 @@ impl KeyCode {
             Char('\x08') => Backspace,
             c => c,
         };
+
+        if let KeyboardEncoding::Kitty(flags) = modes.encoding {
+            // When in kitty mode, reuse the same encoder used by the GUI layer:
+            // wezterm_input_types::KeyEvent::encode_kitty.
+            if let Some(input_key) = to_input_types_key_code(key) {
+                let ev = wezterm_input_types::KeyEvent {
+                    key: input_key,
+                    modifiers: mods,
+                    leds: InputKeyboardLedStatus::default(),
+                    repeat_count: 1,
+                    key_is_down: is_down,
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
+                };
+                return Ok(ev.encode_kitty(flags));
+            }
+            return Ok(String::new());
+        }
+
+        if !is_down {
+            // For non-kitty encodings, we only want down events
+            return Ok(String::new());
+        }
 
         let mut buf = String::new();
 
