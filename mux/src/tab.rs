@@ -751,6 +751,10 @@ impl Tab {
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
         self.inner.lock().get_zoomed_pane()
     }
+
+    pub fn idx_by_id(&self, id: PaneId) -> Option<usize> {
+        self.inner.lock().idx_by_id(id)
+    }
 }
 
 impl TabInner {
@@ -2094,6 +2098,12 @@ impl TabInner {
 
     fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
         self.zoomed.clone()
+    }
+
+    fn idx_by_id(&mut self, id: PaneId) -> Option<usize> {
+        self.iter_panes_ignoring_zoom()
+            .iter()
+            .position(|pane| pane.pane.pane_id() == id)
     }
 }
 

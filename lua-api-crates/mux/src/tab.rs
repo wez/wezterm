@@ -155,5 +155,20 @@ impl UserData for MuxTab {
             }
             Ok(())
         });
+
+        methods.add_method("swap_active_with_id", |_, this, (pane_id, keep_focus): (Value, bool)| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+
+            let target_id: PaneId = from_lua(pane_id)?;
+
+            match tab.idx_by_id(target_id) {
+                Some(index) => Ok(tab.swap_active_with_index(index, keep_focus).is_some()),
+                None => Err(mlua::Error::external(format!(
+                    "tab has no pane with ID {} to swap",
+                    target_id
+                )))
+            }
+        });
     }
 }
