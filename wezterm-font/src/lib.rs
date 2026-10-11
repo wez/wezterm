@@ -955,6 +955,9 @@ impl FontConfigInner {
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
         self.title_font.borrow_mut().take();
+        self.pane_select_font.borrow_mut().take();
+        self.char_select_font.borrow_mut().take();
+        self.command_palette_font.borrow_mut().take();
 
         (prior_font, prior_dpi)
     }
@@ -1128,5 +1131,89 @@ impl FontConfiguration {
         attrs: &CellAttributes,
     ) -> &'a TextStyle {
         self.inner.match_style(config, attrs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn font_configuration(dpi: usize) -> FontConfiguration {
+        let mut fonts = FontConfiguration::new(Some(ConfigHandle::default_config()), dpi).unwrap();
+        // Use the bundled fonts so the tests do not depend on installed system fonts.
+        Rc::get_mut(&mut fonts.inner).unwrap().locator =
+            new_locator(config::FontLocatorSelection::ConfigDirsOnly);
+        fonts
+    }
+
+    type FontGetter = fn(&FontConfiguration) -> anyhow::Result<Rc<LoadedFont>>;
+
+    const UI_FONTS: [FontGetter; 4] = [
+        FontConfiguration::command_palette_font,
+        FontConfiguration::char_select_font,
+        FontConfiguration::pane_select_font,
+        FontConfiguration::title_font,
+    ];
+
+    #[test]
+    fn ui_fonts_follow_dpi_changes() {
+        // Warm each cache before moving to another display and back, in both directions.
+        for (initial_dpi, next_dpi) in [(96, 120), (120, 96)] {
+            for get_font in UI_FONTS {
+                let fonts = font_configuration(initial_dpi);
+                let initial_font = get_font(&fonts).unwrap();
+                let expected_font = get_font(&font_configuration(next_dpi)).unwrap();
+
+                fonts.change_scaling(1.0, next_dpi);
+                let next_font = get_font(&fonts).unwrap();
+                assert_eq!(next_font.dpi as usize, next_dpi);
+                assert_eq!(next_font.font_size, initial_font.font_size);
+                assert_eq!(
+                    next_font.metrics().cell_height,
+                    expected_font.metrics().cell_height
+                );
+                assert_eq!(
+                    next_font.metrics().cell_width,
+                    expected_font.metrics().cell_width
+                );
+
+                fonts.change_scaling(1.0, initial_dpi);
+                let returned_font = get_font(&fonts).unwrap();
+                assert_eq!(returned_font.dpi as usize, initial_dpi);
+                assert_eq!(
+                    returned_font.metrics().cell_height,
+                    initial_font.metrics().cell_height
+                );
+                assert_eq!(
+                    returned_font.metrics().cell_width,
+                    initial_font.metrics().cell_width
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn ui_fonts_keep_their_size_when_terminal_font_scale_changes() {
+        let fonts = font_configuration(96);
+        let initial_fonts: Vec<_> = UI_FONTS
+            .iter()
+            .map(|get_font| get_font(&fonts).unwrap())
+            .collect();
+        let terminal_height = fonts.default_font_metrics().unwrap().cell_height;
+
+        fonts.change_scaling(1.5, 96);
+        assert!(fonts.default_font_metrics().unwrap().cell_height > terminal_height);
+        for (get_font, initial_font) in UI_FONTS.iter().zip(initial_fonts) {
+            let scaled_font = get_font(&fonts).unwrap();
+            assert_eq!(scaled_font.font_size, initial_font.font_size);
+            assert_eq!(
+                scaled_font.metrics().cell_height,
+                initial_font.metrics().cell_height
+            );
+            assert_eq!(
+                scaled_font.metrics().cell_width,
+                initial_font.metrics().cell_width
+            );
+        }
     }
 }
