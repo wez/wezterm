@@ -69,5 +69,5 @@ wezterm is available from the Community Repository.  It can be installed like
 so:
 
 ```console
-$ choco install wezterm -y
+# choco install wezterm -y
 ```
