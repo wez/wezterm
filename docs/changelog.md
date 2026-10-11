@@ -158,6 +158,9 @@ As features stabilize some brief notes about them will accumulate here.
   search matching. Thanks to @mrdziuban! #7385
 * The line editor used by prompt overlays and the debug overlay now supports
   `CTRL-u` to kill back to the start of the line. Thanks to @bew! #8013
+* macOS: [macos_remember_window_frame](config/lua/config/macos_remember_window_frame.md)
+  option to remember the position and size of the window and restore them
+  the next time wezterm is launched. #256
 
 #### Fixed
 * Multiplexer: the mouse wheel was not mapped to cursor up/down keys in the

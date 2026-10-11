@@ -58,6 +58,10 @@ const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsRedrawDuringViewResize: NSInteger = 2;
 
+/// The name under which Cocoa saves the window frame in the user defaults
+/// when `macos_remember_window_frame` is enabled.
+const FRAME_AUTOSAVE_NAME: &str = "wezterm";
+
 /// Returns the background color to use for the window.
 unsafe fn window_background_color(is_opaque: bool) -> id {
     let clear_color = cocoa::appkit::NSColor::clearColor(nil);
@@ -514,6 +518,7 @@ impl Window {
                 key_is_down: None,
                 dead_pending: None,
                 fullscreen: None,
+                frame_autosave_suspended: false,
                 config: config.clone(),
                 ime_state: ImeDisposition::None,
                 ime_last_event: None,
@@ -600,6 +605,18 @@ impl Window {
                 };
                 last_pos.borrow_mut().replace(next_pos);
             });
+
+            // Let Cocoa save the frame as the window is moved and resized,
+            // and restore the saved frame now if there is one.
+            // Only one window can own the autosave name, so subsequent
+            // windows keep the cascaded position computed above.
+            // An explicitly requested position takes precedence.
+            if config.macos_remember_window_frame && initial_pos.is_none() {
+                let _: BOOL = msg_send![
+                    *window,
+                    setFrameAutosaveName: *nsstring(FRAME_AUTOSAVE_NAME)
+                ];
+            }
 
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
@@ -1111,6 +1128,17 @@ impl WindowInner {
                         self.config.integrated_title_button_style,
                     );
                     self.window.setFrame_display_(saved_rect, YES);
+                    // Reclaiming the name may set the frame and re-enter
+                    // the window delegate, so don't hold the borrow here
+                    let resume_autosave = std::mem::take(
+                        &mut window_view.inner.borrow_mut().frame_autosave_suspended,
+                    );
+                    if resume_autosave {
+                        let _: BOOL = msg_send![
+                            *self.window,
+                            setFrameAutosaveName: *nsstring(FRAME_AUTOSAVE_NAME)
+                        ];
+                    }
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
                     current_app.setPresentationOptions_(
@@ -1125,6 +1153,13 @@ impl WindowInner {
                         .borrow_mut()
                         .fullscreen
                         .replace(saved_rect);
+
+                    // Don't remember the fullscreen frame as the window frame
+                    let autosave_name: id = msg_send![*self.window, frameAutosaveName];
+                    if NSString::len(autosave_name) > 0 {
+                        let _: BOOL = msg_send![*self.window, setFrameAutosaveName: *nsstring("")];
+                        window_view.inner.borrow_mut().frame_autosave_suspended = true;
+                    }
 
                     let main_screen = NSScreen::mainScreen(nil);
                     let screen_rect = NSScreen::frame(main_screen);
@@ -1628,6 +1663,11 @@ struct Inner {
     /// When using simple fullscreen mode, this tracks
     /// the window dimensions that need to be restored
     fullscreen: Option<NSRect>,
+
+    /// Whether the frame autosave name was released while in
+    /// simple fullscreen mode, so that the fullscreen frame isn't
+    /// remembered, and needs to be reclaimed when leaving it.
+    frame_autosave_suspended: bool,
 
     config: ConfigHandle,
 
