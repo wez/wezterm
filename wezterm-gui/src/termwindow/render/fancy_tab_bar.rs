@@ -381,9 +381,25 @@ impl crate::TermWindow {
             && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             && !self.window_state.contains(window::WindowState::FULL_SCREEN)
         {
+            // 1. Get the main margin in pixels (already done)
+            let left_margin = self
+                .os_parameters
+                .as_ref()
+                .map(|p| p.title_bar.padding_left.get() as f32)
+                .unwrap_or(0.0);
+
+            // 2. Get the width of a single cell in pixels
+            let cell_width = self.render_metrics.cell_size.width as f32;
+
+            // 3. Calculate the extra padding in pixels
+            let extra_padding_in_pixels = 0.5 * cell_width;
+
+            // 4. Add the two pixel values together
+            let total_left_margin = left_margin + extra_padding_in_pixels;
+
             left_status.push(
                 Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
-                    left: Dimension::Cells(4.0), // FIXME: determine exact width of macos ... buttons
+                    left: Dimension::Pixels(total_left_margin),
                     right: Dimension::Cells(0.),
                     top: Dimension::Cells(0.),
                     bottom: Dimension::Cells(0.),
@@ -444,11 +460,7 @@ impl crate::TermWindow {
         let left_padding = if window_buttons_at_left {
             if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             {
-                if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
-                    Dimension::Pixels(70.0)
-                } else {
-                    Dimension::Cells(0.5)
-                }
+                Dimension::Cells(0.5)
             } else {
                 Dimension::Pixels(0.0)
             }

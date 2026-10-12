@@ -2002,6 +2002,8 @@ impl TermWindow {
             &self.config,
             &self.left_status,
             &self.right_status,
+            self.render_metrics.cell_size.width as f32,
+            self.os_parameters.as_ref(),
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;

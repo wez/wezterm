@@ -19,7 +19,7 @@ use cocoa::appkit::{
     self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
     NSOpenGLContext, NSOpenGLPixelFormat, NSPasteboard, NSRunningApplication, NSScreen, NSView,
-    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
+    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowButton, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{
@@ -939,9 +939,47 @@ impl WindowOps for Window {
             None
         };
 
+        let title_bar_padding_left = if config
+            .window_decorations
+            .contains(WindowDecorations::INTEGRATED_BUTTONS)
+        {
+            // This unsafe block calls the native macOS APIs
+            unsafe {
+                let window_id: id = self.ns_window;
+
+                // 1. Get each of the three "traffic light" buttons
+                let close_button: id =
+                    msg_send![window_id, standardWindowButton: NSWindowButton::NSWindowCloseButton];
+                let zoom_button: id =
+                    msg_send![window_id, standardWindowButton: NSWindowButton::NSWindowZoomButton];
+
+                // 2. If we can't find the buttons (eg: fullscreen), fall back to a safe value.
+                if close_button == nil || zoom_button == nil {
+                    64.0 // Fallback value
+                } else {
+                    // 3. Get the frame (position and size) of the leftmost and rightmost buttons.
+                    let zoom_frame: NSRect = msg_send![zoom_button, frame];
+
+                    // 4. The total padding needed (in logical POINTS) is the coordinate
+                    // of the right edge of the rightmost button.
+                    let total_width_in_points = zoom_frame.origin.x + zoom_frame.size.width;
+
+                    // 5. Get the DPI scale factor (e.g., 2.0 for Retina)
+                    let scale_factor: CGFloat = msg_send![window_id, backingScaleFactor];
+
+                    // 6. Convert points to physical PIXELS
+                    let total_width_in_pixels = total_width_in_points * scale_factor;
+
+                    total_width_in_pixels
+                }
+            }
+        } else {
+            0.0
+        };
+
         Ok(Some(Parameters {
             title_bar: TitleBar {
-                padding_left: ULength::new(0),
+                padding_left: ULength::new(title_bar_padding_left as usize),
                 padding_right: ULength::new(0),
                 height: None,
                 font_and_size: None,

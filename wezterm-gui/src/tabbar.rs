@@ -12,6 +12,7 @@ use termwiz::escape::{Action, ControlCode, CSI};
 use termwiz::surface::SEQ_ZERO;
 use termwiz_funcs::{format_as_escapes, FormatColor, FormatItem};
 use wezterm_term::{Line, Progress};
+use window::parameters::Parameters;
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -429,6 +430,8 @@ impl TabBarState {
         config: &ConfigHandle,
         left_status: &str,
         right_status: &str,
+        cell_width: f32,
+        os_parameters: Option<&Parameters>,
     ) -> Self {
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
@@ -515,10 +518,29 @@ impl TabBarState {
 
         if use_integrated_title_buttons
             && config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
-            && config.use_fancy_tab_bar == false
-            && config.tab_bar_at_bottom == false
+            && !config.use_fancy_tab_bar
+            && !config.tab_bar_at_bottom
         {
-            for _ in 0..10 as usize {
+            // 1. Get the main margin in pixels from the OS parameters
+            let left_pixel_margin = os_parameters
+                .map(|p| p.title_bar.padding_left.get() as f32)
+                .unwrap_or(0.0);
+
+            // 2. Calculate the extra half-cell of padding in pixels
+            let extra_padding_in_pixels = 0.5 * cell_width;
+
+            // 3. Add the two pixel values together for a total margin
+            let total_pixel_margin = left_pixel_margin + extra_padding_in_pixels;
+
+            // 4. Convert the total pixel margin into a number of character cells
+            let num_padding_cells = if cell_width > 0.0 {
+                (total_pixel_margin / cell_width).ceil() as usize
+            } else {
+                10 // Fallback to a safe number of cells
+            };
+
+            // 5. Add the calculated number of padding cells
+            for _ in 0..num_padding_cells {
                 line.insert_cell(0, black_cell.clone(), title_width, SEQ_ZERO);
                 x += 1;
             }
