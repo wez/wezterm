@@ -44,6 +44,20 @@ pub struct CopyOverlay {
     writer: Mutex<SearchOverlayPatternWriter>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ActivateMatchPosition {
+    First,
+    AfterCursor,
+    BeforeCursor,
+    AtCursor,
+}
+
+impl Default for ActivateMatchPosition {
+    fn default() -> Self {
+        Self::First
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 struct PendingJump {
     forward: bool,
@@ -85,6 +99,7 @@ struct CopyRenderable {
     searching: Option<Searching>,
     pending_jump: Option<PendingJump>,
     last_jump: Option<Jump>,
+    activate_match_pos: ActivateMatchPosition,
 }
 
 struct Searching {
@@ -107,6 +122,7 @@ struct Dimensions {
 pub struct CopyModeParams {
     pub pattern: Pattern,
     pub editing_search: bool,
+    pub activate_match_pos: ActivateMatchPosition,
 }
 
 impl CopyOverlay {
@@ -162,6 +178,7 @@ impl CopyOverlay {
             searching: None,
             pending_jump: None,
             last_jump: None,
+            activate_match_pos: params.activate_match_pos,
         };
 
         let search_row = render.compute_search_row();
@@ -185,12 +202,14 @@ impl CopyOverlay {
         CopyModeParams {
             pattern: render.get_pattern(),
             editing_search: render.editing_search,
+            activate_match_pos: render.activate_match_pos,
         }
     }
 
     pub fn apply_params(&self, params: CopyModeParams) {
         let mut render = self.render.lock();
         render.editing_search = params.editing_search;
+        render.activate_match_pos = params.activate_match_pos;
         if render.get_pattern() != params.pattern {
             render.pattern_type = PatternType::from(&params.pattern);
             render
@@ -238,10 +257,31 @@ impl CopyRenderable {
         self.result_pos = pos;
     }
 
-    fn incrementally_recompute_results(&mut self, mut results: Vec<SearchResult>) {
+    fn incrementally_recompute_results(
+        &mut self,
+        mut results: Vec<SearchResult>,
+        match_number: &mut usize,
+    ) {
         results.sort();
         results.reverse();
         for (result_index, res) in results.iter().enumerate() {
+            match self.activate_match_pos {
+                ActivateMatchPosition::BeforeCursor => {
+                    if (self.cursor.x <= res.start_x && self.cursor.y == res.start_y)
+                        || self.cursor.y < res.start_y
+                    {
+                        *match_number += 1;
+                    }
+                }
+                ActivateMatchPosition::AfterCursor | ActivateMatchPosition::AtCursor => {
+                    if (self.cursor.x < res.start_x && self.cursor.y == res.start_y)
+                        || self.cursor.y < res.start_y
+                    {
+                        *match_number += 1;
+                    }
+                }
+                ActivateMatchPosition::First => {}
+            }
             let result_index = self.results.len() + result_index;
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {
@@ -342,7 +382,7 @@ impl CopyRenderable {
                     if let Some(overlay) = state.overlay.as_ref() {
                         if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
                             let mut r = copy_overlay.render.lock();
-                            r.processed_search_chunk(pattern, results.take().unwrap(), range);
+                            r.processed_search_chunk(pattern, results.take().unwrap(), range, 0);
                         }
                     }
                 })));
@@ -362,25 +402,53 @@ impl CopyRenderable {
         pattern: Pattern,
         results: Vec<SearchResult>,
         range: Range<StableRowIndex>,
+        mut match_number: usize,
     ) {
         self.window.invalidate();
         if pattern != self.get_pattern() {
             return;
         }
         let is_first = self.results.is_empty();
-        self.incrementally_recompute_results(results);
+        self.incrementally_recompute_results(results, &mut match_number);
 
-        if is_first {
-            if !self.results.is_empty() {
-                self.activate_match_number(0);
-            } else {
-                self.set_viewport(None);
-                self.clear_selection();
-            }
+        if is_first && self.results.is_empty() {
+            self.set_viewport(None);
+            self.clear_selection();
         }
 
         let dims = self.delegate.get_dimensions();
         if range.start == dims.scrollback_top {
+            if !self.results.is_empty() {
+                let match_number = match self.activate_match_pos {
+                    ActivateMatchPosition::First => 0,
+                    ActivateMatchPosition::BeforeCursor | ActivateMatchPosition::AtCursor => {
+                        // We don't need to set activate_match_pos here because backward search from the end of the
+                        // currently matching pattern leads to the same match position being activated
+                        if match_number == self.results.len() {
+                            0
+                        } else {
+                            match_number
+                        }
+                    }
+                    ActivateMatchPosition::AfterCursor => {
+                        // This is to prevent the activated match position from changing when update_search method
+                        // is called without from methods that don't update the activate_match_pos attribute
+                        // We need to handle this if we have searched for a pattern after the current cursor
+                        // position because current position of the cursor is at the end of the pattern matched
+                        // after the previous position of the cursor.
+                        // We update the attribute to the below line to prevent the current cursor position from
+                        // changing in calls to update_search by methods not updating the attribute
+                        self.activate_match_pos = ActivateMatchPosition::AtCursor;
+
+                        if match_number == 0 {
+                            self.results.len() - 1
+                        } else {
+                            match_number - 1
+                        }
+                    }
+                };
+                self.activate_match_number(match_number);
+            }
             self.searching.take();
             return;
         }
@@ -409,7 +477,12 @@ impl CopyRenderable {
                 if let Some(overlay) = state.overlay.as_ref() {
                     if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
                         let mut r = copy_overlay.render.lock();
-                        r.processed_search_chunk(pattern, results.take().unwrap(), range);
+                        r.processed_search_chunk(
+                            pattern,
+                            results.take().unwrap(),
+                            range,
+                            match_number,
+                        );
                     }
                 }
             })));

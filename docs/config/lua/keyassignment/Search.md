@@ -1,3 +1,8 @@
+---
+tags:
+  - search
+---
+
 # `Search`
 
 {{since('20200607-144723-74889cd4')}}
@@ -55,3 +60,43 @@ config.keys = {
 You may now use `wezterm.action.Search("CurrentSelectionOrEmptyString")` to have the search take the currently selected text as the item to search.
 
 The selection text is adjusted to be a single line.
+
+{{since('nightly')}}
+
+`Search` now accepts a table with additional configuration options. The simple
+syntax shown above continues to work for basic searches.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `pattern` | Yes | The search pattern. Accepts the same values as the simple syntax: `{ Regex = '...' }`, `{ CaseSensitiveString = '...' }`, `{ CaseInSensitiveString = '...' }`, or `"CurrentSelectionOrEmptyString"` |
+| `activate_match` | No | Which match to activate when the search overlay opens. Defaults to `"First"` |
+
+The `activate_match` field accepts:
+* `"First"` - activate the first match in the scrollback
+* `"AfterCursor"` - activate the first match after the current cursor position
+* `"BeforeCursor"` - activate the first match before the current cursor position
+
+```lua
+local act = wezterm.action
+
+config.keys = {
+  -- search for git hashes, activating the first match after cursor
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search {
+      pattern = { Regex = '[a-f0-9]{6,}' },
+      activate_match = 'AfterCursor',
+    },
+  },
+  -- search using current selection, activating the first match before cursor
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search {
+      pattern = 'CurrentSelectionOrEmptyString',
+      activate_match = 'BeforeCursor',
+    },
+  },
+}
+```

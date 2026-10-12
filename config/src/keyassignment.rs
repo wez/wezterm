@@ -111,8 +111,15 @@ pub enum SelectionMode {
     Block,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub enum ActivateMatchPosition {
+    First,
+    AfterCursor,
+    BeforeCursor,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
-pub enum Pattern {
+pub enum InnerPattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),
     CaseSmartString(String),
@@ -120,21 +127,137 @@ pub enum Pattern {
     CurrentSelectionOrEmptyString,
 }
 
+/// Pattern for search operations
+#[derive(Debug, Clone, PartialEq, Eq, ToDynamic)]
+pub struct Pattern {
+    pub pattern: InnerPattern,
+    #[dynamic(default)]
+    pub activate_match: Option<ActivateMatchPosition>,
+}
+
+impl Pattern {
+    fn inner_pattern_variants() -> &'static [&'static str] {
+        &[
+            "CaseSensitiveString",
+            "CaseInSensitiveString",
+            "CaseSmartString",
+            "Regex",
+            "CurrentSelectionOrEmptyString",
+        ]
+    }
+}
+
+impl FromDynamic for Pattern {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match value {
+            Value::String(s) => {
+                // Handle unit variant: CurrentSelectionOrEmptyString
+                if s == "CurrentSelectionOrEmptyString" {
+                    return Ok(Self {
+                        pattern: InnerPattern::CurrentSelectionOrEmptyString,
+                        activate_match: None,
+                    });
+                }
+                Err(wezterm_dynamic::Error::InvalidVariantForType {
+                    variant_name: s.clone(),
+                    type_name: "Pattern",
+                    possible: Self::inner_pattern_variants(),
+                })
+            }
+            Value::Object(obj) => {
+                // Check if this is the extended syntax with "pattern" and optionally "activate_match" keys
+                // This allows: { pattern = { CaseSensitiveString = "foo" }, activate_match = "First" }
+                if obj.get_by_str("pattern").is_some() {
+                    let pattern = obj.get_by_str("pattern").ok_or_else(|| {
+                        wezterm_dynamic::Error::Message("missing 'pattern' field".to_string())
+                    })?;
+                    let inner = InnerPattern::from_dynamic(pattern, options)?;
+                    let activate_match = match obj.get_by_str("activate_match") {
+                        Some(v) => Some(ActivateMatchPosition::from_dynamic(v, options)?),
+                        None => None,
+                    };
+                    return Ok(Self {
+                        pattern: inner,
+                        activate_match,
+                    });
+                }
+
+                // Simple syntax: expects single key like { CaseSensitiveString = "..." }
+                if obj.len() == 1 {
+                    let (name, inner_value): (&Value, &Value) = obj.iter().next().unwrap();
+                    match name {
+                        Value::String(name) => {
+                            let inner = match name.as_str() {
+                                "CaseSensitiveString" => InnerPattern::CaseSensitiveString(
+                                    String::from_dynamic(inner_value, options)?,
+                                ),
+                                "CaseInSensitiveString" => InnerPattern::CaseInSensitiveString(
+                                    String::from_dynamic(inner_value, options)?,
+                                ),
+                                "CaseSmartString" => InnerPattern::CaseSmartString(
+                                    String::from_dynamic(inner_value, options)?,
+                                ),
+                                "Regex" => {
+                                    InnerPattern::Regex(String::from_dynamic(inner_value, options)?)
+                                }
+                                "CurrentSelectionOrEmptyString" => {
+                                    InnerPattern::CurrentSelectionOrEmptyString
+                                }
+                                _ => {
+                                    return Err(wezterm_dynamic::Error::InvalidVariantForType {
+                                        variant_name: name.to_string(),
+                                        type_name: "Pattern",
+                                        possible: Self::inner_pattern_variants(),
+                                    })
+                                }
+                            };
+                            Ok(Self {
+                                pattern: inner,
+                                activate_match: None,
+                            })
+                        }
+                        _ => Err(wezterm_dynamic::Error::InvalidVariantForType {
+                            variant_name: name.variant_name().to_string(),
+                            type_name: "Pattern",
+                            possible: Self::inner_pattern_variants(),
+                        }),
+                    }
+                } else {
+                    Err(wezterm_dynamic::Error::IncorrectNumberOfEnumKeys {
+                        type_name: "Pattern",
+                        num_keys: obj.len(),
+                    })
+                }
+            }
+            other => Err(wezterm_dynamic::Error::NoConversion {
+                source_type: other.variant_name().to_string(),
+                dest_type: "Pattern",
+            }),
+        }
+    }
+}
+
 impl Pattern {
     pub fn is_empty(&self) -> bool {
-        match self {
-            Self::CaseSensitiveString(s)
-            | Self::CaseInSensitiveString(s)
-            | Self::CaseSmartString(s)
-            | Self::Regex(s) => s.is_empty(),
-            Self::CurrentSelectionOrEmptyString => true,
+        match &self.pattern {
+            InnerPattern::CaseSensitiveString(s)
+            | InnerPattern::CaseInSensitiveString(s)
+            | InnerPattern::CaseSmartString(s)
+            | InnerPattern::Regex(s) => s.is_empty(),
+            InnerPattern::CurrentSelectionOrEmptyString => true,
         }
     }
 }
 
 impl Default for Pattern {
     fn default() -> Self {
-        Self::CurrentSelectionOrEmptyString
+        Self {
+            pattern: InnerPattern::CurrentSelectionOrEmptyString,
+            activate_match: None,
+        }
     }
 }
 

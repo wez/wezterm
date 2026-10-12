@@ -774,7 +774,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("cod_clear_all"),
         },
-        Search(Pattern::CurrentSelectionOrEmptyString) => CommandDef {
+        Search(Pattern { pattern: InnerPattern::CurrentSelectionOrEmptyString, activate_match: None }) => CommandDef {
             brief: "Search pane output".into(),
             doc: "Enters the search mode UI for the current pane".into(),
             keys: vec![(Modifiers::SUPER, "f".into())],
@@ -2071,7 +2071,10 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         SetWindowLevel(WindowLevel::Normal),
         SetWindowLevel(WindowLevel::AlwaysOnTop),
         Hide,
-        Search(Pattern::CurrentSelectionOrEmptyString),
+        Search(Pattern {
+            pattern: InnerPattern::CurrentSelectionOrEmptyString,
+            activate_match: None,
+        }),
         PaneSelect(PaneSelectArguments {
             alphabet: String::new(),
             mode: PaneSelectMode::Activate,

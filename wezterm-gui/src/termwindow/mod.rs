@@ -7,8 +7,8 @@ use crate::frontend::{front_end, try_front_end};
 use crate::inputmap::InputMap;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
-    start_overlay, start_overlay_pane, CopyModeParams, CopyOverlay, LauncherArgs, LauncherFlags,
-    QuickSelectOverlay,
+    start_overlay, start_overlay_pane, ActivateMatchPosition, CopyModeParams, CopyOverlay,
+    LauncherArgs, LauncherFlags, QuickSelectOverlay,
 };
 use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::scripting::guiwin::GuiWin;
@@ -31,8 +31,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    Confirmation, KeyAssignment, LauncherActionArgs, PaneDirection, Pattern, PromptInputLine,
-    QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
+    Confirmation, InnerPattern, KeyAssignment, LauncherActionArgs, PaneDirection, Pattern,
+    PromptInputLine, QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::window::WindowLevel;
 use config::{
@@ -2861,9 +2861,21 @@ impl TermWindow {
             Search(pattern) => {
                 if let Some(pane) = self.get_active_pane_or_overlay() {
                     let mut replace_current = false;
+                    let activate_match_pos = match &pattern.activate_match {
+                        Some(config::keyassignment::ActivateMatchPosition::AfterCursor) => {
+                            ActivateMatchPosition::AfterCursor
+                        }
+                        Some(config::keyassignment::ActivateMatchPosition::BeforeCursor) => {
+                            ActivateMatchPosition::BeforeCursor
+                        }
+                        Some(config::keyassignment::ActivateMatchPosition::First) | None => {
+                            ActivateMatchPosition::First
+                        }
+                    };
                     if let Some(existing) = pane.downcast_ref::<CopyOverlay>() {
                         let mut params = existing.get_params();
                         params.editing_search = true;
+                        params.activate_match_pos = activate_match_pos;
                         if !pattern.is_empty() {
                             params.pattern = self.resolve_search_pattern(pattern.clone(), &pane);
                         }
@@ -2876,6 +2888,7 @@ impl TermWindow {
                             CopyModeParams {
                                 pattern: self.resolve_search_pattern(pattern.clone(), &pane),
                                 editing_search: true,
+                                activate_match_pos,
                             },
                         )?;
                         self.assign_overlay_for_pane(pane.pane_id(), search);
@@ -2926,6 +2939,7 @@ impl TermWindow {
                             CopyModeParams {
                                 pattern: MuxPattern::default(),
                                 editing_search: false,
+                                activate_match_pos: ActivateMatchPosition::default(),
                             },
                         )?;
                         self.assign_overlay_for_pane(pane.pane_id(), copy);
@@ -3601,21 +3615,23 @@ impl TermWindow {
     }
 
     fn resolve_search_pattern(&self, pattern: Pattern, pane: &Arc<dyn Pane>) -> MuxPattern {
-        match pattern {
-            Pattern::CaseSensitiveString(s) => MuxPattern::CaseSensitiveString(s),
-            Pattern::CaseInSensitiveString(s) => MuxPattern::CaseInSensitiveString(s),
-            Pattern::CaseSmartString(s) => MuxPattern::CaseSmartString(s),
-            Pattern::Regex(s) => MuxPattern::Regex(s),
-            Pattern::CurrentSelectionOrEmptyString => {
-                let text = self.selection_text(pane);
-                let first_line = text
-                    .lines()
-                    .next()
-                    .map(|s| s.to_string())
-                    .unwrap_or_default();
-                MuxPattern::CaseSensitiveString(first_line)
+        match pattern.pattern {
+            InnerPattern::CaseSensitiveString(s) => MuxPattern::CaseSensitiveString(s),
+            InnerPattern::CaseInSensitiveString(s) => MuxPattern::CaseInSensitiveString(s),
+            InnerPattern::CaseSmartString(s) => MuxPattern::CaseSmartString(s),
+            InnerPattern::Regex(s) => MuxPattern::Regex(s),
+            InnerPattern::CurrentSelectionOrEmptyString => {
+                MuxPattern::CaseSensitiveString(self.get_selection_text_first_line(pane))
             }
         }
+    }
+
+    fn get_selection_text_first_line(&self, pane: &Arc<dyn Pane>) -> String {
+        let text = self.selection_text(pane);
+        text.lines()
+            .next()
+            .map(|s| s.to_string())
+            .unwrap_or_default()
     }
 }
 
