@@ -41,7 +41,6 @@ TRIGGER_PATHS_UNIX = [
 TRIGGER_PATHS_MAC = [
     "assets/macos/**/*",
     "ci/macos-entitlement.plist",
-    "get-deps",
     "ci/tag-name.sh",
 ]
 

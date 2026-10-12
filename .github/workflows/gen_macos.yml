@@ -16,7 +16,6 @@ on:
       - "ci/deploy.sh"
       - "ci/macos-entitlement.plist"
       - "ci/tag-name.sh"
-      - "get-deps"
 
 jobs:
   build:
@@ -53,9 +52,6 @@ jobs:
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
-      - name: "Install System Deps"
-        shell: bash
-        run: "env CI=yes PATH=$PATH ./get-deps"
       - name: "Build wezterm (Release mode Intel)"
         shell: bash
         run: "cargo build --target x86_64-apple-darwin -p wezterm --release"
