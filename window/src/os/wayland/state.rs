@@ -19,7 +19,6 @@ use smithay_client_toolkit::registry::{ProvidesRegistryState, RegistryState};
 use smithay_client_toolkit::seat::pointer::ThemedPointer;
 use smithay_client_toolkit::seat::SeatState;
 use smithay_client_toolkit::shell::xdg::XdgShell;
-use smithay_client_toolkit::shm::slot::SlotPool;
 use smithay_client_toolkit::shm::{Shm, ShmHandler};
 use smithay_client_toolkit::subcompositor::SubcompositorState;
 use smithay_client_toolkit::{
@@ -88,7 +87,6 @@ pub(super) struct WaylandState {
     pub(super) primary_selection_source: Option<(PrimarySelectionSource, String)>,
 
     pub(super) shm: Shm,
-    pub(super) mem_pool: RefCell<SlotPool>,
     pub(super) kde_blur_manager: Option<OrgKdeKwinBlurManager>,
     pub(super) ext_background_effect_manager: Option<ExtBackgroundEffectManagerV1>,
     pub(super) ext_background_effect_can_blur: bool,
@@ -97,7 +95,6 @@ pub(super) struct WaylandState {
 impl WaylandState {
     pub(super) fn new(globals: &GlobalList, qh: &QueueHandle<Self>) -> anyhow::Result<Self> {
         let shm = Shm::bind(&globals, qh)?;
-        let mem_pool = SlotPool::new(1, &shm)?;
 
         let compositor = CompositorState::bind(globals, qh)?;
         let subcompositor =
@@ -138,7 +135,6 @@ impl WaylandState {
             primary_selection_device: None,
             primary_selection_source: None,
             shm,
-            mem_pool: RefCell::new(mem_pool),
             kde_blur_manager,
             ext_background_effect_manager,
             ext_background_effect_can_blur: false,
