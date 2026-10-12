@@ -22,7 +22,7 @@ done
 NOTFOUND=0
 
 test_cmd() {
-  command -v $1 >/dev/null
+  command -v "$1" >/dev/null
 }
 
 test_flag() {
@@ -33,16 +33,8 @@ docs_flag() {
   test $DOCS -eq 1
 }
 
-if test -z "$SUDO"; then
-  if test_cmd 'sudo'; then
-    SUDO="sudo"
-  elif test_cmd 'doas'; then
-    SUDO="doas"
-  fi
-fi
-
 alpine_deps() {
-  APK="$SUDO apk"
+  APK="apk"
   $APK add \
     'alpine-sdk' \
     'bash' \
@@ -74,9 +66,9 @@ alpine_deps() {
 
 fedora_deps() {
   if test_cmd 'dnf'; then
-    YUM="$SUDO dnf"
+    YUM="dnf"
   elif test_cmd 'yum'; then
-    YUM="$SUDO yum"
+    YUM="yum"
   else
     echo "No idea what package manager to use, sorry! (perhaps 'dnf' or 'yum' is not in \$PATH?)"
     return 1
@@ -110,16 +102,16 @@ fedora_deps() {
 
   # Fedora 41 and above split a part of openssl-devel into openssl-devel-engine.
   # CentOS/RHEL 10 are doing the same thing.
-  if { [ "$VERSION_ID" -ge "41" ] && [ "$ID" == "fedora" ]; } \
+  if { [ "$VERSION_ID" -ge "41" ] && [ "$ID" = "fedora" ]; } \
      || { [ "$VERSION_ID" -ge "10" ] && [ "$ID" != "fedora" ]; }; then
     $YUM install -y 'openssl-devel-engine'
   fi
 }
 
 suse_deps() {
-  ZYPPER="$SUDO zypper"
+  ZYPPER="zypper"
   RESOLVE=""
-  if [ "${CI}" == "yes" ] ; then
+  if [ "${CI}" = "yes" ] ; then
     RESOLVE="--allow-downgrade"
   fi
   $ZYPPER install $RESOLVE -yl \
@@ -147,7 +139,7 @@ suse_deps() {
 }
 
 debian_deps() {
-  APT="$SUDO apt-get"
+  APT="apt-get"
   apt-cache show 'libxcb-util-dev' > /dev/null 2>&1 && XCBUTIL="libxcb-util-dev" || XCBUTIL="libxcb-util0-dev"
   $APT install -y \
     'bsdutils' \
@@ -185,7 +177,7 @@ debian_deps() {
 }
 
 arch_deps() {
-  PACMAN="$SUDO pacman"
+  PACMAN="pacman"
   $PACMAN -S --noconfirm --needed \
     'base-devel' \
     'cargo' \
@@ -210,7 +202,7 @@ arch_deps() {
 }
 
 freebsd_deps() {
-  PKG="$SUDO pkg"
+  PKG="pkg"
   $PKG install -y \
     'cmake' \
     'curl' \
@@ -241,7 +233,7 @@ freebsd_deps() {
 }
 
 netbsd_deps() {
-  PKG="$SUDO pkgin"
+  PKG="pkgin"
   $PKG -y install \
     'bash' \
     'fontconfig' \
@@ -260,7 +252,7 @@ netbsd_deps() {
 gentoo_deps() {
   portageq envvar USE | xargs -n 1 | grep '^X$' \
   || (echo 'X is not found in USE flags' && exit 1)
-  EMERGE="$SUDO emerge"
+  EMERGE="emerge"
   for pkg in \
     'cmake' \
     'fontconfig' \
@@ -283,7 +275,7 @@ gentoo_deps() {
 }
 
 void_deps() {
-  XBPS="$SUDO xbps-install"
+  XBPS="xbps-install"
   $XBPS -S \
     'gcc' \
     'pkgconf' \
@@ -306,7 +298,7 @@ void_deps() {
 }
 
 solus_deps() {
-  EOPKG="$SUDO eopkg"
+  EOPKG="eopkg"
   $EOPKG install -y -c system.devel
   $EOPKG install -y \
     xcb-util-devel \
@@ -333,26 +325,6 @@ fallback_method() {
     suse_deps
   fi
 
-  # OSTYPE is set by bash
-  case $OSTYPE in
-    darwin*|msys)
-      echo "skipping darwin*/msys"
-    ;;
-    freebsd*)
-      freebsd_deps
-    ;;
-    ''|linux-gnu)
-      # catch and known OSTYPE
-      echo "\$OSTYPE is '$OSTYPE'"
-    ;;
-    netbsd*)
-      netbsd_deps
-    ;;
-    *)
-      NOTFOUND=1
-      return 1
-    ;;
-  esac
   return 0
 }
 
@@ -363,6 +335,10 @@ else
 fi
 
 set -e
+if [ "$(id -u)" -ne 0 ];then
+	echo "$0 requires superuser privileges. Exiting."
+	exit 1
+fi
 
 case $ID in
   centos|fedora|rhel)
