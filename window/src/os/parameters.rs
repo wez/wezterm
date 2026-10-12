@@ -11,6 +11,10 @@ pub struct TitleBar {
     pub padding_right: ULength,
     pub height: Option<ULength>,
     pub font_and_size: Option<FontAndSize>,
+    /// Offset from the left edge of the window to the right edge of the
+    /// macOS traffic light buttons (close/minimize/zoom).
+    /// Value is in points (logical pixels).
+    pub macos_traffic_light_offset: Option<f32>,
 }
 
 #[derive(Default, Clone, Debug)]

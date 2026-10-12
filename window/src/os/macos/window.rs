@@ -939,12 +939,40 @@ impl WindowOps for Window {
             None
         };
 
+        // Calculate the total width of the traffic light buttons area.
+        // Use ZoomButton's right edge + CloseButton's left offset (as right padding).
+        let macos_traffic_light_offset = if config
+            .window_decorations
+            .contains(WindowDecorations::INTEGRATED_BUTTONS)
+            && config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            && !window_state.contains(WindowState::FULL_SCREEN)
+        {
+            unsafe {
+                let close_button =
+                    self.ns_window.standardWindowButton_(appkit::NSWindowButton::NSWindowCloseButton);
+                let zoom_button =
+                    self.ns_window.standardWindowButton_(appkit::NSWindowButton::NSWindowZoomButton);
+                if close_button.is_null() || zoom_button.is_null() {
+                    None
+                } else {
+                    let close_frame: NSRect = msg_send![close_button, frame];
+                    let zoom_frame: NSRect = msg_send![zoom_button, frame];
+                    // ZoomButton right edge + CloseButton left offset (symmetric padding)
+                    let offset = zoom_frame.origin.x + zoom_frame.size.width + close_frame.origin.x;
+                    Some(offset as f32)
+                }
+            }
+        } else {
+            None
+        };
+
         Ok(Some(Parameters {
             title_bar: TitleBar {
                 padding_left: ULength::new(0),
                 padding_right: ULength::new(0),
                 height: None,
                 font_and_size: None,
+                macos_traffic_light_offset,
             },
             border_dimensions,
         }))

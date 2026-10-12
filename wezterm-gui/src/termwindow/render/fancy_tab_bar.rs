@@ -94,6 +94,20 @@ impl crate::TermWindow {
             VerticalAlign::Bottom
         };
 
+        // When macOS native traffic light buttons are present, the placeholder
+        // element reserves space for them, so LeftStatus needs no extra padding.
+        let left_status_padding = if self
+            .config
+            .window_decorations
+            .contains(::window::WindowDecorations::INTEGRATED_BUTTONS)
+            && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            && !self.window_state.contains(window::WindowState::FULL_SCREEN)
+        {
+            Dimension::Cells(0.)
+        } else {
+            Dimension::Cells(0.5)
+        };
+
         let item_to_elem = |item: &TabEntry| -> Element {
             let element = Element::with_line(&font, &item.title, palette);
 
@@ -118,23 +132,30 @@ impl crate::TermWindow {
             let is_bottom = self.config.tab_bar_at_bottom;
 
             match item.item {
-                TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => element
-                    .item_type(UIItemType::TabBar(TabBarItem::None))
-                    .line_height(Some(1.75))
-                    .margin(BoxDimension {
-                        left: Dimension::Cells(0.),
-                        right: Dimension::Cells(0.),
-                        top: Dimension::Cells(0.0),
-                        bottom: Dimension::Cells(0.),
-                    })
-                    .padding(BoxDimension {
-                        left: Dimension::Cells(0.5),
-                        right: Dimension::Cells(0.),
-                        top: Dimension::Cells(0.),
-                        bottom: Dimension::Cells(0.),
-                    })
-                    .border(BoxDimension::new(Dimension::Pixels(0.)))
-                    .colors(bar_colors.clone()),
+                TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => {
+                    let left = if matches!(item.item, TabBarItem::LeftStatus) {
+                        left_status_padding
+                    } else {
+                        Dimension::Cells(0.5)
+                    };
+                    element
+                        .item_type(UIItemType::TabBar(TabBarItem::None))
+                        .line_height(Some(1.75))
+                        .margin(BoxDimension {
+                            left: Dimension::Cells(0.),
+                            right: Dimension::Cells(0.),
+                            top: Dimension::Cells(0.0),
+                            bottom: Dimension::Cells(0.),
+                        })
+                        .padding(BoxDimension {
+                            left,
+                            right: Dimension::Cells(0.),
+                            top: Dimension::Cells(0.),
+                            bottom: Dimension::Cells(0.),
+                        })
+                        .border(BoxDimension::new(Dimension::Pixels(0.)))
+                        .colors(bar_colors.clone())
+                }
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
@@ -381,9 +402,14 @@ impl crate::TermWindow {
             && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             && !self.window_state.contains(window::WindowState::FULL_SCREEN)
         {
+            let offset = self
+                .os_parameters
+                .as_ref()
+                .and_then(|p| p.title_bar.macos_traffic_light_offset)
+                .unwrap_or(70.0);
             left_status.push(
                 Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
-                    left: Dimension::Cells(4.0), // FIXME: determine exact width of macos ... buttons
+                    left: Dimension::Points(offset),
                     right: Dimension::Cells(0.),
                     top: Dimension::Cells(0.),
                     bottom: Dimension::Cells(0.),
@@ -424,6 +450,7 @@ impl crate::TermWindow {
         }
 
         let mut children = vec![];
+        let left_status_len = left_status.len();
 
         if !left_status.is_empty() {
             children.push(
@@ -445,8 +472,15 @@ impl crate::TermWindow {
             if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             {
                 if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
-                    Dimension::Pixels(70.0)
+                    // left_status contains a placeholder element for traffic lights;
+                    // if there's also user content (len > 1), add 0.5 cell gap before tabs.
+                    if left_status_len > 1 {
+                        Dimension::Cells(0.5)
+                    } else {
+                        Dimension::Cells(0.)
+                    }
                 } else {
+                    // Fullscreen mode has no traffic lights, so add 0.5 cell padding
                     Dimension::Cells(0.5)
                 }
             } else {
