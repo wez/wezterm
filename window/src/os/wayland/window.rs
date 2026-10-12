@@ -405,6 +405,15 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn request_drag_move(&self) {
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            if let Err(err) = inner.request_drag_move() {
+                log::warn!("request_drag_move failed: {err:#}");
+            }
+            Ok(())
+        });
+    }
+
     fn set_cursor(&self, cursor: Option<CursorIcon>) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_cursor(cursor);
@@ -860,6 +869,30 @@ impl WaylandWindowInner {
         }
 
         if let Some(ref window_config) = pending.window_configure {
+            // Compositors that do not implement the xdg-decoration protocol
+            // (mutter, most notably) answer with Client mode no matter which
+            // mode we requested. When that happens we have to draw the frame
+            // ourselves; without it the window has no titlebar to drag it by
+            // and no borders to resize it by.
+            let want_frame = matches!(window_config.decoration_mode, DecorationMode::Client)
+                && self
+                    .config
+                    .window_decorations
+                    .contains(WindowDecorations::TITLE);
+            let hide_frame = !want_frame;
+            if self.window_frame.is_hidden() != hide_frame {
+                self.window_frame.set_hidden(hide_frame);
+                // Make sure the sizing logic below runs even when the
+                // compositor didn't suggest a new size, so that the frame is
+                // sized and the window geometry follows its new location.
+                if pending.configure.is_none() {
+                    pending.configure.replace((
+                        self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
+                        self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
+                    ));
+                }
+                pending.refresh_decorations = true;
+            }
             self.window_frame.update_state(window_config.state);
             self.window_frame
                 .update_wm_capabilities(window_config.capabilities);
@@ -1270,6 +1303,33 @@ impl WaylandWindowInner {
             FrameAction::Move => self.window.as_ref().unwrap().move_(seat, serial),
             _ => log::warn!("unhandled FrameAction: {:?}", action),
         }
+    }
+
+    /// Ask the compositor to start an interactive move of the window.
+    /// Wayland clients cannot position themselves, so this is the only way to
+    /// drag a window by an area we draw ourselves, such as the tab bar.
+    fn request_drag_move(&self) -> anyhow::Result<()> {
+        let window = self
+            .window
+            .as_ref()
+            .ok_or_else(|| anyhow!("window is not initialized"))?;
+
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let wayland_state = conn.wayland_state.borrow();
+        let pointer = wayland_state
+            .pointer
+            .as_ref()
+            .ok_or_else(|| anyhow!("no pointer is available"))?;
+        let pointer_data = pointer
+            .pointer()
+            .data::<PointerUserData>()
+            .ok_or_else(|| anyhow!("pointer has no PointerUserData"))?;
+
+        // The most recent pointer serial is the press that began the drag;
+        // motion events don't carry one, so this stays valid for its duration.
+        let serial = *wayland_state.last_serial.borrow();
+        window.move_(pointer_data.pdata.seat(), serial);
+        Ok(())
     }
 
     fn maximize(&mut self) {
