@@ -312,6 +312,10 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @bew! #8001
 * IME: committed text is now handled correctly in prompt overlays such as
   `PromptInputLine` and the debug overlay. Thanks to @dyxushuai! #7556
+* Wayland: moving windows to an output with a different scale (e.g. undocking a
+  laptop) could disconnect wezterm with `Buffer size (WxH) is not divisible by
+  scale (2)` on sway and other wlroots compositors. The buffer scale is now sent
+  together with a buffer of matching size. Thanks to @mangas! #2445
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg
