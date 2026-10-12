@@ -79,6 +79,18 @@ impl ChannelWrap {
         }
     }
 
+    /// Remote peer will send no further data. For libssh this is false while
+    /// unread channel bytes are still buffered, so callers can drain first.
+    pub fn remote_has_eof(&self) -> bool {
+        match self {
+            #[cfg(feature = "ssh2")]
+            Self::Ssh2(chan) => chan.eof(),
+
+            #[cfg(feature = "libssh-rs")]
+            Self::LibSsh(chan) => chan.is_eof() || chan.is_closed(),
+        }
+    }
+
     pub fn close(&mut self) {
         match self {
             #[cfg(feature = "ssh2")]

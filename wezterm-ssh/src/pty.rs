@@ -296,6 +296,7 @@ impl crate::sessioninner::SessionInner {
             channel,
             exit: Some(exit_tx),
             exited: false,
+            forwards_agent: false,
             descriptors: [
                 DescriptorState {
                     fd: Some(read_from_stdin),

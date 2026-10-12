@@ -122,6 +122,10 @@ impl SshAgent {
             .spawn()?;
         Ok(Self { child })
     }
+
+    fn pid(&self) -> u32 {
+        self.child.id()
+    }
 }
 
 #[derive(Debug)]
@@ -441,6 +445,16 @@ impl Sshd {
     }
 }
 
+impl Sshd {
+    pub fn agent_pid(&self) -> u32 {
+        self._agent.pid()
+    }
+
+    pub fn sshd_pid(&self) -> u32 {
+        self.child.id()
+    }
+}
+
 impl Drop for Sshd {
     /// Kills server upon drop
     fn drop(&mut self) {
@@ -473,6 +487,16 @@ impl std::ops::Deref for SessionWithSshd {
 impl std::ops::DerefMut for SessionWithSshd {
     fn deref_mut(&mut self) -> &mut Session {
         &mut self.session
+    }
+}
+
+impl SessionWithSshd {
+    pub fn agent_pid(&self) -> u32 {
+        self._sshd.agent_pid()
+    }
+
+    pub fn sshd_pid(&self) -> u32 {
+        self._sshd.sshd_pid()
     }
 }
 

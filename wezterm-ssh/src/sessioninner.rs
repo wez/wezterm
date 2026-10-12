@@ -34,6 +34,10 @@ pub(crate) struct ChannelInfo {
     pub exit: Option<Sender<ExitStatus>>,
     pub exited: bool,
     pub descriptors: [DescriptorState; 3],
+    /// This channel is an `auth-agent@openssh.com` forward. The local
+    /// ssh-agent keeps its socket open across requests, so the channel cannot
+    /// be reaped by waiting for that socket to error.
+    pub forwards_agent: bool,
 }
 
 pub(crate) type ChannelId = usize;
@@ -616,12 +620,26 @@ impl SessionInner {
                 }
             }
 
-            if chan
+            let fds_closed = chan
                 .descriptors
                 .iter()
-                .all(|descriptor| descriptor.fd.is_none())
-            {
-                log::trace!("all descriptors on channel {} are closed", id);
+                .all(|descriptor| descriptor.fd.is_none());
+            // Agent forwards are done when the remote client closes, not when
+            // the local agent hangs up (it never does). Dropping the channel
+            // frees the libssh channel, which sends CHANNEL_CLOSE, and drops
+            // the sockets connected to the local agent.
+            let agent_finished = chan.forwards_agent
+                && chan.channel.remote_has_eof()
+                && !chan
+                    .descriptors
+                    .iter()
+                    .any(|descriptor| descriptor.fd.is_some() && !descriptor.buf.is_empty());
+            if fds_closed || agent_finished {
+                if agent_finished {
+                    log::trace!("agent-forward channel {id} remote closed and buffers drained");
+                } else {
+                    log::trace!("all descriptors on channel {id} are closed");
+                }
                 dead.push(*id);
             }
         }
@@ -891,6 +909,7 @@ impl SessionInner {
                 channel,
                 exit: None,
                 exited: false,
+                forwards_agent: true,
                 descriptors: [
                     DescriptorState {
                         fd: Some(read_from_agent),
@@ -988,6 +1007,7 @@ impl SessionInner {
             channel,
             exit: Some(exit_tx),
             exited: false,
+            forwards_agent: false,
             descriptors: [
                 DescriptorState {
                     fd: Some(read_from_stdin),
