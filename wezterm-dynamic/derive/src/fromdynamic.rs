@@ -90,7 +90,7 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
         )
     };
 
-    let from_dynamic = match info.try_from {
+    let primary_body = match info.try_from {
         Some(try_from) => {
             quote!(
                 use core::convert::TryFrom;
@@ -112,6 +112,27 @@ fn derive_struct(input: &DeriveInput, fields: &FieldsNamed) -> Result<TokenStrea
                 }
             )
         }
+    };
+
+    let from_dynamic = match info.fallback {
+        Some(fallback) => quote!(
+            let primary_result = (|| -> core::result::Result<Self, wezterm_dynamic::Error> {
+                #primary_body
+            })();
+            match primary_result {
+                Ok(v) => Ok(v),
+                Err(primary_err) => {
+                    match <#fallback as wezterm_dynamic::FromDynamic>::from_dynamic(value, options) {
+                        Ok(legacy) => Ok(<#ident as core::convert::From<#fallback>>::from(legacy)),
+                        Err(fallback_err) => Err(wezterm_dynamic::Error::FallbackFailed {
+                            primary_error: Box::new(primary_err),
+                            fallback_error: Box::new(fallback_err),
+                        }),
+                    }
+                }
+            }
+        ),
+        None => primary_body,
     };
 
     let tokens = quote! {
@@ -154,7 +175,7 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
         .map(|variant| variant.ident.to_string())
         .collect::<Vec<_>>();
 
-    let from_dynamic = match info.try_from {
+    let primary_body = match info.try_from {
         Some(try_from) => {
             quote!(
                 use core::convert::TryFrom;
@@ -307,6 +328,27 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
                     }
             )
         }
+    };
+
+    let from_dynamic = match info.fallback {
+        Some(fallback) => quote!(
+            let primary_result = (|| -> core::result::Result<Self, wezterm_dynamic::Error> {
+                #primary_body
+            })();
+            match primary_result {
+                Ok(v) => Ok(v),
+                Err(primary_err) => {
+                    match <#fallback as wezterm_dynamic::FromDynamic>::from_dynamic(value, options) {
+                        Ok(legacy) => Ok(<#ident as core::convert::From<#fallback>>::from(legacy)),
+                        Err(fallback_err) => Err(wezterm_dynamic::Error::FallbackFailed {
+                            primary_error: Box::new(primary_err),
+                            fallback_error: Box::new(fallback_err),
+                        }),
+                    }
+                }
+            }
+        ),
+        None => primary_body,
     };
 
     let tokens = quote! {

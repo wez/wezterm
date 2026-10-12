@@ -1996,12 +1996,21 @@ pub enum VerticalWindowContentAlignment {
 }
 
 #[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, PartialEq, Eq)]
+#[dynamic(fallback = "bool")]
 pub enum NewlineCanon {
-    // FIXME: also allow deserialziing from bool
     None,
     LineFeed,
     CarriageReturn,
     CarriageReturnAndLineFeed,
+}
+
+impl From<bool> for NewlineCanon {
+    fn from(value: bool) -> Self {
+        match value {
+            true => NewlineCanon::CarriageReturnAndLineFeed,
+            false => NewlineCanon::None,
+        }
+    }
 }
 
 #[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, Default)]
@@ -2119,7 +2128,8 @@ fn default_line_to_ele_shape_cache_size() -> usize {
     1024
 }
 
-#[derive(Debug, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+#[dynamic(fallback = "bool")]
 pub enum BoldBrightening {
     /// Bold doesn't influence palette selection
     No,
@@ -2130,25 +2140,11 @@ pub enum BoldBrightening {
     BrightOnly,
 }
 
-impl FromDynamic for BoldBrightening {
-    fn from_dynamic(
-        value: &wezterm_dynamic::Value,
-        options: wezterm_dynamic::FromDynamicOptions,
-    ) -> Result<Self, wezterm_dynamic::Error> {
-        match String::from_dynamic(value, options) {
-            Ok(s) => match s.as_str() {
-                "No" => Ok(Self::No),
-                "BrightAndBold" => Ok(Self::BrightAndBold),
-                "BrightOnly" => Ok(Self::BrightOnly),
-                s => Err(wezterm_dynamic::Error::Message(format!(
-                    "`{s}` is not valid, use one of `No`, `BrightAndBold` or `BrightOnly`"
-                ))),
-            },
-            Err(err) => match bool::from_dynamic(value, options) {
-                Ok(true) => Ok(Self::BrightAndBold),
-                Ok(false) => Ok(Self::No),
-                Err(_) => Err(err),
-            },
+impl From<bool> for BoldBrightening {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::BrightAndBold,
+            false => Self::No,
         }
     }
 }

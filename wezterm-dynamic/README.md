@@ -88,6 +88,7 @@ Attributes are placed on struct/enum definitions or individual fields.
 | `#[dynamic(debug)]` | Print the generated token stream to stderr at compile time |
 | `#[dynamic(try_from = "OtherType")]` | Deserialize into `OtherType` then construct `Self` via `TryFrom<OtherType>` |
 | `#[dynamic(into = "OtherType")]` | Convert `self` into `OtherType` via `Into`, then serialize `OtherType` |
+| `#[dynamic(fallback = "OtherType")]` | Try `Self` deserialization first; on failure retry deserialization with `OtherType` and convert to `Self` via `From<OtherType>`. Mutually exclusive with `try_from`. |
 
 ### Field-level
 

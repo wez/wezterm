@@ -5,12 +5,14 @@ use syn::{Attribute, Error, Field, Lit, Meta, NestedMeta, Path, Result};
 pub struct ContainerInfo {
     pub into: Option<Path>,
     pub try_from: Option<Path>,
+    pub fallback: Option<Path>,
     pub debug: bool,
 }
 
 pub fn container_info(attrs: &[Attribute]) -> Result<ContainerInfo> {
     let mut into = None;
     let mut try_from = None;
+    let mut fallback = None;
     let mut debug = false;
 
     for attr in attrs {
@@ -44,6 +46,12 @@ pub fn container_info(attrs: &[Attribute]) -> Result<ContainerInfo> {
                             continue;
                         }
                     }
+                    if value.path.is_ident("fallback") {
+                        if let Lit::Str(s) = &value.lit {
+                            fallback = Some(s.parse()?);
+                            continue;
+                        }
+                    }
                 }
                 _ => {}
             }
@@ -51,9 +59,17 @@ pub fn container_info(attrs: &[Attribute]) -> Result<ContainerInfo> {
         }
     }
 
+    if try_from.is_some() && fallback.is_some() {
+        return Err(Error::new(
+            proc_macro2::Span::call_site(),
+            "`try_from` and `fallback` are mutually exclusive",
+        ));
+    }
+
     Ok(ContainerInfo {
         into,
         try_from,
+        fallback,
         debug,
     })
 }

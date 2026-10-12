@@ -10,6 +10,7 @@ use thiserror::Error;
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -77,6 +78,11 @@ pub enum Error {
         type_name: &'static str,
         field_name: &'static str,
         reason: &'static str,
+    },
+    #[error("{}\n  also tried fallback type: {}", .primary_error, .fallback_error)]
+    FallbackFailed {
+        primary_error: Box<Error>,
+        fallback_error: Box<Error>,
     },
 }
 
