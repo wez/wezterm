@@ -98,7 +98,14 @@ struct MatchGroup {
 }
 
 impl MatchGroup {
-    fn is_match(&self, hostname: &str, user: &str, local_user: &str, context: Context) -> bool {
+    fn is_match(
+        &self,
+        hostname: &str,
+        user: &str,
+        local_user: &str,
+        target: &ConfigMap,
+        context: Context,
+    ) -> bool {
         if self.context != context {
             return false;
         }
@@ -109,8 +116,35 @@ impl MatchGroup {
                         return false;
                     }
                 }
-                Criteria::Exec(_) => {
-                    log::warn!("Match Exec is not implemented");
+                Criteria::Exec(command) => {
+                    let mut cmd = command.clone();
+                    cmd = cmd.replace("%h", hostname);
+                    cmd = cmd.replace("%r", user);
+                    cmd = cmd.replace("%u", local_user);
+                    let port = target.get("port").map(|s| s.as_str()).unwrap_or("22");
+                    cmd = cmd.replace("%p", port);
+
+                    #[cfg(windows)]
+                    let shell = ("cmd.exe", "/c");
+                    #[cfg(not(windows))]
+                    let shell = ("sh", "-c");
+
+                    log::trace!("Evaluating Match Exec: {}", cmd);
+                    match std::process::Command::new(shell.0)
+                        .arg(shell.1)
+                        .arg(&cmd)
+                        .status()
+                    {
+                        Ok(status) => {
+                            if !status.success() {
+                                return false;
+                            }
+                        }
+                        Err(err) => {
+                            log::warn!("Failed to run Match Exec command `{}`: {}", cmd, err);
+                            return false;
+                        }
+                    }
                 }
                 Criteria::OriginalHost(patterns) => {
                     if !Pattern::match_group(hostname, patterns) {
@@ -307,9 +341,20 @@ impl ParsedConfigFile {
                                 context = Context::Final;
                             }
                             "exec" => {
-                                criteria.push(Criteria::Exec(
-                                    tokens.next().unwrap_or("false").to_string(),
-                                ));
+                                let mut cmd = tokens.next().unwrap_or("false").to_string();
+                                if cmd.starts_with('"') && !cmd.ends_with('"') {
+                                    for t in &mut tokens {
+                                        cmd.push(' ');
+                                        cmd.push_str(t);
+                                        if t.ends_with('"') {
+                                            break;
+                                        }
+                                    }
+                                }
+                                if cmd.starts_with('"') && cmd.ends_with('"') && cmd.len() >= 2 {
+                                    cmd = cmd[1..cmd.len() - 1].to_string();
+                                }
+                                criteria.push(Criteria::Exec(cmd));
                             }
                             "host" => {
                                 criteria.push(Criteria::Host(parse_pattern_list(
@@ -387,7 +432,7 @@ impl ParsedConfigFile {
             if group.context != Context::FirstPass {
                 needs_reparse = true;
             }
-            if group.is_match(hostname, user, local_user, context) {
+            if group.is_match(hostname, user, local_user, target, context) {
                 for (k, v) in &group.options {
                     target.entry(k.to_string()).or_insert_with(|| v.to_string());
                 }
@@ -531,13 +576,6 @@ impl Config {
             }
         }
 
-        if needs_reparse {
-            log::debug!(
-                "ssh configuration uses options that require two-phase \
-                parsing, which isn't supported"
-            );
-        }
-
         let mut token_map = self.tokens.clone();
         token_map.insert("%h".to_string(), host.to_string());
         result
@@ -548,6 +586,30 @@ impl Config {
                 }
             })
             .or_insert_with(|| host.to_string());
+
+        if needs_reparse {
+            let canonical_hostname = result["hostname"].clone();
+            for config in &self.config_files {
+                config.apply_matches(
+                    &canonical_hostname,
+                    target_user,
+                    &local_user,
+                    Context::Canonical,
+                    &mut result,
+                );
+            }
+            let final_hostname = result["hostname"].clone();
+            for config in &self.config_files {
+                config.apply_matches(
+                    &final_hostname,
+                    target_user,
+                    &local_user,
+                    Context::Final,
+                    &mut result,
+                );
+            }
+        }
+
         token_map.insert("%h".to_string(), result["hostname"].to_string());
         token_map.insert("%n".to_string(), host.to_string());
         token_map.insert("%r".to_string(), target_user.to_string());
@@ -620,8 +682,16 @@ impl Config {
     /// Returns a set of tokens that should be expanded for a given option name
     fn should_expand_tokens(&self, key: &str) -> Option<&[&str]> {
         match key {
-            "certificatefile" | "controlpath" | "identityagent" | "identityfile"
-            | "localforward" | "remotecommand" | "remoteforward" | "userknownkostsfile" => {
+            "certificatefile"
+            | "controlpath"
+            | "identityagent"
+            | "identityfile"
+            | "localforward"
+            | "remotecommand"
+            | "remoteforward"
+            | "userknownkostsfile"
+            | "userknownhostsfile"
+            | "globalknownhostsfile" => {
                 Some(&["%C", "%d", "%h", "%i", "%L", "%l", "%n", "%p", "%r", "%u"])
             }
             "hostname" => Some(&["%h"]),
@@ -1632,5 +1702,42 @@ Config {
 }
 "#
         );
+    }
+
+    #[test]
+    fn test_match_exec() {
+        let mut config = Config::new();
+
+        // Set up a config with an Exec that passes and an Exec that fails.
+        config.add_config_string(
+            r#"
+            Match exec "exit 0"
+              User foo
+            Match exec "exit 1"
+              User bar
+            "#,
+        );
+        let opts = config.for_host("somehost");
+        assert_eq!(opts.get("user").map(|s| s.as_str()), Some("foo"));
+    }
+
+    #[test]
+    fn test_global_known_hosts() {
+        let mut config = Config::new();
+
+        config.add_config_string(
+            r#"
+            Match canonical all
+              GlobalKnownHostsFile /etc/ssh/%h_known_hosts
+              Port 22
+            "#,
+        );
+
+        let opts = config.for_host("example.com");
+        assert_eq!(
+            opts.get("globalknownhostsfile").map(|s| s.as_str()),
+            Some("/etc/ssh/example.com_known_hosts")
+        );
+        assert_eq!(opts.get("port").map(|s| s.as_str()), Some("22"));
     }
 }

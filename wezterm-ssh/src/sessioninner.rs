@@ -195,6 +195,14 @@ impl SessionInner {
                 break;
             }
         }
+        if let Some(gkh) = self.config.get("globalknownhostsfile") {
+            for file in gkh.split_whitespace() {
+                sess.set_option(libssh_rs::SshOption::GlobalKnownHosts(Some(
+                    file.to_string(),
+                )))?;
+                break;
+            }
+        }
         if let Some(types) = self.config.get("pubkeyacceptedtypes") {
             sess.set_option(libssh_rs::SshOption::PublicKeyAcceptedTypes(
                 types.to_string(),

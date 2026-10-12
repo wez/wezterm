@@ -70,6 +70,14 @@ impl crate::sessioninner::SessionInner {
                         break;
                     }
                 }
+                if file.is_none() {
+                    if let Some(kh) = self.config.get("globalknownhostsfile") {
+                        for candidate in kh.split_whitespace() {
+                            file.replace(candidate.into());
+                            break;
+                        }
+                    }
+                }
 
                 let failed = HostVerificationFailed {
                     remote_address: format!("{hostname}:{port}"),
