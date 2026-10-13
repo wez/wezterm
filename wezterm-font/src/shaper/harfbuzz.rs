@@ -241,7 +241,21 @@ impl HarfbuzzShaper {
         let mut no_more_fallbacks = false;
 
         loop {
-            match self.load_fallback(font_idx, dpi).context("load_fallback")? {
+            // If we can't load the fallback face (e.g. the font file was
+            // deleted from disk after being resolved), skip it and move
+            // on to the next fallback rather than propagating an error
+            // up to the caller and crashing the application.
+            let fallback = match self.load_fallback(font_idx, dpi) {
+                Ok(fb) => fb,
+                Err(e) => {
+                    log::error!(
+                        "failed to load fallback font_idx={font_idx}: {e:#} - trying next fallback"
+                    );
+                    font_idx += 1;
+                    continue;
+                }
+            };
+            match fallback {
                 Some(mut pair) => {
                     if let Some(p) = presentation {
                         if pair.presentation != p {
