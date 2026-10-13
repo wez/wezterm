@@ -43,7 +43,12 @@ impl TermWindow {
             // Prefer an image when the clipboard holds one, so that tools
             // that accept a path to an image can receive one.
             let image_path = match window.get_clipboard_image(clipboard).await {
-                Ok(Some(image)) => match save_clipboard_image(&paste_image_dir, &image) {
+                Ok(Some(image)) => match promise::spawn::spawn_into_new_thread(move || {
+                    // Decoding, PNG encoding and disk I/O must not block the GUI.
+                    save_clipboard_image(&paste_image_dir, &image)
+                })
+                .await
+                {
                     Ok(path) => Some(path),
                     Err(err) => {
                         log::error!("failed to save clipboard image: {err:#}");
@@ -137,13 +142,101 @@ fn save_clipboard_image(dir: &Path, image: &ClipboardImage) -> anyhow::Result<Pa
             )
         });
 
-    let mut path = dir.join(format!("{base}.png"));
-    let mut counter = 1;
-    while path.exists() {
-        path = dir.join(format!("{base}-{counter}.png"));
-        counter += 1;
+    // Encode before publishing the final path, and never overwrite a file
+    // (including a dangling symlink) if another paste chose the same name.
+    let mut file = tempfile::NamedTempFile::new_in(dir)?;
+    decoded.write_to(file.as_file_mut(), image::ImageFormat::Png)?;
+    for counter in 0u64.. {
+        let name = if counter == 0 {
+            format!("{base}.png")
+        } else {
+            format!("{base}-{counter}.png")
+        };
+        let path = dir.join(name);
+        match file.persist_noclobber(&path) {
+            Ok(_) => return Ok(path),
+            Err(err) if err.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                file = err.file;
+            }
+            Err(err) => return Err(err.error.into()),
+        }
+    }
+    anyhow::bail!("exhausted clipboard image filenames")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn clipboard_image() -> ClipboardImage {
+        let mut data = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::new_rgba8(2, 2)
+            .write_to(&mut data, image::ImageFormat::Png)
+            .unwrap();
+        ClipboardImage {
+            data: data.into_inner(),
+            suggested_name: Some("screenshot.png".into()),
+        }
     }
 
-    decoded.save_with_format(&path, image::ImageFormat::Png)?;
-    Ok(path)
+    #[test]
+    fn saved_images_do_not_overwrite_existing_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let existing = dir.path().join("screenshot.png");
+        std::fs::write(&existing, b"keep me").unwrap();
+        let path = save_clipboard_image(dir.path(), &clipboard_image()).unwrap();
+        assert_ne!(path, existing);
+        assert_eq!(std::fs::read(existing).unwrap(), b"keep me");
+        assert_eq!(image::open(path).unwrap().width(), 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_images_are_private() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = save_clipboard_image(dir.path(), &clipboard_image()).unwrap();
+        assert_eq!(
+            std::fs::metadata(path).unwrap().permissions().mode() & 0o077,
+            0
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_images_do_not_follow_dangling_symlinks() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("target.png");
+        let link = dir.path().join("screenshot.png");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let path = save_clipboard_image(dir.path(), &clipboard_image()).unwrap();
+        assert_ne!(path, link);
+        assert!(!target.exists());
+        assert_eq!(std::fs::read_link(link).unwrap(), target);
+        assert_eq!(image::open(path).unwrap().width(), 2);
+    }
+
+    #[test]
+    fn concurrent_pastes_save_distinct_images() {
+        let dir = tempfile::tempdir().unwrap();
+        let barrier = Arc::new(std::sync::Barrier::new(8));
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let dir = dir.path().to_path_buf();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    save_clipboard_image(&dir, &clipboard_image()).unwrap()
+                })
+            })
+            .collect();
+        let paths: std::collections::HashSet<_> = threads
+            .into_iter()
+            .map(|thread| thread.join().unwrap())
+            .collect();
+        assert_eq!(paths.len(), 8);
+        for path in paths {
+            assert_eq!(image::open(path).unwrap().width(), 2);
+        }
+    }
 }

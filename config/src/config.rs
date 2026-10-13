@@ -905,7 +905,8 @@ pub struct Config {
     /// If a relative path is specified, it is interpreted relative to the
     /// directory containing your configuration file.
     ///
-    /// If not specified, the wezterm cache directory is used.
+    /// If not specified, the pasted subdirectory of the wezterm cache
+    /// directory is used.
     #[dynamic(default = "default_paste_image_dir")]
     pub paste_image_dir: PathBuf,
 

@@ -20,4 +20,5 @@ when one is available; otherwise a name is generated automatically.
 If a relative path is specified, it is interpreted relative to the
 directory containing your configuration file.
 
-If not specified, the wezterm cache directory is used.
+If not specified, the `pasted` subdirectory of the wezterm cache directory is
+used. Images are saved as PNG files and are not deleted automatically.
