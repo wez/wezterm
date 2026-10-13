@@ -289,6 +289,44 @@ pub struct DecodedPdu {
 /// If the serialized size is larger than this, then we'll consider compressing it
 const COMPRESS_THRESH: usize = 32;
 
+const COMPRESS_LEVEL: i32 = 1;
+
+thread_local! {
+    // Creating a fresh zstd context per PDU dominates encode cost, because
+    // every new CCtx allocates and zeroes its match tables.
+    static COMPRESSOR: std::cell::RefCell<Option<zstd::bulk::Compressor<'static>>> =
+        std::cell::RefCell::new(None);
+}
+
+/// Produces a single standard zstd frame, decodable by the streaming
+/// `zstd::Decoder` used in `deserialize`.
+/// Returns None on any compressor failure; the caller then sends the
+/// uncompressed payload, which is always a valid encoding.
+fn compress(data: &[u8]) -> Option<Vec<u8>> {
+    COMPRESSOR.with(|cell| {
+        let mut slot = cell.try_borrow_mut().ok()?;
+        if slot.is_none() {
+            match zstd::bulk::Compressor::new(COMPRESS_LEVEL) {
+                Ok(c) => *slot = Some(c),
+                Err(err) => {
+                    log::warn!("failed to create zstd compressor: {err:#}");
+                    return None;
+                }
+            }
+        }
+        let compressor = slot.as_mut()?;
+        match compressor.compress(data) {
+            Ok(compressed) => Some(compressed),
+            Err(err) => {
+                log::warn!("zstd compression failed: {err:#}");
+                // The context may be left mid-frame; rebuild it next time.
+                *slot = None;
+                None
+            }
+        }
+    })
+}
+
 fn serialize<T: serde::Serialize>(t: &T) -> Result<(Vec<u8>, bool), Error> {
     let mut uncompressed = Vec::new();
     let mut encode = varbincode::Serializer::new(&mut uncompressed);
@@ -298,12 +336,10 @@ fn serialize<T: serde::Serialize>(t: &T) -> Result<(Vec<u8>, bool), Error> {
         return Ok((uncompressed, false));
     }
     // It's a little heavy; let's try compressing it
-    let mut compressed = Vec::new();
-    let mut compress = zstd::Encoder::new(&mut compressed, zstd::DEFAULT_COMPRESSION_LEVEL)?;
-    let mut encode = varbincode::Serializer::new(&mut compress);
-    t.serialize(&mut encode)?;
-    drop(encode);
-    compress.finish()?;
+    let compressed = match compress(&uncompressed) {
+        Some(compressed) => compressed,
+        None => return Ok((uncompressed, false)),
+    };
 
     log::debug!(
         "serialized+compress len {} vs {}",
@@ -1250,6 +1286,49 @@ mod test {
             },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
+    }
+
+    fn sample_lines_response(pane_id: PaneId, rows: usize) -> Pdu {
+        let attrs = termwiz::cell::CellAttributes::default();
+        let lines: Vec<(StableRowIndex, Line)> = (0..rows)
+            .map(|i| {
+                let text = format!("{i:05} $ cargo build --release -p wezterm-mux-server");
+                (i as StableRowIndex, Line::from_text(&text, &attrs, 1, None))
+            })
+            .collect();
+        Pdu::GetLinesResponse(GetLinesResponse {
+            pane_id,
+            lines: lines.into(),
+        })
+    }
+
+    #[test]
+    fn test_compressed_pdu_round_trip() {
+        // Repeat with varying sizes so the reused compressor context is
+        // exercised across differently sized frames.
+        for (serial, rows) in [(1, 40), (2, 3), (3, 200), (4, 40)] {
+            let pdu = sample_lines_response(serial as PaneId, rows);
+            let mut encoded = Vec::new();
+            pdu.encode(&mut encoded, serial).unwrap();
+
+            let raw = decode_raw(encoded.as_slice()).unwrap();
+            assert!(raw.is_compressed, "rows={} was not compressed", rows);
+
+            let Pdu::GetLinesResponse(inner) = &pdu else {
+                unreachable!()
+            };
+            let mut uncompressed = Vec::new();
+            inner
+                .serialize(&mut varbincode::Serializer::new(&mut uncompressed))
+                .unwrap();
+            assert!(uncompressed.len() > COMPRESS_THRESH);
+            assert!(raw.data.len() < uncompressed.len());
+
+            assert_eq!(
+                DecodedPdu { serial, pdu },
+                Pdu::decode(encoded.as_slice()).unwrap()
+            );
+        }
     }
 
     #[test]
