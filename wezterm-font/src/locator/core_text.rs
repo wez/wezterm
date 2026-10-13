@@ -140,7 +140,10 @@ impl FontLocator for CoreTextFontLocator {
                 CTFontCreateForString(
                     menlo.as_concrete_TypeRef(),
                     text.as_concrete_TypeRef(),
-                    CFRange::init(0, 1),
+                    // The range counts UTF-16 units: a codepoint outside
+                    // the BMP is a surrogate pair, and a length of 1 would
+                    // ask about its high surrogate alone.
+                    CFRange::init(0, text.char_len()),
                 )
             };
 
