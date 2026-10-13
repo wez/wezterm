@@ -2,7 +2,7 @@
 authors = ["Wez Furlong"]
 name = "wezterm-cell"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 repository = "https://github.com/wezterm/wezterm"
 description = "Model a Cell in a Terminal display"
 license = "MIT"
