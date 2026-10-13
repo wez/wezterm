@@ -884,6 +884,27 @@ impl TermWindow {
                 myself.created(RenderContext::Glium(Rc::clone(&gl)))?;
             }
             if let Some(webgpu) = webgpu {
+                // Load custom post-processing shader if configured
+                if let Some(shader_path) = &config.webgpu_shader {
+                    match std::fs::read_to_string(shader_path) {
+                        Ok(shader_source) => {
+                            if let Err(e) = webgpu.load_postprocess_shader(&shader_source) {
+                                log::error!(
+                                    "Failed to load WebGPU shader from {:?}: {}",
+                                    shader_path,
+                                    e
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            log::error!(
+                                "Failed to read WebGPU shader file {:?}: {}",
+                                shader_path,
+                                e
+                            );
+                        }
+                    }
+                }
                 myself.webgpu.replace(Rc::clone(&webgpu));
                 myself.created(RenderContext::WebGpu(Rc::clone(&webgpu)))?;
             }

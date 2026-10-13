@@ -21,6 +21,14 @@ pub struct ShaderUniform {
     // sampler2D atlas_linear_sampler;
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Default, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct PostProcessUniform {
+    pub resolution: [f32; 2],
+    pub time: f32,
+    pub _padding: f32,
+}
+
 pub struct WebGpuState {
     pub adapter_info: wgpu::AdapterInfo,
     pub downlevel_caps: wgpu::DownlevelCapabilities,
@@ -35,6 +43,11 @@ pub struct WebGpuState {
     pub texture_nearest_sampler: wgpu::Sampler,
     pub texture_linear_sampler: wgpu::Sampler,
     pub handle: RawHandlePair,
+    // Post-processing support
+    pub postprocess_pipeline: RefCell<Option<wgpu::RenderPipeline>>,
+    pub postprocess_bind_group_layout: RefCell<Option<wgpu::BindGroupLayout>>,
+    pub postprocess_intermediate_texture: RefCell<Option<wgpu::Texture>>,
+    pub postprocess_sampler: wgpu::Sampler,
 }
 
 pub struct RawHandlePair {
@@ -492,6 +505,17 @@ impl WebGpuState {
             cache: None,
         });
 
+        // Create post-processing sampler
+        let postprocess_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         Ok(Self {
             adapter_info,
             downlevel_caps,
@@ -506,6 +530,10 @@ impl WebGpuState {
             texture_bind_group_layout,
             texture_nearest_sampler,
             texture_linear_sampler,
+            postprocess_pipeline: RefCell::new(None),
+            postprocess_bind_group_layout: RefCell::new(None),
+            postprocess_intermediate_texture: RefCell::new(None),
+            postprocess_sampler,
         })
     }
 
@@ -525,6 +553,69 @@ impl WebGpuState {
             }],
             label: Some("ShaderUniform Bind Group"),
         })
+    }
+
+    pub fn create_postprocess_uniform(&self, uniform: PostProcessUniform) -> wgpu::BindGroup {
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("PostProcess Uniform Buffer"),
+                contents: bytemuck::cast_slice(&[uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+
+        let intermediate_texture = self.postprocess_intermediate_texture.borrow();
+        let texture = intermediate_texture.as_ref().expect("intermediate texture must exist");
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let bind_group_layout = self.postprocess_bind_group_layout.borrow();
+        self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: bind_group_layout.as_ref().unwrap(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.postprocess_sampler),
+                },
+            ],
+            label: Some("PostProcess Bind Group"),
+        })
+    }
+
+    pub fn ensure_intermediate_texture(&self, width: u32, height: u32) {
+        let needs_recreate = {
+            let tex = self.postprocess_intermediate_texture.borrow();
+            match tex.as_ref() {
+                None => true,
+                Some(t) => t.width() != width || t.height() != height,
+            }
+        };
+
+        if needs_recreate && width > 0 && height > 0 {
+            let format = self.config.borrow().format;
+            let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("PostProcess Intermediate Texture"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+            *self.postprocess_intermediate_texture.borrow_mut() = Some(texture);
+        }
     }
 
     #[allow(unused_mut)]
@@ -557,5 +648,125 @@ impl WebGpuState {
             // <https://github.com/wezterm/wezterm/issues/2881>
             self.surface.configure(&self.device, &config);
         }
+    }
+
+    /// Load a custom post-processing shader from the given WGSL source code
+    pub fn load_postprocess_shader(&self, shader_source: &str) -> anyhow::Result<()> {
+        // wgpu will validate and log any shader errors
+        // Using catch_unwind to prevent panics from crashing the terminal
+        let shader_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("Custom PostProcess Shader"),
+                source: wgpu::ShaderSource::Wgsl(shader_source.into()),
+            })
+        }));
+
+        let shader = match shader_result {
+            Ok(s) => s,
+            Err(e) => {
+                let msg = if let Some(s) = e.downcast_ref::<&str>() {
+                    s.to_string()
+                } else if let Some(s) = e.downcast_ref::<String>() {
+                    s.clone()
+                } else {
+                    "Unknown shader compilation error".to_string()
+                };
+                log::error!("WebGPU shader compilation failed: {}", msg);
+                return Err(anyhow!("Shader compilation failed: {}", msg));
+            }
+        };
+
+        // Create bind group layout for post-processing
+        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("PostProcess Bind Group Layout"),
+            entries: &[
+                // Uniform buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Input texture
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                // Sampler
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("PostProcess Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let format = self.config.borrow().format;
+
+        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("PostProcess Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[], // Full-screen triangle doesn't need vertex buffers
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
+
+        *self.postprocess_bind_group_layout.borrow_mut() = Some(bind_group_layout);
+        *self.postprocess_pipeline.borrow_mut() = Some(pipeline);
+
+        log::info!("Loaded custom post-processing shader");
+        Ok(())
+    }
+
+    /// Check if post-processing is enabled
+    pub fn has_postprocess(&self) -> bool {
+        self.postprocess_pipeline.borrow().is_some()
     }
 }

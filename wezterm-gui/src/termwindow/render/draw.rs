@@ -1,5 +1,5 @@
 use crate::colorease::ColorEaseUniform;
-use crate::termwindow::webgpu::ShaderUniform;
+use crate::termwindow::webgpu::{PostProcessUniform, ShaderUniform};
 use crate::termwindow::RenderFrame;
 use crate::uniforms::UniformBuilder;
 use ::window::glium;
@@ -23,10 +23,35 @@ impl crate::TermWindow {
         let webgpu = self.webgpu.as_mut().unwrap();
         let render_state = self.render_state.as_ref().unwrap();
 
+        let has_postprocess = webgpu.has_postprocess();
+        let width = self.dimensions.pixel_width as u32;
+        let height = self.dimensions.pixel_height as u32;
+
+        log::trace!("call_draw_webgpu: has_postprocess={}", has_postprocess);
+
+        // Ensure intermediate texture exists if post-processing is enabled
+        if has_postprocess {
+            log::trace!("Creating intermediate texture {}x{}", width, height);
+            webgpu.ensure_intermediate_texture(width, height);
+        }
+
         let output = webgpu.surface.get_current_texture()?;
-        let view = output
+        let surface_view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Choose render target: intermediate texture if post-processing, otherwise surface
+        let intermediate_texture = webgpu.postprocess_intermediate_texture.borrow();
+        let render_target_view = if has_postprocess {
+            intermediate_texture
+                .as_ref()
+                .unwrap()
+                .create_view(&wgpu::TextureViewDescriptor::default())
+        } else {
+            surface_view.clone()
+        };
+        drop(intermediate_texture);
+
         let mut encoder = webgpu
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -87,6 +112,7 @@ impl crate::TermWindow {
         )
         .to_arrays_transposed();
 
+        // First pass: render terminal content to render target
         for layer in render_state.layers.borrow().iter() {
             for idx in 0..3 {
                 let vb = &layer.vb.borrow()[idx];
@@ -98,7 +124,7 @@ impl crate::TermWindow {
                     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
+                            view: &render_target_view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: if cleared {
@@ -140,6 +166,36 @@ impl crate::TermWindow {
 
                 vb.next_index();
             }
+        }
+
+        // Second pass: apply post-processing shader if enabled
+        if has_postprocess {
+            let postprocess_uniform = webgpu.create_postprocess_uniform(PostProcessUniform {
+                resolution: [width as f32, height as f32],
+                time: self.created.elapsed().as_secs_f32(),
+                _padding: 0.0,
+            });
+
+            let pipeline = webgpu.postprocess_pipeline.borrow();
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("PostProcess Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &surface_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+
+            render_pass.set_pipeline(pipeline.as_ref().unwrap());
+            render_pass.set_bind_group(0, &postprocess_uniform, &[]);
+            // Draw a full-screen triangle (3 vertices, no vertex buffer needed)
+            render_pass.draw(0..3, 0..1);
         }
 
         // submit will accept anything that implements IntoIter

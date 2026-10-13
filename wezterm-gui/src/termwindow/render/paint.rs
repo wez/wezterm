@@ -115,6 +115,27 @@ impl crate::TermWindow {
         metrics::histogram!("gui.paint.impl").record(self.last_frame_duration);
         metrics::histogram!("gui.paint.impl.rate").record(1.);
 
+        // Schedule continuous rendering for animated shaders
+        if let Some(ref webgpu) = self.webgpu {
+            if webgpu.has_postprocess() {
+                let fps = self.config.webgpu_shader_fps;
+                if fps > 0 {
+                    let frame_interval = Duration::from_millis(1000 / fps as u64);
+                    let next_frame = Instant::now() + frame_interval;
+                    let mut has_anim = self.has_animation.borrow_mut();
+                    match *has_anim {
+                        None => {
+                            *has_anim = Some(next_frame);
+                        }
+                        Some(existing) if next_frame < existing => {
+                            *has_anim = Some(next_frame);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
         // If self.has_animation is some, then the last render detected
         // image attachments with multiple frames, so we also need to
         // invalidate the viewport when the next frame is due

@@ -607,6 +607,21 @@ pub struct Config {
     #[dynamic(default = "default_one_point_oh")]
     pub window_background_opacity: f32,
 
+    /// Specifies the path to a WGSL shader file that will be used
+    /// for post-processing the terminal output. The shader receives
+    /// the rendered terminal as a texture and can apply effects like
+    /// CRT simulation, bloom, scanlines, etc.
+    /// Requires front_end = "WebGpu" to be set.
+    #[dynamic(default)]
+    pub webgpu_shader: Option<PathBuf>,
+
+    /// When a custom webgpu_shader is configured, this controls the
+    /// frame rate for continuous shader updates (for animated shaders).
+    /// Set to 0 to disable continuous rendering (only re-render on changes).
+    /// Default is 0 (disabled). Set to 60 for smooth animations.
+    #[dynamic(default = "default_webgpu_shader_fps")]
+    pub webgpu_shader_fps: u8,
+
     /// inactive_pane_hue, inactive_pane_saturation and
     /// inactive_pane_brightness allow for transforming the color
     /// of inactive panes.
@@ -1348,6 +1363,12 @@ impl Config {
                     cfg.window_background_image.replace(config_dir.join(path));
                 }
             }
+
+            if let Some(path) = &self.webgpu_shader {
+                if !path.is_absolute() {
+                    cfg.webgpu_shader.replace(config_dir.join(path));
+                }
+            }
         }
 
         // Add some reasonable default font rules
@@ -1819,6 +1840,10 @@ fn default_mux_env_remove() -> Vec<String> {
 
 fn default_anim_fps() -> u8 {
     10
+}
+
+fn default_webgpu_shader_fps() -> u8 {
+    0
 }
 
 fn default_max_fps() -> u64 {
