@@ -1776,26 +1776,32 @@ impl KeyEvent {
             _ => false,
         };
 
-        let generated_text =
-            if self.key_is_down && flags.contains(KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT) {
-                match &self.key {
-                    Char(c) => format!(";{}", *c as u32),
-                    KeyCode::Numpad(n) => format!(";{}", '0' as u32 + *n as u32),
-                    Composed(s) => {
-                        let mut codepoints = ";".to_string();
-                        for c in s.chars() {
-                            if codepoints.len() > 1 {
-                                codepoints.push(':');
-                            }
-                            write!(&mut codepoints, "{}", c as u32).ok();
-                        }
-                        codepoints
-                    }
-                    _ => String::new(),
+        let generated_text = if self.key_is_down
+            && flags.contains(KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT)
+        {
+            match &self.key {
+                Char(c)
+                    if raw_modifiers.contains(Modifiers::CTRL) && ctrl_mapping(*c).is_some() =>
+                {
+                    String::new()
                 }
-            } else {
-                String::new()
-            };
+                Char(c) => format!(";{}", *c as u32),
+                KeyCode::Numpad(n) => format!(";{}", '0' as u32 + *n as u32),
+                Composed(s) => {
+                    let mut codepoints = ";".to_string();
+                    for c in s.chars() {
+                        if codepoints.len() > 1 {
+                            codepoints.push(':');
+                        }
+                        write!(&mut codepoints, "{}", c as u32).ok();
+                    }
+                    codepoints
+                }
+                _ => String::new(),
+            }
+        } else {
+            String::new()
+        };
 
         let guess_phys = self
             .raw
@@ -3076,6 +3082,43 @@ mod test {
             )
             .encode_kitty(flags),
             "\x1b[1092:1060:97;6;1060u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_8149() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_EVENT_TYPES
+            | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+            | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT;
+
+        let event = |key, modifiers| KeyEvent {
+            key,
+            modifiers,
+            leds: KeyboardLedStatus::empty(),
+            repeat_count: 1,
+            key_is_down: true,
+            raw: None,
+            #[cfg(windows)]
+            win32_uni_char: None,
+        };
+
+        assert_eq!(
+            event(KeyCode::Char('a'), Modifiers::CTRL).encode_kitty(flags),
+            "\x1b[97;5u"
+        );
+        assert_eq!(
+            event(KeyCode::Char('b'), Modifiers::CTRL).encode_kitty(flags),
+            "\x1b[98;5u"
+        );
+        assert_eq!(
+            event(KeyCode::Char('a'), Modifiers::NONE).encode_kitty(flags),
+            "\x1b[97;1;97u"
+        );
+        assert_eq!(
+            event(KeyCode::Char('A'), Modifiers::SHIFT).encode_kitty(flags),
+            "\x1b[97:65;2;65u"
         );
     }
 
