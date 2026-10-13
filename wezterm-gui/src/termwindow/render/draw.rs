@@ -1,5 +1,5 @@
 use crate::colorease::ColorEaseUniform;
-use crate::termwindow::webgpu::ShaderUniform;
+use crate::termwindow::webgpu::{PostProcessUniform, ShaderUniform};
 use crate::termwindow::RenderFrame;
 use crate::uniforms::UniformBuilder;
 use ::window::glium;
@@ -8,6 +8,38 @@ use ::window::glium::uniforms::{
 };
 use ::window::glium::{BlendingFunction, LinearBlendingFactor, Surface};
 use config::FreeTypeLoadTarget;
+use std::time::Instant;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ReadSource {
+    Intermediate,
+    PingPong,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WriteTarget {
+    PingPong,
+    Intermediate,
+    Surface,
+}
+
+pub(crate) fn ping_pong_targets(index: usize, count: usize) -> (ReadSource, WriteTarget) {
+    debug_assert!(count > 0, "ping_pong_targets: count must be > 0");
+    let is_last = index == count - 1;
+    let read = if index % 2 == 0 {
+        ReadSource::Intermediate
+    } else {
+        ReadSource::PingPong
+    };
+    let write = if is_last {
+        WriteTarget::Surface
+    } else if index % 2 == 0 {
+        WriteTarget::PingPong
+    } else {
+        WriteTarget::Intermediate
+    };
+    (read, write)
+}
 
 impl crate::TermWindow {
     pub fn call_draw(&mut self, frame: &mut RenderFrame) -> anyhow::Result<()> {
@@ -20,13 +52,23 @@ impl crate::TermWindow {
     fn call_draw_webgpu(&mut self) -> anyhow::Result<()> {
         use crate::termwindow::webgpu::WebGpuTexture;
 
-        let webgpu = self.webgpu.as_mut().unwrap();
+        let webgpu = self.webgpu.as_ref().unwrap();
         let render_state = self.render_state.as_ref().unwrap();
 
         let output = webgpu.surface.get_current_texture()?;
-        let view = output
+        let surface_view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
+        // When post-processing is active, render layers to the intermediate
+        // texture instead of directly to the surface.
+        let has_postprocess = self.post_process.is_some();
+        let render_target_view = if has_postprocess {
+            &self.post_process.as_ref().unwrap().intermediate_view
+        } else {
+            &surface_view
+        };
+
         let mut encoder = webgpu
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -98,7 +140,7 @@ impl crate::TermWindow {
                     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
+                            view: render_target_view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: if cleared {
@@ -139,6 +181,83 @@ impl crate::TermWindow {
                 }
 
                 vb.next_index();
+            }
+        }
+
+        // Run post-process shader chain if active
+        if let Some(pp) = &self.post_process {
+            // Update the uniform buffer with current frame data
+            let now = Instant::now();
+            let time = self.created.elapsed().as_secs_f32();
+            let time_delta = self
+                .last_post_process_time
+                .map(|t| now.duration_since(t).as_secs_f32())
+                .unwrap_or(0.0);
+            self.last_post_process_time = Some(now);
+            self.post_process_frame = self.post_process_frame.wrapping_add(1);
+
+            let uniform = PostProcessUniform {
+                resolution: [
+                    self.dimensions.pixel_width as f32,
+                    self.dimensions.pixel_height as f32,
+                ],
+                time,
+                time_delta,
+                frame: self.post_process_frame,
+                _padding: [0; 3],
+            };
+            webgpu
+                .queue
+                .write_buffer(&pp.uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
+
+            let num_pipelines = pp.pipelines.len();
+
+            for (i, pipeline) in pp.pipelines.iter().enumerate() {
+                // Determine which texture to read from and which to write to.
+                // Pattern for N shaders:
+                //   shader 0: read intermediate, write to pingpong (or surface if N==1)
+                //   shader 1: read pingpong, write to intermediate (or surface if last)
+                //   shader 2: read intermediate, write to pingpong (or surface if last)
+                //   ...
+                // Even-indexed shaders read from intermediate, odd from pingpong.
+                // The last shader always writes to the surface.
+                let (read_src, write_dst) = ping_pong_targets(i, num_pipelines);
+
+                let read_bind_group = match read_src {
+                    ReadSource::Intermediate => &pp.bind_group_intermediate,
+                    ReadSource::PingPong => pp.bind_group_pingpong.as_ref().unwrap(),
+                };
+
+                let write_view = match write_dst {
+                    WriteTarget::Surface => &surface_view,
+                    WriteTarget::PingPong => pp.ping_pong_view.as_ref().unwrap(),
+                    WriteTarget::Intermediate => &pp.intermediate_view,
+                };
+
+                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("PostProcess Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: write_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.,
+                                g: 0.,
+                                b: 0.,
+                                a: 0.,
+                            }),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    occlusion_query_set: None,
+                    timestamp_writes: None,
+                });
+
+                render_pass.set_pipeline(pipeline);
+                render_pass.set_bind_group(0, read_bind_group, &[]);
+                render_pass.set_bind_group(1, &pp.uniform_bind_group, &[]);
+                render_pass.draw(0..3, 0..1);
             }
         }
 
@@ -272,5 +391,43 @@ impl crate::TermWindow {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ping_pong_single_shader() {
+        let (read, write) = ping_pong_targets(0, 1);
+        assert_eq!(read, ReadSource::Intermediate);
+        assert_eq!(write, WriteTarget::Surface);
+    }
+
+    #[test]
+    fn test_ping_pong_two_shaders() {
+        let (r0, w0) = ping_pong_targets(0, 2);
+        assert_eq!(r0, ReadSource::Intermediate);
+        assert_eq!(w0, WriteTarget::PingPong);
+
+        let (r1, w1) = ping_pong_targets(1, 2);
+        assert_eq!(r1, ReadSource::PingPong);
+        assert_eq!(w1, WriteTarget::Surface);
+    }
+
+    #[test]
+    fn test_ping_pong_three_shaders() {
+        let (r0, w0) = ping_pong_targets(0, 3);
+        assert_eq!(r0, ReadSource::Intermediate);
+        assert_eq!(w0, WriteTarget::PingPong);
+
+        let (r1, w1) = ping_pong_targets(1, 3);
+        assert_eq!(r1, ReadSource::PingPong);
+        assert_eq!(w1, WriteTarget::Intermediate);
+
+        let (r2, w2) = ping_pong_targets(2, 3);
+        assert_eq!(r2, ReadSource::Intermediate);
+        assert_eq!(w2, WriteTarget::Surface);
     }
 }

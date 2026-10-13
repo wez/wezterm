@@ -7143,6 +7143,7 @@ dependencies = [
  "mlua",
  "mux",
  "mux-lua",
+ "naga",
  "nucleo-matcher",
  "ordered-float 4.6.0",
  "parking_lot",

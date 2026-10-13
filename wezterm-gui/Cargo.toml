@@ -126,3 +126,4 @@ windows = { workspace=true, features = [
 benchmarking.workspace = true
 env_logger.workspace = true
 k9.workspace = true
+naga = { version = "25", features = ["wgsl-in"] }

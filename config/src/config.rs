@@ -572,6 +572,12 @@ pub struct Config {
     #[dynamic(default)]
     pub background: Vec<BackgroundLayer>,
 
+    /// Paths to custom post-processing fragment shaders (WGSL).
+    /// These are applied in order after the terminal is rendered.
+    /// Relative paths are resolved relative to the config file directory.
+    #[dynamic(default)]
+    pub custom_shaders: Vec<PathBuf>,
+
     /// Only works on MacOS
     #[dynamic(default)]
     pub macos_window_background_blur: i64,
@@ -1346,6 +1352,13 @@ impl Config {
             if let Some(path) = &self.window_background_image {
                 if !path.is_absolute() {
                     cfg.window_background_image.replace(config_dir.join(path));
+                }
+            }
+
+            for shader_path in &mut cfg.custom_shaders {
+                if !shader_path.is_absolute() {
+                    let dir = config_dir.join(&shader_path);
+                    *shader_path = dir;
                 }
             }
         }
@@ -2211,4 +2224,18 @@ fn default_macos_forward_mods() -> Modifiers {
 
 fn default_colr_rasterizer() -> FontRasterizerSelection {
     FontRasterizerSelection::Harfbuzz
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_custom_shaders_default_empty() {
+        let config = Config::default();
+        assert!(
+            config.custom_shaders.is_empty(),
+            "Default config should have no custom_shaders"
+        );
+    }
 }

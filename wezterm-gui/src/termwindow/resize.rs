@@ -53,8 +53,24 @@ impl super::TermWindow {
             self.load_os_parameters();
         }
 
-        if let Some(webgpu) = self.webgpu.as_mut() {
+        if let Some(webgpu) = self.webgpu.as_ref() {
             webgpu.resize(dimensions);
+
+            // Recreate post-process textures at the new dimensions
+            let mut drop_post_process = false;
+            if let Some(pp) = self.post_process.as_mut() {
+                let width = dimensions.pixel_width as u32;
+                let height = dimensions.pixel_height as u32;
+                if width > 0 && height > 0 {
+                    if !pp.resize(&webgpu.device, width, height) {
+                        log::warn!("postprocess: dropping state due to failed resize");
+                        drop_post_process = true;
+                    }
+                }
+            }
+            if drop_post_process {
+                self.post_process = None;
+            }
         }
 
         // For simple, user-interactive resizes where the dpi doesn't change,

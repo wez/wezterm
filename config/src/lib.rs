@@ -634,6 +634,11 @@ impl ConfigInner {
 
         self.notify();
         if self.config.automatically_reload_config {
+            // Watch custom shader files for hot-reload
+            for shader_path in &self.config.custom_shaders {
+                watch_paths.push(shader_path.clone());
+            }
+
             for path in watch_paths {
                 self.watch_path(path);
             }
