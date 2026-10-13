@@ -123,7 +123,7 @@ pub struct RuleMatch {
 #[derive(Debug)]
 struct Match<'t> {
     rule: &'t Rule,
-    captures: Captures<'t>,
+    captures: Captures<'t, str>,
 }
 
 impl<'t> Match<'t> {
