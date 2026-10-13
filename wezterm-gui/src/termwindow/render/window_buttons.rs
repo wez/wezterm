@@ -152,10 +152,12 @@ mod gnome {
         style: PolyStyle::Outline,
     }];
 
+    // HIDE and MAXIMIZE are stroked along the edges of the icon at twice the
+    // line width, so that exactly one line width of it is inside the icon.
     pub const HIDE: &[Poly] = &[Poly {
         path: &[
-            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(15, 16)),
-            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(15, 16)),
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
         ],
         intensity: BlockAlpha::Full,
         style: PolyStyle::Outline,
@@ -163,29 +165,23 @@ mod gnome {
 
     pub const MAXIMIZE: &[Poly] = &[Poly {
         path: &[
-            PolyCommand::LineTo(BlockCoord::Frac(1, 16), BlockCoord::Frac(15, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(15, 16), BlockCoord::Frac(15, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(15, 16), BlockCoord::Frac(1, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(1, 16), BlockCoord::Frac(1, 16)),
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+            PolyCommand::Close,
         ],
         intensity: BlockAlpha::Full,
         style: PolyStyle::Outline,
     }];
 
-    pub const RESTORE: &[Poly] = &[Poly {
-        path: &[
-            PolyCommand::MoveTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(3, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(13, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(13, 16), BlockCoord::Frac(13, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(13, 16), BlockCoord::Frac(3, 16)),
-            PolyCommand::LineTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(3, 16)),
-        ],
-        intensity: BlockAlpha::Full,
-        style: PolyStyle::Outline,
-    }];
+    // Don't scale down the path here -- it would come out blurry.
+    // sized_poly() gives restore a smaller 6px sprite instead.
+    pub const RESTORE: &[Poly] = MAXIMIZE;
 
-    pub fn sized_poly(poly: &'static [Poly]) -> SizedPoly {
-        let size = Dimension::Pixels(8.);
+    pub fn sized_poly(poly: &'static [Poly], is_restore: bool) -> SizedPoly {
+        let scale = 72.0 / 96.0;
+        let size = Dimension::Points(if is_restore { 6. } else { 8. } * scale);
         SizedPoly {
             poly,
             width: size,
@@ -220,8 +216,10 @@ pub fn window_button_element(
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     config: &ConfigHandle,
+    dpi: usize,
 ) -> Element {
     let style = config.integrated_title_button_style;
+    let is_restore = window_button == IntegratedTitleButton::Maximize && is_maximized;
 
     if style == Style::MacOsNative {
         return Element::new(font, ElementContent::Text(String::new()));
@@ -253,7 +251,7 @@ pub fn window_button_element(
 
         match style {
             Style::Windows => self::windows::sized_poly(poly),
-            Style::Gnome => self::gnome::sized_poly(poly),
+            Style::Gnome => self::gnome::sized_poly(poly, is_restore),
             Style::MacOsNative => unreachable!(),
         }
     };
@@ -261,7 +259,18 @@ pub fn window_button_element(
     let element = Element::new(
         &font,
         ElementContent::Poly {
-            line_width: metrics.underline_height.max(2),
+            line_width: match style {
+                // 2px at 96 dpi, doubled for the icons stroked along their edges
+                Style::Gnome => {
+                    let width = (2. * dpi as f64 / 96.).round() as isize;
+                    if window_button == IntegratedTitleButton::Close {
+                        width
+                    } else {
+                        width * 2
+                    }
+                }
+                _ => metrics.underline_height.max(2),
+            },
             poly,
         },
     );
@@ -285,18 +294,20 @@ pub fn window_button_element(
                 })
         }
         Style::Gnome => {
-            let dim = Dimension::Pixels(7.);
-            let border_corners_size = Dimension::Pixels(12.);
+            let scale = 72.0 / 96.0;
+            let dim = Dimension::Points(7. * scale);
+            let padding = Dimension::Points(if is_restore { 8. } else { 7. } * scale);
+            let border_corners_size = Dimension::Points(12. * scale);
             element
                 .zindex(1)
                 .vertical_align(VerticalAlign::Middle)
                 .padding(BoxDimension {
-                    left: dim,
-                    right: dim,
-                    top: dim,
-                    bottom: dim,
+                    left: padding,
+                    right: padding,
+                    top: padding,
+                    bottom: padding,
                 })
-                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .border(BoxDimension::new(Dimension::Points(1. * scale)))
                 .border_corners(Some(Corners {
                     top_left: SizedPoly {
                         width: border_corners_size,
@@ -320,7 +331,7 @@ pub fn window_button_element(
                     },
                 }))
                 .margin(BoxDimension {
-                    left: dim,
+                    left: Dimension::Points(6. * scale),
                     right: dim,
                     top: dim,
                     bottom: dim,

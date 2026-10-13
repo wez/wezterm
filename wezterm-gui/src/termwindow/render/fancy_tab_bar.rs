@@ -358,6 +358,7 @@ impl crate::TermWindow {
                     &font,
                     &metrics,
                     &self.config,
+                    self.dimensions.dpi,
                 ),
             }
         };
