@@ -1,6 +1,6 @@
-use crate::default_true;
 use crate::keys::KeyNoAction;
 use crate::window::WindowLevel;
+use crate::{default_true, Dimension, PixelUnit};
 use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
 use portable_pty::CommandBuilder;
@@ -550,7 +550,9 @@ pub enum KeyAssignment {
     ActivateTabRelative(isize),
     ActivateTabRelativeNoWrap(isize),
     IncreaseFontSize,
+    IncreaseFontSizeByUnit(PixelUnit),
     DecreaseFontSize,
+    DecreaseFontSizeByUnit(PixelUnit),
     ResetFontSize,
     ResetFontAndWindowSize,
     ActivateTab(isize),

@@ -1,7 +1,7 @@
 use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, ResizeIncrement, Window, WindowOps, WindowState};
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, Dimension, DimensionContext};
 use mux::Mux;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -16,7 +16,6 @@ pub struct RowsAndCols {
 #[derive(Debug)]
 pub enum ScaleChange {
     Absolute(f64),
-    Relative(f64),
 }
 
 impl super::TermWindow {
@@ -73,11 +72,6 @@ impl super::TermWindow {
     pub fn apply_pending_scale_changes(&mut self) {
         while self.resizes_pending == 0 {
             match self.pending_scale_changes.pop_front() {
-                Some(ScaleChange::Relative(change)) => {
-                    if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
-                        self.adjust_font_scale(self.fonts.get_font_scale() * change, &window);
-                    }
-                }
                 Some(ScaleChange::Absolute(change)) => {
                     if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
                         self.adjust_font_scale(change, &window);
@@ -454,15 +448,61 @@ impl super::TermWindow {
         }
     }
 
-    pub fn decrease_font_size(&mut self) {
+    pub fn decrease_font_size_by(&mut self, dimension: Dimension) {
+        let scale = match dimension {
+            Dimension::Points(point) => {
+                let curr_font_size = self.config.font_size * self.fonts.get_font_scale();
+                let new_font_size = curr_font_size - point as f64;
+                new_font_size / self.config.font_size
+            }
+            Dimension::Pixels(pixels) => {
+                let font_size = self.config.font_size * self.fonts.get_font_scale();
+                let dpi = self.dimensions.dpi as f64;
+
+                let config_font_size_px = self.config.font_size * dpi / 72.0;
+                let font_size_px = font_size * dpi / 72.0;
+                let new_pixel_size = font_size_px - pixels as f64;
+
+                new_pixel_size / config_font_size_px
+            }
+            Dimension::Percent(decrement) | Dimension::Cells(decrement) => {
+                // NOTE(nfejzic): one cell is as high as current font size. So cell size decrease of
+                // 1 is double the font size, which is increase of 100% -> same as percent
+                self.fonts.get_font_scale() - self.fonts.get_font_scale() * decrement as f64
+            }
+        };
+
         self.pending_scale_changes
-            .push_back(ScaleChange::Relative(1.0 / 1.1));
+            .push_back(ScaleChange::Absolute(scale));
         self.apply_pending_scale_changes();
     }
 
-    pub fn increase_font_size(&mut self) {
+    pub fn increase_font_size_by(&mut self, dimension: Dimension) {
+        let scale = match dimension {
+            Dimension::Points(point) => {
+                let current_font_size = self.config.font_size * self.fonts.get_font_scale();
+                let new_font_size = current_font_size + point as f64;
+                new_font_size / self.config.font_size
+            }
+            Dimension::Pixels(pixels) => {
+                let font_size = self.config.font_size * self.fonts.get_font_scale();
+                let dpi = self.dimensions.dpi as f64;
+
+                let config_font_size_px = self.config.font_size * dpi / 72.0;
+                let font_size_px = font_size * dpi / 72.0;
+                let new_pixel_size = font_size_px + pixels as f64;
+
+                new_pixel_size / config_font_size_px
+            }
+            Dimension::Percent(increase) | Dimension::Cells(increase) => {
+                // NOTE(nfejzic): one cell is as high as current font size. So cell size incrase of
+                // 1 is double the font size, which is increase of 100% -> same as percent
+                self.fonts.get_font_scale() + self.fonts.get_font_scale() * increase as f64
+            }
+        };
+
         self.pending_scale_changes
-            .push_back(ScaleChange::Relative(1.1));
+            .push_back(ScaleChange::Absolute(scale));
         self.apply_pending_scale_changes();
     }
 

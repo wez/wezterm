@@ -14,7 +14,9 @@ true.
 If you use a tiling window manager then you may wish to set this to `false`.
 
 See also [IncreaseFontSize](../keyassignment/IncreaseFontSize.md),
-[DecreaseFontSize](../keyassignment/DecreaseFontSize.md).
+[IncreaseFontSizeByUnit](../keyassignment/IncreaseFontSizeByUnit.md),
+[DecreaseFontSize](../keyassignment/DecreaseFontSize.md),
+[DecreaseFontSizeByUnit](../keyassignment/DecreaseFontSizeByUnit.md).
 
 {{since('20230712-072601-f4abf8fd')}}
 

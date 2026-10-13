@@ -2724,8 +2724,14 @@ impl TermWindow {
                 self.activate_tab_relative(*n, false)?;
             }
             ActivateLastTab => self.activate_last_tab()?,
-            DecreaseFontSize => self.decrease_font_size(),
-            IncreaseFontSize => self.increase_font_size(),
+            DecreaseFontSize => self.decrease_font_size_by(Dimension::Percent(0.1)),
+            DecreaseFontSizeByUnit(pixel_unit) => {
+                self.decrease_font_size_by(Dimension::from(*pixel_unit))
+            }
+            IncreaseFontSize => self.increase_font_size_by(Dimension::Percent(0.1)),
+            IncreaseFontSizeByUnit(pixel_unit) => {
+                self.increase_font_size_by(Dimension::from(*pixel_unit))
+            }
             ResetFontSize => self.reset_font_size(),
             ResetFontAndWindowSize => {
                 if let Some(w) = window.as_ref() {

@@ -22,7 +22,7 @@ impl From<OptPixelUnit> for Option<Dimension> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PixelUnit(Dimension);
 
 impl From<PixelUnit> for Dimension {
@@ -37,6 +37,12 @@ impl FromDynamic for PixelUnit {
         _options: FromDynamicOptions,
     ) -> Result<Self, wezterm_dynamic::Error> {
         Ok(Self(DefaultUnit::Pixels.from_dynamic_impl(value)?))
+    }
+}
+
+impl ToDynamic for PixelUnit {
+    fn to_dynamic(&self) -> Value {
+        self.0.to_dynamic()
     }
 }
 
