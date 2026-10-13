@@ -1637,7 +1637,22 @@ impl XWindowInner {
         log::trace!("clear out self.window_id");
         self.window_id = xcb::x::Window::none();
     }
-    fn hide(&mut self) {}
+    fn hide(&mut self) {
+        use xcb_util::XCB_ICCCM_WM_STATE_ICONIC;
+        // ICCCM 4.1.4: ask the WM to iconify us, as XIconifyWindow does
+        let conn = self.conn();
+        conn.send_request_no_reply_log(&xcb::x::SendEvent {
+            propagate: false,
+            destination: xcb::x::SendEventDest::Window(conn.root),
+            event_mask: xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
+                | xcb::x::EventMask::SUBSTRUCTURE_NOTIFY,
+            event: &xcb::x::ClientMessageEvent::new(
+                self.window_id,
+                conn.atom_wm_change_state,
+                xcb::x::ClientMessageData::Data32([XCB_ICCCM_WM_STATE_ICONIC, 0, 0, 0, 0]),
+            ),
+        });
+    }
     fn show(&mut self) {
         self.conn().send_request_no_reply_log(&xcb::x::MapWindow {
             window: self.window_id,

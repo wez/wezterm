@@ -96,6 +96,8 @@ pub const XCB_ICCCM_SIZE_HINT_P_ASPECT: u32 = 1 << 7;
 pub const XCB_ICCCM_SIZE_HINT_BASE_SIZE: u32 = 1 << 8;
 pub const XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY: u32 = 1 << 9;
 
+pub const XCB_ICCCM_WM_STATE_ICONIC: u32 = 3;
+
 #[repr(C)]
 pub struct xcb_size_hints_t {
     pub flags: u32,

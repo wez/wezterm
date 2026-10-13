@@ -58,6 +58,7 @@ pub struct XConnection {
     pub atom_protocols: Atom,
     pub cursor_font_id: xcb::x::Font,
     pub atom_delete: Atom,
+    pub atom_wm_change_state: Atom,
     pub atom_utf8_string: Atom,
     pub atom_xsel_data: Atom,
     pub atom_targets: Atom,
@@ -675,6 +676,7 @@ impl XConnection {
 
         let atom_protocols = Self::intern_atom(&conn, "WM_PROTOCOLS")?;
         let atom_delete = Self::intern_atom(&conn, "WM_DELETE_WINDOW")?;
+        let atom_wm_change_state = Self::intern_atom(&conn, "WM_CHANGE_STATE")?;
         let atom_utf8_string = Self::intern_atom(&conn, "UTF8_STRING")?;
         let atom_xsel_data = Self::intern_atom(&conn, "XSEL_DATA")?;
         let atom_targets = Self::intern_atom(&conn, "TARGETS")?;
@@ -837,6 +839,7 @@ impl XConnection {
             atom_xsettings_settings,
             atom_manager,
             atom_delete,
+            atom_wm_change_state,
             atom_state_maximized_vert,
             atom_state_maximized_horz,
             atom_state_hidden,
