@@ -230,7 +230,10 @@ mod windows {
                 let path = std::str::from_utf8(&source_slice[0..len])
                     .context("reading path from shared memory")?;
 
-                let path: PathBuf = path.into();
+                // The published value is only a basename. Resolve it against
+                // the same runtime directory used by the GUI process so the
+                // caller's working directory cannot change the socket path.
+                let path = config::RUNTIME_DIR.join(path);
 
                 Ok(path)
             })
@@ -244,6 +247,49 @@ mod windows {
             .encode_wide()
             .chain(std::iter::once(0))
             .collect()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn resolve_gui_socket_from_another_working_directory() {
+            const CLASS_ENV: &str = "WEZTERM_DISCOVERY_TEST_CLASS";
+            const PATH_ENV: &str = "WEZTERM_DISCOVERY_TEST_PATH";
+
+            if let Some(class_name) = std::env::var_os(CLASS_ENV) {
+                let expected = PathBuf::from(std::env::var_os(PATH_ENV).unwrap());
+                let resolved = NameHolder::resolve(class_name.to_str().unwrap()).unwrap();
+                assert!(resolved.is_absolute());
+                assert_eq!(resolved, expected);
+                return;
+            }
+
+            let class_name = format!("discovery-test-{}", std::process::id());
+            let published = config::RUNTIME_DIR.join(format!("gui-sock-{}", std::process::id()));
+            let _holder = NameHolder::new(&published, &class_name).unwrap();
+            let other_cwd = std::env::temp_dir();
+            assert_ne!(other_cwd.as_path(), config::RUNTIME_DIR.as_path());
+
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "discovery::windows::tests::resolve_gui_socket_from_another_working_directory",
+                ])
+                .current_dir(other_cwd)
+                .env(CLASS_ENV, class_name)
+                .env(PATH_ENV, &published)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success()
+                    && String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+                "child failed: {}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
     }
 }
 
