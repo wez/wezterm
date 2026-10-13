@@ -850,6 +850,26 @@ impl Surface {
     }
 }
 
+// Missing trailing cells represent default blanks. A pruned line can end inside
+// a wide glyph, so only pad after the final visible cell's full extent.
+fn padded_cells<'a>(
+    line: &'a Line,
+    end: usize,
+    blank: &'a Cell,
+) -> impl Iterator<Item = CellRef<'a>> {
+    let tail = line
+        .visible_cells()
+        .last()
+        .map(|cell| cell.cell_index() + cell.width())
+        .unwrap_or(0)
+        .max(line.len());
+    line.visible_cells()
+        .chain((tail..end).map(move |cell_index| CellRef::CellRef {
+            cell_index,
+            cell: blank,
+        }))
+}
+
 /// Populate `diff_state` with changes to replace contents of `line` in range [x,x+width)
 /// with the contents of `other_line` in range [other_x,other_x+width).
 fn diff_line(
@@ -861,13 +881,12 @@ fn diff_line(
     width: usize,
     other_x: usize,
 ) {
-    let mut cells = line
-        .visible_cells()
+    let blank = Cell::blank();
+    let mut cells = padded_cells(line, x + width, &blank)
         .skip_while(|cell| cell.cell_index() < x)
         .take_while(|cell| cell.cell_index() < x + width)
         .peekable();
-    let other_cells = other_line
-        .visible_cells()
+    let other_cells = padded_cells(other_line, other_x + width, &blank)
         .skip_while(|cell| cell.cell_index() < other_x)
         .take_while(|cell| cell.cell_index() < other_x + width);
 
@@ -933,6 +952,113 @@ mod test {
     // The \x20's look a little awkward, but we can't use a plain
     // space in the first chararcter of a multi-line continuation;
     // it gets eaten up and ignored.
+
+    fn assert_same_screen_cells(actual: &Surface, expected: &Surface) {
+        assert_eq!(
+            (actual.width, actual.height),
+            (expected.width, expected.height)
+        );
+        let width = actual.width;
+        for (actual, expected) in actual.lines.iter().zip(&expected.lines) {
+            // Materialize implicit blanks only in the assertion, preserving cell attributes
+            // and wide-character positions while ignoring storage differences.
+            let mut actual = actual.clone();
+            let mut expected = expected.clone();
+            actual.resize(width, 0);
+            expected.resize(width, 0);
+            let cells = |line: &Line| {
+                line.visible_cells()
+                    .map(|cell| (cell.cell_index(), cell.as_cell()))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(cells(&actual), cells(&expected));
+        }
+    }
+
+    #[test]
+    fn diff_screen_partial_clear() {
+        // Reproduce #7280: the cleared suffix must not retain the old text.
+        let mut a = Surface::new(18, 1);
+        a.add_change("Wizard of Yendor");
+        let mut b = a.clone();
+        b.add_changes(vec![
+            Change::CursorVisibility(CursorVisibility::Visible),
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+            Change::Text("ElvenKing".to_string()),
+            Change::ClearToEndOfLine(ColorAttribute::Default),
+        ]);
+        a.add_changes(a.diff_screens(&b));
+        assert_same_screen_cells(&a, &b);
+    }
+
+    #[test]
+    fn diff_cleared_suffix_attributes() {
+        // Both clear operations must replace old attributes as well as text.
+        for color in [ColorAttribute::Default, AnsiColor::Blue.into()] {
+            for clear in [
+                Change::ClearToEndOfLine(color),
+                Change::ClearToEndOfScreen(color),
+            ] {
+                let mut original = Surface::new(8, 2);
+                original.add_change(Change::ClearScreen(AnsiColor::Red.into()));
+                original.add_change("abcdefghABCDEFGH");
+                let mut target = original.clone();
+                target.add_change(Change::CursorPosition {
+                    x: Position::Absolute(3),
+                    y: Position::Absolute(0),
+                });
+                target.add_change(clear);
+                original.add_changes(original.diff_screens(&target));
+                assert_same_screen_cells(&original, &target);
+                assert!(original.diff_screens(&target).is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn diff_pruned_wide_suffix() {
+        // Pruning can remove the stored continuation cell of the retained wide glyph.
+        let mut original = Surface::new(6, 1);
+        original.add_change("かabc");
+        let mut target = original.clone();
+        target.add_change(Change::CursorPosition {
+            x: Position::Absolute(2),
+            y: Position::Absolute(0),
+        });
+        target.add_change(Change::ClearToEndOfLine(ColorAttribute::Default));
+        for mut actual in [original, Surface::new(6, 1), target.clone()] {
+            actual.add_changes(actual.diff_screens(&target));
+            assert_same_screen_cells(&actual, &target);
+            assert!(actual.diff_screens(&target).is_empty());
+        }
+    }
+
+    #[test]
+    fn diff_pruned_region() {
+        // Copy a region entirely beyond stored target cells, preserving both sentinels.
+        let mut actual = Surface::new(8, 1);
+        actual.add_change("ABCDEFGH");
+        let mut target = Surface::new(8, 1);
+        target.add_change("x");
+        target.add_change(Change::ClearToEndOfLine(ColorAttribute::Default));
+        actual.add_changes(actual.diff_region(2, 0, 3, 1, &target, 4, 0));
+        assert_eq!(actual.screen_chars_to_string(), "AB   FGH\n");
+    }
+
+    #[test]
+    fn diff_implicit_blanks() {
+        // Explicit and pruned default blanks are visually equivalent in either direction.
+        let mut explicit = Surface::new(8, 1);
+        explicit.add_change("x");
+        let mut pruned = explicit.clone();
+        pruned.add_change(Change::ClearToEndOfLine(ColorAttribute::Default));
+        assert!(pruned.diff_screens(&pruned).is_empty());
+        assert!(explicit.diff_screens(&pruned).is_empty());
+        assert!(pruned.diff_screens(&explicit).is_empty());
+    }
 
     #[test]
     fn basic_print() {
