@@ -51,6 +51,16 @@ impl Default for Clipboard {
     }
 }
 
+/// Image data read from the system clipboard.
+#[derive(Debug, Clone)]
+pub struct ClipboardImage {
+    /// The encoded image bytes.  The encoding is usually, but not
+    /// necessarily, PNG; the format is self-describing.
+    pub data: Vec<u8>,
+    /// A filename suggested by the source of the image, if any.
+    pub suggested_name: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dimensions {
     pub pixel_width: usize,
@@ -307,6 +317,14 @@ pub trait WindowOps {
 
     /// Initiate textual transfer from the clipboard
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
+
+    /// If the clipboard holds an image, return its encoded bytes and any
+    /// name suggested by the source of the image.
+    ///
+    /// The default implementation reports that no image is available.
+    fn get_clipboard_image(&self, _clipboard: Clipboard) -> Future<Option<ClipboardImage>> {
+        Future::result(Ok(None))
+    }
 
     /// Set some text in the clipboard
     fn set_clipboard(&self, clipboard: Clipboard, text: String);
