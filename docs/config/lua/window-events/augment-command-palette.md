@@ -7,6 +7,10 @@ This event is emitted when the [Command Palette](../keyassignment/ActivateComman
 Its purpose is to enable you to add additional entries to the list of commands
 shown in the palette.
 
+If you want to customize how an existing key assignment is described in the
+palette, specify `brief`, `doc` or `icon` alongside that key assignment
+instead; see [Command Palette Descriptions](../../keys.md#command-palette-descriptions).
+
 This hook is synchronous; calling asynchronous functions will not succeed.
 
 The return value is a table listing the additional entries.  Each element of the

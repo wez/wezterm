@@ -183,6 +183,48 @@ config.keys = {
 }
 ```
 
+### Command Palette Descriptions
+
+{{since('nightly')}}
+
+Key assignments are also listed in the [Command
+Palette](lua/keyassignment/ActivateCommandPalette.md), described by
+text that wezterm derives from the action.  For actions such as
+[wezterm.action_callback](lua/wezterm/action_callback.md) that text isn't very
+helpful, so a key assignment may specify the following optional fields to
+override it:
+
+* `brief` - the brief description shown in the palette and the macOS menubar
+* `doc` - a longer description of the command
+* `icon` - a Nerd Fonts glyph name to use for the icon for the entry. See
+  [wezterm.nerdfonts](lua/wezterm/nerdfonts.md) for a list of icon names.
+
+These fields are also accepted by the entries in
+[key_tables](lua/config/key_tables.md).
+
+```lua
+config.keys = {
+  {
+    key = 'R',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.PromptInputLine {
+      description = 'Enter new name for tab',
+      action = wezterm.action_callback(function(window, pane, line)
+        if line then
+          window:active_tab():set_title(line)
+        end
+      end),
+    },
+    brief = 'Rename current tab',
+    icon = 'md_rename_box',
+  },
+}
+```
+
+The palette shows one entry per action.  When several key assignments share
+the same action, each field is taken from the first assignment that specifies
+it, looking at `keys` first and then at `key_tables` in order of table name.
+
 # Available Actions
 
 See the [`KeyAssignment` reference](lua/keyassignment/index.md) for information
