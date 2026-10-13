@@ -10,6 +10,13 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::input::KeyboardEncoding;
 
+fn encode_kitty_key(key: &KeyEvent, encoding: KeyboardEncoding) -> Option<String> {
+    match encoding {
+        KeyboardEncoding::Kitty(flags) if !flags.is_empty() => Some(key.encode_kitty(flags)),
+        _ => None,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct KeyTableStateEntry {
     name: String,
@@ -201,11 +208,7 @@ impl super::TermWindow {
         if !self.config.enable_kitty_keyboard {
             return None;
         }
-        if let KeyboardEncoding::Kitty(flags) = pane.get_keyboard_encoding() {
-            Some(key.encode_kitty(flags))
-        } else {
-            None
-        }
+        encode_kitty_key(key, pane.get_keyboard_encoding())
     }
 
     fn lookup_key(
@@ -867,5 +870,44 @@ impl super::TermWindow {
             WK::KeyPadPageDown => KC::KeyPadPageDown,
         };
         Key::Code(code)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use termwiz::escape::csi::KittyKeyboardFlags;
+
+    fn up_key() -> KeyEvent {
+        KeyEvent {
+            key: KeyCode::UpArrow,
+            modifiers: Modifiers::NONE,
+            leds: KeyboardLedStatus::empty(),
+            repeat_count: 1,
+            key_is_down: true,
+            raw: None,
+            #[cfg(windows)]
+            win32_uni_char: None,
+        }
+    }
+
+    #[test]
+    fn encode_issue_7437() {
+        let key = up_key();
+
+        // With all progressive enhancements disabled, fall back to the
+        // terminal's legacy encoder instead of emitting CSI 1;1 A here.
+        assert_eq!(
+            encode_kitty_key(&key, KeyboardEncoding::Kitty(KittyKeyboardFlags::NONE)),
+            None
+        );
+
+        assert_eq!(
+            encode_kitty_key(
+                &key,
+                KeyboardEncoding::Kitty(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
+            ),
+            Some("\x1b[1;1A".to_string())
+        );
     }
 }
