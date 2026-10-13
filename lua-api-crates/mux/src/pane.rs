@@ -302,23 +302,27 @@ impl UserData for MuxPane {
             Ok(())
         });
 
-        methods.add_method("get_semantic_zones", |lua, this, of_type: Value| {
-            let mux = get_mux()?;
-            let pane = this.resolve(&mux)?;
+        methods.add_async_method(
+            "get_semantic_zones",
+            |lua, this, of_type: Value| async move {
+                let mux = get_mux()?;
+                let pane = this.resolve(&mux)?;
 
-            let of_type: Option<SemanticType> = from_lua(of_type)?;
+                let of_type: Option<SemanticType> = from_lua(of_type)?;
 
-            let mut zones = pane
-                .get_semantic_zones()
-                .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
+                let mut zones = pane
+                    .get_semantic_zones()
+                    .await
+                    .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
 
-            if let Some(of_type) = of_type {
-                zones.retain(|zone| zone.semantic_type == of_type);
-            }
+                if let Some(of_type) = of_type {
+                    zones.retain(|zone| zone.semantic_type == of_type);
+                }
 
-            let zones = to_lua(lua, zones)?;
-            Ok(zones)
-        });
+                let zones = to_lua(lua, zones)?;
+                Ok(zones)
+            },
+        );
 
         methods.add_method(
             "get_semantic_zone_at",
@@ -326,7 +330,8 @@ impl UserData for MuxPane {
                 let mux = get_mux()?;
                 let pane = this.resolve(&mux)?;
 
-                let zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
+                let zones = smol::block_on(async { pane.get_semantic_zones().await })
+                    .unwrap_or_else(|_| vec![]);
 
                 fn find_zone(x: usize, y: StableRowIndex, zone: &SemanticZone) -> Ordering {
                     match zone.start_y.cmp(&y) {

@@ -960,9 +960,7 @@ impl CopyRenderable {
             return;
         }
 
-        let zones = self
-            .delegate
-            .get_semantic_zones()
+        let zones = smol::block_on(async { self.delegate.get_semantic_zones().await })
             .unwrap_or_else(|_| vec![]);
         let mut idx = match zones.binary_search_by(|zone| {
             if zone.start_y == self.cursor.y {

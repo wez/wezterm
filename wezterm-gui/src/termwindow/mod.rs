@@ -2476,7 +2476,8 @@ impl TermWindow {
 
         let seqno = pane.get_current_seqno();
         if cache.seqno != seqno {
-            let zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
+            let zones = smol::block_on(async { pane.get_semantic_zones().await })
+                .unwrap_or_else(|_| vec![]);
             let mut zones: Vec<StableRowIndex> = zones
                 .into_iter()
                 .filter_map(|zone| {

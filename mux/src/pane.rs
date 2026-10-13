@@ -309,7 +309,7 @@ pub trait Pane: Downcast + Send + Sync {
     }
 
     /// Retrieve the set of semantic zones
-    fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
+    async fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
         Ok(vec![])
     }
 

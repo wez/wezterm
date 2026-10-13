@@ -198,7 +198,7 @@ impl SelectionRange {
     }
 
     pub fn zone_around(start: SelectionCoordinate, pane: &dyn mux::pane::Pane) -> Self {
-        let zones = match pane.get_semantic_zones() {
+        let zones = match smol::block_on(async { pane.get_semantic_zones().await }) {
             Ok(z) => z,
             Err(_) => return Self { start, end: start },
         };

@@ -35,7 +35,7 @@ use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
 use thiserror::Error;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
+use wezterm_term::{Alert, ClipboardSelection, SemanticZone, StableRowIndex, TerminalSize};
 
 #[derive(Error, Debug)]
 #[error("Corrupt Response: {0}")]
@@ -503,6 +503,8 @@ pdu! {
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
+    SemanticZonesRequest: 63,
+    SemanticZonesResponse: 64,
 }
 
 impl Pdu {
@@ -1115,6 +1117,16 @@ pub struct GetLinesResponse {
 pub struct EraseScrollbackRequest {
     pub pane_id: PaneId,
     pub erase_mode: ScrollbackEraseMode,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SemanticZonesRequest {
+    pub pane_id: PaneId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SemanticZonesResponse {
+    pub results: Vec<SemanticZone>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

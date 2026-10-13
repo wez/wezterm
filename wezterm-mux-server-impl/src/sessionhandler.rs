@@ -517,7 +517,26 @@ impl SessionHandler {
                 })
                 .detach();
             }
+            Pdu::SemanticZonesRequest(SemanticZonesRequest { pane_id }) => {
+                async fn do_get_semantic_zones(pane_id: PaneId) -> anyhow::Result<Pdu> {
+                    let mux = Mux::get();
+                    let pane = mux
+                        .get_pane(pane_id)
+                        .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                    pane.get_semantic_zones().await.map(|results| {
+                        Pdu::SemanticZonesResponse(SemanticZonesResponse { results })
+                    })
+                }
 
+                spawn_into_main_thread(async move {
+                    promise::spawn::spawn(async move {
+                        let result = do_get_semantic_zones(pane_id).await;
+                        send_response(result);
+                    })
+                    .detach();
+                })
+                .detach();
+            }
             Pdu::SearchScrollbackRequest(SearchScrollbackRequest {
                 pane_id,
                 pattern,
@@ -1019,6 +1038,7 @@ impl SessionHandler {
             | Pdu::MovePaneToNewTabResponse { .. }
             | Pdu::TabAddedToWindow { .. }
             | Pdu::GetPaneRenderableDimensionsResponse { .. }
+            | Pdu::SemanticZonesResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }

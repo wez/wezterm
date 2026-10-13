@@ -1389,4 +1389,9 @@ impl Client {
         GetPaneDirectionResponse
     );
     rpc!(adjust_pane_size, AdjustPaneSize, UnitResponse);
+    rpc!(
+        get_semantic_zones,
+        SemanticZonesRequest,
+        SemanticZonesResponse
+    );
 }

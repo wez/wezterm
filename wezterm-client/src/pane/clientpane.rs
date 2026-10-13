@@ -27,8 +27,8 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, Progress, StableRowIndex,
-    TerminalConfiguration, TerminalSize,
+    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, Progress, SemanticZone,
+    StableRowIndex, TerminalConfiguration, TerminalSize,
 };
 
 pub struct ClientPane {
@@ -426,6 +426,20 @@ impl Pane for ClientPane {
             inner.update_last_send();
         }
         Ok(())
+    }
+
+    async fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
+        match self
+            .client
+            .client
+            .get_semantic_zones(SemanticZonesRequest {
+                pane_id: self.remote_pane_id,
+            })
+            .await
+        {
+            Ok(SemanticZonesResponse { results }) => Ok(results),
+            Err(e) => Err(e),
+        }
     }
 
     async fn search(

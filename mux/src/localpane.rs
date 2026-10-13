@@ -638,7 +638,7 @@ impl Pane for LocalPane {
         }
     }
 
-    fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
+    async fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
         let mut term = self.terminal.lock();
         term.get_semantic_zones()
     }
