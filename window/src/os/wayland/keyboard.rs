@@ -20,7 +20,11 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
         _conn: &wayland_client::Connection,
         _qhandle: &wayland_client::QueueHandle<WaylandState>,
     ) {
-        log::trace!("We reached an event here: {:?}???", event);
+        log::trace!(
+            "WlKeyboard event received: {:?} (keyboard id: {:?})",
+            event,
+            keyboard.id()
+        );
         match &event {
             WlKeyboardEvent::Enter {
                 serial, surface, ..
@@ -103,14 +107,17 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
         }
 
         let Some(&window_id) = state.keyboard_window_id.as_ref() else {
+            log::trace!("No keyboard_window_id set, ignoring event");
             return;
         };
         let Some(win) = state.window_by_id(window_id) else {
+            log::warn!("Window {} not found for keyboard event", window_id);
             return;
         };
         let mut inner = win.as_ref().borrow_mut();
         let mapper = state.keyboard_mapper.borrow_mut();
         let mapper = mapper.as_mut().expect("no keymap");
+
         inner.keyboard_event(mapper, event);
     }
 }

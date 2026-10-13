@@ -90,6 +90,7 @@ use super::state::WaylandState;
 pub(super) struct KeyRepeatState {
     pub(super) when: Instant,
     pub(super) event: WindowKeyEvent,
+    pub(super) cancelled: bool,
 }
 
 impl KeyRepeatState {
@@ -136,6 +137,11 @@ impl KeyRepeatState {
                     }
 
                     let mut st = state.lock().unwrap();
+
+                    // Check if key repeat was cancelled (key was released)
+                    if st.cancelled {
+                        return;
+                    }
 
                     let mut repeat_count = 1;
 
@@ -1194,6 +1200,7 @@ impl WaylandWindowInner {
                     let rep = Arc::new(Mutex::new(KeyRepeatState {
                         when: Instant::now(),
                         event,
+                        cancelled: false,
                     }));
                     self.key_repeat.replace((key, Arc::clone(&rep)));
                     let window_id = SurfaceUserData::from_wl(
@@ -1204,10 +1211,14 @@ impl WaylandWindowInner {
                     )
                     .window_id;
                     KeyRepeatState::schedule(rep, window_id);
-                } else if let Some((cur_key, _)) = self.key_repeat.as_ref() {
+                } else if let Some((cur_key, rep_state)) = self.key_repeat.as_ref() {
                     // important to check that it's the same key, because the release of the previously
                     // repeated key can come right after the press of the newly held key
                     if *cur_key == key {
+                        // Cancel the key repeat task by setting the cancelled flag
+                        // This prevents race conditions where the repeat task fires
+                        // just before we process the release event
+                        rep_state.lock().unwrap().cancelled = true;
                         self.key_repeat.take();
                     }
                 }
