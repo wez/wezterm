@@ -58,6 +58,16 @@ fn encoded_length(value: u64) -> usize {
 
 const COMPRESSED_MASK: u64 = 1 << 63;
 
+/// The maximum size, in bytes, that we are willing to allocate for a single
+/// decoded PDU data payload. PDUs are framed with a leb128 length that is taken
+/// directly from the peer; a corrupt, truncated or malicious frame can declare
+/// an arbitrarily large length, which previously caused us to attempt an
+/// unbounded `vec![0u8; len]` allocation and abort the process with an
+/// out-of-memory error (or fail later under memory pressure). Real PDUs are far
+/// smaller than this bound, so reject anything larger as corrupt rather than
+/// trying to allocate it. See <https://github.com/wezterm/wezterm/issues/7527>.
+const MAX_PDU_SIZE: usize = 256 * 1024 * 1024;
+
 fn encode_raw_as_vec(
     ident: u64,
     serial: u64,
@@ -211,6 +221,14 @@ async fn decode_raw_async<R: Unpin + AsyncRead + std::fmt::Debug>(
             (data_len, false) => data_len,
         };
 
+    if data_len > MAX_PDU_SIZE {
+        return Err(CorruptResponse(format!(
+            "decode_raw_async: PDU data length {data_len} exceeds the maximum \
+            of {MAX_PDU_SIZE} bytes"
+        ))
+        .into());
+    }
+
     if is_compressed {
         metrics::histogram!("pdu.decode.compressed.size").record(data_len as f64);
     } else {
@@ -258,6 +276,14 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> anyhow::Result<Decoded> {
             }
             (data_len, false) => data_len,
         };
+
+    if data_len > MAX_PDU_SIZE {
+        anyhow::bail!(
+            "decode_raw: PDU data length {} exceeds the maximum of {} bytes",
+            data_len,
+            MAX_PDU_SIZE
+        );
+    }
 
     if is_compressed {
         metrics::histogram!("pdu.decode.compressed.size").record(data_len as f64);
@@ -1263,5 +1289,66 @@ mod test {
             },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
+    }
+
+    #[test]
+    fn oversized_pdu_is_rejected_without_allocating() {
+        // Hand-craft a frame whose declared length is far larger than
+        // MAX_PDU_SIZE. The decoder must reject it as corrupt rather than
+        // attempting the (here 4 GiB) allocation that previously aborted the
+        // process. Regression test for
+        // <https://github.com/wezterm/wezterm/issues/7527>.
+        let data_len: u64 = 4 * 1024 * 1024 * 1024;
+        let len = data_len + 2; // + serial(0) + ident(0), each one leb128 byte
+                                // intentionally write no body bytes after the header
+        let mut frame = Vec::new();
+        leb128::write::unsigned(&mut frame, len).unwrap();
+        leb128::write::unsigned(&mut frame, 0).unwrap(); // serial
+        leb128::write::unsigned(&mut frame, 0).unwrap(); // ident
+
+        let err = decode_raw(frame.as_slice()).unwrap_err();
+        let msg = format!("{:#}", err);
+        assert!(
+            msg.contains("exceeds the maximum"),
+            "expected a size-limit rejection, got: {}",
+            msg
+        );
+    }
+
+    #[test]
+    fn oversized_pdu_is_rejected_by_async_decoder() {
+        // The production read path (mux server/client) uses decode_raw_async,
+        // so verify the cap applies there too. Regression test for
+        // <https://github.com/wezterm/wezterm/issues/7527>.
+        let data_len: u64 = 4 * 1024 * 1024 * 1024;
+        let len = data_len + 2; // + serial(0) + ident(0), each one leb128 byte
+        let mut frame = Vec::new();
+        leb128::write::unsigned(&mut frame, len).unwrap();
+        leb128::write::unsigned(&mut frame, 0).unwrap(); // serial
+        leb128::write::unsigned(&mut frame, 0).unwrap(); // ident
+
+        let err = smol::block_on(async {
+            let mut r = smol::io::Cursor::new(frame);
+            decode_raw_async(&mut r, None).await
+        })
+        .unwrap_err();
+        let msg = format!("{:#}", err);
+        assert!(
+            msg.contains("exceeds the maximum"),
+            "expected a size-limit rejection from the async decoder, got: {}",
+            msg
+        );
+    }
+
+    #[test]
+    fn valid_pdu_still_decodes_after_size_guard() {
+        // The size guard must not reject normal, in-bounds PDUs.
+        let payload = b"hello pdu";
+        let mut encoded = Vec::new();
+        encode_raw(0x42, 7, payload, false, &mut encoded).unwrap();
+        let decoded = decode_raw(encoded.as_slice()).unwrap();
+        assert_eq!(decoded.ident, 0x42);
+        assert_eq!(decoded.serial, 7);
+        assert_eq!(decoded.data, payload);
     }
 }
