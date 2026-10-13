@@ -1590,6 +1590,39 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Window", "Select Pane"],
             icon: Some("fa_long_arrow_down"),
         },
+        SwapPaneDirection(PaneDirection::Next | PaneDirection::Prev) => return None,
+        SwapPaneDirection(PaneDirection::Left) => CommandDef {
+            brief: "Swap Pane Left".into(),
+            doc: "Swaps the current pane with the pane to the left".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: Some("fa_long_arrow_left"),
+        },
+        SwapPaneDirection(PaneDirection::Right) => CommandDef {
+            brief: "Swap Pane Right".into(),
+            doc: "Swaps the current pane with the pane to the right".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: Some("fa_long_arrow_right"),
+        },
+        SwapPaneDirection(PaneDirection::Up) => CommandDef {
+            brief: "Swap Pane Up".into(),
+            doc: "Swaps the current pane with the pane above".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: Some("fa_long_arrow_up"),
+        },
+        SwapPaneDirection(PaneDirection::Down) => CommandDef {
+            brief: "Swap Pane Down".into(),
+            doc: "Swaps the current pane with the pane below".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Swap Pane"],
+            icon: Some("fa_long_arrow_down"),
+        },
         TogglePaneZoomState => CommandDef {
             brief: "Toggle Pane Zoom".into(),
             doc: "Toggles the zoom state for the current pane".into(),
@@ -2132,6 +2165,10 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ActivatePaneDirection(PaneDirection::Right),
         ActivatePaneDirection(PaneDirection::Up),
         ActivatePaneDirection(PaneDirection::Down),
+        SwapPaneDirection(PaneDirection::Left),
+        SwapPaneDirection(PaneDirection::Right),
+        SwapPaneDirection(PaneDirection::Up),
+        SwapPaneDirection(PaneDirection::Down),
         TogglePaneZoomState,
         ActivateLastTab,
         ShowLauncher,
@@ -2144,4 +2181,27 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Misc
         OpenLinkAtMouseCursor,
     ];
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn swap_pane_direction_command_metadata_is_exhaustive() {
+        for (direction, expected_brief) in [
+            (PaneDirection::Left, "Swap Pane Left"),
+            (PaneDirection::Right, "Swap Pane Right"),
+            (PaneDirection::Up, "Swap Pane Up"),
+            (PaneDirection::Down, "Swap Pane Down"),
+        ] {
+            let command = derive_command_from_key_assignment(&SwapPaneDirection(direction))
+                .expect("cardinal pane directions should have command metadata");
+            assert_eq!(expected_brief, command.brief);
+        }
+
+        for direction in [PaneDirection::Next, PaneDirection::Prev] {
+            assert!(derive_command_from_key_assignment(&SwapPaneDirection(direction)).is_none());
+        }
+    }
 }

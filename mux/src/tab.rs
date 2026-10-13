@@ -654,6 +654,11 @@ impl Tab {
         self.inner.lock().activate_pane_direction(direction)
     }
 
+    /// Swap the active pane with an adjacent pane and keep the original pane active.
+    pub fn swap_active_pane_direction(&self, direction: PaneDirection) {
+        self.inner.lock().swap_active_pane_direction(direction)
+    }
+
     /// Returns an adjacent pane in the specified direction.
     /// In cases where there are multiple adjacent panes in the
     /// intended direction, we take the pane that has the largest
@@ -1449,6 +1454,12 @@ impl TabInner {
         let mux = Mux::get();
         if let Some(window_id) = mux.window_containing_tab(self.id) {
             mux.notify(MuxNotification::WindowInvalidated(window_id));
+        }
+    }
+
+    fn swap_active_pane_direction(&mut self, direction: PaneDirection) {
+        if let Some(pane_idx) = self.get_pane_direction(direction, false) {
+            self.swap_active_with_index(pane_idx, true);
         }
     }
 
@@ -2515,6 +2526,93 @@ mod test {
         assert_eq!(24, panes[2].height);
         assert_eq!(400, panes[2].pixel_width);
         assert_eq!(600, panes[2].pixel_height);
+    }
+
+    #[test]
+    fn swaps_active_pane_in_each_direction_and_keeps_it_active() {
+        let mux = Arc::new(Mux::new(None));
+        Mux::set_mux(&mux);
+
+        for (split_direction, pane_direction, initial_idx, expected_active_idx) in [
+            (SplitDirection::Horizontal, PaneDirection::Left, 1, 0),
+            (SplitDirection::Horizontal, PaneDirection::Right, 0, 1),
+            (SplitDirection::Vertical, PaneDirection::Up, 1, 0),
+            (SplitDirection::Vertical, PaneDirection::Down, 0, 1),
+            (SplitDirection::Horizontal, PaneDirection::Next, 0, 1),
+            (SplitDirection::Horizontal, PaneDirection::Prev, 1, 0),
+        ] {
+            let size = TerminalSize {
+                rows: 24,
+                cols: 80,
+                pixel_width: 800,
+                pixel_height: 600,
+                dpi: 96,
+            };
+
+            let tab = Tab::new(&size);
+            tab.assign_pane(&FakePane::new(1, size));
+            let split_size = tab
+                .compute_split_size(
+                    0,
+                    SplitRequest {
+                        direction: split_direction,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            tab.split_and_insert(
+                0,
+                SplitRequest {
+                    direction: split_direction,
+                    ..Default::default()
+                },
+                FakePane::new(2, split_size.second),
+            )
+            .unwrap();
+            tab.set_active_idx(initial_idx);
+
+            // The pane IDs change position, while focus follows the originally active pane.
+            let expected_active_pane_id = tab.get_active_pane().unwrap().pane_id();
+            tab.swap_active_pane_direction(pane_direction);
+
+            let panes = tab.iter_panes();
+            assert_eq!(2, panes[0].pane.pane_id(), "{pane_direction:?}");
+            assert_eq!(1, panes[1].pane.pane_id(), "{pane_direction:?}");
+            assert_eq!(
+                expected_active_idx,
+                tab.get_active_idx(),
+                "{pane_direction:?}"
+            );
+            assert_eq!(
+                expected_active_pane_id,
+                tab.get_active_pane().unwrap().pane_id(),
+                "{pane_direction:?}"
+            );
+        }
+
+        Mux::shutdown();
+    }
+
+    #[test]
+    fn swap_active_pane_direction_without_neighbor_is_a_noop() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+
+        let tab = Tab::new(&size);
+        tab.assign_pane(&FakePane::new(1, size));
+
+        // A missing directional neighbor must leave the pane tree and focus untouched.
+        tab.swap_active_pane_direction(PaneDirection::Left);
+
+        let panes = tab.iter_panes();
+        assert_eq!(1, panes.len());
+        assert_eq!(1, panes[0].pane.pane_id());
+        assert!(panes[0].is_active);
     }
 
     fn is_send_and_sync<T: Send + Sync>() -> bool {

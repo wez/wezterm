@@ -2987,6 +2987,19 @@ impl TermWindow {
                     tab.activate_pane_direction(*direction);
                 }
             }
+            SwapPaneDirection(direction) => {
+                let mux = Mux::get();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(PerformAssignmentResult::Handled),
+                };
+
+                let tab_id = tab.tab_id();
+
+                if self.tab_state(tab_id).overlay.is_none() {
+                    tab.swap_active_pane_direction(*direction);
+                }
+            }
             TogglePaneZoomState => {
                 let mux = Mux::get();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {

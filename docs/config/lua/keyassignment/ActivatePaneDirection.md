@@ -54,3 +54,6 @@ the highest of the active pane is already the lowest pane index.
 
 Ambiguous moves are now resolved by selecting the most recently activated pane
 in a given direction, instead of based on the edge intersection.
+
+See also [SwapPaneDirection](SwapPaneDirection.md) to swap with the selected
+adjacent pane instead of activating it.

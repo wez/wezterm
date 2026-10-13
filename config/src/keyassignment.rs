@@ -597,6 +597,7 @@ pub enum KeyAssignment {
 
     AdjustPaneSize(PaneDirection, usize),
     ActivatePaneDirection(PaneDirection),
+    SwapPaneDirection(PaneDirection),
     ActivatePaneByIndex(usize),
     TogglePaneZoomState,
     SetPaneZoomState(bool),

@@ -865,6 +865,7 @@ pub fn add_to_config_reload_watch_list<'lua>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::keyassignment::PaneDirection;
     use std::sync::{Arc, Mutex};
 
     #[test]
@@ -949,6 +950,27 @@ assert(wezterm.emit('bar', 42, 'woot') == true)
 
         assert_eq!(*total.lock().unwrap(), 6);
 
+        Ok(())
+    }
+
+    #[test]
+    fn exposes_swap_pane_direction_action_to_lua() -> anyhow::Result<()> {
+        let lua = make_lua_context(Path::new("testing"))?;
+
+        for (direction, expected) in [
+            ("Left", PaneDirection::Left),
+            ("Right", PaneDirection::Right),
+            ("Up", PaneDirection::Up),
+            ("Down", PaneDirection::Down),
+            ("Next", PaneDirection::Next),
+            ("Prev", PaneDirection::Prev),
+        ] {
+            let script =
+                format!("return require('wezterm').action.SwapPaneDirection '{direction}'");
+            let action: KeyAssignment = lua.load(script).eval()?;
+
+            assert_eq!(action, KeyAssignment::SwapPaneDirection(expected));
+        }
         Ok(())
     }
 }
