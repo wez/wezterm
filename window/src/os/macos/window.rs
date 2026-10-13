@@ -3139,12 +3139,17 @@ impl WindowView {
             if inner.paint_throttled {
                 inner.invalidated = true;
             } else {
-                inner.events.dispatch(WindowEvent::NeedRepaint);
                 inner.invalidated = false;
                 inner.paint_throttled = true;
 
                 let window_id = inner.window_id;
                 let max_fps = inner.config.max_fps;
+                let mut events =
+                    std::mem::replace(&mut inner.events, WindowEventSender::new(|_, _| {}));
+                drop(inner);
+                events.dispatch(WindowEvent::NeedRepaint);
+                this.inner.borrow_mut().events = events;
+
                 promise::spawn::spawn(async move {
                     async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64))
                         .await;

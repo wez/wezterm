@@ -177,6 +177,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: wacky initial window size with external monitors or certain font
   sizes. #4966 #4250
 * macOS: dragging non-filename data over wezterm could cause it to crash. #4771
+* macOS: repainting a window could cause wezterm to crash. #7427
 * New tabs spawned by the gui could spawn into the wrong domain when using
   multiplexing together `default_domain`. Thanks to @bogdan2412! #4994
 * Linux: the `divine_process_list` fallback function used the *vmwisze*
