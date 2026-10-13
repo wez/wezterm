@@ -894,6 +894,22 @@ pub struct Config {
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
 
+    /// Specifies the directory into which image data that was copied to the
+    /// clipboard will be written when you paste it into a pane.
+    ///
+    /// When the clipboard holds an image rather than text, the image is
+    /// decoded and saved into this directory, and the path of the saved
+    /// file is pasted into the terminal.  This is useful for command line
+    /// tools that accept the path to an image file.
+    ///
+    /// If a relative path is specified, it is interpreted relative to the
+    /// directory containing your configuration file.
+    ///
+    /// If not specified, the pasted subdirectory of the wezterm cache
+    /// directory is used.
+    #[dynamic(default = "default_paste_image_dir")]
+    pub paste_image_dir: PathBuf,
+
     #[dynamic(default)]
     pub ui_key_cap_rendering: UIKeyCapRendering,
 
@@ -1348,6 +1364,10 @@ impl Config {
                     cfg.window_background_image.replace(config_dir.join(path));
                 }
             }
+
+            if !cfg.paste_image_dir.is_absolute() {
+                cfg.paste_image_dir = config_dir.join(&cfg.paste_image_dir);
+            }
         }
 
         // Add some reasonable default font rules
@@ -1754,6 +1774,10 @@ fn default_term() -> String {
 
 fn default_font_size() -> f64 {
     12.0
+}
+
+fn default_paste_image_dir() -> PathBuf {
+    crate::CACHE_DIR.join("pasted")
 }
 
 pub(crate) fn compute_cache_dir() -> anyhow::Result<PathBuf> {

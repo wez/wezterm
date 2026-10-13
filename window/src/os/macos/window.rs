@@ -8,9 +8,9 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, Connection, CursorIcon, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent,
-    Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Size, ULength,
+    Clipboard, ClipboardImage, Connection, CursorIcon, DeadKeyStatus, Dimensions, Handled, KeyCode,
+    KeyEvent, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent,
+    Rect, RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, ScreenPoint, Size, ULength,
     WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
@@ -842,6 +842,14 @@ impl WindowOps for Window {
             ClipboardContext::new()
                 .read()
                 .map_err(|e| anyhow!("Failed to get clipboard:{}", e)),
+        )
+    }
+
+    fn get_clipboard_image(&self, _clipboard: Clipboard) -> Future<Option<ClipboardImage>> {
+        Future::result(
+            ClipboardContext::new()
+                .read_image()
+                .map_err(|e| anyhow!("Failed to get clipboard image:{}", e)),
         )
     }
 
