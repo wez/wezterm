@@ -123,6 +123,10 @@ pub struct Key {
     #[dynamic(flatten)]
     pub key: KeyNoAction,
     pub action: KeyAssignment,
+    /// Overrides the text shown for `action` in the command palette
+    /// and menubar
+    #[dynamic(default)]
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]

@@ -77,6 +77,9 @@ As features stabilize some brief notes about them will accumulate here.
   easier to spot the remaining candidates. Thanks to @mr-felixoid and @bew! #7752
 
 #### New
+* Key assignments in [keys](config/keys.md#command-palette-labels) and
+  [key_tables](config/lua/config/key_tables.md) accept an optional `label` to
+  override the text shown for their action in the command palette. #4622
 * [command_palette_line_height](config/lua/config/command_palette_line_height.md)
   option to scale the vertical spacing of rows in the command palette,
   independently of [line_height](config/lua/config/line_height.md) which is for terminal cells only.

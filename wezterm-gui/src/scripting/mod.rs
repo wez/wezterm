@@ -42,6 +42,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
                     mods: *mods,
                 },
                 action: entry.action.clone(),
+                label: None,
             });
         }
         keys

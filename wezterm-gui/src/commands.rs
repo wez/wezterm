@@ -362,6 +362,8 @@ impl CommandDef {
             }
         }
 
+        apply_user_labels(&mut result, &labeled_key_assignments(config));
+
         result
     }
 
@@ -572,6 +574,38 @@ impl CommandDef {
             if item.get_tag() == 0 {
                 item.get_menu().map(|menu| menu.remove_item(&item));
             }
+        }
+    }
+}
+
+/// Returns the user's key assignments that specify a `label`, in
+/// precedence order: `keys` first, then `key_tables` ordered by table name.
+fn labeled_key_assignments(config: &config::Config) -> Vec<&config::Key> {
+    let mut tables: Vec<_> = config.key_tables.iter().collect();
+    tables.sort_by(|a, b| a.0.cmp(b.0));
+
+    config
+        .keys
+        .iter()
+        .chain(tables.into_iter().flat_map(|(_, keys)| keys.iter()))
+        .filter(|key| key.label.is_some())
+        .collect()
+}
+
+/// Replaces the text of each command whose action matches a labeled key
+/// assignment with the label of the first such assignment.
+fn apply_user_labels(commands: &mut [ExpandedCommand], keys: &[&config::Key]) {
+    if keys.is_empty() {
+        return;
+    }
+    for cmd in commands {
+        let label = keys
+            .iter()
+            .find(|key| key.action == cmd.action)
+            .and_then(|key| key.label.as_ref());
+        if let Some(label) = label {
+            cmd.brief = label.clone().into();
+            cmd.doc = "".into();
         }
     }
 }
@@ -2144,4 +2178,69 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         // ----------------- Misc
         OpenLinkAtMouseCursor,
     ];
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn key(action: KeyAssignment, label: Option<&str>) -> config::Key {
+        config::Key {
+            key: config::KeyNoAction {
+                key: DeferredKeyCode::KeyCode(KeyCode::Char('a')),
+                mods: Modifiers::NONE,
+            },
+            action,
+            label: label.map(String::from),
+        }
+    }
+
+    fn command(action: KeyAssignment) -> ExpandedCommand {
+        ExpandedCommand {
+            brief: "derived brief".into(),
+            doc: "derived doc".into(),
+            action,
+            keys: vec![],
+            menubar: &[],
+            icon: Some("derived_icon".into()),
+        }
+    }
+
+    #[test]
+    fn user_labels_override_matching_commands() {
+        let mut config = config::Config::default();
+        config.keys = vec![
+            key(EmitEvent("a".into()), None),
+            key(EmitEvent("a".into()), Some("from keys")),
+        ];
+        config
+            .key_tables
+            .insert("zzz".into(), vec![key(ShowLauncher, Some("from zzz"))]);
+        config.key_tables.insert(
+            "aaa".into(),
+            vec![
+                key(EmitEvent("a".into()), Some("from aaa")),
+                key(ShowLauncher, Some("from aaa")),
+            ],
+        );
+
+        let mut commands = vec![
+            command(EmitEvent("a".into())),
+            command(ShowLauncher),
+            command(EmitEvent("b".into())),
+        ];
+        apply_user_labels(&mut commands, &labeled_key_assignments(&config));
+
+        // `keys` beats `key_tables`; the label replaces the whole text
+        assert_eq!(commands[0].brief, "from keys");
+        assert_eq!(commands[0].doc, "");
+        assert_eq!(commands[0].icon.as_deref(), Some("derived_icon"));
+
+        // Key tables are consulted in name order
+        assert_eq!(commands[1].brief, "from aaa");
+
+        // Unrelated actions are untouched
+        assert_eq!(commands[2].brief, "derived brief");
+        assert_eq!(commands[2].doc, "derived doc");
+    }
 }
