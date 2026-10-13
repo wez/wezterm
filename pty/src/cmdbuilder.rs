@@ -3,6 +3,8 @@ use anyhow::Context;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
@@ -135,6 +137,8 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
             }
         }
 
+        let inherited_path = env.get(&EnvEntry::map_key("PATH".into())).cloned();
+        let mut registry_path = None;
         if let Ok(sys_env) = RegKey::predef(HKEY_LOCAL_MACHINE)
             .open_subkey("System\\CurrentControlSet\\Control\\Session Manager\\Environment")
         {
@@ -144,6 +148,10 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
                         continue;
                     }
                     if let Ok(value) = reg_value_to_string(&value) {
+                        if name.eq_ignore_ascii_case("path") {
+                            registry_path = Some(value);
+                            continue;
+                        }
                         log::trace!("adding SYS env: {:?} {:?}", name, value);
                         env.insert(
                             EnvEntry::map_key(name.clone().into()),
@@ -162,21 +170,11 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
             for res in sys_env.enum_values() {
                 if let Ok((name, value)) = res {
                     if let Ok(value) = reg_value_to_string(&value) {
-                        // Merge the system and user paths together
-                        let value = if name.to_ascii_lowercase() == "path" {
-                            match env.get(&EnvEntry::map_key(name.clone().into())) {
-                                Some(entry) => {
-                                    let mut result = OsString::new();
-                                    result.push(&entry.value);
-                                    result.push(";");
-                                    result.push(&value);
-                                    result
-                                }
-                                None => value,
-                            }
-                        } else {
-                            value
-                        };
+                        if name.eq_ignore_ascii_case("path") {
+                            registry_path =
+                                Some(merge_windows_path(registry_path.as_deref(), &value));
+                            continue;
+                        }
 
                         log::trace!("adding USER env: {:?} {:?}", name, value);
                         env.insert(
@@ -191,9 +189,63 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
                 }
             }
         }
+
+        if let Some(registry_path) = registry_path {
+            let value = match inherited_path.as_ref() {
+                Some(entry) => merge_windows_path(Some(&entry.value), &registry_path),
+                None => registry_path,
+            };
+            env.insert(
+                EnvEntry::map_key("PATH".into()),
+                EnvEntry {
+                    is_from_base_env: true,
+                    preferred_key: inherited_path
+                        .map(|entry| entry.preferred_key)
+                        .unwrap_or_else(|| "Path".into()),
+                    value,
+                },
+            );
+        }
     }
 
     env
+}
+
+#[cfg(windows)]
+fn merge_windows_path(first: Option<&OsStr>, second: &OsStr) -> OsString {
+    use std::os::windows::ffi::OsStringExt;
+
+    let mut result = OsString::new();
+    let mut seen = HashSet::new();
+    for path in first.into_iter().chain(std::iter::once(second)) {
+        let wide = path.encode_wide().collect::<Vec<_>>();
+        for component in wide.split(|c| *c == b';' as u16) {
+            if component.is_empty() {
+                continue;
+            }
+            // Keep malformed UTF-16 distinct instead of collapsing it to U+FFFD.
+            let key: Vec<u16> = match String::from_utf16(component) {
+                Ok(text) => text.to_lowercase().encode_utf16().collect(),
+                Err(_) => component
+                    .iter()
+                    .map(|&c| {
+                        if (b'A' as u16..=b'Z' as u16).contains(&c) {
+                            c + 32
+                        } else {
+                            c
+                        }
+                    })
+                    .collect(),
+            };
+            if seen.insert(key) {
+                if !result.is_empty() {
+                    result.push(";");
+                }
+                result.push(OsString::from_wide(component));
+            }
+        }
+    }
+    result
 }
 
 /// `CommandBuilder` is used to prepare a command to be spawned into a pty.
@@ -824,6 +876,49 @@ mod tests {
             println!("iterated_envs: {:?}", iterated_envs);
             assert!(iterated_envs.is_empty());
         }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_merge_windows_path_preserves_launch_precedence() {
+        let launch = OsStr::new(r"C:\Custom;C:\Windows\System32");
+        let registry = OsStr::new(r"c:\windows\system32;C:\Tools;C:\CUSTOM;D:\Apps");
+        assert_eq!(
+            merge_windows_path(Some(launch), registry),
+            OsStr::new(r"C:\Custom;C:\Windows\System32;C:\Tools;D:\Apps")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_merge_windows_path_registry_fallback() {
+        assert_eq!(
+            merge_windows_path(None, OsStr::new(r"C:\System;c:\system;C:\User")),
+            OsStr::new(r"C:\System;C:\User")
+        );
+        assert_eq!(
+            merge_windows_path(Some(OsStr::new(r"C:\Launch")), OsStr::new("")),
+            OsStr::new(r"C:\Launch")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_merge_windows_path_keeps_distinct_non_unicode_entries() {
+        use std::os::windows::ffi::OsStringExt;
+
+        let first = OsString::from_wide(&[b'C' as u16, b':' as u16, 0xd800]);
+        let second = OsString::from_wide(&[b'C' as u16, b':' as u16, 0xd801]);
+        let merged = merge_windows_path(Some(&first), &second);
+        assert_eq!(
+            merged.encode_wide().collect::<Vec<_>>(),
+            [
+                first.encode_wide().collect::<Vec<_>>(),
+                vec![b';' as u16],
+                second.encode_wide().collect()
+            ]
+            .concat()
+        );
     }
 
     #[cfg(windows)]
