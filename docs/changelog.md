@@ -312,6 +312,8 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to @bew! #8001
 * IME: committed text is now handled correctly in prompt overlays such as
   `PromptInputLine` and the debug overlay. Thanks to @dyxushuai! #7556
+* `MuxWindow:spawn_tab` and `Pane:split` ignored `cwd` when `args` was also
+  specified, using the current pane's directory instead. #8150
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg

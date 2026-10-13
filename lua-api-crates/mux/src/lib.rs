@@ -189,7 +189,7 @@ impl CommandBuilderFrag {
             if let Some(cwd) = self.cwd.clone() {
                 builder.cwd(cwd);
             }
-            (Some(builder), None)
+            (Some(builder), self.cwd.clone())
         } else {
             (None, self.cwd.clone())
         }
@@ -344,3 +344,46 @@ struct MuxPaneInfo {
     pub pixel_height: usize,
 }
 impl_lua_conversion_dynamic!(MuxPaneInfo);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::ffi::OsStr;
+
+    fn frag(args: Option<&[&str]>, cwd: Option<&str>) -> CommandBuilderFrag {
+        CommandBuilderFrag {
+            args: args.map(|args| args.iter().map(|s| s.to_string()).collect()),
+            cwd: cwd.map(|s| s.to_string()),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_to_command_builder_cwd() {
+        // args and cwd: cwd must be passed on as command_dir too,
+        // otherwise the mux falls back to the current pane's cwd. #8150
+        let (cmd, dir) = frag(Some(&["sh"]), Some("/some/dir")).to_command_builder();
+        let cmd = cmd.expect("args produce a CommandBuilder");
+        assert_eq!(
+            cmd.get_cwd().map(|c| c.as_os_str()),
+            Some(OsStr::new("/some/dir"))
+        );
+        assert_eq!(dir.as_deref(), Some("/some/dir"));
+
+        // cwd only
+        let (cmd, dir) = frag(None, Some("/some/dir")).to_command_builder();
+        assert!(cmd.is_none());
+        assert_eq!(dir.as_deref(), Some("/some/dir"));
+
+        // args only: no command_dir, so the mux can use the pane's cwd
+        let (cmd, dir) = frag(Some(&["sh"]), None).to_command_builder();
+        let cmd = cmd.expect("args produce a CommandBuilder");
+        assert!(cmd.get_cwd().is_none());
+        assert!(dir.is_none());
+
+        // neither
+        let (cmd, dir) = frag(None, None).to_command_builder();
+        assert!(cmd.is_none());
+        assert!(dir.is_none());
+    }
+}
