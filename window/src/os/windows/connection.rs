@@ -75,10 +75,18 @@ impl ConnectionOps for Connection {
             let res = unsafe { PeekMessageW(&mut msg, null_mut(), 0, 0, PM_REMOVE) };
             if res != 0 {
                 if msg.message == WM_QUIT {
-                    // Clear our state before we exit, otherwise we can
+                    // Release our state before we exit, otherwise we can
                     // trigger `drop` handlers during shutdown and that
-                    // can have bad interactions
-                    self.windows.borrow_mut().clear();
+                    // can have bad interactions. Leak the windows rather
+                    // than dropping them: the process is exiting, and
+                    // dropping a window's WebGpu surface here can block
+                    // forever in wgpu-hal's DX12 `unconfigure`, which waits
+                    // on the present queue with an INFINITE timeout after
+                    // the HWND is gone. That wedged the GUI after its last
+                    // pane closed, with the mux no longer answering.
+                    for (_, window) in self.windows.borrow_mut().drain() {
+                        std::mem::forget(window);
+                    }
                     return Ok(());
                 }
 
