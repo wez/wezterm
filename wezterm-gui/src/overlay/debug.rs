@@ -106,7 +106,10 @@ impl LineEditorHost for LuaReplHost {
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Escape,
                 ..
-            }) => line.is_empty().then_some(Action::Cancel),
+            }) => match line.is_empty() {
+                true => Some(Action::Cancel),
+                false => Some(Action::ClearLine),
+            },
             _ => None,
         }
     }
