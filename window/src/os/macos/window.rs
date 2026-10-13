@@ -3136,7 +3136,23 @@ impl WindowView {
                 return;
             }
 
-            if inner.paint_throttled {
+            if inner.live_resizing {
+                // The macos zoom (https://developer.apple.com/documentation/appkit/nswindow/zoom(_:) call when invoked
+                // via menu bar double click causes app kit to set the main thread run loop mode to
+                // the undocumented private `_NSMoveTimerRunLoopMode` which is not in the Default mode event selector.
+                //
+                // This causes the max_fps timer that disables throttling to not be run until AFTER
+                // window maximizing has completed. This leads to a snapping effect where the
+                // background is painted only AFTER the animation has completed.
+                //
+                // To fix that we just disable fps throttling during the maximize animation to
+                // ensure a consistent background painting.
+                //
+                // Related:
+                // https://www.mattrajca.com/2016/09/15/on-run-loops-modal-ui-and-buttery-smooth-scrolling.html
+                inner.events.dispatch(WindowEvent::NeedRepaint);
+                inner.invalidated = false;
+            } else if inner.paint_throttled {
                 inner.invalidated = true;
             } else {
                 inner.events.dispatch(WindowEvent::NeedRepaint);
