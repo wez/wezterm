@@ -77,6 +77,10 @@ As features stabilize some brief notes about them will accumulate here.
   easier to spot the remaining candidates. Thanks to @mr-felixoid and @bew! #7752
 
 #### New
+* When the clipboard holds an image, pasting it now saves the image to a file
+  and pastes the path of that file.  The destination can be configured with
+  [paste_image_dir](config/lua/config/paste_image_dir.md).
+  Currently implemented on macOS.
 * [command_palette_line_height](config/lua/config/command_palette_line_height.md)
   option to scale the vertical spacing of rows in the command palette,
   independently of [line_height](config/lua/config/line_height.md) which is for terminal cells only.
