@@ -362,7 +362,7 @@ impl CommandDef {
             }
         }
 
-        apply_user_descriptions(&mut result, &described_key_assignments(config));
+        apply_user_labels(&mut result, &labeled_key_assignments(config));
 
         result
     }
@@ -578,10 +578,9 @@ impl CommandDef {
     }
 }
 
-/// Returns the user's key assignments that specify a `brief`, `doc` or
-/// `icon`, in precedence order: `keys` first, then `key_tables` ordered
-/// by table name.
-fn described_key_assignments(config: &config::Config) -> Vec<&config::Key> {
+/// Returns the user's key assignments that specify a `label`, in
+/// precedence order: `keys` first, then `key_tables` ordered by table name.
+fn labeled_key_assignments(config: &config::Config) -> Vec<&config::Key> {
     let mut tables: Vec<_> = config.key_tables.iter().collect();
     tables.sort_by(|a, b| a.0.cmp(b.0));
 
@@ -589,34 +588,24 @@ fn described_key_assignments(config: &config::Config) -> Vec<&config::Key> {
         .keys
         .iter()
         .chain(tables.into_iter().flat_map(|(_, keys)| keys.iter()))
-        .filter(|key| key.brief.is_some() || key.doc.is_some() || key.icon.is_some())
+        .filter(|key| key.label.is_some())
         .collect()
 }
 
-/// Overrides the brief, doc and icon of each command whose action matches
-/// a key assignment that specifies them. Each field is taken from the
-/// first matching key assignment that specifies it.
-fn apply_user_descriptions(commands: &mut [ExpandedCommand], keys: &[&config::Key]) {
+/// Replaces the text of each command whose action matches a labeled key
+/// assignment with the label of the first such assignment.
+fn apply_user_labels(commands: &mut [ExpandedCommand], keys: &[&config::Key]) {
     if keys.is_empty() {
         return;
     }
     for cmd in commands {
-        let mut brief = None;
-        let mut doc = None;
-        let mut icon = None;
-        for key in keys.iter().filter(|key| key.action == cmd.action) {
-            brief = brief.or(key.brief.as_ref());
-            doc = doc.or(key.doc.as_ref());
-            icon = icon.or(key.icon.as_ref());
-        }
-        if let Some(brief) = brief {
-            cmd.brief = brief.clone().into();
-        }
-        if let Some(doc) = doc {
-            cmd.doc = doc.clone().into();
-        }
-        if let Some(icon) = icon {
-            cmd.icon = Some(icon.clone().into());
+        let label = keys
+            .iter()
+            .find(|key| key.action == cmd.action)
+            .and_then(|key| key.label.as_ref());
+        if let Some(label) = label {
+            cmd.brief = label.clone().into();
+            cmd.doc = "".into();
         }
     }
 }
@@ -2195,21 +2184,14 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
 mod test {
     use super::*;
 
-    fn key(
-        action: KeyAssignment,
-        brief: Option<&str>,
-        doc: Option<&str>,
-        icon: Option<&str>,
-    ) -> config::Key {
+    fn key(action: KeyAssignment, label: Option<&str>) -> config::Key {
         config::Key {
             key: config::KeyNoAction {
                 key: DeferredKeyCode::KeyCode(KeyCode::Char('a')),
                 mods: Modifiers::NONE,
             },
             action,
-            brief: brief.map(String::from),
-            doc: doc.map(String::from),
-            icon: icon.map(String::from),
+            label: label.map(String::from),
         }
     }
 
@@ -2225,26 +2207,20 @@ mod test {
     }
 
     #[test]
-    fn user_descriptions_override_matching_commands() {
+    fn user_labels_override_matching_commands() {
         let mut config = config::Config::default();
         config.keys = vec![
-            key(EmitEvent("a".into()), None, None, None),
-            key(EmitEvent("a".into()), Some("from keys"), None, None),
+            key(EmitEvent("a".into()), None),
+            key(EmitEvent("a".into()), Some("from keys")),
         ];
-        config.key_tables.insert(
-            "zzz".into(),
-            vec![key(EmitEvent("a".into()), None, Some("from zzz"), None)],
-        );
+        config
+            .key_tables
+            .insert("zzz".into(), vec![key(ShowLauncher, Some("from zzz"))]);
         config.key_tables.insert(
             "aaa".into(),
             vec![
-                key(
-                    EmitEvent("a".into()),
-                    Some("from aaa"),
-                    Some("from aaa"),
-                    None,
-                ),
-                key(ShowLauncher, None, None, Some("md_rocket")),
+                key(EmitEvent("a".into()), Some("from aaa")),
+                key(ShowLauncher, Some("from aaa")),
             ],
         );
 
@@ -2253,21 +2229,18 @@ mod test {
             command(ShowLauncher),
             command(EmitEvent("b".into())),
         ];
-        apply_user_descriptions(&mut commands, &described_key_assignments(&config));
+        apply_user_labels(&mut commands, &labeled_key_assignments(&config));
 
-        // `keys` beats `key_tables`; tables are consulted in name order
+        // `keys` beats `key_tables`; the label replaces the whole text
         assert_eq!(commands[0].brief, "from keys");
-        assert_eq!(commands[0].doc, "from aaa");
+        assert_eq!(commands[0].doc, "");
         assert_eq!(commands[0].icon.as_deref(), Some("derived_icon"));
 
-        // Only the specified field is replaced
-        assert_eq!(commands[1].brief, "derived brief");
-        assert_eq!(commands[1].doc, "derived doc");
-        assert_eq!(commands[1].icon.as_deref(), Some("md_rocket"));
+        // Key tables are consulted in name order
+        assert_eq!(commands[1].brief, "from aaa");
 
         // Unrelated actions are untouched
         assert_eq!(commands[2].brief, "derived brief");
         assert_eq!(commands[2].doc, "derived doc");
-        assert_eq!(commands[2].icon.as_deref(), Some("derived_icon"));
     }
 }

@@ -183,7 +183,7 @@ config.keys = {
 }
 ```
 
-### Command Palette Descriptions
+### Command Palette Labels
 
 {{since('nightly')}}
 
@@ -191,15 +191,10 @@ Key assignments are also listed in the [Command
 Palette](lua/keyassignment/ActivateCommandPalette.md), described by
 text that wezterm derives from the action.  For actions such as
 [wezterm.action_callback](lua/wezterm/action_callback.md) that text isn't very
-helpful, so a key assignment may specify the following optional fields to
-override it:
+helpful, so a key assignment may specify an optional `label` to be shown
+instead, both in the palette and in the macOS menubar.
 
-* `brief` - the brief description shown in the palette and the macOS menubar
-* `doc` - a longer description of the command
-* `icon` - a Nerd Fonts glyph name to use for the icon for the entry. See
-  [wezterm.nerdfonts](lua/wezterm/nerdfonts.md) for a list of icon names.
-
-These fields are also accepted by the entries in
+`label` is also accepted by the entries in
 [key_tables](lua/config/key_tables.md).
 
 ```lua
@@ -215,15 +210,14 @@ config.keys = {
         end
       end),
     },
-    brief = 'Rename current tab',
-    icon = 'md_rename_box',
+    label = 'Rename current tab',
   },
 }
 ```
 
 The palette shows one entry per action.  When several key assignments share
-the same action, each field is taken from the first assignment that specifies
-it, looking at `keys` first and then at `key_tables` in order of table name.
+the same action, the first `label` found is used, looking at `keys` first and
+then at `key_tables` in order of table name.
 
 # Available Actions
 
