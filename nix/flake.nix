@@ -27,7 +27,7 @@
       flake = false;
     };
     harfbuzz = {
-      url = "github:harfbuzz/harfbuzz/11.2.1";
+      url = "github:harfbuzz/harfbuzz/14.2.1";
       flake = false;
     };
     libpng = {

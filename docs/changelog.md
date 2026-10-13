@@ -315,7 +315,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled conpty.dll and OpenConsole.exe to build 1.22.250204002.nupkg
-* Bundled harfbuzz to 11.2.1
+* Bundled harfbuzz to 14.2.1
 * Bundled libssh to 0.11.1
 * Bundled freetype to 2.13.3
 * Bundled Nerd Font Symbols font to v3.3.0
@@ -2568,5 +2568,3 @@ font_hinting = "Full" # None, Vertical, VerticalSubpixel, Full
 * `wezterm imgcat /some/image.png` to display images inline in the terminal using the iTerm2 image protocol
 * IME support on macOS and Windows systems
 * Automatic fallback to software rendering if no GPU is available (eg: certain types of remote desktop sessions)
-
-
