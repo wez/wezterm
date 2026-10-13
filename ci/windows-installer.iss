@@ -35,6 +35,8 @@ WizardStyle=modern
 ; Build 1809 is required for pty support
 MinVersion=10.0.17763
 ChangesEnvironment=true
+; Allow wezterm to visit junctions/symlinks created by non-admin users
+RedirectionGuard=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
