@@ -396,7 +396,13 @@ impl KeyboardWithFallback {
                             }
                             _ => sym,
                         }
-                    } else if kc.is_none() && key_code_from_sym.is_none() {
+                    } else if kc.is_none()
+                        && key_code_from_sym.is_none()
+                        // Make sure that non-standard modifier keys are not mapped
+                        // to a fallback because that would result in extra emits of
+                        // the original ANSI characters
+                        && !xsym.is_modifier_key()
+                    {
                         // Not sure if this is a good idea, see
                         // <https://github.com/wezterm/wezterm/issues/4910> for context.
                         match fallback_feed {
