@@ -147,7 +147,8 @@ impl GuiFrontEnd {
                         | Alert::WindowTitleChanged(_)
                         | Alert::TabTitleChanged(_)
                         | Alert::IconTitleChanged(_)
-                        | Alert::SetUserVar { .. },
+                        | Alert::SetUserVar { .. }
+                        | Alert::PointerShapeChanged,
                 } => {}
                 MuxNotification::Empty => {
                     if config::configuration().quit_when_all_windows_are_closed {

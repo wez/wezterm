@@ -12,6 +12,7 @@ keywords = ["terminal", "escape", "parser"]
 [dependencies]
 base64 = {workspace = true, default-features=false, features=["alloc"]}
 bitflags = "2.0"
+cursor-icon.workspace = true
 hex = {workspace = true, default-features=false, features=["alloc"]}
 image = {workspace =true, optional=true }
 log.workspace = true

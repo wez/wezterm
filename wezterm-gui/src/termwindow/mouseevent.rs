@@ -837,7 +837,11 @@ impl super::TermWindow {
             // When hovering over a hyperlink, show an appropriate
             // mouse cursor to give the cue that it is clickable
             CursorIcon::Pointer
-        } else if pane.is_mouse_grabbed() || outside_window {
+        } else if outside_window {
+            CursorIcon::Default
+        } else if let Some(shape) = pane.get_requested_pointer_shape() {
+            shape
+        } else if pane.is_mouse_grabbed() {
             CursorIcon::Default
         } else {
             CursorIcon::Text

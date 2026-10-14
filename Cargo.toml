@@ -74,7 +74,7 @@ core-text = "=21.0.0"
 criterion = "0.5"
 crossbeam = "0.8"
 csscolorparser = "0.6"
-cursor-icon = "1.2"
+cursor-icon = { version = "1.2", default-features = false }
 deltae = "0.3"
 dhat = "0.3"
 dirs-next = "2.0"

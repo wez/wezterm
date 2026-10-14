@@ -1,3 +1,4 @@
+use crate::allocate::*;
 use crate::color::SrgbaTuple;
 pub use crate::hyperlink::Hyperlink;
 use crate::{Result, bail, ensure, format_err};
@@ -8,13 +9,12 @@ use bitflags::bitflags;
 use core::fmt::{Display, Error as FmtError, Formatter, Result as FmtResult};
 use core::str;
 use core::str::FromStr;
+use cursor_icon::CursorIcon;
 use num_derive::*;
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
 #[cfg(feature = "std")]
 use std::sync::LazyLock;
-
-use crate::allocate::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColorOrQuery {
@@ -52,8 +52,131 @@ pub enum OperatingSystemCommand {
     ResetColors(Vec<u8>),
     RxvtExtension(Vec<String>),
     ConEmuProgress(Progress),
+    PointerShape(PointerShapeCommand),
 
     Unspecified(Vec<Vec<u8>>),
+}
+
+/// An OSC 22 operation from the
+/// [Kitty pointer shapes protocol](https://sw.kovidgoyal.net/kitty/pointer-shapes/).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PointerShapeCommand {
+    Set(PointerShapeName),
+    Push(Vec<PointerShapeName>),
+    Pop,
+    Query(Vec<PointerShapeQuery>),
+}
+
+/// A pointer shape accepted by OSC 22 set and push operations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PointerShapeName {
+    Default,
+    Shape(CursorIcon),
+    Unknown(String),
+}
+
+impl From<&str> for PointerShapeName {
+    fn from(name: &str) -> Self {
+        if name.is_empty() {
+            Self::Default
+        } else if let Some(shape) = parse_pointer_shape(name) {
+            Self::Shape(shape)
+        } else {
+            Self::Unknown(name.to_owned())
+        }
+    }
+}
+
+impl Display for PointerShapeName {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        match self {
+            Self::Default => Ok(()),
+            Self::Shape(shape) => shape.fmt(f),
+            Self::Unknown(name) => f.write_str(name),
+        }
+    }
+}
+
+/// A pointer shape or special value accepted by an OSC 22 query.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PointerShapeQuery {
+    Current,
+    Default,
+    Grabbed,
+    Shape(CursorIcon),
+    Unknown(String),
+}
+
+impl From<&str> for PointerShapeQuery {
+    fn from(name: &str) -> Self {
+        match name {
+            "__current__" => Self::Current,
+            "__default__" => Self::Default,
+            "__grabbed__" => Self::Grabbed,
+            name => match parse_pointer_shape(name) {
+                Some(shape) => Self::Shape(shape),
+                None => Self::Unknown(name.to_owned()),
+            },
+        }
+    }
+}
+
+fn parse_pointer_shape(name: &str) -> Option<CursorIcon> {
+    match name.parse().ok()? {
+        shape @ (CursorIcon::Alias
+        | CursorIcon::Cell
+        | CursorIcon::Copy
+        | CursorIcon::Crosshair
+        | CursorIcon::Default
+        | CursorIcon::EResize
+        | CursorIcon::EwResize
+        | CursorIcon::Grab
+        | CursorIcon::Grabbing
+        | CursorIcon::Help
+        | CursorIcon::Move
+        | CursorIcon::NResize
+        | CursorIcon::NeResize
+        | CursorIcon::NeswResize
+        | CursorIcon::NoDrop
+        | CursorIcon::NotAllowed
+        | CursorIcon::NsResize
+        | CursorIcon::NwResize
+        | CursorIcon::NwseResize
+        | CursorIcon::Pointer
+        | CursorIcon::Progress
+        | CursorIcon::SResize
+        | CursorIcon::SeResize
+        | CursorIcon::SwResize
+        | CursorIcon::Text
+        | CursorIcon::VerticalText
+        | CursorIcon::WResize
+        | CursorIcon::Wait
+        | CursorIcon::ZoomIn
+        | CursorIcon::ZoomOut) => Some(shape),
+        _ => None,
+    }
+}
+
+impl Display for PointerShapeQuery {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        match self {
+            Self::Current => f.write_str("__current__"),
+            Self::Default => f.write_str("__default__"),
+            Self::Grabbed => f.write_str("__grabbed__"),
+            Self::Shape(shape) => shape.fmt(f),
+            Self::Unknown(name) => f.write_str(name),
+        }
+    }
+}
+
+fn write_comma_separated<T: Display>(f: &mut Formatter, values: &[T]) -> FmtResult {
+    for (idx, value) in values.iter().enumerate() {
+        if idx > 0 {
+            f.write_str(",")?;
+        }
+        value.fmt(f)?;
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
@@ -255,6 +378,28 @@ impl OperatingSystemCommand {
         ))
     }
 
+    fn parse_pointer_shape(osc: &[&[u8]]) -> Result<Self> {
+        ensure!(osc.len() == 2, "wrong param count");
+        let value = str::from_utf8(osc[1])?;
+
+        let command = match value.as_bytes().first() {
+            Some(b'=') => PointerShapeCommand::Set(value[1..].into()),
+            Some(b'>') => PointerShapeCommand::Push(if value.len() == 1 {
+                vec![]
+            } else {
+                value[1..].split(',').map(PointerShapeName::from).collect()
+            }),
+            Some(b'<') => PointerShapeCommand::Pop,
+            Some(b'?') => PointerShapeCommand::Query(if value.len() == 1 {
+                vec![]
+            } else {
+                value[1..].split(',').map(PointerShapeQuery::from).collect()
+            }),
+            _ => PointerShapeCommand::Set(value.into()),
+        };
+        Ok(OperatingSystemCommand::PointerShape(command))
+    }
+
     fn internal_parse(osc: &[&[u8]]) -> Result<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
@@ -316,6 +461,7 @@ impl OperatingSystemCommand {
                 p1str[1..].to_owned(),
             )),
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
+            SetPointerShape => Self::parse_pointer_shape(osc),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => {
                 if osc.len() >= 3 && osc[1] == b"4" {
@@ -480,6 +626,7 @@ osc_entries!(
     SetHighlightBackgroundColor = "17",
     SetTektronixCursorColor = "18",
     SetHighlightForegroundColor = "19",
+    SetPointerShape = "22",
     SetLogFileName = "46",
     SetFont = "50",
     EmacsShell = "51",
@@ -612,6 +759,21 @@ impl Display for OperatingSystemCommand {
             ConEmuProgress(Progress::SetError(pct)) => write!(f, "9;4;2;{pct}")?,
             ConEmuProgress(Progress::SetIndeterminate) => write!(f, "9;4;3")?,
             ConEmuProgress(Progress::Paused) => write!(f, "9;4;4")?,
+            PointerShape(command) => {
+                write!(f, "22;")?;
+                match command {
+                    PointerShapeCommand::Set(shape) => shape.fmt(f)?,
+                    PointerShapeCommand::Push(shapes) => {
+                        f.write_str(">")?;
+                        write_comma_separated(f, shapes)?;
+                    }
+                    PointerShapeCommand::Pop => write!(f, "<")?,
+                    PointerShapeCommand::Query(shapes) => {
+                        f.write_str("?")?;
+                        write_comma_separated(f, shapes)?;
+                    }
+                }
+            }
         };
         // Use the longer form ST as neovim doesn't like the BEL version
         write!(f, "\x1b\\")?;
@@ -1422,6 +1584,68 @@ mod test {
             parse(&["112"], "\x1b]112\x1b\\"),
             OperatingSystemCommand::ResetDynamicColor(DynamicColorNumber::TextCursorColor)
         );
+    }
+
+    #[test]
+    fn pointer_shape() {
+        assert_eq!(
+            parse(&["22", "pointer"], "\x1b]22;pointer\x1b\\"),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Set(
+                PointerShapeName::Shape(CursorIcon::Pointer)
+            ))
+        );
+        assert_eq!(
+            parse(&["22", "=crosshair"], "\x1b]22;crosshair\x1b\\"),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Set(
+                PointerShapeName::Shape(CursorIcon::Crosshair)
+            ))
+        );
+        assert_eq!(
+            parse(&["22", ""], "\x1b]22;\x1b\\"),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Set(
+                PointerShapeName::Default
+            ))
+        );
+        assert_eq!(
+            parse(&["22", ">wait,crosshair"], "\x1b]22;>wait,crosshair\x1b\\"),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Push(vec![
+                PointerShapeName::Shape(CursorIcon::Wait),
+                PointerShapeName::Shape(CursorIcon::Crosshair)
+            ]))
+        );
+        assert_eq!(
+            parse(&["22", "<ignored"], "\x1b]22;<\x1b\\"),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Pop)
+        );
+        assert_eq!(
+            parse(
+                &["22", "?pointer,crosshair,__current__"],
+                "\x1b]22;?pointer,crosshair,__current__\x1b\\"
+            ),
+            OperatingSystemCommand::PointerShape(PointerShapeCommand::Query(vec![
+                PointerShapeQuery::Shape(CursorIcon::Pointer),
+                PointerShapeQuery::Shape(CursorIcon::Crosshair),
+                PointerShapeQuery::Current
+            ]))
+        );
+    }
+
+    #[test]
+    fn pointer_shape_names() {
+        assert_eq!(PointerShapeName::from(""), PointerShapeName::Default);
+        assert_eq!(
+            PointerShapeName::from("pointer"),
+            PointerShapeName::Shape(CursorIcon::Pointer)
+        );
+        assert_eq!(
+            PointerShapeName::from("context-menu"),
+            PointerShapeName::Unknown("context-menu".into())
+        );
+        assert_eq!(
+            PointerShapeQuery::from("__current__"),
+            PointerShapeQuery::Current
+        );
+        assert_eq!(PointerShapeQuery::from("wait").to_string(), "wait");
     }
 
     #[test]

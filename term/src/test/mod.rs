@@ -9,6 +9,7 @@ mod csi;
 mod image;
 // mod selection; FIXME: port to render layer
 use crate::color::ColorPalette;
+use cursor_icon::CursorIcon;
 use k9::assert_equal as assert_eq;
 use std::sync::{Arc, Mutex};
 use wezterm_escape_parser::csi::{Edit, EraseInDisplay, EraseInLine};
@@ -187,6 +188,50 @@ impl TestTerm {
             reason, seqno, seqs
         );
     }
+}
+
+#[test]
+fn pointer_shape_stack() {
+    let mut term = TestTerm::new(2, 2, 0);
+    assert_eq!(term.term.get_requested_pointer_shape(), None);
+
+    term.print("\x1b]22;pointer\x1b\\");
+    term.print("\x1b]22;>wait,crosshair\x1b\\");
+    assert_eq!(
+        term.term.get_requested_pointer_shape(),
+        Some(CursorIcon::Crosshair)
+    );
+
+    term.print("\x1b]22;<\x1b\\");
+    term.print("\x1b]22;=text\x1b\\");
+    assert_eq!(
+        term.term.get_requested_pointer_shape(),
+        Some(CursorIcon::Text)
+    );
+    term.print("\x1b]22;<\x1b\\");
+    assert_eq!(
+        term.term.get_requested_pointer_shape(),
+        Some(CursorIcon::Pointer)
+    );
+
+    term.set_mode("?1049", true);
+    assert_eq!(term.term.get_requested_pointer_shape(), None);
+    term.print("\x1b]22;wait\x1b\\");
+    term.set_mode("?1049", false);
+    assert_eq!(
+        term.term.get_requested_pointer_shape(),
+        Some(CursorIcon::Pointer)
+    );
+    term.set_mode("?1049", true);
+    assert_eq!(
+        term.term.get_requested_pointer_shape(),
+        Some(CursorIcon::Wait)
+    );
+
+    term.soft_reset();
+    assert_eq!(term.term.get_requested_pointer_shape(), None);
+    term.set_mode("?1049", false);
+    assert_eq!(term.term.get_requested_pointer_shape(), None);
 }
 
 impl Deref for TestTerm {

@@ -10,6 +10,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior, ExitBehaviorMessaging};
+use cursor_icon::CursorIcon;
 use fancy_regex::Regex;
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -464,6 +465,10 @@ impl Pane for LocalPane {
 
     fn get_progress(&self) -> Progress {
         self.terminal.lock().get_progress()
+    }
+
+    fn get_requested_pointer_shape(&self) -> Option<CursorIcon> {
+        self.terminal.lock().get_requested_pointer_shape()
     }
 
     fn palette(&self) -> ColorPalette {

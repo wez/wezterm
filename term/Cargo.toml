@@ -17,6 +17,7 @@ use_serde = ["termwiz/use_serde", "wezterm-cell/use_serde", "wezterm-escape-pars
 anyhow.workspace = true
 bitflags.workspace = true
 csscolorparser.workspace = true
+cursor-icon.workspace = true
 downcast-rs.workspace = true
 finl_unicode.workspace = true
 hex.workspace = true

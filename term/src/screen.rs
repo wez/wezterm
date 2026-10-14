@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::config::BidiMode;
+use cursor_icon::CursorIcon;
 use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -37,6 +38,9 @@ pub struct Screen {
     allow_scrollback: bool,
 
     pub(crate) keyboard_stack: Vec<KeyboardEncoding>,
+    /// OSC 22 pointer shapes are scoped to each primary or alternate screen.
+    /// The top entry is the shape to be used, `None` uses the default shape.
+    pub(crate) pointer_shape_stack: Vec<Option<CursorIcon>>,
 
     /// Physical, visible height of the screen (not including scrollback)
     pub physical_rows: usize,
@@ -86,12 +90,14 @@ impl Screen {
             stable_row_index_offset: 0,
             dpi: size.dpi,
             keyboard_stack: vec![],
+            pointer_shape_stack: vec![],
             saved_cursor: None,
         }
     }
 
     pub fn full_reset(&mut self) {
         self.keyboard_stack.clear();
+        self.pointer_shape_stack.clear();
     }
 
     fn scrollback_size(&self) -> usize {

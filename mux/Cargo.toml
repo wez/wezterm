@@ -16,6 +16,7 @@ bitflags.workspace = true
 chrono.workspace = true
 config.workspace = true
 crossbeam.workspace = true
+cursor-icon.workspace = true
 downcast-rs.workspace = true
 fancy-regex.workspace = true
 filedescriptor.workspace = true

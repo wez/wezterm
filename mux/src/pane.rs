@@ -3,6 +3,7 @@ use crate::renderable::*;
 use crate::ExitBehavior;
 use async_trait::async_trait;
 use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
+use cursor_icon::CursorIcon;
 use downcast_rs::{impl_downcast, Downcast};
 use parking_lot::MappedMutexGuard;
 use rangeset::RangeSet;
@@ -239,6 +240,9 @@ pub trait Pane: Downcast + Send + Sync {
     fn get_title(&self) -> String;
     fn get_progress(&self) -> Progress {
         Progress::None
+    }
+    fn get_requested_pointer_shape(&self) -> Option<CursorIcon> {
+        None
     }
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
     fn send_composed_text(&self, text: &str) -> anyhow::Result<()> {

@@ -22,7 +22,7 @@ use wezterm_escape_parser::csi::{
 };
 use wezterm_escape_parser::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary,
-    ITermUnicodeVersionOp, Selection,
+    ITermUnicodeVersionOp, PointerShapeCommand, PointerShapeName, PointerShapeQuery, Selection,
 };
 use wezterm_escape_parser::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OperatingSystemCommand, CSI,
@@ -728,6 +728,7 @@ impl<'a> Performer<'a> {
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
                 self.palette_did_change();
+                self.notify_pointer_shape_changed();
             }
 
             _ => {
@@ -1095,6 +1096,66 @@ impl<'a> Performer<'a> {
                     }
                 }
             }
+            OperatingSystemCommand::PointerShape(command) => match command {
+                PointerShapeCommand::Set(shape) => {
+                    let shape = match shape {
+                        PointerShapeName::Default => Some(None),
+                        PointerShapeName::Shape(shape) => Some(Some(shape)),
+                        PointerShapeName::Unknown(_) => None,
+                    };
+                    if let Some(shape) = shape {
+                        if let Some(current) = self.screen.pointer_shape_stack.last_mut() {
+                            *current = shape;
+                        } else {
+                            self.screen.pointer_shape_stack.push(shape);
+                        }
+                        self.notify_pointer_shape_changed();
+                    }
+                }
+                PointerShapeCommand::Push(shapes) => {
+                    let mut changed = false;
+                    for shape in shapes {
+                        let shape = match shape {
+                            PointerShapeName::Default => Some(None),
+                            PointerShapeName::Shape(shape) => Some(Some(shape)),
+                            PointerShapeName::Unknown(_) => None,
+                        };
+                        if let Some(shape) = shape {
+                            if self.screen.pointer_shape_stack.len() == 16 {
+                                self.screen.pointer_shape_stack.remove(0);
+                            }
+                            self.screen.pointer_shape_stack.push(shape);
+                            changed = true;
+                        }
+                    }
+                    if changed {
+                        self.notify_pointer_shape_changed();
+                    }
+                }
+                PointerShapeCommand::Pop => {
+                    if self.screen.pointer_shape_stack.pop().is_some() {
+                        self.notify_pointer_shape_changed();
+                    }
+                }
+                PointerShapeCommand::Query(shapes) => {
+                    let response = shapes
+                        .iter()
+                        .map(|shape| match shape {
+                            PointerShapeQuery::Current => self
+                                .get_requested_pointer_shape()
+                                .map(|shape| shape.name())
+                                .unwrap_or("0"),
+                            PointerShapeQuery::Default => "text",
+                            PointerShapeQuery::Grabbed => "default",
+                            PointerShapeQuery::Shape(_) => "1",
+                            PointerShapeQuery::Unknown(_) => "0",
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    write!(self.writer, "\x1b]22;{response}\x1b\\").ok();
+                    self.writer.flush().ok();
+                }
+            },
         }
     }
 }
