@@ -25,8 +25,8 @@ impl PtySystem for ConPtySystem {
 
         let master = ConPtyMasterPty {
             inner: Arc::new(Mutex::new(Inner {
-                con,
                 readable: stdout.read,
+                con,
                 writable: Some(stdin.write),
                 size,
             })),
@@ -44,8 +44,11 @@ impl PtySystem for ConPtySystem {
 }
 
 struct Inner {
-    con: PseudoCon,
+    // Drop the original output endpoint before closing ConPTY. A cloned reader
+    // remains active during normal I/O; without one, closing this endpoint keeps
+    // ClosePseudoConsole from waiting for a reader that does not exist.
     readable: FileDescriptor,
+    con: PseudoCon,
     writable: Option<FileDescriptor>,
     size: PtySize,
 }
