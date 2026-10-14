@@ -28,6 +28,16 @@ pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
 #[allow(dead_code)]
 pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
+fn flags(inherit_cursor: bool) -> u32 {
+    PSEUDOCONSOLE_RESIZE_QUIRK
+        | PSEUDOCONSOLE_WIN32_INPUT_MODE
+        | if inherit_cursor {
+            PSEUDOCONSOLE_INHERIT_CURSOR
+        } else {
+            0
+        }
+}
+
 shared_library!(ConPtyFuncs,
     pub fn CreatePseudoConsole(
         size: COORD,
@@ -75,16 +85,19 @@ impl Drop for PseudoCon {
 }
 
 impl PseudoCon {
-    pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
+    pub fn new(
+        size: COORD,
+        input: FileDescriptor,
+        output: FileDescriptor,
+        inherit_cursor: bool,
+    ) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
         let result = unsafe {
             (CONPTY.CreatePseudoConsole)(
                 size,
                 input.as_raw_handle(),
                 output.as_raw_handle(),
-                PSEUDOCONSOLE_INHERIT_CURSOR
-                    | PSEUDOCONSOLE_RESIZE_QUIRK
-                    | PSEUDOCONSOLE_WIN32_INPUT_MODE,
+                flags(inherit_cursor),
                 &mut con,
             )
         };
@@ -169,5 +182,17 @@ impl PseudoCon {
         Ok(WinChild {
             proc: Mutex::new(proc),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cursor_inheritance_is_optional() {
+        assert_ne!(flags(true) & PSEUDOCONSOLE_INHERIT_CURSOR, 0);
+        assert_eq!(flags(false) & PSEUDOCONSOLE_INHERIT_CURSOR, 0);
+        assert_eq!(flags(true) & !PSEUDOCONSOLE_INHERIT_CURSOR, flags(false));
     }
 }
