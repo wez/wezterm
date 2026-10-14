@@ -18,7 +18,7 @@ fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     }
 }
 
-fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
+fn show_notif_impl(mut toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     let xml = XmlDocument::new()?;
 
     let url_actions = if toast.url.is_some() {
@@ -30,6 +30,9 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     } else {
         ""
     };
+
+    // Take on_click out so we can move it into the closure below.
+    let on_click = toast.on_click.take();
 
     xml.LoadXml(HSTRING::from(format!(
         r#"<toast duration="long">
@@ -48,6 +51,10 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
 
     let notif = ToastNotification::CreateToastNotification(xml)?;
 
+    // Wrap on_click in a Mutex so TypedEventHandler (which requires Fn,
+    // not FnOnce) can take it out exactly once.
+    let on_click = std::sync::Mutex::new(on_click);
+
     notif.Activated(TypedEventHandler::new(
         move |_: &Option<ToastNotification>, result: &Option<IInspectable>| {
             // let myself = unwrap_arg(myself)?;
@@ -59,6 +66,10 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(url) = toast.url.as_ref() {
                     wezterm_open_url::open_url(url);
                 }
+            }
+
+            if let Some(callback) = on_click.lock().unwrap().take() {
+                callback();
             }
 
             Ok(())

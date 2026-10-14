@@ -110,7 +110,7 @@ async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::er
             "org.wezfurlong.wezterm",
             &notif.title,
             &notif.message,
-            if notif.url.is_some() {
+            if notif.url.is_some() || notif.on_click.is_some() {
                 &["show", "Show"]
             } else {
                 &[]
@@ -119,6 +119,9 @@ async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::er
             notif.timeout.map(|d| d.as_millis() as _).unwrap_or(0),
         )
         .await?;
+
+    // Move on_click out so we can consume it (FnOnce) in the action handler.
+    let mut on_click = notif.on_click;
 
     let (mut invoked_stream, abort_invoked) = abortable(proxy.receive_action_invoked().await?);
     let (mut closed_stream, abort_closed) = abortable(proxy.receive_notification_closed().await?);
@@ -130,9 +133,12 @@ async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::er
                 if args.nid == notification {
                     if let Some(url) = notif.url.as_ref() {
                         wezterm_open_url::open_url(url);
-                        abort_closed.abort();
-                        break;
                     }
+                    if let Some(callback) = on_click.take() {
+                        callback();
+                    }
+                    abort_closed.abort();
+                    break;
                 }
             }
             Ok::<(), zbus::Error>(())

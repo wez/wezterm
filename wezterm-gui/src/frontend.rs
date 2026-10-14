@@ -15,7 +15,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 use wezterm_term::{Alert, ClipboardSelection};
-use wezterm_toast_notification::*;
+use wezterm_toast_notification;
 
 pub struct GuiFrontEnd {
     connection: Rc<Connection>,
@@ -100,7 +100,7 @@ impl GuiFrontEnd {
                         Alert::ToastNotification {
                             title,
                             body,
-                            focus: _,
+                            focus,
                         },
                 } => {
                     let mux = Mux::get();
@@ -124,10 +124,39 @@ impl GuiFrontEnd {
                             if show {
                                 let message = if title.is_none() { "" } else { &body };
                                 let title = title.as_ref().unwrap_or(&body);
-                                // FIXME: if notification.focus is true, we should do
-                                // something here to arrange to focus pane_id when the
-                                // notification is clicked
-                                persistent_toast_notification(title, message);
+
+                                // When focus is requested, arrange to activate
+                                // the pane/tab that sent the notification when
+                                // the user clicks on it.
+                                let on_click = if focus {
+                                    Some(Box::new(move || {
+                                        promise::spawn::spawn_into_main_thread(async move {
+                                            let mux = Mux::get();
+                                            if let Err(err) =
+                                                mux.focus_pane_and_containing_tab(pane_id)
+                                            {
+                                                log::error!(
+                                                    "Error focusing pane from notification \
+                                                     click: {err:#}"
+                                                );
+                                            }
+                                        })
+                                        .detach();
+                                    })
+                                        as Box<dyn FnOnce() + Send + 'static>)
+                                } else {
+                                    None
+                                };
+
+                                wezterm_toast_notification::show(
+                                    wezterm_toast_notification::ToastNotification {
+                                        title: title.to_string(),
+                                        message: message.to_string(),
+                                        url: None,
+                                        timeout: None,
+                                        on_click,
+                                    },
+                                );
                             }
                         }
                     }

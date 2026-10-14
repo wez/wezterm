@@ -90,7 +90,8 @@ impl UserData for GuiWin {
                     title,
                     message,
                     url,
-                    timeout: timeout.map(std::time::Duration::from_millis)
+                    timeout: timeout.map(std::time::Duration::from_millis),
+                    on_click: None,
                 });
                 Ok(())
             },

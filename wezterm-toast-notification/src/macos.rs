@@ -12,7 +12,8 @@ use objc2_user_notifications::{
     UNNotificationPresentationOptions, UNNotificationRequest, UNNotificationResponse,
     UNUserNotificationCenter, UNUserNotificationCenterDelegate,
 };
-use std::sync::{LazyLock, Once};
+use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex, Once};
 
 const NEEDS_SIGN: &str = "Note that the application must be code-signed \
                           for UNUserNotificationCenter to work";
@@ -65,13 +66,26 @@ define_class!(
             let action = response.actionIdentifier();
             let user_info = response.notification().request().content().userInfo();
             let url = user_info.valueForKey(ns_string!("url"));
+            let identifier = response
+                .notification()
+                .request()
+                .identifier()
+                .to_string();
 
-            log::debug!("did_receive_notification -> action={action:?} url={url:?}");
+            log::debug!(
+                "did_receive_notification -> action={action:?} url={url:?} id={identifier}"
+            );
 
             if let Some(url) = url {
                 if let Ok(url_str) = url.downcast::<NSString>() {
                     wezterm_open_url::open_url(&url_str.to_string());
                 }
+            }
+
+            // Invoke the on_click callback (e.g. to focus the pane/tab
+            // that triggered this notification).
+            if let Some(callback) = CLICK_CALLBACKS.lock().unwrap().remove(&identifier) {
+                callback();
             }
 
             completion_handler.call(());
@@ -96,6 +110,11 @@ impl Drop for NotifDelegate {
 
 const CENTER: LazyLock<Retained<UNUserNotificationCenter>> =
     LazyLock::new(UNUserNotificationCenter::currentNotificationCenter);
+
+/// Registry of on_click callbacks keyed by notification identifier.
+/// Stored when a notification is shown, removed and invoked when clicked.
+static CLICK_CALLBACKS: LazyLock<Mutex<HashMap<String, Box<dyn FnOnce() + Send>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub fn initialize() {
     static INIT: Once = Once::new();
@@ -148,10 +167,14 @@ pub fn initialize() {
     });
 }
 
-pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
+pub fn show_notif(mut toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     initialize();
     unsafe {
         log::debug!("show_notif center.delegate is {:?}", CENTER.delegate());
+
+        // Take on_click out early so `toast` can still be moved into the
+        // completion closure below without a partial-move error.
+        let on_click = toast.on_click.take();
 
         let notif = UNMutableNotificationContent::new();
         notif.setTitle(&NSString::from_str(&toast.title));
@@ -167,7 +190,16 @@ pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Er
             notif.setCategoryIdentifier(ns_string!("SHOW_URL_ACTION"));
         }
 
+        // Register the on_click callback so the delegate can invoke it
+        // when the user taps this notification.
         let identifier = uuid::Uuid::new_v4().to_string();
+        if let Some(on_click) = on_click {
+            CLICK_CALLBACKS
+                .lock()
+                .unwrap()
+                .insert(identifier.clone(), on_click);
+        }
+
         let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
             &NSString::from_str(&identifier),
             &*notif,
@@ -187,7 +219,9 @@ pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Er
                         let identifier = identifier.clone();
                         std::thread::spawn(move || {
                             std::thread::sleep(timeout);
-                            // Remove this notification
+                            // Remove this notification and clean up any
+                            // pending on_click callback.
+                            CLICK_CALLBACKS.lock().unwrap().remove(&identifier);
                             let ident_array =
                                 NSArray::from_retained_slice(&[NSString::from_str(&identifier)]);
                             CENTER.removeDeliveredNotificationsWithIdentifiers(&ident_array);

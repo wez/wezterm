@@ -2,12 +2,26 @@ mod dbus;
 mod macos;
 mod windows;
 
-#[derive(Debug, Clone)]
 pub struct ToastNotification {
     pub title: String,
     pub message: String,
     pub url: Option<String>,
     pub timeout: Option<std::time::Duration>,
+    /// Called when the user clicks the notification.
+    /// Use this to focus the pane/tab that triggered the notification.
+    pub on_click: Option<Box<dyn FnOnce() + Send + 'static>>,
+}
+
+impl std::fmt::Debug for ToastNotification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ToastNotification")
+            .field("title", &self.title)
+            .field("message", &self.message)
+            .field("url", &self.url)
+            .field("timeout", &self.timeout)
+            .field("on_click", &self.on_click.as_ref().map(|_| "..."))
+            .finish()
+    }
 }
 
 impl ToastNotification {
@@ -44,6 +58,7 @@ pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message
         message: message.to_string(),
         url: Some(url.to_string()),
         timeout: None,
+        on_click: None,
     });
 }
 
@@ -53,6 +68,7 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
         message: message.to_string(),
         url: None,
         timeout: None,
+        on_click: None,
     });
 }
 

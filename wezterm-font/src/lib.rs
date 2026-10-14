@@ -440,6 +440,7 @@ impl FallbackResolveInfo {
                     ),
                     url: Some(url.to_string()),
                     timeout: Some(Duration::from_secs(15)),
+                    on_click: None,
                 }
                 .show();
             } else {
