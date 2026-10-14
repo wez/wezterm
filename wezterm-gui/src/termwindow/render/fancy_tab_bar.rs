@@ -10,6 +10,7 @@ use config::{Dimension, DimensionContext, TabBarColors};
 use std::rc::Rc;
 use wezterm_font::LoadedFont;
 use wezterm_term::color::{ColorAttribute, ColorPalette};
+use window::color::LinearRgba;
 use window::{IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 const X_BUTTON: &[Poly] = &[
@@ -88,6 +89,11 @@ impl crate::TermWindow {
             .to_linear()
             .into(),
         };
+        let content_colors = ElementColors {
+            border: BorderColor::default(),
+            bg: LinearRgba::TRANSPARENT.into(),
+            text: bar_colors.text.clone(),
+        };
         let tab_vertical_alignment = if self.config.tab_bar_at_bottom {
             VerticalAlign::Top
         } else {
@@ -134,7 +140,7 @@ impl crate::TermWindow {
                         bottom: Dimension::Cells(0.),
                     })
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
-                    .colors(bar_colors.clone()),
+                    .colors(content_colors.clone()),
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
@@ -428,7 +434,7 @@ impl crate::TermWindow {
         if !left_status.is_empty() {
             children.push(
                 Element::new(&font, ElementContent::Children(left_status))
-                    .colors(bar_colors.clone()),
+                    .colors(content_colors.clone()),
             );
         }
 
@@ -459,7 +465,7 @@ impl crate::TermWindow {
         children.push(
             Element::new(&font, ElementContent::Children(left_eles))
                 .vertical_align(tab_vertical_alignment)
-                .colors(bar_colors.clone())
+                .colors(content_colors.clone())
                 .padding(BoxDimension {
                     left: left_padding,
                     right: Dimension::Cells(0.),
@@ -470,7 +476,7 @@ impl crate::TermWindow {
         );
         children.push(
             Element::new(&font, ElementContent::Children(right_eles))
-                .colors(bar_colors.clone())
+                .colors(content_colors)
                 .float(Float::Right),
         );
 
