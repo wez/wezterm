@@ -102,7 +102,7 @@ async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::er
     }
 
     let mut hints = HashMap::new();
-    hints.insert("urgency", Value::U8(2 /* Critical */));
+    hints.insert("urgency", Value::U8(1 /* Normal */));
     let notification = proxy
         .notify(
             "wezterm",
