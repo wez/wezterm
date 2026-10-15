@@ -1,4 +1,5 @@
 use crate::termwindow::InputMap;
+use crate::KittyKeyboardFlags;
 use ::window::{
     DeadKeyStatus, KeyCode, KeyEvent, KeyboardLedStatus, Modifiers, RawKeyEvent, WindowOps,
 };
@@ -202,7 +203,11 @@ impl super::TermWindow {
             return None;
         }
         if let KeyboardEncoding::Kitty(flags) = pane.get_keyboard_encoding() {
-            Some(key.encode_kitty(flags))
+            if flags != KittyKeyboardFlags::NONE {
+                Some(key.encode_kitty(flags))
+            } else {
+                None
+            }
         } else {
             None
         }

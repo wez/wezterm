@@ -1902,6 +1902,9 @@ impl KeyEvent {
                 if use_legacy {
                     // Legacy text key
                     // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-text-keys
+                    //
+                    // FIXME: for maximum compatibility, we should use WezTerm's default
+                    // mode here
                     let mut output = String::new();
                     if self.modifiers.contains(Modifiers::ALT) {
                         output.push('\x1b');
@@ -1963,10 +1966,10 @@ impl KeyEvent {
                 format!("\x1b[1;{modifiers}{event_type}{c}")
             }
             Function(n) if *n < 25 => {
-                // The spec says that kitty prefers an SS3 form for F1-F4,
-                // but then has some variance in the encoding and cites a
-                // compatibility issue with a cursor position report.
-                // Since it allows reporting these all unambiguously with
+                // The spec says that two different encodings are possible
+                // for F1, F2 and F4 (the second form is CSI 1 ; modifiers [PQS]),
+                // but cites a compatibility issue with a cursor position report
+                // for F3. Since it allows reporting these all unambiguously with
                 // the same general scheme, that is what we're using here.
                 let intro = match *n {
                     1 => "\x1b[11",
