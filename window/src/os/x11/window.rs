@@ -227,7 +227,13 @@ impl XWindowInner {
     }
 
     fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        if self.cancel_drag() {
+        // The WM owns the pointer while it drags the window for us, and it
+        // consumes the release that ends the drag, so the next event we
+        // receive is how we find out that the drag is over. That event still
+        // needs to be delivered, otherwise a press that immediately follows a
+        // drag is swallowed and cannot start a new one. A real release is the
+        // exception: cancel_drag has already synthesized one for it.
+        if self.cancel_drag() && matches!(event.kind, MouseEventKind::Release(_)) {
             return Ok(());
         }
         self.current_mouse_event.replace(event.clone());
@@ -426,11 +432,6 @@ impl XWindowInner {
         state: xcb::x::KeyButMask,
     ) -> anyhow::Result<()> {
         self.copy_and_paste.time = time;
-
-        if self.cancel_drag() {
-            log::debug!("cancel drag due to button {detail} {state:?}");
-            return Ok(());
-        }
 
         let kind = match detail {
             b @ 1..=3 => {
@@ -719,6 +720,13 @@ impl XWindowInner {
                     .process_key_release_event(key_release, &mut self.events);
             }
             Event::X(xcb::x::Event::MotionNotify(motion)) => {
+                // We asked the WM to drag the window and it has not taken its
+                // pointer grab yet, so this motion is part of the drag that is
+                // starting rather than a sign that it ended. Cancelling here
+                // would abort every drag begun while the pointer was moving.
+                if self.dragging && motion.state().contains(xcb::x::KeyButMask::BUTTON1) {
+                    return Ok(());
+                }
                 let event = MouseEvent {
                     kind: MouseEventKind::Move,
                     coords: Point::new(
