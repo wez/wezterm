@@ -14,6 +14,9 @@ need to adjust the default key assignments for splitting panes to know about
 that preference.  Using an `ExecDomain` allows that preference to be associated
 with the pane so that things work more intuitively.
 
+Register these domains with the [exec_domains](config/exec_domains.md)
+configuration option.
+
 ## Defining an ExecDomain
 
 You must use the `wezterm.exec_domain` function to define a domain. It accepts
