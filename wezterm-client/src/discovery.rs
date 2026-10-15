@@ -231,6 +231,13 @@ mod windows {
                     .context("reading path from shared memory")?;
 
                 let path: PathBuf = path.into();
+                // `new` publishes only the file name, so resolve it against
+                // the runtime dir rather than the caller's current directory.
+                let path = if path.is_absolute() {
+                    path
+                } else {
+                    config::RUNTIME_DIR.join(path)
+                };
 
                 Ok(path)
             })
