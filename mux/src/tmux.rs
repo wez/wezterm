@@ -3,7 +3,8 @@ use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource}
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::tmux_commands::{
-    ListAllPanes, ListAllWindows, ListCommands, NewWindow, SplitPane, TmuxCommand,
+    split_layout_spec, ListAllPanes, ListAllWindows, ListCommands, NewWindow, SplitPane,
+    TmuxCommand,
 };
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
@@ -74,7 +75,7 @@ pub(crate) struct TmuxDomainState {
     pub tmux_session: Mutex<Option<TmuxSessionId>>,
     pub support_commands: Mutex<HashMap<String, String>>,
     pub attach_state: Mutex<AttachState>,
-    pending_splits: Mutex<VecDeque<promise::Promise<TmuxPaneId>>>,
+    pub(crate) pending_splits: Mutex<VecDeque<promise::Promise<TmuxPaneId>>>,
     pub backlog: Mutex<HashMap<TmuxPaneId, Vec<u8>>>,
 }
 
@@ -146,15 +147,16 @@ impl TmuxDomainState {
                     visible_layout: _,
                     raw_flags: _,
                 } => {
+                    // `%layout-change` is how tmux reports scripted splits, closes, and
+                    // other layout edits. `layout` is `checksum,spec`; the spec is applied
+                    // once `list-panes` returns (see `ListAllPanes`).
+                    let (layout_csum, layout_body) = split_layout_spec(layout);
                     let mut cmd_queue = self.cmd_queue.as_ref().lock();
                     cmd_queue.push_back(Box::new(ListAllPanes {
                         window_id: *window,
                         prune: true,
-                        layout_csum: if let Some(l) = layout.get(0..4) {
-                            l.to_string()
-                        } else {
-                            "".to_string()
-                        },
+                        layout_csum,
+                        layout: layout_body,
                     }));
                 }
                 Event::Output { pane, text } => {
@@ -166,8 +168,13 @@ impl TmuxDomainState {
                         }
                     } else {
                         // the output may come early then pane is ready, in this case we
-                        // backlog it
-                        self.backlog.lock().insert(*pane, text.to_vec());
+                        // backlog it. Append: several %output lines can arrive before the
+                        // pane is attached (for example right after split-window).
+                        self.backlog
+                            .lock()
+                            .entry(*pane)
+                            .or_default()
+                            .extend_from_slice(text);
                         log::debug!("Tmux pane {} haven't been attached", pane);
                     }
                 }
