@@ -63,19 +63,13 @@ fn call_format_tab_title(
         if let Some(lua) = lua {
             let tabs = lua.create_sequence_from(tab_info.iter().cloned())?;
             let panes = lua.create_sequence_from(pane_info.iter().cloned())?;
+            let config_value = config::config_handle_to_lua(&lua, config)?;
 
             let v = config::lua::emit_sync_callback(
                 &*lua,
                 (
                     "format-tab-title".to_string(),
-                    (
-                        tab.clone(),
-                        tabs,
-                        panes,
-                        (**config).clone(),
-                        hover,
-                        tab_max_width,
-                    ),
+                    (tab.clone(), tabs, panes, config_value, hover, tab_max_width),
                 ),
             )?;
             match &v {

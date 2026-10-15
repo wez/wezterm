@@ -814,6 +814,82 @@ impl std::ops::Deref for ConfigHandle {
     }
 }
 
+thread_local! {
+    static CONFIG_LUA_CACHE: RefCell<Option<(Rc<Lua>, Arc<Config>, mlua::RegistryKey)>> =
+        RefCell::new(None);
+}
+
+/// Convert a ConfigHandle to a lua value, re-using the cached conversion
+/// when the lua state and the config Arc are both unchanged.
+///
+/// Events such as format-tab-title receive the config on every invocation,
+/// and converting the whole Config each time is expensive: when many windows
+/// are created at once (for example while re-attaching a client domain),
+/// the repeated conversion monopolizes the main thread for minutes.
+///
+/// The cache holds strong refs to the lua state and the config Arc, so the
+/// pointers it compares cannot be recycled while an entry is live.
+///
+/// Must be called from the main thread, same as
+/// run_immediate_with_lua_config.
+pub fn config_handle_to_lua<'lua>(
+    lua: &'lua Rc<Lua>,
+    config: &ConfigHandle,
+) -> mlua::Result<mlua::Value<'lua>> {
+    let cached = CONFIG_LUA_CACHE.with(|cache| -> Option<mlua::Value<'lua>> {
+        let cache = cache.borrow();
+        match &*cache {
+            Some((cached_lua, cached_config, key))
+                if Rc::ptr_eq(cached_lua, lua) && Arc::ptr_eq(cached_config, &config.config) =>
+            {
+                lua.registry_value(key).ok()
+            }
+            _ => None,
+        }
+    });
+    if let Some(value) = cached {
+        return Ok(value);
+    }
+    let value = luahelper::to_lua(lua, (*config.config).clone())?;
+    let key = lua.create_registry_value(&value)?;
+    CONFIG_LUA_CACHE.with(|cache| {
+        cache
+            .borrow_mut()
+            .replace((Rc::clone(lua), Arc::clone(&config.config), key));
+    });
+    Ok(value)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn config_handle_to_lua_caches_per_config_arc() {
+        let lua = Rc::new(Lua::new());
+        let handle = ConfigHandle::default_config();
+
+        let first = config_handle_to_lua(&lua, &handle).unwrap();
+        let second = config_handle_to_lua(&lua, &handle).unwrap();
+        assert!(matches!(first, mlua::Value::Table(_)));
+        assert_eq!(
+            first, second,
+            "same config Arc and lua state must re-use the cached table"
+        );
+
+        // A different config Arc (per-window overrides, or a reload)
+        // must not hit the cache
+        let other = ConfigHandle::default_config();
+        let third = config_handle_to_lua(&lua, &other).unwrap();
+        assert_ne!(first, third);
+
+        // A different lua state must not hit the cache either
+        let other_lua = Rc::new(Lua::new());
+        let fourth = config_handle_to_lua(&other_lua, &handle).unwrap();
+        assert!(matches!(fourth, mlua::Value::Table(_)));
+    }
+}
+
 pub struct LoadedConfig {
     pub config: anyhow::Result<Config>,
     pub file_name: Option<PathBuf>,
