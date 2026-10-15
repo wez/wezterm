@@ -1,7 +1,10 @@
 use crate::domain::{DomainId, WriterWrapper};
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, PaneId};
-use crate::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
+use crate::renderable::StableCursorPosition;
+use crate::tab::{
+    PaneEntry, PaneNode, SplitDirection, SplitDirectionAndSize, SplitRequest, SplitSize, Tab, TabId,
+};
 use crate::tmux::{AttachState, TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
 use crate::tmux_pty::{TmuxChild, TmuxPty};
 use crate::{Mux, MuxNotification, Pane};
@@ -276,6 +279,21 @@ impl TmuxDomainState {
             pane_active: false,
         };
 
+        // `%layout-change` may already have materialized this pane. Returning
+        // it keeps a GUI-initiated split from inserting a second copy.
+        if self.check_pane_attached(window_id, remote_id) {
+            let local_pane_id = self
+                .remote_panes
+                .lock()
+                .get(&remote_id)
+                .map(|pane| pane.lock().local_pane_id);
+            if let Some(local_pane_id) = local_pane_id {
+                if let Some(pane) = mux.get_pane(local_pane_id) {
+                    return Ok(pane);
+                }
+            }
+        }
+
         let pane = self.create_pane(&p).context("failed to create pane")?;
         tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
 
@@ -284,6 +302,142 @@ impl TmuxDomainState {
         let _ = mux.add_pane(&pane);
 
         return Ok(pane);
+    }
+
+    fn flush_backlog(&self, pane_id: TmuxPaneId) {
+        let Some(text) = self.backlog.lock().remove(&pane_id) else {
+            return;
+        };
+        let pane_map = self.remote_panes.lock();
+        let Some(ref_pane) = pane_map.get(&pane_id) else {
+            return;
+        };
+        let mut ref_pane = ref_pane.lock();
+        if let Err(err) = ref_pane.output_write.write_all(&text) {
+            log::error!("Failed to write tmux data to output: {:#}", err);
+        }
+    }
+
+    fn tmux_id_for_local(&self, local_pane_id: Option<PaneId>) -> Option<TmuxPaneId> {
+        let local_pane_id = local_pane_id?;
+        self.remote_panes.lock().iter().find_map(|(_, pane)| {
+            let pane = pane.lock();
+            if pane.local_pane_id == local_pane_id {
+                Some(pane.pane_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Rebuild the local tab from a tmux layout spec when the set of panes changed.
+    ///
+    /// Returns true when the tab tree was rebuilt. GUI-initiated splits are left
+    /// to `split_pane` so this does not insert a second copy while one is pending.
+    pub(crate) fn reflect_layout_change(
+        &self,
+        window_id: TmuxWindowId,
+        layout: &str,
+    ) -> anyhow::Result<bool> {
+        if !self.pending_splits.lock().is_empty() {
+            log::debug!("deferring tmux layout-change; GUI split is in progress");
+            return Ok(false);
+        }
+
+        let tab_id = {
+            let gui_tabs = self.gui_tabs.lock();
+            let Some(tab) = gui_tabs.get(&window_id) else {
+                return Ok(false);
+            };
+            tab.tab_id
+        };
+
+        let node = parse_tmux_layout(layout)?;
+        let new_ids = node.pane_ids();
+        let old_ids = {
+            let gui_tabs = self.gui_tabs.lock();
+            let Some(tab) = gui_tabs.get(&window_id) else {
+                return Ok(false);
+            };
+            if tab.panes == new_ids {
+                return Ok(false);
+            }
+            tab.panes.clone()
+        };
+
+        let mux = Mux::get();
+        let Some(tab) = mux.get_tab(tab_id) else {
+            anyhow::bail!("tmux window {window_id} has no local tab");
+        };
+
+        let active_tmux = self.tmux_id_for_local(tab.get_active_pane().map(|pane| pane.pane_id()));
+        let zoomed_tmux = self.tmux_id_for_local(tab.get_zoomed_pane().map(|pane| pane.pane_id()));
+        let current = tab.get_size();
+        let cell_width = if current.cols == 0 {
+            0
+        } else {
+            current.pixel_width / current.cols
+        };
+        let cell_height = if current.rows == 0 {
+            0
+        } else {
+            current.pixel_height / current.rows
+        };
+        let root_size = layout_term_size(
+            node.outer_height(),
+            node.outer_width(),
+            cell_width,
+            cell_height,
+            current.dpi,
+        );
+
+        for pane_id in new_ids.difference(&old_ids) {
+            let (width, height, left, top) = node.leaf_bounds(*pane_id).ok_or_else(|| {
+                anyhow!("tmux layout for window {window_id} is missing pane {pane_id}")
+            })?;
+            let item = PaneItem {
+                session_id: 0,
+                window_id,
+                pane_id: *pane_id,
+                _pane_index: 0,
+                cursor_x: 0,
+                cursor_y: 0,
+                pane_width: width,
+                pane_height: height,
+                pane_left: left,
+                pane_top: top,
+                pane_active: false,
+            };
+            let pane = self
+                .create_pane(&item)
+                .context("failed to create pane from tmux layout")?;
+            mux.add_pane(&pane).context("failed to add tmux pane")?;
+            self.add_attached_pane(window_id, *pane_id)?;
+            self.flush_backlog(*pane_id);
+        }
+
+        let pane_node = node.to_pane_node(
+            tab.tab_id(),
+            active_tmux,
+            zoomed_tmux,
+            cell_width,
+            cell_height,
+            current.dpi,
+        );
+        tab.sync_with_pane_tree(root_size, pane_node, |entry| {
+            let tmux_id = entry.pane_id as TmuxPaneId;
+            let local_id = self
+                .remote_panes
+                .lock()
+                .get(&tmux_id)
+                .map(|pane| pane.lock().local_pane_id)
+                .unwrap_or_else(|| panic!("missing remote tmux pane {}", tmux_id));
+            Mux::get().get_pane(local_id).unwrap_or_else(|| {
+                panic!("missing local pane {} for tmux pane {}", local_id, tmux_id)
+            })
+        });
+
+        Ok(true)
     }
 
     fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
@@ -522,6 +676,7 @@ impl TmuxDomainState {
                     window_id: window.window_id,
                     prune: false,
                     layout_csum: window.layout_csum.clone(),
+                    layout: String::new(),
                 }));
             }
         }
@@ -533,6 +688,7 @@ impl TmuxDomainState {
                     window_id: window.window_id,
                     prune: false,
                     layout_csum: window.layout_csum.clone(),
+                    layout: String::new(),
                 }));
             }
             None => {}
@@ -636,6 +792,9 @@ pub(crate) struct ListAllPanes {
     pub window_id: TmuxWindowId,
     pub prune: bool,
     pub layout_csum: String,
+    /// Layout body from `%layout-change`, without the 4-char checksum prefix.
+    /// Empty when this command was queued for the initial attach sync.
+    pub layout: String,
 }
 
 impl TmuxCommand for ListAllPanes {
@@ -752,9 +911,34 @@ impl TmuxCommand for ListAllPanes {
                 if !self.prune {
                     return tmux_domain.inner.sync_pane_state(&items);
                 } else {
-                    return tmux_domain
+                    // A scripted `split-window` (or pane close) shows up as
+                    // `%layout-change`. Pruning only removes panes; apply the
+                    // layout so newly created panes appear without re-attach.
+                    let changed = if self.layout.is_empty() {
+                        false
+                    } else {
+                        match tmux_domain
+                            .inner
+                            .reflect_layout_change(self.window_id, &self.layout)
+                        {
+                            Ok(changed) => changed,
+                            Err(err) => {
+                                log::error!(
+                                    "tmux layout-change for window {} failed: {:#}",
+                                    self.window_id,
+                                    err
+                                );
+                                false
+                            }
+                        }
+                    };
+                    tmux_domain
                         .inner
-                        .remove_detached_pane(self.window_id, &pane_set);
+                        .remove_detached_pane(self.window_id, &pane_set)?;
+                    if changed {
+                        tmux_domain.inner.sync_pane_state(&items)?;
+                    }
+                    return Ok(());
                 }
             }
         }
@@ -1194,5 +1378,571 @@ impl TmuxCommand for AttachDone {
         // Do nothing, just change the state.
         *tmux_domain.inner.attach_state.lock() = AttachState::Done;
         Ok(())
+    }
+}
+
+/// Split a `%layout-change` payload (`checksum,spec`) into its checksum and spec.
+/// The spec is what `parse_tmux_layout` accepts. If the checksum prefix is missing,
+/// the body is empty and callers keep the previous prune-only behavior.
+pub(crate) fn split_layout_spec(layout: &str) -> (String, String) {
+    if let Some((checksum, body)) = layout.split_once(',') {
+        if checksum.len() == 4
+            && checksum.chars().all(|c| c.is_ascii_hexdigit())
+            && body.starts_with(|c: char| c.is_ascii_digit())
+        {
+            return (checksum.to_string(), body.to_string());
+        }
+    }
+    (layout.chars().take(4).collect(), String::new())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TmuxLayoutNode {
+    Leaf {
+        pane_id: TmuxPaneId,
+        width: u64,
+        height: u64,
+        x: u64,
+        y: u64,
+    },
+    Split {
+        /// `{...}` is side-by-side. `[...]` is stacked.
+        horizontal: bool,
+        width: u64,
+        height: u64,
+        x: u64,
+        y: u64,
+        children: Vec<TmuxLayoutNode>,
+    },
+}
+
+impl TmuxLayoutNode {
+    fn outer_width(&self) -> u64 {
+        match self {
+            Self::Leaf { width, .. } | Self::Split { width, .. } => *width,
+        }
+    }
+
+    fn outer_height(&self) -> u64 {
+        match self {
+            Self::Leaf { height, .. } | Self::Split { height, .. } => *height,
+        }
+    }
+
+    fn pane_ids(&self) -> HashSet<TmuxPaneId> {
+        let mut ids = HashSet::new();
+        self.collect_pane_ids(&mut ids);
+        ids
+    }
+
+    fn collect_pane_ids(&self, ids: &mut HashSet<TmuxPaneId>) {
+        match self {
+            Self::Leaf { pane_id, .. } => {
+                ids.insert(*pane_id);
+            }
+            Self::Split { children, .. } => {
+                for child in children {
+                    child.collect_pane_ids(ids);
+                }
+            }
+        }
+    }
+
+    fn leaf_bounds(&self, pane_id: TmuxPaneId) -> Option<(u64, u64, u64, u64)> {
+        match self {
+            Self::Leaf {
+                pane_id: id,
+                width,
+                height,
+                x,
+                y,
+            } if *id == pane_id => Some((*width, *height, *x, *y)),
+            Self::Leaf { .. } => None,
+            Self::Split { children, .. } => {
+                children.iter().find_map(|child| child.leaf_bounds(pane_id))
+            }
+        }
+    }
+
+    fn to_pane_node(
+        &self,
+        tab_id: TabId,
+        active_tmux: Option<TmuxPaneId>,
+        zoomed_tmux: Option<TmuxPaneId>,
+        cell_width: usize,
+        cell_height: usize,
+        dpi: u32,
+    ) -> PaneNode {
+        match self {
+            Self::Leaf {
+                pane_id,
+                width,
+                height,
+                x,
+                y,
+            } => PaneNode::Leaf(PaneEntry {
+                window_id: 0,
+                tab_id,
+                // Stash the tmux pane id; the sync callback maps it to a local pane.
+                pane_id: *pane_id as PaneId,
+                title: String::new(),
+                size: layout_term_size(*height, *width, cell_width, cell_height, dpi),
+                working_dir: None,
+                is_active_pane: active_tmux == Some(*pane_id),
+                is_zoomed_pane: zoomed_tmux == Some(*pane_id),
+                workspace: String::new(),
+                cursor_pos: StableCursorPosition::default(),
+                physical_top: 0,
+                top_row: *y as usize,
+                left_col: *x as usize,
+                tty_name: None,
+            }),
+            Self::Split {
+                horizontal,
+                children,
+                ..
+            } => binary_layout_split(
+                children,
+                *horizontal,
+                tab_id,
+                active_tmux,
+                zoomed_tmux,
+                cell_width,
+                cell_height,
+                dpi,
+            ),
+        }
+    }
+}
+
+fn layout_term_size(
+    rows: u64,
+    cols: u64,
+    cell_width: usize,
+    cell_height: usize,
+    dpi: u32,
+) -> TerminalSize {
+    TerminalSize {
+        rows: rows as usize,
+        cols: cols as usize,
+        pixel_width: (cols as usize).saturating_mul(cell_width),
+        pixel_height: (rows as usize).saturating_mul(cell_height),
+        dpi,
+    }
+}
+
+/// Fold an n-ary tmux split into WezTerm's binary split tree.
+/// Child outer sizes already include borders inside that child, and each
+/// binary node accounts for the single border between its two sides.
+fn binary_layout_split(
+    children: &[TmuxLayoutNode],
+    horizontal: bool,
+    tab_id: TabId,
+    active_tmux: Option<TmuxPaneId>,
+    zoomed_tmux: Option<TmuxPaneId>,
+    cell_width: usize,
+    cell_height: usize,
+    dpi: u32,
+) -> PaneNode {
+    let mut iter = children.iter();
+    let Some(first) = iter.next() else {
+        return PaneNode::Empty;
+    };
+    let mut acc = first.to_pane_node(
+        tab_id,
+        active_tmux,
+        zoomed_tmux,
+        cell_width,
+        cell_height,
+        dpi,
+    );
+    let mut acc_w = first.outer_width();
+    let mut acc_h = first.outer_height();
+    for child in iter {
+        let right = child.to_pane_node(
+            tab_id,
+            active_tmux,
+            zoomed_tmux,
+            cell_width,
+            cell_height,
+            dpi,
+        );
+        let (direction, first_size, second_size, new_w, new_h) = if horizontal {
+            (
+                SplitDirection::Horizontal,
+                layout_term_size(acc_h, acc_w, cell_width, cell_height, dpi),
+                layout_term_size(
+                    child.outer_height(),
+                    child.outer_width(),
+                    cell_width,
+                    cell_height,
+                    dpi,
+                ),
+                acc_w + child.outer_width() + 1,
+                acc_h.max(child.outer_height()),
+            )
+        } else {
+            (
+                SplitDirection::Vertical,
+                layout_term_size(acc_h, acc_w, cell_width, cell_height, dpi),
+                layout_term_size(
+                    child.outer_height(),
+                    child.outer_width(),
+                    cell_width,
+                    cell_height,
+                    dpi,
+                ),
+                acc_w.max(child.outer_width()),
+                acc_h + child.outer_height() + 1,
+            )
+        };
+        acc = PaneNode::Split {
+            left: Box::new(acc),
+            right: Box::new(right),
+            node: SplitDirectionAndSize {
+                direction,
+                first: first_size,
+                second: second_size,
+            },
+        };
+        acc_w = new_w;
+        acc_h = new_h;
+    }
+    acc
+}
+
+fn parse_tmux_layout(layout: &str) -> anyhow::Result<TmuxLayoutNode> {
+    let (node, rest) = parse_layout_node(layout)?;
+    if !rest.is_empty() {
+        anyhow::bail!("trailing tmux layout data: {rest}");
+    }
+    Ok(node)
+}
+
+fn parse_layout_node(s: &str) -> anyhow::Result<(TmuxLayoutNode, &str)> {
+    let (width, s) = parse_layout_u64(s)?;
+    let s = expect_layout_char(s, 'x')?;
+    let (height, s) = parse_layout_u64(s)?;
+    let s = expect_layout_char(s, ',')?;
+    let (x, s) = parse_layout_u64(s)?;
+    let s = expect_layout_char(s, ',')?;
+    let (y, s) = parse_layout_u64(s)?;
+
+    if s.starts_with('{') || s.starts_with('[') {
+        let horizontal = s.starts_with('{');
+        let mut s = &s[1..];
+        let mut children = Vec::new();
+        loop {
+            let (child, rest) = parse_layout_node(s)?;
+            children.push(child);
+            s = rest;
+            if let Some(rest) = s.strip_prefix(',') {
+                s = rest;
+                continue;
+            }
+            let close = if horizontal { '}' } else { ']' };
+            if let Some(rest) = s.strip_prefix(close) {
+                s = rest;
+                break;
+            }
+            anyhow::bail!("malformed tmux layout near '{s}'");
+        }
+        if children.is_empty() {
+            anyhow::bail!("empty tmux layout split");
+        }
+        Ok((
+            TmuxLayoutNode::Split {
+                horizontal,
+                width,
+                height,
+                x,
+                y,
+                children,
+            },
+            s,
+        ))
+    } else if let Some(rest) = s.strip_prefix(',') {
+        let (pane_id, s) = parse_layout_u64(rest)?;
+        Ok((
+            TmuxLayoutNode::Leaf {
+                pane_id,
+                width,
+                height,
+                x,
+                y,
+            },
+            s,
+        ))
+    } else {
+        anyhow::bail!("malformed tmux layout near '{s}'");
+    }
+}
+
+fn parse_layout_u64(s: &str) -> anyhow::Result<(u64, &str)> {
+    let end = s.find(|c: char| !c.is_ascii_digit()).unwrap_or(s.len());
+    if end == 0 {
+        anyhow::bail!("expected number in tmux layout near '{s}'");
+    }
+    let n = s[..end].parse()?;
+    Ok((n, &s[end..]))
+}
+
+fn expect_layout_char(s: &str, expected: char) -> anyhow::Result<&str> {
+    match s.strip_prefix(expected) {
+        Some(rest) => Ok(rest),
+        None => anyhow::bail!("expected '{expected}' in tmux layout near '{s}'"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tmux::{TmuxDomain, TmuxTab};
+    use crate::Mux;
+    use std::sync::{Mutex, OnceLock};
+
+    fn scheduler_queue() -> &'static Mutex<Vec<promise::spawn::Runnable>> {
+        static QUEUE: OnceLock<Mutex<Vec<promise::spawn::Runnable>>> = OnceLock::new();
+        QUEUE.get_or_init(|| Mutex::new(Vec::new()))
+    }
+
+    fn install_test_scheduler() {
+        if promise::spawn::is_scheduler_configured() {
+            return;
+        }
+        promise::spawn::set_schedulers(
+            Box::new(|task| {
+                scheduler_queue().lock().unwrap().push(task);
+            }),
+            Box::new(|task| {
+                scheduler_queue().lock().unwrap().push(task);
+            }),
+        );
+    }
+
+    fn drain_test_scheduler() {
+        loop {
+            let tasks: Vec<_> = scheduler_queue().lock().unwrap().drain(..).collect();
+            if tasks.is_empty() {
+                break;
+            }
+            for task in tasks {
+                task.run();
+            }
+        }
+    }
+
+    #[test]
+    fn split_layout_spec_strips_checksum() {
+        assert_eq!(
+            split_layout_spec("b25d,80x24,0,0,0"),
+            ("b25d".to_string(), "80x24,0,0,0".to_string())
+        );
+        assert_eq!(
+            split_layout_spec("cafd,120x29,0,0{60x29,0,0,0,59x29,61,0,1}"),
+            (
+                "cafd".to_string(),
+                "120x29,0,0{60x29,0,0,0,59x29,61,0,1}".to_string()
+            )
+        );
+        assert_eq!(
+            split_layout_spec("not a layout"),
+            ("not ".to_string(), String::new())
+        );
+    }
+
+    #[test]
+    fn parse_layout_keeps_every_pane_id() {
+        let single = parse_tmux_layout("158x40,0,0,72").unwrap();
+        assert_eq!(single.pane_ids(), HashSet::from([72]));
+
+        let horizontal = parse_tmux_layout("80x24,0,0{40x24,0,0,0,39x24,41,0,1}").unwrap();
+        assert_eq!(horizontal.pane_ids(), HashSet::from([0, 1]));
+        assert!(matches!(
+            horizontal,
+            TmuxLayoutNode::Split {
+                horizontal: true,
+                ..
+            }
+        ));
+
+        let vertical = parse_tmux_layout("80x24,0,0[80x12,0,0,0,80x11,0,13,1]").unwrap();
+        assert_eq!(vertical.pane_ids(), HashSet::from([0, 1]));
+        assert!(matches!(
+            vertical,
+            TmuxLayoutNode::Split {
+                horizontal: false,
+                ..
+            }
+        ));
+
+        let nested = parse_tmux_layout(
+            "158x40,0,0{79x40,0,0[79x20,0,0,74,79x19,0,21{39x19,0,21,76,39x19,40,21,77}],78x40,80,0,75}",
+        )
+        .unwrap();
+        assert_eq!(nested.pane_ids(), HashSet::from([74, 75, 76, 77]));
+
+        let nested_vertical = parse_tmux_layout(
+            "158x40,0,0[158x20,0,0,69,158x19,0,21{79x19,0,21,70,78x19,80,21[78x9,80,21,71,78x9,80,31,73]}]",
+        )
+        .unwrap();
+        assert_eq!(nested_vertical.pane_ids(), HashSet::from([69, 70, 71, 73]));
+    }
+
+    #[test]
+    fn layout_change_creates_pane_for_scripted_split() {
+        install_test_scheduler();
+        let _mux = Mux::new(None);
+        let mux = std::sync::Arc::new(_mux);
+        Mux::set_mux(&mux);
+
+        let domain = TmuxDomain::new(1);
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 0,
+        };
+        let tab = std::sync::Arc::new(Tab::new(&size));
+        mux.add_tab_no_panes(&tab);
+
+        let initial = PaneItem {
+            session_id: 1,
+            window_id: 7,
+            pane_id: 0,
+            _pane_index: 0,
+            cursor_x: 0,
+            cursor_y: 0,
+            pane_width: 80,
+            pane_height: 24,
+            pane_left: 0,
+            pane_top: 0,
+            pane_active: true,
+        };
+        let pane = domain
+            .inner
+            .create_pane(&initial)
+            .expect("create initial pane");
+        let original_local_id = pane.pane_id();
+        tab.assign_pane(&pane);
+        mux.add_pane(&pane).expect("add initial pane");
+        domain.inner.gui_tabs.lock().insert(
+            7,
+            TmuxTab {
+                tab_id: tab.tab_id(),
+                tmux_window_id: 7,
+                layout_csum: "old0".to_string(),
+                panes: HashSet::from([0]),
+            },
+        );
+        *domain.inner.tmux_session.lock() = Some(1);
+
+        // Same pane set (a resize) must not invent panes.
+        assert_eq!(
+            domain
+                .inner
+                .reflect_layout_change(7, "80x24,0,0,0")
+                .expect("same layout"),
+            false
+        );
+        assert_eq!(tab.count_panes(), Some(1));
+
+        // A GUI split owns pane creation until its promise resolves.
+        domain
+            .inner
+            .pending_splits
+            .lock()
+            .push_back(promise::Promise::new());
+        assert_eq!(
+            domain
+                .inner
+                .reflect_layout_change(7, "80x24,0,0{40x24,0,0,0,39x24,41,0,1}")
+                .expect("deferred layout"),
+            false
+        );
+        assert_eq!(tab.count_panes(), Some(1));
+        domain.inner.pending_splits.lock().clear();
+
+        assert_eq!(
+            domain
+                .inner
+                .reflect_layout_change(7, "80x24,0,0{40x24,0,0,0,39x24,41,0,1}")
+                .expect("horizontal split"),
+            true
+        );
+        let panes = tab.iter_panes();
+        assert_eq!(panes.len(), 2);
+        let mut widths: Vec<_> = panes.iter().map(|pane| pane.width).collect();
+        widths.sort_unstable();
+        assert_eq!(widths, vec![39, 40]);
+        assert!(panes
+            .iter()
+            .any(|pane| pane.pane.pane_id() == original_local_id));
+        assert_eq!(
+            domain.inner.gui_tabs.lock().get(&7).unwrap().panes,
+            HashSet::from([0, 1])
+        );
+
+        // The layout-change path and the GUI split path must not double-insert.
+        let again = domain
+            .inner
+            .split_pane(
+                tab.tab_id(),
+                original_local_id,
+                1,
+                SplitRequest {
+                    direction: SplitDirection::Horizontal,
+                    target_is_second: true,
+                    top_level: false,
+                    size: SplitSize::Cells(39),
+                },
+            )
+            .expect("existing pane");
+        assert_eq!(tab.count_panes(), Some(2));
+        assert!(panes
+            .iter()
+            .any(|pane| pane.pane.pane_id() == again.pane_id()));
+
+        assert_eq!(
+            domain
+                .inner
+                .reflect_layout_change(7, "80x24,0,0[80x12,0,0,0,80x11,0,13,2]")
+                .expect("vertical split"),
+            true
+        );
+        let panes = tab.iter_panes();
+        assert_eq!(panes.len(), 2);
+        let mut heights: Vec<_> = panes.iter().map(|pane| pane.height).collect();
+        heights.sort_unstable();
+        assert_eq!(heights, vec![11, 12]);
+
+        // Closing the extra pane collapses back to the survivor.
+        assert_eq!(
+            domain
+                .inner
+                .reflect_layout_change(7, "80x24,0,0,0")
+                .expect("close split"),
+            true
+        );
+        assert_eq!(tab.count_panes(), Some(1));
+        let alive = HashSet::from([0]);
+        domain
+            .inner
+            .remove_detached_pane(7, &alive)
+            .expect("prune closed pane");
+        assert_eq!(
+            domain.inner.gui_tabs.lock().get(&7).unwrap().panes,
+            HashSet::from([0])
+        );
+
+        assert!(domain
+            .inner
+            .reflect_layout_change(7, "not-a-layout")
+            .is_err());
+
+        // Run resize notifications while the mux is still alive. Dropping the
+        // domain later closes pane pipes; those EOF tasks stay queued.
+        drain_test_scheduler();
     }
 }
