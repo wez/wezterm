@@ -112,6 +112,7 @@ pub enum Event {
     },
     UnlinkedWindowRenamed {
         window: TmuxWindowId,
+        name: String,
     },
     WindowAdd {
         window: TmuxWindowId,
@@ -450,7 +451,13 @@ fn parse_line(line: &[u8]) -> Result<Event> {
                     .next()
                     .ok_or_else(|| format_err!("missing window id"))?,
             )?;
-            Ok(Event::UnlinkedWindowRenamed { window })
+            let name = unvis(
+                pairs
+                    .next()
+                    .ok_or_else(|| format_err!("missing name"))?
+                    .as_str(),
+            )?;
+            Ok(Event::UnlinkedWindowRenamed { window, name })
         }
         Rule::window_add => {
             let mut pairs = pair.into_inner();
@@ -1039,7 +1046,7 @@ here
 %extended-output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
 %message message text
 %unlinked-window-add @40
-%unlinked-window-renamed @41
+%unlinked-window-renamed @41 test
 %paste-buffer-changed just something
 %paste-buffer-deleted just something else
 %pause %3
@@ -1131,7 +1138,10 @@ here
                     message: "message text".to_owned()
                 },
                 Event::UnlinkedWindowAdd { window: 40 },
-                Event::UnlinkedWindowRenamed { window: 41 },
+                Event::UnlinkedWindowRenamed {
+                    window: 41,
+                    name: "test".to_owned()
+                },
                 Event::PasteBufferChanged {
                     buffer: "just something".to_owned()
                 },
