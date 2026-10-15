@@ -17,8 +17,8 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, Progress, SemanticZone,
-    StableRowIndex, TerminalConfiguration, TerminalSize,
+    Clipboard, ColorAppearance, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, Progress,
+    SemanticZone, StableRowIndex, TerminalConfiguration, TerminalSize,
 };
 
 static PANE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -275,6 +275,11 @@ pub trait Pane: Downcast + Send + Sync {
 
     /// Called to advise on whether this pane has focus
     fn focus_changed(&self, _focused: bool) {}
+
+    /// Called to advise that the color appearance (dark/light) has changed.
+    /// This allows the terminal to send CSI 2031 notifications if the
+    /// mode is enabled.
+    fn appearance_changed(&self, _appearance: ColorAppearance) {}
 
     /// Called to advise remote mux that this is the active pane
     /// for the current identity

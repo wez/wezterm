@@ -563,6 +563,22 @@ impl Pane for ClientPane {
         }
     }
 
+    fn appearance_changed(&self, appearance: wezterm_term::ColorAppearance) {
+        let client = Arc::clone(&self.client);
+        let remote_pane_id = self.remote_pane_id;
+        let is_dark = appearance == wezterm_term::ColorAppearance::Dark;
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .set_pane_appearance(SetPaneAppearance {
+                    pane_id: remote_pane_id,
+                    is_dark,
+                })
+                .await
+        })
+        .detach();
+    }
+
     fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
         let client = Arc::clone(&self.client);
         let remote_pane_id = self.remote_pane_id;

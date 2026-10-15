@@ -15,7 +15,7 @@ use std::time::Instant;
 use termwiz::surface::SequenceNo;
 use url::Url;
 use wezterm_term::terminal::Alert;
-use wezterm_term::StableRowIndex;
+use wezterm_term::{ColorAppearance, StableRowIndex};
 
 #[derive(Clone)]
 pub struct PduSender {
@@ -372,6 +372,27 @@ impl SessionHandler {
                             mux.record_focus_for_current_identity(pane_id);
                             mux.notify(mux::MuxNotification::PaneFocused(pane_id));
 
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+            Pdu::SetPaneAppearance(SetPaneAppearance { pane_id, is_dark }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
+                            let appearance = if is_dark {
+                                ColorAppearance::Dark
+                            } else {
+                                ColorAppearance::Light
+                            };
+                            pane.appearance_changed(appearance);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,

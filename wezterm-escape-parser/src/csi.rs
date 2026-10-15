@@ -464,6 +464,9 @@ pub enum Device {
     RequestTerminalNameAndVersion,
     RequestTerminalParameters(i64),
     XtSmGraphics(XtSmGraphics),
+    /// <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+    /// CSI ? 996 n — query current color theme mode (dark/light)
+    RequestColorThemeMode,
 }
 
 impl Display for Device {
@@ -484,6 +487,7 @@ impl Display for Device {
             Device::RequestTerminalNameAndVersion => write!(f, ">q")?,
             Device::RequestTerminalParameters(n) => write!(f, "{};1;1;128;128;1;0x", n + 2)?,
             Device::StatusReport => write!(f, "5n")?,
+            Device::RequestColorThemeMode => write!(f, "?996n")?,
             Device::XtSmGraphics(g) => {
                 write!(f, "?{};{}", g.item, g.action_or_status)?;
                 for v in &g.value {
@@ -960,6 +964,11 @@ pub enum DecPrivateModeCode {
 
     /// xterm: adjust cursor positioning after emitting sixel
     SixelScrollsRight = 8452,
+
+    /// <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+    /// When enabled, the terminal sends unsolicited DSR notifications
+    /// when the color palette appearance (dark/light) changes.
+    ColorPaletteUpdateNotification = 2031,
 
     /// Windows Terminal: win32-input-mode
     /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
@@ -1850,6 +1859,10 @@ impl<'a> CSIParser<'a> {
                 .secondary_device_attributes(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
 
+            ('n', [CsiParam::P(b'?'), ..]) => {
+                self.dec_dsr(params).map(|dev| CSI::Device(Box::new(dev)))
+            }
+
             ('S', [CsiParam::P(b'?'), ..]) => XtSmGraphics::parse(params),
             ('p', [CsiParam::Integer(_), CsiParam::P(b'$')])
             | ('p', [CsiParam::P(b'?'), CsiParam::Integer(_), CsiParam::P(b'$')]) => {
@@ -2092,6 +2105,18 @@ impl<'a> CSIParser<'a> {
 
             [CsiParam::Integer(6)] => {
                 Ok(self.advance_by(1, params, CSI::Cursor(Cursor::RequestActivePositionReport)))
+            }
+            _ => Err(()),
+        }
+    }
+
+    /// Handle CSI ? Ps n — DEC private DSR (device status report) requests.
+    /// Currently supports:
+    /// - CSI ? 996 n — request current color theme mode (dark/light)
+    fn dec_dsr(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
+        match params {
+            [CsiParam::P(b'?'), CsiParam::Integer(996)] => {
+                Ok(self.advance_by(2, params, Device::RequestColorThemeMode))
             }
             _ => Err(()),
         }

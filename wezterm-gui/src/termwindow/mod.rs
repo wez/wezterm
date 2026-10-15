@@ -67,7 +67,9 @@ use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Alert, Progress, StableRowIndex, TerminalConfiguration, TerminalSize};
+use wezterm_term::{
+    Alert, ColorAppearance, Progress, StableRowIndex, TerminalConfiguration, TerminalSize,
+};
 
 pub mod background;
 pub mod box_model;
@@ -934,6 +936,22 @@ impl TermWindow {
                 // <https://github.com/wezterm/wezterm/issues/2295>
                 config::reload();
                 self.config_was_reloaded();
+
+                // Notify all panes about the appearance change so that
+                // applications with CSI 2031 (color palette update
+                // notification mode) enabled can be informed.
+                let color_appearance = match appearance {
+                    Appearance::Light | Appearance::LightHighContrast => ColorAppearance::Light,
+                    Appearance::Dark | Appearance::DarkHighContrast => ColorAppearance::Dark,
+                };
+                let mux = Mux::get();
+                if let Some(window) = mux.get_window(self.mux_window_id) {
+                    for tab in window.iter() {
+                        for pane in tab.iter_panes_ignoring_zoom() {
+                            pane.pane.appearance_changed(color_appearance);
+                        }
+                    }
+                }
                 Ok(true)
             }
             WindowEvent::PerformKeyAssignment(action) => {

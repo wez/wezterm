@@ -70,6 +70,27 @@ pub enum MouseEncoding {
     SgrPixels,
 }
 
+/// Represents the current color appearance mode of the terminal,
+/// as used by CSI 2031 (color palette update notification) and
+/// CSI ? 996 n (query color theme mode).
+/// <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorAppearance {
+    Dark,
+    Light,
+}
+
+impl ColorAppearance {
+    /// Returns the DSR parameter value for this appearance.
+    /// 1 = dark, 2 = light, per the spec.
+    fn dsr_param(self) -> u8 {
+        match self {
+            Self::Dark => 1,
+            Self::Light => 2,
+        }
+    }
+}
+
 impl TabStop {
     fn new(screen_width: usize, tab_width: usize) -> Self {
         let mut tabs = Vec::with_capacity(screen_width);
@@ -325,6 +346,13 @@ pub struct TerminalState {
     /// Movement events enabled
     any_event_mouse: bool,
     focus_tracking: bool,
+    /// When enabled (CSI ? 2031 h), the terminal sends unsolicited DSR
+    /// notifications when the color palette appearance changes.
+    color_palette_update_notification: bool,
+    /// The current color appearance of the terminal (dark/light),
+    /// used to respond to CSI ? 996 n and to send notifications
+    /// when mode 2031 is enabled.
+    current_appearance: Option<ColorAppearance>,
     /// X10 (legacy), SGR, and SGR-Pixels style mouse tracking and
     /// reporting is enabled
     mouse_encoding: MouseEncoding,
@@ -552,6 +580,8 @@ impl TerminalState {
             application_keypad: false,
             bracketed_paste: false,
             focus_tracking: false,
+            color_palette_update_notification: false,
+            current_appearance: None,
             mouse_encoding: MouseEncoding::X10,
             keyboard_encoding: KeyboardEncoding::Xterm,
             sixel_scrolls_right: false,
@@ -911,6 +941,22 @@ impl TerminalState {
         self.focused = focused;
         if !focused {
             self.lost_focus_seqno = self.seqno;
+        }
+    }
+
+    /// Advise the terminal about a change in the color appearance (dark/light).
+    /// If mode 2031 (ColorPaletteUpdateNotification) is enabled, this sends
+    /// an unsolicited DSR to the application: CSI ? 997 ; 1 n (dark) or
+    /// CSI ? 997 ; 2 n (light).
+    /// <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+    pub fn appearance_changed(&mut self, appearance: ColorAppearance) {
+        let changed = self
+            .current_appearance
+            .map_or(true, |old| old != appearance);
+        self.current_appearance = Some(appearance);
+        if changed && self.color_palette_update_notification {
+            write!(self.writer, "\x1b[?997;{}n", appearance.dsr_param()).ok();
+            self.writer.flush().ok();
         }
     }
 
@@ -1403,6 +1449,9 @@ impl TerminalState {
 
                 self.g0_charset = CharSet::Ascii;
                 self.g1_charset = CharSet::Ascii;
+
+                self.color_palette_update_notification = false;
+                self.current_appearance = None;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -1454,6 +1503,17 @@ impl TerminalState {
             }
             Device::StatusReport => {
                 self.writer.write(b"\x1b[0n").ok();
+                self.writer.flush().ok();
+            }
+            Device::RequestColorThemeMode => {
+                write!(
+                    self.writer,
+                    "\x1b[?997;{}n",
+                    self.current_appearance
+                        .unwrap_or(ColorAppearance::Dark)
+                        .dsr_param()
+                )
+                .ok();
                 self.writer.flush().ok();
             }
             Device::XtSmGraphics(g) => {
@@ -1933,6 +1993,22 @@ impl TerminalState {
             }
             Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
                 self.decqrm_response(mode, true, self.focus_tracking);
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ColorPaletteUpdateNotification,
+            )) => {
+                self.color_palette_update_notification = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ColorPaletteUpdateNotification,
+            )) => {
+                self.color_palette_update_notification = false;
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ColorPaletteUpdateNotification,
+            )) => {
+                self.decqrm_response(mode, true, self.color_palette_update_notification);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {

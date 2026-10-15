@@ -503,6 +503,7 @@ pdu! {
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
     AdjustPaneSize: 62,
+    SetPaneAppearance: 63,
 }
 
 impl Pdu {
@@ -840,6 +841,12 @@ pub struct SetClientId {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetFocusedPane {
     pub pane_id: PaneId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetPaneAppearance {
+    pub pane_id: PaneId,
+    pub is_dark: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

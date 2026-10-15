@@ -489,6 +489,10 @@ impl Pane for LocalPane {
         self.terminal.lock().focus_changed(focused);
     }
 
+    fn appearance_changed(&self, appearance: wezterm_term::ColorAppearance) {
+        self.terminal.lock().appearance_changed(appearance);
+    }
+
     fn has_unseen_output(&self) -> bool {
         self.terminal.lock().has_unseen_output()
     }
