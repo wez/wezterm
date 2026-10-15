@@ -161,6 +161,12 @@ impl ConnectionOps for Connection {
         Ok(())
     }
 
+    fn hide_other_applications(&self) {
+        unsafe {
+            let () = msg_send![self.ns_app, hideOtherApplications: self.ns_app];
+        }
+    }
+
     fn hide_application(&self) {
         unsafe {
             let () = msg_send![self.ns_app, hide: self.ns_app];

@@ -2794,6 +2794,10 @@ impl TermWindow {
                 let con = Connection::get().expect("call on gui thread");
                 con.hide_application();
             }
+            HideOtherApplications => {
+                let con = Connection::get().expect("call on gui thread");
+                con.hide_other_applications();
+            }
             QuitApplication => {
                 let mux = Mux::get();
                 let config = &self.config;
