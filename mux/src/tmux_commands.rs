@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::fmt::{Debug, Write};
 use std::io::Write as _;
 use std::sync::Arc;
-use termwiz::escape::csi::{Cursor, CSI};
+use termwiz::escape::csi::{Cursor, DecPrivateMode, DecPrivateModeCode, Mode, CSI};
 use termwiz::escape::{Action, OneBased};
 use termwiz::tmux_cc::*;
 use wezterm_term::TerminalSize;
@@ -35,6 +35,8 @@ pub(crate) struct PaneItem {
     pane_left: u64,
     pane_top: u64,
     pane_active: bool,
+    pane_mouse_any: bool,
+    pane_mouse_buttton: bool,
 }
 
 #[derive(Debug)]
@@ -166,6 +168,18 @@ impl TmuxDomainState {
         ))]);
     }
 
+    fn enable_mouse_reporting_any(&self, pane: &Arc<dyn Pane>) {
+        pane.perform_actions(vec![Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
+            DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse),
+        )))]);
+    }
+
+    fn enable_mouse_reporting_button(&self, pane: &Arc<dyn Pane>) {
+        pane.perform_actions(vec![Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
+            DecPrivateMode::Code(DecPrivateModeCode::ButtonEventMouse),
+        )))]);
+    }
+
     fn create_pane(&self, pane: &PaneItem) -> anyhow::Result<Arc<dyn Pane>> {
         let local_pane_id = alloc_pane_id();
         let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
@@ -274,6 +288,8 @@ impl TmuxDomainState {
             pane_left: 0,
             pane_top: 0,
             pane_active: false,
+            pane_mouse_any: false,
+            pane_mouse_buttton: false,
         };
 
         let pane = self.create_pane(&p).context("failed to create pane")?;
@@ -347,6 +363,14 @@ impl TmuxDomainState {
                         None => {}
                     }
                 }
+
+                if pane.pane_mouse_any {
+                    self.enable_mouse_reporting_any(&local_pane);
+                }
+
+                if pane.pane_mouse_buttton {
+                    self.enable_mouse_reporting_button(&local_pane);
+                }
             }
 
             log::info!("new pane synced, id: {}", pane.pane_id);
@@ -408,6 +432,8 @@ impl TmuxDomainState {
                             pane_height: x.pane_height,
                             pane_left: x.pane_left,
                             pane_top: x.pane_top,
+                            pane_mouse_any: false,
+                            pane_mouse_buttton: false,
                         };
                         let local_pane = self.create_pane(&p).context("failed to create pane")?;
                         tab.assign_pane(&local_pane);
@@ -440,6 +466,8 @@ impl TmuxDomainState {
                         pane_height: x.pane_height,
                         pane_left: x.pane_left,
                         pane_top: x.pane_top,
+                        pane_mouse_any: false,
+                        pane_mouse_buttton: false,
                     };
                     let local_pane;
                     if !self.check_pane_attached(p.window_id, p.pane_id) {
@@ -667,7 +695,8 @@ impl TmuxCommand for ListAllPanes {
         format!(
             "list-panes -F '#{{session_id}} #{{window_id}} #{{pane_id}} \
             #{{pane_index}} #{{cursor_x}} #{{cursor_y}} #{{pane_width}} #{{pane_height}} \
-            #{{pane_left}} #{{pane_top}} #{{pane_active}}' -t @{}\n",
+            #{{pane_left}} #{{pane_top}} #{{pane_active}} \
+            #{{mouse_any_flag}} #{{mouse_button_flag}}' -t @{} \n",
             self.window_id
         )
     }
@@ -725,8 +754,19 @@ impl TmuxCommand for ListAllPanes {
                 .next()
                 .ok_or_else(|| anyhow!("missing pane_active"))?
                 .parse::<usize>()?;
-
             let pane_active = pane_active == 1;
+
+            let pane_mouse_any = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing pane_any_flag"))?
+                .parse::<usize>()?;
+            let pane_mouse_any = pane_mouse_any == 1;
+
+            let pane_mouse_buttton = fields
+                .next()
+                .ok_or_else(|| anyhow!("missing pane_button_flag"))?
+                .parse::<usize>()?;
+            let pane_mouse_buttton = pane_mouse_buttton == 1;
 
             pane_set.insert(pane_id);
 
@@ -742,6 +782,8 @@ impl TmuxCommand for ListAllPanes {
                 pane_left,
                 pane_top,
                 pane_active,
+                pane_mouse_any,
+                pane_mouse_buttton,
             });
         }
 
