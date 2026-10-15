@@ -150,7 +150,7 @@ impl Screen {
                 // line and it won't resize with the line correctly.
                 // Put it back on the prior line. The cursor is now
                 // technically outside of the viewport width.
-                if adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
+                if x > 0 && adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
                     if physical_cols < self.physical_cols {
                         // getting smaller: preserve its original position
                         // on the prior line

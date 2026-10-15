@@ -916,6 +916,22 @@ fn test_resize_2162() {
     term.assert_cursor_pos(19, 0, None, Some(7));
 }
 
+/// A cursor with logical x=0 is at the start of a logical line,
+/// not a wrapped continuation.
+#[test]
+fn test_resize_cursor_issue_7994() {
+    let mut term = TestTerm::new(4, 20, 0);
+    term.print("start\r\n");
+    term.assert_cursor_pos(0, 1, None, None);
+
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 21,
+        ..Default::default()
+    });
+    term.assert_cursor_pos(0, 1, None, None);
+}
+
 /// Test the behavior of wrapped lines when we resize the terminal
 /// wider and then narrower.
 #[test]
