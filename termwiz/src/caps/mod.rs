@@ -56,6 +56,7 @@
 //! that can be used by the embedding application to override those choices.
 use crate::{builder, Result};
 use std::env::var;
+use std::sync::Arc;
 use terminfo::{self, capability as cap};
 
 pub mod probed;
@@ -175,7 +176,7 @@ pub struct Capabilities {
     sixel: bool,
     iterm2_image: bool,
     bce: bool,
-    terminfo_db: Option<terminfo::Database>,
+    terminfo_db: Option<Arc<terminfo::Database>>,
     bracketed_paste: bool,
     mouse_reporting: bool,
     force_terminfo_render_to_use_ansi_sgr: bool,
@@ -201,7 +202,7 @@ impl Capabilities {
     pub(crate) fn apply_builtin_terminfo(mut self) -> Self {
         let data = include_bytes!("../../data/xterm-256color");
         let db = terminfo::Database::from_buffer(data.as_ref()).unwrap();
-        self.terminfo_db = Some(db);
+        self.terminfo_db = Some(Arc::new(db));
         self.color_level = ColorLevel::TrueColor;
         self
     }
@@ -319,7 +320,7 @@ impl Capabilities {
             hyperlinks,
             iterm2_image,
             bce,
-            terminfo_db,
+            terminfo_db: terminfo_db.map(Arc::new),
             bracketed_paste,
             mouse_reporting,
             force_terminfo_render_to_use_ansi_sgr,
@@ -356,7 +357,7 @@ impl Capabilities {
 
     /// Returns a reference to the loaded terminfo, if any.
     pub fn terminfo_db(&self) -> Option<&terminfo::Database> {
-        self.terminfo_db.as_ref()
+        self.terminfo_db.as_deref()
     }
 
     /// Whether bracketed paste is supported
