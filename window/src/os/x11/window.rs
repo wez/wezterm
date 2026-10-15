@@ -837,14 +837,10 @@ impl XWindowInner {
                 }
             }
             Event::X(xcb::x::Event::FocusIn(e)) => {
-                if !matches!(e.detail(), xcb::x::NotifyDetail::Pointer) {
-                    self.focus_changed(true);
-                }
+                self.focus_event(true, e.detail(), e.mode());
             }
             Event::X(xcb::x::Event::FocusOut(e)) => {
-                if !matches!(e.detail(), xcb::x::NotifyDetail::Pointer) {
-                    self.focus_changed(false);
-                }
+                self.focus_event(false, e.detail(), e.mode());
             }
             Event::X(xcb::x::Event::LeaveNotify(_)) => {
                 self.events.dispatch(WindowEvent::MouseLeave);
@@ -863,6 +859,29 @@ impl XWindowInner {
             self.events
                 .dispatch(WindowEvent::AppearanceChanged(appearance));
         }
+    }
+
+    /// Handle a FocusIn (focused=true) or FocusOut (focused=false) event.
+    fn focus_event(
+        &mut self,
+        focused: bool,
+        detail: xcb::x::NotifyDetail,
+        mode: xcb::x::NotifyMode,
+    ) {
+        if matches!(detail, xcb::x::NotifyDetail::Pointer) {
+            return;
+        }
+        if matches!(mode, xcb::x::NotifyMode::Grab | xcb::x::NotifyMode::Ungrab) {
+            // These only mark a keyboard grab beginning or ending -- a WM drag, a
+            // key chord, a popup menu -- and not a change of focus; one that happens
+            // during a grab is reported as WhileGrabbed instead.
+            // https://www.x.org/releases/X11R7.7/doc/xproto/x11protocol.html#events:input_focus
+            log::trace!("ignoring focus event focused={focused} {detail:?} {mode:?}");
+            // The grab may have been for a WM move/resize, so the geometry is unsure.
+            self.sure_about_geometry = false;
+            return;
+        }
+        self.focus_changed(focused);
     }
 
     fn focus_changed(&mut self, focused: bool) {
