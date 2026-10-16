@@ -532,10 +532,20 @@ impl Config {
         }
 
         if needs_reparse {
-            log::debug!(
+            log::warn!(
                 "ssh configuration uses options that require two-phase \
                 parsing, which isn't supported"
             );
+        }
+
+        if !result.contains_key("proxycommand") {
+            if let Some(proxy_jump) = result.get("proxyjump") {
+                // OpenSSH behaviour: https://github.com/openssh/openssh-portable/blob/V_10_0_P2/ssh.c#L1307-L1360
+                // TODO: pass through verbosity options?
+                let proxy_command = format!("ssh -W '[%h]:%p' {proxy_jump}");
+                log::debug!("Setting implicit ProxyCommand from ProxyJump: {proxy_command}");
+                result.insert("proxycommand".to_string(), proxy_command);
+            }
         }
 
         let mut token_map = self.tokens.clone();
@@ -604,6 +614,12 @@ impl Config {
             }
         }
 
+        log::debug!(
+            "resolved config for host '{}' is {:?}",
+            host.to_string(),
+            result
+        );
+
         result
     }
 
@@ -628,7 +644,7 @@ impl Config {
             "localcommand" => Some(&[
                 "%C", "%d", "%h", "%i", "%k", "%L", "%l", "%n", "%p", "%r", "%T", "%u",
             ]),
-            "proxycommand" => Some(&["%h", "%n", "%p", "%r"]),
+            "proxycommand" | "proxyjump" => Some(&["%h", "%n", "%p", "%r"]),
             _ => None,
         }
     }
@@ -857,6 +873,38 @@ mod test {
     "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "2222",
     "proxycommand": "/usr/bin/corp-ssh-helper -dst_username=me foo 2222",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn parse_proxy_jump_tokens() {
+        let mut config = Config::new();
+        config.add_config_string(
+            r#"
+        Host foo
+            ProxyJump %r.%h.example.com:%p
+            Port 2222
+            "#,
+        );
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "foo",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "2222",
+    "proxycommand": "ssh -W '[foo]:2222' me.foo.example.com:2222",
+    "proxyjump": "me.foo.example.com:2222",
     "user": "me",
     "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
