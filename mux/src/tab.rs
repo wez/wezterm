@@ -2003,7 +2003,9 @@ impl TabInner {
             if needs_resize {
                 // Pre-emptively resize the tab contents down to
                 // match the target size; it's easier to reuse
-                // existing resize logic that way
+                // existing resize logic that way.
+                // Note that this also shrinks `self.size`; it is
+                // restored below once the new top-level node is in place.
                 if request.target_is_second {
                     self.resize(split_info.first.clone());
                 } else {
@@ -2021,11 +2023,22 @@ impl TabInner {
                 };
                 cursor = match result {
                     Ok(c) => {
+                        let new_pane_size = if request.target_is_second {
+                            split_info.second
+                        } else {
+                            split_info.first
+                        };
                         cursor = match c.assign_node(Some(split_info)) {
                             Err(c) | Ok(c) => c,
                         };
 
                         self.pane.replace(cursor.tree());
+                        // The tree now spans the full tab again
+                        self.size = tab_size;
+
+                        // Ensure that the inserted pane (which may have come
+                        // from a tab with a different size) fills its slot
+                        pane.resize(new_pane_size)?;
 
                         let pane_index = if request.target_is_second {
                             self.pane.as_ref().unwrap().num_leaves().saturating_sub(1)
@@ -2267,7 +2280,18 @@ mod test {
         }
 
         fn get_dimensions(&self) -> RenderableDimensions {
-            unimplemented!();
+            let size = *self.size.lock();
+            RenderableDimensions {
+                cols: size.cols,
+                viewport_rows: size.rows,
+                scrollback_rows: size.rows,
+                physical_top: 0,
+                scrollback_top: 0,
+                dpi: size.dpi,
+                pixel_width: size.pixel_width,
+                pixel_height: size.pixel_height,
+                reverse_video: false,
+            }
         }
 
         fn get_title(&self) -> String {
@@ -2515,6 +2539,136 @@ mod test {
         assert_eq!(24, panes[2].height);
         assert_eq!(400, panes[2].pixel_width);
         assert_eq!(600, panes[2].pixel_height);
+    }
+
+    /// Assert that the panes tile the tab exactly: the tab reports
+    /// `expected`, the extent of the positioned panes equals the tab size,
+    /// and each pane's own size matches its slot in the tree.
+    fn assert_tab_consistent(tab: &Tab, expected: &TerminalSize, ctx: &str) {
+        let size = tab.get_size();
+        assert_eq!(size.cols, expected.cols, "{ctx}: tab cols");
+        assert_eq!(size.rows, expected.rows, "{ctx}: tab rows");
+
+        let panes = tab.iter_panes();
+        let max_right = panes.iter().map(|p| p.left + p.width).max().unwrap();
+        let max_bottom = panes.iter().map(|p| p.top + p.height).max().unwrap();
+        assert_eq!(max_right, expected.cols, "{ctx}: pane extent cols");
+        assert_eq!(max_bottom, expected.rows, "{ctx}: pane extent rows");
+
+        for p in &panes {
+            let dims = p.pane.get_dimensions();
+            assert_eq!(dims.cols, p.width, "{ctx}: pane {} cols", p.index);
+            assert_eq!(dims.viewport_rows, p.height, "{ctx}: pane {} rows", p.index);
+        }
+    }
+
+    fn top_level_request(direction: SplitDirection, target_is_second: bool) -> SplitRequest {
+        SplitRequest {
+            direction,
+            top_level: true,
+            target_is_second,
+            size: Default::default(),
+        }
+    }
+
+    /// Builds a 152x50 tab with two panes split in `initial` direction.
+    fn tab_with_two_panes(initial: SplitDirection) -> (Tab, TerminalSize) {
+        let size = TerminalSize {
+            rows: 50,
+            cols: 152,
+            pixel_width: 152 * 10,
+            pixel_height: 50 * 25,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+        tab.assign_pane(&FakePane::new(1, size));
+        let req = SplitRequest {
+            direction: initial,
+            ..Default::default()
+        };
+        let info = tab.compute_split_size(0, req).unwrap();
+        tab.split_and_insert(0, req, FakePane::new(2, info.second))
+            .unwrap();
+        assert_tab_consistent(&tab, &size, "initial");
+        (tab, size)
+    }
+
+    #[test]
+    fn top_level_split_keeps_tab_size_consistent() {
+        for initial in [SplitDirection::Horizontal, SplitDirection::Vertical] {
+            for direction in [SplitDirection::Horizontal, SplitDirection::Vertical] {
+                for target_is_second in [false, true] {
+                    let ctx = format!(
+                        "initial={initial:?} direction={direction:?} second={target_is_second}"
+                    );
+                    let (tab, size) = tab_with_two_panes(initial);
+                    let request = top_level_request(direction, target_is_second);
+                    let info = tab.compute_split_size(0, request).unwrap();
+                    // Deliberately create the new pane at a stale size, like a
+                    // pane moved from another tab, to verify that the tab
+                    // resizes it into its slot.
+                    let stale = TerminalSize {
+                        rows: 24,
+                        cols: 76,
+                        pixel_width: 760,
+                        pixel_height: 600,
+                        dpi: 96,
+                    };
+                    let new_pane = FakePane::new(3, stale);
+                    let new_index = tab.split_and_insert(0, request, new_pane).unwrap();
+                    let panes = tab.iter_panes();
+                    assert_eq!(panes.len(), 3, "{ctx}");
+
+                    // The inserted pane occupies the requested edge slot
+                    let expected_slot = if target_is_second {
+                        info.second
+                    } else {
+                        info.first
+                    };
+                    let inserted = &panes[new_index];
+                    assert_eq!(inserted.pane.pane_id(), 3, "{ctx}");
+                    assert_eq!(inserted.width, expected_slot.cols, "{ctx}");
+                    assert_eq!(inserted.height, expected_slot.rows, "{ctx}");
+
+                    assert_tab_consistent(&tab, &size, &format!("{ctx}: after split"));
+
+                    // A later resize must keep things consistent
+                    for (cols, rows) in [(100, 30), (200, 60), (152, 50)] {
+                        let new_size = TerminalSize {
+                            rows,
+                            cols,
+                            pixel_width: cols * 10,
+                            pixel_height: rows * 25,
+                            dpi: 96,
+                        };
+                        tab.resize(new_size);
+                        assert_tab_consistent(
+                            &tab,
+                            &new_size,
+                            &format!("{ctx}: after resize to {cols}x{rows}"),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn top_level_split_single_pane_unchanged() {
+        let size = TerminalSize {
+            rows: 50,
+            cols: 152,
+            pixel_width: 1520,
+            pixel_height: 1250,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+        tab.assign_pane(&FakePane::new(1, size));
+        let request = top_level_request(SplitDirection::Horizontal, true);
+        let info = tab.compute_split_size(0, request).unwrap();
+        tab.split_and_insert(0, request, FakePane::new(2, info.second))
+            .unwrap();
+        assert_tab_consistent(&tab, &size, "single pane top-level");
     }
 
     fn is_send_and_sync<T: Send + Sync>() -> bool {
