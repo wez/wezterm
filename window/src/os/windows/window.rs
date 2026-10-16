@@ -127,6 +127,9 @@ pub(crate) struct WindowInner {
     config: ConfigHandle,
     paint_throttled: bool,
     invalidated: bool,
+    /// Last cursor rect reported to the IME; used to avoid re-sending the
+    /// same position on every paint (which makes IME candidate windows flicker).
+    last_ime_cursor: Option<Rect>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -547,6 +550,7 @@ impl Window {
             config: config.clone(),
             paint_throttled: false,
             invalidated: true,
+            last_ime_cursor: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -667,6 +671,15 @@ impl WindowInner {
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
+        // Only notify the IME when the cursor rect actually changed.
+        // Windows IMEs (Google Japanese Input, Microsoft IME) re-create their
+        // candidate window on every ImmSetCandidateWindow /
+        // ImmSetCompositionWindow call, so calling it on every paint makes the
+        // candidate window flicker while composing.
+        if self.last_ime_cursor == Some(cursor) {
+            return;
+        }
+        self.last_ime_cursor = Some(cursor);
         self.set_ime_window_position(cursor);
     }
 
@@ -680,6 +693,7 @@ impl WindowInner {
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
         self.config = config.clone();
+        self.last_ime_cursor = None;
         self.apply_decoration();
     }
 
@@ -1588,10 +1602,12 @@ unsafe fn wm_set_focus(
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
-    rc_from_hwnd(hwnd)?
-        .borrow_mut()
-        .events
-        .dispatch(WindowEvent::FocusChanged(true));
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+    // The IME context may be re-activated when we regain focus, so make
+    // sure the next paint re-sends the cursor position to the IME.
+    inner.last_ime_cursor = None;
+    inner.events.dispatch(WindowEvent::FocusChanged(true));
     None
 }
 
@@ -2092,7 +2108,10 @@ unsafe fn ime_set_context(
 ) -> Option<LRESULT> {
     let use_system_rendering = {
         let inner = rc_from_hwnd(hwnd)?;
-        let inner = inner.borrow();
+        let mut inner = inner.borrow_mut();
+        // A (re)activated IME context starts without a cursor position, so
+        // the next paint must re-send it even if the rect is unchanged.
+        inner.last_ime_cursor = None;
         inner.config.ime_preedit_rendering == ImePreeditRendering::System
     };
 
@@ -2108,6 +2127,19 @@ unsafe fn ime_set_context(
     Some(result)
 }
 
+unsafe fn ime_start_composition(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    // Always (re)send the cursor position once per composition.
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        inner.borrow_mut().last_ime_cursor = None;
+    }
+    None
+}
+
 unsafe fn ime_end_composition(
     hwnd: HWND,
     _msg: UINT,
@@ -2117,6 +2149,8 @@ unsafe fn ime_end_composition(
     // IME was cancelled
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
+    // Make sure the next composition re-sends the cursor position once.
+    inner.last_ime_cursor = None;
 
     if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
         return None;
@@ -2964,6 +2998,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         }
         WM_SETTINGCHANGE | WM_DWMCOMPOSITIONCHANGED => apply_theme(hwnd),
         WM_IME_SETCONTEXT => ime_set_context(hwnd, msg, wparam, lparam),
+        WM_IME_STARTCOMPOSITION => ime_start_composition(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_IME_ENDCOMPOSITION => ime_end_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
