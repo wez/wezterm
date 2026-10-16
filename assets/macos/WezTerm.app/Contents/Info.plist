@@ -88,9 +88,11 @@
 			<string>Folders</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
-			<key>CFBundleTypeOSTypes</key>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
 			<array>
-				<string>fold</string>
+				<string>public.directory</string>
 			</array>
 		</dict>
 		<dict>
@@ -99,6 +101,47 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>public.unix-executable</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>New WezTerm Window Here</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>openWindow</string>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSTextContent</key>
+				<string>FilePath</string>
+			</dict>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSFilenamesPboardType</string>
+				<string>public.plain-text</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>New WezTerm Tab Here</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>openTab</string>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSTextContent</key>
+				<string>FilePath</string>
+			</dict>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSFilenamesPboardType</string>
+				<string>public.plain-text</string>
 			</array>
 		</dict>
 	</array>

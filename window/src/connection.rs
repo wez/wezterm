@@ -24,6 +24,17 @@ pub enum ApplicationEvent {
     /// The system wants to open a command in the terminal
     OpenCommandScript(String),
     PerformKeyAssignment(KeyAssignment),
+    /// Open a directory via application services
+    OpenDirectory {
+        path: String,
+        target: OpenTarget,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpenTarget {
+    Window,
+    Tab,
 }
 
 pub trait ConnectionOps {

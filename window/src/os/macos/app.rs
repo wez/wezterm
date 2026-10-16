@@ -2,8 +2,8 @@ use crate::connection::ConnectionOps;
 use crate::macos::menu::RepresentedItem;
 use crate::macos::{nsstring, nsstring_to_str};
 use crate::menu::{Menu, MenuItem};
-use crate::{ApplicationEvent, Connection};
-use cocoa::appkit::NSApplicationTerminateReply;
+use crate::{ApplicationEvent, Connection, OpenTarget};
+use cocoa::appkit::{NSApp, NSApplicationTerminateReply, NSFilenamesPboardType, NSPasteboard};
 use cocoa::base::id;
 use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
@@ -93,6 +93,35 @@ extern "C" fn application_open_untitled_file(
     NO
 }
 
+extern "C" fn init_service_provider(_this: &mut Object, _sel: Sel) -> *mut Object {
+    unsafe {
+        if let Some(existing) = Class::get("WezTermServiceProvider") {
+            let provider: *mut Object = msg_send![existing, new];
+            return provider;
+        }
+
+        let mut cls = ClassDecl::new("WezTermServiceProvider", class!(NSObject))
+            .expect("Unable to register service provider class");
+        cls.add_method(
+            sel!(openWindow:userData:error:),
+            service_open_window
+                as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object),
+        );
+        cls.add_method(
+            sel!(openTab:userData:error:),
+            service_open_tab
+                as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object),
+        );
+        cls.add_method(
+            sel!(dealloc),
+            service_provider_dealloc as extern "C" fn(&mut Object, Sel),
+        );
+        let provider_class = cls.register();
+        let provider: *mut Object = msg_send![provider_class, new];
+        provider
+    }
+}
+
 extern "C" fn wezterm_perform_key_assignment(
     _self: &mut Object,
     _sel: Sel,
@@ -125,6 +154,90 @@ extern "C" fn application_open_file(
             log::debug!("application_open_file {file_name}");
             conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
         }
+    }
+}
+
+extern "C" fn service_open_window(
+    _this: &mut Object,
+    _sel: Sel,
+    pasteboard: *mut Object,
+    _user_data: *mut Object,
+    error: *mut Object,
+) {
+    if let Err(err) = std::panic::catch_unwind(|| {
+        dispatch_service_open(pasteboard, error, OpenTarget::Window);
+    }) {
+        log::error!("service_open_window panicked: {err:?}");
+        unsafe {
+            let msg = nsstring("Service failed. Check logs for details.");
+            let () = msg_send![error, setString: *msg];
+        }
+    }
+}
+
+extern "C" fn service_open_tab(
+    _this: &mut Object,
+    _sel: Sel,
+    pasteboard: *mut Object,
+    _user_data: *mut Object,
+    error: *mut Object,
+) {
+    if let Err(err) = std::panic::catch_unwind(|| {
+        dispatch_service_open(pasteboard, error, OpenTarget::Tab);
+    }) {
+        log::error!("service_open_tab panicked: {err:?}");
+        unsafe {
+            let msg = nsstring("Service failed. Check logs for details.");
+            let () = msg_send![error, setString: *msg];
+        }
+    }
+}
+
+fn dispatch_service_open(pasteboard: *mut Object, error: *mut Object, target: OpenTarget) {
+    unsafe {
+        let plist = NSPasteboard::propertyListForType(pasteboard, NSFilenamesPboardType);
+        if plist.is_null() {
+            let msg = nsstring("Could not load any paths from the clipboard.");
+            let () = msg_send![error, setString: *msg];
+            return;
+        }
+
+        let count: usize = msg_send![plist, count];
+        if count == 0 {
+            let msg = nsstring("Could not load any paths from the clipboard.");
+            let () = msg_send![error, setString: *msg];
+            return;
+        }
+
+        let mut paths = Vec::with_capacity(count);
+        for idx in 0..count {
+            let item: id = msg_send![plist, objectAtIndex: idx];
+            let mut path = nsstring_to_str(item).to_string();
+            let url: id = msg_send![class!(NSURL), fileURLWithPath: item];
+            let is_dir: BOOL = msg_send![url, hasDirectoryPath];
+            if is_dir == NO {
+                let path_ns: id = msg_send![item, stringByDeletingLastPathComponent];
+                path = nsstring_to_str(path_ns).to_string();
+            }
+            paths.push(path);
+        }
+
+        if let Some(conn) = Connection::get() {
+            dispatch_service_paths(paths, target, &conn);
+        }
+    }
+}
+
+fn dispatch_service_paths(paths: Vec<String>, target: OpenTarget, conn: &Connection) {
+    for path in paths {
+        conn.dispatch_app_event(ApplicationEvent::OpenDirectory { path, target });
+    }
+}
+
+extern "C" fn service_provider_dealloc(this: &mut Object, _sel: Sel) {
+    unsafe {
+        let superclass = class!(NSObject);
+        let () = msg_send![super(this, superclass), dealloc];
     }
 }
 
@@ -180,6 +293,10 @@ fn get_class() -> &'static Class {
                 application_open_untitled_file
                     as extern "C" fn(&mut Object, Sel, *mut Object) -> BOOL,
             );
+            cls.add_method(
+                sel!(initServiceProvider),
+                init_service_provider as extern "C" fn(&mut Object, Sel) -> *mut Object,
+            );
         }
 
         cls.register()
@@ -192,6 +309,10 @@ pub fn create_app_delegate() -> StrongPtr {
         let delegate: *mut Object = msg_send![cls, alloc];
         let delegate: *mut Object = msg_send![delegate, init];
         (*delegate).set_ivar("launched", NO);
+
+        let provider: *mut Object = msg_send![delegate, initServiceProvider];
+        let () = msg_send![NSApp(), setServicesProvider: provider];
+
         StrongPtr::new(delegate)
     }
 }

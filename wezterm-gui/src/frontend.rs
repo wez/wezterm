@@ -4,7 +4,7 @@ use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
-use config::keyassignment::{KeyAssignment, SpawnCommand};
+use config::keyassignment::{KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::{ConfigSubscription, NotificationHandling};
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
@@ -247,7 +247,6 @@ impl GuiFrontEnd {
                     }
                 };
                 promise::spawn::spawn(async move {
-                    use config::keyassignment::SpawnTabDomain;
                     use wezterm_term::TerminalSize;
 
                     // We send the script to execute to the shell on stdin, rather than ask the
@@ -285,6 +284,49 @@ impl GuiFrontEnd {
                             log::error!("Failed to spawn {file_name}: {err:#?}");
                         }
                     };
+                })
+                .detach();
+            }
+            ApplicationEvent::OpenDirectory { path, target } => {
+                promise::spawn::spawn(async move {
+                    use wezterm_term::TerminalSize;
+
+                    let mux = Mux::get();
+                    let mut window_id = None;
+                    let pane_id = None;
+                    let cmd = None;
+                    let cwd = Some(path);
+                    let workspace = mux.active_workspace();
+                    let existing_windows = mux.iter_windows_in_workspace(&workspace);
+
+                    if target == OpenTarget::Tab {
+                        if let Some((_domain, focused_window, _tab, _pane)) =
+                            mux.resolve_focused_pane(&front_end().client_id)
+                        {
+                            window_id = Some(focused_window);
+                        } else if let Some(&first) = existing_windows.first() {
+                            window_id = Some(first);
+                        }
+                    }
+
+                    match mux
+                        .spawn_tab_or_window(
+                            window_id,
+                            SpawnTabDomain::DomainName("local".to_string()),
+                            cmd,
+                            cwd,
+                            TerminalSize::default(),
+                            pane_id,
+                            workspace,
+                            None, // optional position
+                        )
+                        .await
+                    {
+                        Ok((_tab, _pane, _new_window_id)) => {}
+                        Err(err) => {
+                            log::error!("Failed to open directory: {err:#?}");
+                        }
+                    }
                 })
                 .detach();
             }
