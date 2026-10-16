@@ -21,6 +21,15 @@ pub struct ShaderUniform {
     // sampler2D atlas_linear_sampler;
 }
 
+lazy_static::lazy_static! {
+    // Shared by all windows and never dropped: destroying the instance
+    // of a closed window crashes the remaining windows on NVIDIA/Wayland.
+    static ref INSTANCE: wgpu::Instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::all(),
+        ..Default::default()
+    });
+}
+
 pub struct WebGpuState {
     pub adapter_info: wgpu::AdapterInfo,
     pub downlevel_caps: wgpu::DownlevelCapabilities,
@@ -224,10 +233,7 @@ impl WebGpuState {
         config: &ConfigHandle,
     ) -> anyhow::Result<Self> {
         let backends = wgpu::Backends::all();
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends,
-            ..Default::default()
-        });
+        let instance = INSTANCE.clone();
         let surface = unsafe {
             instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(&handle)?)?
         };

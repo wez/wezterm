@@ -399,8 +399,17 @@ impl WindowOps for WaylandWindow {
     }
 
     fn close(&self) {
-        WaylandConnection::with_window_inner(self.0, |inner| {
+        let window_id = self.0;
+        WaylandConnection::with_window_inner(window_id, move |inner| {
             inner.close();
+            // Remove the window from the maps, otherwise it, and the
+            // TermWindow and GPU resources that it owns, are never dropped.
+            let conn = WaylandConnection::get().unwrap().wayland();
+            let mut state = conn.wayland_state.borrow_mut();
+            if let Some(window) = inner.window.as_ref() {
+                state.surface_to_pending.remove(&window.wl_surface().id());
+            }
+            state.windows.borrow_mut().remove(&window_id);
             Ok(())
         });
     }
@@ -616,10 +625,20 @@ pub struct WaylandWindowInner {
     ext_background_effect_surface: Option<ExtBackgroundEffectSurfaceV1>,
 }
 
+impl Drop for WaylandWindowInner {
+    fn drop(&mut self) {
+        // The GPU surface of the TermWindow owned by events, and the
+        // GL surface, render to the wl_surface of window, so they
+        // must be dropped before it.
+        self.events = WindowEventSender::new(|_, _| {});
+        self.wegl_surface.take();
+        self.gl_state.take();
+    }
+}
+
 impl WaylandWindowInner {
     fn close(&mut self) {
         self.events.dispatch(WindowEvent::Destroyed);
-        self.window.take();
     }
 
     fn show(&mut self) {
