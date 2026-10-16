@@ -185,6 +185,7 @@ class Target(object):
         name=None,
         os="ubuntu-latest",
         container=None,
+        arch="x86_64",
         bootstrap_git=False,
         rust_target=None,
         continuous_only=False,
@@ -195,13 +196,19 @@ class Target(object):
                 name = container
             else:
                 name = os
+            if arch != "x86_64":
+                name = f"{name}-{arch}"
+        # there is no ubuntu-latest-arm label
+        if arch == "arm64" and os == "ubuntu-latest":
+            os = "ubuntu-24.04-arm"
         self.name = name.replace(":", "")
         self.os = os
         self.container = container
+        self.arch = arch
         self.bootstrap_git = bootstrap_git
         self.rust_target = rust_target
         self.continuous_only = continuous_only
-        self.app_image = container == APPIMAGE_TARGET
+        self.app_image = (container == APPIMAGE_TARGET) and (arch == "x86_64")
         self.env = {}
         self.is_tag = is_tag
 
@@ -1015,6 +1022,9 @@ TARGETS = [
     Target(container="ubuntu:24.04", continuous_only=True),
     Target(container="ubuntu:26.04", continuous_only=True),
     Target(container="debian:12", continuous_only=True),
+    Target(container="ubuntu:22.04", arch="arm64", continuous_only=True),
+    Target(container="ubuntu:24.04", arch="arm64", continuous_only=True),
+    Target(container="debian:12", arch="arm64", continuous_only=True),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-latest"),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
