@@ -9,8 +9,8 @@ use std::ffi::OsString;
 use std::io::Error as IoError;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
-use std::path::Path;
-use std::sync::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 use windows_sys::core::HRESULT;
 use windows_sys::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE, S_OK};
@@ -25,7 +25,6 @@ pub type HPCON = HANDLE;
 pub const PSEUDOCONSOLE_INHERIT_CURSOR: u32 = 0x1;
 pub const PSEUDOCONSOLE_RESIZE_QUIRK: u32 = 0x2;
 pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
-#[allow(dead_code)]
 pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
 shared_library!(ConPtyFuncs,
@@ -40,7 +39,12 @@ shared_library!(ConPtyFuncs,
     pub fn ClosePseudoConsole(hpc: HPCON),
 );
 
-fn load_conpty() -> ConPtyFuncs {
+struct ConPtySelection {
+    funcs: Arc<ConPtyFuncs>,
+    passthrough: bool,
+}
+
+fn load_default_conpty() -> ConPtySelection {
     // If the kernel doesn't export these functions then their system is
     // too old and we cannot run.
     let kernel = ConPtyFuncs::open(Path::new("kernel32.dll")).expect(
@@ -51,18 +55,62 @@ fn load_conpty() -> ConPtyFuncs {
     // alongside the application.  We check for this after checking for kernel
     // support so that we don't try to proceed and do something crazy.
     if let Ok(sideloaded) = ConPtyFuncs::open(Path::new("conpty.dll")) {
-        sideloaded
+        ConPtySelection {
+            funcs: Arc::new(sideloaded),
+            passthrough: false,
+        }
     } else {
-        kernel
+        ConPtySelection {
+            funcs: Arc::new(kernel),
+            passthrough: false,
+        }
     }
 }
 
 lazy_static! {
-    static ref CONPTY: ConPtyFuncs = load_conpty();
+    static ref DEFAULT_CONPTY: ConPtySelection = load_default_conpty();
+    static ref CONFIGURED_CONPTY: Mutex<Option<ConPtySelection>> = Mutex::new(None);
+}
+
+/// Select a redistributable ConPTY DLL for subsequently created pseudo consoles.
+///
+/// The matching `OpenConsole.exe` must be in the same directory. Existing
+/// pseudo consoles retain the library they were created with, so applications
+/// may safely change this setting while other sessions are running.
+///
+/// The redistributable is opened with `PSEUDOCONSOLE_PASSTHROUGH_MODE`. The
+/// inbox and automatically sideloaded ConPTY libraries keep the historical
+/// flags.
+pub fn set_conpty_path(path: PathBuf) -> Result<(), shared_library::LoadingError> {
+    let funcs = Arc::new(ConPtyFuncs::open(&path)?);
+    *CONFIGURED_CONPTY.lock().unwrap() = Some(ConPtySelection {
+        funcs,
+        passthrough: true,
+    });
+    Ok(())
+}
+
+/// Use the default system or application-local ConPTY for new pseudo consoles.
+pub fn clear_conpty_path() {
+    *CONFIGURED_CONPTY.lock().unwrap() = None;
+}
+
+fn selected_conpty() -> ConPtySelection {
+    if let Some(configured) = CONFIGURED_CONPTY.lock().unwrap().as_ref() {
+        return ConPtySelection {
+            funcs: configured.funcs.clone(),
+            passthrough: configured.passthrough,
+        };
+    }
+    ConPtySelection {
+        funcs: DEFAULT_CONPTY.funcs.clone(),
+        passthrough: DEFAULT_CONPTY.passthrough,
+    }
 }
 
 pub struct PseudoCon {
     con: HPCON,
+    funcs: Arc<ConPtyFuncs>,
 }
 
 unsafe impl Send for PseudoCon {}
@@ -70,21 +118,28 @@ unsafe impl Sync for PseudoCon {}
 
 impl Drop for PseudoCon {
     fn drop(&mut self) {
-        unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
+        unsafe { (self.funcs.ClosePseudoConsole)(self.con) };
     }
 }
 
 impl PseudoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
+        let selected = selected_conpty();
+        let flags = PSEUDOCONSOLE_INHERIT_CURSOR
+            | PSEUDOCONSOLE_RESIZE_QUIRK
+            | PSEUDOCONSOLE_WIN32_INPUT_MODE
+            | if selected.passthrough {
+                PSEUDOCONSOLE_PASSTHROUGH_MODE
+            } else {
+                0
+            };
         let result = unsafe {
-            (CONPTY.CreatePseudoConsole)(
+            (selected.funcs.CreatePseudoConsole)(
                 size,
                 input.as_raw_handle(),
                 output.as_raw_handle(),
-                PSEUDOCONSOLE_INHERIT_CURSOR
-                    | PSEUDOCONSOLE_RESIZE_QUIRK
-                    | PSEUDOCONSOLE_WIN32_INPUT_MODE,
+                flags,
                 &mut con,
             )
         };
@@ -93,11 +148,14 @@ impl PseudoCon {
             "failed to create pseudo console: HRESULT {}",
             result
         );
-        Ok(Self { con })
+        Ok(Self {
+            con,
+            funcs: selected.funcs,
+        })
     }
 
     pub fn resize(&self, size: COORD) -> Result<(), Error> {
-        let result = unsafe { (CONPTY.ResizePseudoConsole)(self.con, size) };
+        let result = unsafe { (self.funcs.ResizePseudoConsole)(self.con, size) };
         ensure!(
             result == S_OK,
             "failed to resize console to {}x{}: HRESULT: {}",

@@ -14,6 +14,8 @@ pub mod conpty;
 mod procthreadattr;
 mod pseudocon;
 
+pub use pseudocon::{clear_conpty_path, set_conpty_path};
+
 use filedescriptor::OwnedHandle;
 
 #[derive(Debug)]
