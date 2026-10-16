@@ -539,6 +539,7 @@ impl Publish {
         workspace: Option<&str>,
         domain: SpawnTabDomain,
         new_tab: bool,
+        attach: bool,
     ) -> anyhow::Result<bool> {
         if let Publish::TryPathOrPublish(gui_sock) = &self {
             let dom = config::UnixDomain {
@@ -612,6 +613,7 @@ impl Publish {
                                         .as_deref()
                                         .unwrap_or(mux::DEFAULT_WORKSPACE)
                                 ).to_string(),
+                                attach,
                             })
                             .await
                     }));
@@ -771,6 +773,7 @@ fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> 
             None => SpawnTabDomain::DefaultDomain,
         },
         opts.new_tab,
+        opts.attach,
     )? {
         return Ok(());
     }

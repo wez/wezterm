@@ -836,6 +836,7 @@ impl Domain for ClientDomain {
                 command,
                 command_dir,
                 workspace,
+                attach: false,
             })
             .await?;
 

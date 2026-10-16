@@ -684,6 +684,9 @@ pub struct SpawnV2 {
     pub command_dir: Option<String>,
     pub size: TerminalSize,
     pub workspace: String,
+    /// If true, attach to the domain and reuse existing panes
+    /// rather than unconditionally spawning a new tab.
+    pub attach: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

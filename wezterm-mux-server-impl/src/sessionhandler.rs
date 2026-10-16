@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context};
 use codec::*;
 use config::TermConfig;
 use mux::client::ClientId;
-use mux::domain::SplitSource;
+use mux::domain::{DomainState, SplitSource};
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
@@ -1081,6 +1081,31 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
 async fn domain_spawn_v2(spawn: SpawnV2, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
     let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
+
+    if spawn.attach {
+        let domain = mux.resolve_spawn_tab_domain(None, &spawn.domain)?;
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(None).await?;
+        }
+
+        let domain_id = domain.domain_id();
+        if let Some(pane) = mux.iter_panes().iter().find(|p| p.domain_id() == domain_id) {
+            let pane_id = pane.pane_id();
+            if let Some((_dom_id, window_id, tab_id)) = mux.resolve_pane_id(pane_id) {
+                let size = mux
+                    .get_tab(tab_id)
+                    .map(|tab| tab.get_size())
+                    .unwrap_or_default();
+                return Ok(Pdu::SpawnResponse(SpawnResponse {
+                    pane_id,
+                    tab_id,
+                    window_id,
+                    size,
+                }));
+            }
+        }
+    }
 
     let (tab, pane, window_id) = mux
         .spawn_tab_or_window(

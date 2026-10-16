@@ -113,6 +113,7 @@ impl SpawnCommand {
                 command_dir: resolve_relative_cwd(self.cwd)?,
                 size,
                 workspace,
+                attach: false,
             })
             .await?;
 
