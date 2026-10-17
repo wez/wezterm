@@ -409,6 +409,18 @@ impl Screen {
         line.set_cell(x, cell.clone(), seqno);
     }
 
+    pub fn set_cell_clearing_image_placements(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        cell: &Cell,
+        seqno: SequenceNo,
+    ) {
+        let line_idx = self.phys_row(y);
+        let line = self.line_mut(line_idx);
+        line.set_cell_clearing_image_placements(x, cell.clone(), seqno);
+    }
+
     pub fn set_cell_grapheme(
         &mut self,
         x: usize,
