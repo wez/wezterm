@@ -22,14 +22,13 @@ pdf = []
 svg = []
 ps = []
 script = []
-win32-surface = []
-xlib = []
-xcb = []
-freetype = []
-use_glib = []
 
 [dependencies]
 libc.workspace = true
 
 [build-dependencies]
 cc.workspace = true
+
+[lints.rust]
+# Avoid diagnostics for features that are no longer defined but are still referenced by conditional compilation.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("freetype", "use_glib", "win32-surface", "x11", "xcb", "xlib"))'] }
