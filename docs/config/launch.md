@@ -179,24 +179,56 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
     args = { 'powershell.exe', '-NoLogo' },
   })
 
-  -- Find installed visual studio version(s) and add their compilation
-  -- environment command prompts to the menu
-  for _, vsvers in
-    ipairs(
-      wezterm.glob('Microsoft Visual Studio/20*', 'C:/Program Files (x86)')
-    )
-  do
-    local year = vsvers:gsub('Microsoft Visual Studio/', '')
-    table.insert(launch_menu, {
-      label = 'x64 Native Tools VS ' .. year,
-      args = {
-        'cmd.exe',
-        '/k',
-        'C:/Program Files (x86)/'
-          .. vsvers
-          .. '/BuildTools/VC/Auxiliary/Build/vcvars64.bat',
-      },
-    })
+  -- Find installed visual studio version(s) using vswhere.exe and add
+  -- Developer Command Prompt / Developer PowerShell entries.
+  local pf86 = os.getenv('ProgramFiles(x86)') or 'C:/Program Files (x86)'
+  local vswhere = pf86 .. '/Microsoft Visual Studio/Installer/vswhere.exe'
+
+  local ok, stdout, stderr = wezterm.run_child_process({
+    vswhere,
+    '-products',
+    '*',
+    '-requires',
+    'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+    '-format',
+    'json',
+  })
+
+  if ok then
+    local installations = wezterm.json_parse(stdout)
+    for _, inst in ipairs(installations) do
+      local install_path = inst.installationPath
+      local label_suffix = inst.displayName or 'Visual Studio'
+
+      -- Developer Command Prompt
+      local vsdevcmd = install_path .. '\\Common7\\Tools\\VsDevCmd.bat'
+      table.insert(launch_menu, {
+        label = 'Developer Command Prompt for ' .. label_suffix,
+        args = { 'cmd.exe', '/k', vsdevcmd, '-arch=amd64', '-host_arch=amd64' },
+      })
+
+      -- Developer PowerShell
+      local devshell = install_path .. '\\Common7\\Tools\\Launch-VsDevShell.ps1'
+      table.insert(launch_menu, {
+        label = 'Developer PowerShell for ' .. label_suffix,
+        args = {
+          'powershell.exe',
+          '-NoLogo',
+          '-NoExit',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          devshell,
+          '-SkipAutomaticLocation',
+          '-Arch',
+          'amd64',
+          '-HostArch',
+          'amd64',
+        },
+      })
+    end
+  else
+    wezterm.log_info('vswhere failed: ' .. (stderr or ''))
   end
 end
 
