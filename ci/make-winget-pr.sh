@@ -17,10 +17,10 @@ exehash=$(sha256sum -b ../$setup_exe | cut -f1 -d' ' | tr a-f A-F)
 release_date=$(git show -s "--format=%cd" "--date=format:%Y-%m-%d")
 
 # Create the directory structure
-mkdir manifests/w/wezterm/wezterm/$TAG_NAME
+mkdir manifests/o/org.phiterm.phiterm/$TAG_NAME
 
-cat > manifests/w/wezterm/wezterm/$TAG_NAME/wez.wezterm.installer.yaml <<-EOT
-PackageIdentifier: wez.wezterm
+cat > manifests/o/org.phiterm.phiterm/$TAG_NAME/org.phiterm.phiterm.installer.yaml <<-EOT
+PackageIdentifier: org.phiterm.phiterm
 PackageVersion: $TAG_NAME
 MinimumOSVersion: 10.0.17763.0
 InstallerType: inno
@@ -35,15 +35,15 @@ ManifestType: installer
 ManifestVersion: 1.1.0
 EOT
 
-cat > manifests/w/wezterm/wezterm/$TAG_NAME/wez.wezterm.locale.en-US.yaml <<-EOT
-PackageIdentifier: wez.wezterm
+cat > manifests/o/org.phiterm.phiterm/$TAG_NAME/org.phiterm.phiterm.locale.en-US.yaml <<-EOT
+PackageIdentifier: org.phiterm.phiterm
 PackageVersion: $TAG_NAME
 PackageLocale: en-US
 Publisher: Wez Furlong
 PublisherUrl: https://wezfurlong.org/
 PublisherSupportUrl: https://github.com/wezterm/wezterm/issues
 Author: Wez Furlong
-PackageName: WezTerm
+PackageName: PhiTerm
 PackageUrl: http://wezterm.org
 License: MIT
 LicenseUrl: https://github.com/wezterm/wezterm/blob/main/LICENSE.md
@@ -53,8 +53,8 @@ ManifestType: defaultLocale
 ManifestVersion: 1.1.0
 EOT
 
-cat > manifests/w/wezterm/wezterm/$TAG_NAME/wez.wezterm.yaml <<-EOT
-PackageIdentifier: wez.wezterm
+cat > manifests/o/org.phiterm.phiterm/$TAG_NAME/org.phiterm.phiterm.yaml <<-EOT
+PackageIdentifier: org.phiterm.phiterm
 PackageVersion: $TAG_NAME
 DefaultLocale: en-US
 ManifestType: version
@@ -63,5 +63,5 @@ EOT
 
 git add --all
 git diff --cached
-git commit -m "New version: wez.wezterm version $TAG_NAME"
+git commit -m "New version: org.phiterm.phiterm version $TAG_NAME"
 git push --set-upstream origin "$TAG_NAME" --quiet

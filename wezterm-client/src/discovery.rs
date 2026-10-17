@@ -178,8 +178,8 @@ mod windows {
         /// names so that we have one per desktop, rather than one
         /// system wide.
         fn compute_names(class_name: &str) -> (String, String) {
-            let mutex_name = format!("Local\\wezterm-sock-mutex-{}", class_name);
-            let map_name = format!("Local\\wezterm-sock-{}", class_name);
+            let mutex_name = format!("Local\\phiterm-sock-mutex-{}", class_name);
+            let map_name = format!("Local\\phiterm-sock-{}", class_name);
             (mutex_name, map_name)
         }
 

@@ -14,12 +14,12 @@ on:
       - ".github/workflows/gen_fedora41_continuous.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
-      - "assets/open-wezterm-here"
+      - "assets/open-phiterm-here"
+      - "assets/phiterm-nautilus.py"
+      - "assets/phiterm.appdata.xml"
+      - "assets/phiterm.desktop"
       - "assets/shell-completion/**/*"
       - "assets/shell-integration/**/*"
-      - "assets/wezterm-nautilus.py"
-      - "assets/wezterm.appdata.xml"
-      - "assets/wezterm.desktop"
       - "ci/deploy.sh"
       - "ci/tag-name.sh"
       - "get-deps"
@@ -77,15 +77,15 @@ jobs:
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
-      - name: "Build wezterm (Release mode)"
+      - name: "Build phiterm (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm --release"
-      - name: "Build wezterm-gui (Release mode)"
+        run: "cargo build -p phiterm --release"
+      - name: "Build phiterm-gui (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-gui --release"
-      - name: "Build wezterm-mux-server (Release mode)"
+        run: "cargo build -p phiterm-gui --release"
+      - name: "Build phiterm-mux-server (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-mux-server --release"
+        run: "cargo build -p phiterm-mux-server --release"
       - name: "Build strip-ansi-escapes (Release mode)"
         shell: bash
         run: "cargo build -p strip-ansi-escapes --release"
@@ -106,15 +106,15 @@ jobs:
       - name: "Move RPM"
         shell: bash
         run: |
-          mv ~/rpmbuild/RPMS/*/wezterm-common-*.rpm wezterm-common-nightly-fedora41.rpm
-          mv ~/rpmbuild/RPMS/*/wezterm-gui-*.rpm wezterm-gui-nightly-fedora41.rpm
-          mv ~/rpmbuild/RPMS/*/wezterm-mux-server-*.rpm wezterm-mux-server-nightly-fedora41.rpm
-          mv ~/rpmbuild/RPMS/*/wezterm-*.rpm wezterm-nightly-fedora41.rpm
+          mv ~/rpmbuild/RPMS/*/phiterm-common-*.rpm phiterm-common-nightly-fedora41.rpm
+          mv ~/rpmbuild/RPMS/*/phiterm-gui-*.rpm phiterm-gui-nightly-fedora41.rpm
+          mv ~/rpmbuild/RPMS/*/phiterm-mux-server-*.rpm phiterm-mux-server-nightly-fedora41.rpm
+          mv ~/rpmbuild/RPMS/*/phiterm-*.rpm phiterm-nightly-fedora41.rpm
       - name: "Upload artifact"
         uses: actions/upload-artifact@v7
         with:
           name: "fedora41"
-          path: "wezterm-*.rpm"
+          path: "phiterm-*.rpm"
           retention-days: 5
 
   upload:
@@ -138,9 +138,9 @@ jobs:
           name: "fedora41"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in phiterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly phiterm-*.rpm *.sha256"

@@ -67,11 +67,11 @@ pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DAT
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
+    about = "Phiterm: a GPU-accelerated terminal emulator",
     version = config::wezterm_version()
 )]
 struct Opt {
-    /// Skip loading wezterm.lua
+    /// Skip loading phiterm.lua
     #[arg(long, short = 'n')]
     skip_config: bool,
 
@@ -123,7 +123,7 @@ enum SubCommand {
     #[command(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[command(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[command(name = "connect", about = "Connect to phiterm multiplexer")]
     Connect(ConnectCommand),
 
     #[command(name = "ls-fonts", about = "Display information about fonts")]
@@ -412,7 +412,7 @@ async fn async_run_terminal_gui(
 ) -> anyhow::Result<()> {
     let unix_socket_path =
         config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
-    std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
+    config::set_env_var("UNIX_SOCKET", unix_socket_path.clone());
     wezterm_blob_leases::register_storage(Arc::new(
         wezterm_blob_leases::simple_tempdir::SimpleTempDir::new_in(&*config::CACHE_DIR)?,
     ))?;
@@ -561,7 +561,7 @@ impl Publish {
                                 "Running GUI is a different executable from us, will start a new one");
                         }
                         if vers.config_file_path
-                            != std::env::var_os("WEZTERM_CONFIG_FILE").map(Into::into)
+                            != config::env_var("CONFIG_FILE").map(Into::into)
                         {
                             *self = Publish::NoConnectNoPublish;
                             anyhow::bail!(
@@ -802,7 +802,7 @@ fn notify_on_panic() {
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         if let Some(s) = info.payload().downcast_ref::<&str>() {
-            fatal_toast_notification("Wezterm panic", s);
+            fatal_toast_notification("Phiterm panic", s);
         }
         default_hook(info);
     }));
@@ -810,7 +810,7 @@ fn notify_on_panic() {
 
 fn terminate_with_error_message(err: &str) -> ! {
     log::error!("{}; terminating", err);
-    fatal_toast_notification("Wezterm Error", &err);
+    fatal_toast_notification("Phiterm Error", &err);
     std::process::exit(1);
 }
 
@@ -1172,7 +1172,7 @@ fn run() -> anyhow::Result<()> {
     {
         unsafe {
             ::windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
-                ::windows::core::PCWSTR(wide_string("org.wezfurlong.wezterm").as_ptr()),
+                ::windows::core::PCWSTR(wide_string("org.phiterm.phiterm").as_ptr()),
             )
             .unwrap();
         }
@@ -1233,7 +1233,7 @@ fn run() -> anyhow::Result<()> {
         Some(sub) => sub,
         None => {
             // Need to fake an argv0
-            let mut argv = vec!["wezterm-gui".to_string()];
+            let mut argv = vec!["phiterm-gui".to_string()];
             for a in &config.default_gui_startup_args {
                 argv.push(a.clone());
             }

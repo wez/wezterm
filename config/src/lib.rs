@@ -65,6 +65,34 @@ pub use wsl::*;
 
 type ErrorCallback = fn(&str);
 
+/// Prefix used for Phiterm's environment variables.
+pub const ENV_PREFIX: &str = "PHITERM_";
+/// Legacy WezTerm environment variable prefix, honored for compatibility.
+pub const LEGACY_ENV_PREFIX: &str = "WEZTERM_";
+
+/// Read an environment variable by its suffix, preferring the Phiterm name
+/// (`PHITERM_<suffix>`) but falling back to the legacy WezTerm name
+/// (`WEZTERM_<suffix>`) so that existing setups keep working.
+pub fn env_var(suffix: &str) -> Option<OsString> {
+    std::env::var_os(format!("{ENV_PREFIX}{suffix}"))
+        .or_else(|| std::env::var_os(format!("{LEGACY_ENV_PREFIX}{suffix}")))
+}
+
+/// Set an environment variable using the Phiterm name.  The legacy WezTerm
+/// name is mirrored as well so that shell integrations and tooling that still
+/// look for `WEZTERM_*` continue to work.
+pub fn set_env_var(suffix: &str, value: impl AsRef<std::ffi::OsStr>) {
+    let value = value.as_ref();
+    std::env::set_var(format!("{ENV_PREFIX}{suffix}"), value);
+    std::env::set_var(format!("{LEGACY_ENV_PREFIX}{suffix}"), value);
+}
+
+/// Remove both the Phiterm and legacy WezTerm environment variables.
+pub fn remove_env_var(suffix: &str) {
+    std::env::remove_var(format!("{ENV_PREFIX}{suffix}"));
+    std::env::remove_var(format!("{LEGACY_ENV_PREFIX}{suffix}"));
+}
+
 lazy_static! {
     pub static ref HOME_DIR: PathBuf = dirs_next::home_dir().expect("can't find HOME dir");
     pub static ref CONFIG_DIRS: Vec<PathBuf> = config_dirs();
@@ -382,20 +410,32 @@ pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn xdg_config_home() -> PathBuf {
-    match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join("wezterm")) {
-        Some(p) => p,
-        None => HOME_DIR.join(".config").join("wezterm"),
+/// Directory name (under the XDG config location) that Phiterm uses.
+const CONFIG_DIR_NAME: &str = "phiterm";
+/// Legacy WezTerm config directory name, searched as a fallback.
+const LEGACY_CONFIG_DIR_NAME: &str = "wezterm";
+
+fn xdg_config_home(name: &str) -> PathBuf {
+    match std::env::var_os("XDG_CONFIG_HOME") {
+        Some(s) => PathBuf::from(s).join(name),
+        None => HOME_DIR.join(".config").join(name),
     }
 }
 
 fn config_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
-    dirs.push(xdg_config_home());
+    // The Phiterm config location takes precedence.
+    dirs.push(xdg_config_home(CONFIG_DIR_NAME));
+    // Fall back to the legacy WezTerm config dir so existing configs keep
+    // working without any manual migration.
+    dirs.push(xdg_config_home(LEGACY_CONFIG_DIR_NAME));
 
     #[cfg(unix)]
     if let Some(d) = std::env::var_os("XDG_CONFIG_DIRS") {
-        dirs.extend(std::env::split_paths(&d).map(|s| PathBuf::from(s).join("wezterm")));
+        dirs.extend(std::env::split_paths(&d).flat_map(|s| {
+            let s = PathBuf::from(s);
+            [s.join(CONFIG_DIR_NAME), s.join(LEGACY_CONFIG_DIR_NAME)]
+        }));
     }
 
     dirs

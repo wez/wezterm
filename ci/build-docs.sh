@@ -46,7 +46,7 @@ if hash black 2>/dev/null ; then
 fi
 
 cp "assets/icon/terminal.png" docs/favicon.png
-cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
+cp "assets/icon/phiterm-icon.svg" docs/favicon.svg
 mkdir -p docs/fonts
 cp assets/fonts/SymbolsNerdFontMono-Regular.ttf docs/fonts/
 

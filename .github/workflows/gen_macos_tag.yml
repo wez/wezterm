@@ -43,24 +43,24 @@ jobs:
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
-      - name: "Build wezterm (Release mode Intel)"
+      - name: "Build phiterm (Release mode Intel)"
         shell: bash
-        run: "cargo build --target x86_64-apple-darwin -p wezterm --release"
-      - name: "Build wezterm (Release mode ARM)"
+        run: "cargo build --target x86_64-apple-darwin -p phiterm --release"
+      - name: "Build phiterm (Release mode ARM)"
         shell: bash
-        run: "cargo build --target aarch64-apple-darwin -p wezterm --release"
-      - name: "Build wezterm-gui (Release mode Intel)"
+        run: "cargo build --target aarch64-apple-darwin -p phiterm --release"
+      - name: "Build phiterm-gui (Release mode Intel)"
         shell: bash
-        run: "cargo build --target x86_64-apple-darwin -p wezterm-gui --release"
-      - name: "Build wezterm-gui (Release mode ARM)"
+        run: "cargo build --target x86_64-apple-darwin -p phiterm-gui --release"
+      - name: "Build phiterm-gui (Release mode ARM)"
         shell: bash
-        run: "cargo build --target aarch64-apple-darwin -p wezterm-gui --release"
-      - name: "Build wezterm-mux-server (Release mode Intel)"
+        run: "cargo build --target aarch64-apple-darwin -p phiterm-gui --release"
+      - name: "Build phiterm-mux-server (Release mode Intel)"
         shell: bash
-        run: "cargo build --target x86_64-apple-darwin -p wezterm-mux-server --release"
-      - name: "Build wezterm-mux-server (Release mode ARM)"
+        run: "cargo build --target x86_64-apple-darwin -p phiterm-mux-server --release"
+      - name: "Build phiterm-mux-server (Release mode ARM)"
         shell: bash
-        run: "cargo build --target aarch64-apple-darwin -p wezterm-mux-server --release"
+        run: "cargo build --target aarch64-apple-darwin -p phiterm-mux-server --release"
       - name: "Build strip-ansi-escapes (Release mode Intel)"
         shell: bash
         run: "cargo build --target x86_64-apple-darwin -p strip-ansi-escapes --release"
@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: "macos"
-          path: "WezTerm-*.zip"
+          path: "PhiTerm-*.zip"
 
   upload:
     runs-on: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
           token: "${{ secrets.GH_PAT }}"
       - name: "Update homebrew tap formula"
         shell: bash
-        run: "cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb"
+        run: "cp phiterm.rb homebrew-wezterm/Casks/phiterm.rb"
       - name: "Commit homebrew tap changes"
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -125,7 +125,7 @@ jobs:
           name: "macos"
       - name: "Checksum"
         shell: bash
-        run: "for f in WezTerm-*.zip ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in PhiTerm-*.zip ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -135,4 +135,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) WezTerm-*.zip *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) PhiTerm-*.zip *.sha256"

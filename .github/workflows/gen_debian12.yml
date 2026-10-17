@@ -12,12 +12,12 @@ on:
       - ".github/workflows/gen_debian12.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
-      - "assets/open-wezterm-here"
+      - "assets/open-phiterm-here"
+      - "assets/phiterm-nautilus.py"
+      - "assets/phiterm.appdata.xml"
+      - "assets/phiterm.desktop"
       - "assets/shell-completion/**/*"
       - "assets/shell-integration/**/*"
-      - "assets/wezterm-nautilus.py"
-      - "assets/wezterm.appdata.xml"
-      - "assets/wezterm.desktop"
       - "ci/deploy.sh"
       - "ci/tag-name.sh"
       - "get-deps"
@@ -80,15 +80,15 @@ jobs:
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
-      - name: "Build wezterm (Release mode)"
+      - name: "Build phiterm (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm --release"
-      - name: "Build wezterm-gui (Release mode)"
+        run: "cargo build -p phiterm --release"
+      - name: "Build phiterm-gui (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-gui --release"
-      - name: "Build wezterm-mux-server (Release mode)"
+        run: "cargo build -p phiterm-gui --release"
+      - name: "Build phiterm-mux-server (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-mux-server --release"
+        run: "cargo build -p phiterm-mux-server --release"
       - name: "Build strip-ansi-escapes (Release mode)"
         shell: bash
         run: "cargo build -p strip-ansi-escapes --release"
@@ -111,5 +111,5 @@ jobs:
         with:
           name: "debian12"
           path: |
-            wezterm-*.deb
-            wezterm-*.xz
+            phiterm-*.deb
+            phiterm-*.xz

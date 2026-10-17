@@ -764,7 +764,7 @@ impl RenderableState {
             if inner.client.overlay_lag_indicator && idx == inner.dimensions.physical_top {
                 if inner.is_tardy() {
                     let status = format!(
-                        "wezterm: {:.0?}⏳since last response",
+                        "phiterm: {:.0?}⏳since last response",
                         inner.last_recv_time.elapsed()
                     );
                     // Right align it in the tab

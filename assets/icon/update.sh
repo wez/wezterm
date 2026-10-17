@@ -4,7 +4,7 @@
 set -x
 cd $(git rev-parse --show-toplevel)/assets/icon
 
-src=wezterm-icon.svg
+src=phiterm-icon.svg
 
 conv_opts="-colors 256 -background none -density 300"
 
@@ -17,7 +17,7 @@ for dim in 16 32 128 256 512 1024 ; do
 done
 # png2icns is part of the libicns-utils on Fedora systems.
 # It glues together the various png files into a macOS .icns file
-png2icns ../macos/WezTerm.app/Contents/Resources/terminal.icns icon_*px.png
+png2icns ../macos/Phiterm.app/Contents/Resources/terminal.icns icon_*px.png
 
 # Clean up
 rm -f icon_*px.png

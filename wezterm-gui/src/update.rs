@@ -81,7 +81,7 @@ pub fn load_last_release_info_and_set_banner() {
         };
 
         let current = wezterm_version();
-        let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
+        let force_ui = config::env_var("ALWAYS_SHOW_UPDATE_UI").is_some();
         if latest.tag_name.as_str() <= current && !force_ui {
             return;
         }
@@ -119,7 +119,7 @@ fn set_banner_from_release_info(latest: &Release) {
     let reset = CSI::Sgr(Sgr::Reset);
     let link_off = OperatingSystemCommand::SetHyperlink(None);
     mux.set_banner(Some(format!(
-        "{}{}WezTerm Update Available\r\n{}{}{}{}Click to see what's new{}{}\r\n",
+        "{}{}Phiterm Update Available\r\n{}{}{}{}Click to see what's new{}{}\r\n",
         icon,
         top_line_pos,
         second_line_pos,
@@ -154,7 +154,7 @@ fn update_checker() {
     let update_interval = Duration::from_secs(configuration().check_for_updates_interval_seconds);
     let initial_interval = Duration::from_secs(10);
 
-    let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
+    let force_ui = config::env_var("ALWAYS_SHOW_UPDATE_UI").is_some();
 
     let update_file_name = config::DATA_DIR.join("check_update");
     let delay = update_file_name
@@ -191,11 +191,11 @@ fn update_checker() {
                         current
                     );
 
-                    let url = format!("https://wezterm.org/changelog.html#{}", latest.tag_name);
+                    let url = format!("https://phiterm.org/changelog.html#{}", latest.tag_name);
 
                     if force_ui || socks.is_empty() || socks[0] == my_sock {
                         persistent_toast_notification_with_click_to_open_url(
-                            "WezTerm Update Available",
+                            "Phiterm Update Available",
                             "Click to see what's new",
                             &url,
                         );

@@ -267,6 +267,8 @@ impl RemoteSshDomain {
         // One option is to forward the mux via unix domain, another is to
         // embed the mux protocol in an escape sequence and just use the
         // existing terminal connection
+        env.insert("PHITERM_REMOTE_PANE".to_string(), pane_id.to_string());
+        // Mirror the legacy name for compatibility with remote tooling.
         env.insert("WEZTERM_REMOTE_PANE".to_string(), pane_id.to_string());
 
         fn build_env_command(
@@ -762,7 +764,7 @@ impl Domain for RemoteSshDomain {
         let terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
+            "Phiterm",
             config::wezterm_version(),
             Box::new(writer.clone()),
         );

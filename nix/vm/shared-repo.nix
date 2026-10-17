@@ -5,7 +5,7 @@ let
 in
 {
   virtualisation.vmVariant = {
-    virtualisation.sharedDirectories."wezterm-repo" = {
+    virtualisation.sharedDirectories."phiterm-repo" = {
       # NOTE: env var needs to be set on VM start!
       source = ''"$REPO"'';
       target = repoTarget;
@@ -13,7 +13,7 @@ in
   };
 
   fileSystems.${repoTarget} = {
-    device = "wezterm-repo";
+    device = "phiterm-repo";
     fsType = "9p";
     options = [
       # automount to keep boot fast

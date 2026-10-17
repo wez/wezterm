@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PhiTerm
+Comment=PhiTerm: a GPU-accelerated terminal emulator
+Keywords=shell;prompt;command;commandline;cmd;
+Icon=org.phiterm.phiterm
+StartupWMClass=org.phiterm.phiterm
+TryExec=phiterm
+Exec=phiterm start --cwd .
+Type=Application
+Categories=System;TerminalEmulator;Utility;
+Terminal=false

@@ -20,7 +20,7 @@
     # links to each repo in package sources.
     #
     # Try to use tags when possible to increase readability
-    # (note: `git submodule status` in wezterm repo will show the `git describe` result for each
+    # (note: `git submodule status` in phiterm repo will show the `git describe` result for each
     # submodule, can help finding a tag if any)
     freetype2 = {
       url = "github:freetype/freetype/VER-2-13-3";
@@ -102,7 +102,7 @@
           packages.default = rustPlatform.buildRustPackage (finalAttrs: {
             inherit buildInputs nativeBuildInputs;
 
-            pname = "wezterm";
+            pname = "phiterm";
             src = ./..;
 
             # Rebuild the usual version number of the project from info of commit being built.
@@ -140,8 +140,8 @@
               rm -r wezterm-ssh/tests
 
               # hash does not work well with NixOS
-              substituteInPlace assets/shell-integration/wezterm.sh \
-                --replace-fail 'hash wezterm 2>/dev/null' 'command type -P wezterm &>/dev/null' \
+              substituteInPlace assets/shell-integration/phiterm.sh \
+                --replace-fail 'hash phiterm 2>/dev/null' 'command type -P phiterm &>/dev/null' \
                 --replace-fail 'hash base64 2>/dev/null' 'command type -P base64 &>/dev/null' \
                 --replace-fail 'hash hostname 2>/dev/null' 'command type -P hostname &>/dev/null' \
                 --replace-fail 'hash hostnamectl 2>/dev/null' 'command type -P hostnamectl &>/dev/null'
@@ -155,47 +155,47 @@
                 patchelf \
                   --add-needed "${pkgs.libGL}/lib/libEGL.so.1" \
                   --add-needed "${pkgs.vulkan-loader}/lib/libvulkan.so.1" \
-                  $out/bin/wezterm-gui
+                  $out/bin/phiterm-gui
               ''
               + lib.optionalString stdenv.isDarwin /* bash */ ''
                 mkdir -p "$out/Applications"
-                OUT_APP="$out/Applications/WezTerm.app"
-                cp -r assets/macos/WezTerm.app "$OUT_APP"
+                OUT_APP="$out/Applications/Phiterm.app"
+                cp -r assets/macos/Phiterm.app "$OUT_APP"
                 rm $OUT_APP/*.dylib
                 cp -r assets/shell-integration/* "$OUT_APP/Contents/Resources"
                 # macOS will only recognize our application bundle
                 # if the binaries are inside of it. Move them there
                 # and create symbolic links for them in bin/.
                 mkdir -p "$OUT_APP/Contents/MacOS"
-                mv $out/bin/{wezterm,wezterm-mux-server,wezterm-gui,strip-ansi-escapes} "$OUT_APP/Contents/MacOS"
-                ln -s "$OUT_APP/Contents/MacOS"/{wezterm,wezterm-mux-server,wezterm-gui,strip-ansi-escapes} "$out/bin"
+                mv $out/bin/{phiterm,phiterm-mux-server,phiterm-gui,strip-ansi-escapes} "$OUT_APP/Contents/MacOS"
+                ln -s "$OUT_APP/Contents/MacOS"/{phiterm,phiterm-mux-server,phiterm-gui,strip-ansi-escapes} "$out/bin"
               '';
 
             preBuild = ''
-              echo "Building Wezterm ${finalAttrs.version}..."
+              echo "Building Phiterm ${finalAttrs.version}..."
             '';
 
             postInstall = ''
               mkdir -p $out/nix-support
               echo "${finalAttrs.passthru.terminfo}" >> $out/nix-support/propagated-user-env-packages
 
-              install -Dm644 assets/icon/terminal.png $out/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
-              install -Dm644 assets/wezterm.desktop $out/share/applications/org.wezfurlong.wezterm.desktop
-              install -Dm644 assets/wezterm.appdata.xml $out/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+              install -Dm644 assets/icon/terminal.png $out/share/icons/hicolor/128x128/apps/org.phiterm.phiterm.png
+              install -Dm644 assets/phiterm.desktop $out/share/applications/org.phiterm.phiterm.desktop
+              install -Dm644 assets/phiterm.appdata.xml $out/share/metainfo/org.phiterm.phiterm.appdata.xml
 
-              install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
-              installShellCompletion --cmd wezterm \
+              install -Dm644 assets/shell-integration/phiterm.sh -t $out/etc/profile.d
+              installShellCompletion --cmd phiterm \
                 --bash assets/shell-completion/bash \
                 --fish assets/shell-completion/fish \
                 --zsh assets/shell-completion/zsh
 
-              install -Dm644 assets/wezterm-nautilus.py -t $out/share/nautilus-python/extensions
+              install -Dm644 assets/phiterm-nautilus.py -t $out/share/nautilus-python/extensions
             '';
 
             passthru = {
-              # the headless variant is useful when deploying wezterm's mux server on remote severs
+              # the headless variant is useful when deploying phiterm's mux server on remote severs
               headless = rustPlatform.buildRustPackage {
-                pname = "wezterm-headless";
+                pname = "phiterm-headless";
                 inherit (finalAttrs)
                   version
                   src
@@ -212,21 +212,21 @@
 
                 cargoBuildFlags = [
                   "--package"
-                  "wezterm"
+                  "phiterm"
                   "--package"
-                  "wezterm-mux-server"
+                  "phiterm-mux-server"
                 ];
 
                 doCheck = false;
 
                 postInstall = ''
-                  install -Dm644 assets/shell-integration/wezterm.sh -t $out/etc/profile.d
+                  install -Dm644 assets/shell-integration/phiterm.sh -t $out/etc/profile.d
                   install -Dm644 ${finalAttrs.passthru.terminfo}/share/terminfo/w/wezterm -t $out/share/terminfo/w
                 '';
               };
 
               terminfo =
-                pkgs.runCommand "wezterm-terminfo-${finalAttrs.version}"
+                pkgs.runCommand "phiterm-terminfo-${finalAttrs.version}"
                   {
                     nativeBuildInputs = [ pkgs.ncurses ];
                   }
@@ -236,11 +236,11 @@
                   '';
             };
 
-            meta.mainProgram = "wezterm";
+            meta.mainProgram = "phiterm";
           });
 
           devShell = pkgs.mkShell {
-            name = "wezterm-shell";
+            name = "phiterm-shell";
             inherit nativeBuildInputs;
 
             buildInputs =
@@ -272,7 +272,7 @@
 
       testingSystem = "x86_64-linux";
       globalOutputs = {
-        # 0. Build Wezterm locally: `cargo build`
+        # 0. Build Phiterm locally: `cargo build`
         # 1. Build the VM: `nixos-rebuild build-vm --flake ./nix#testing-on-gnome`
         # 2. Start the VM: `REPO=$PWD ./result/bin/run-nixos-vm`
         # 3. (In the VM) (optional, 1-time) Adjust your keyboard layout in settings

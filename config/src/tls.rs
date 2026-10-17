@@ -35,7 +35,7 @@ pub struct TlsDomainClient {
 
     /// If set, use ssh to connect, start the server, and obtain
     /// a certificate.
-    /// The value is "user@host:port", just like "wezterm ssh" accepts.
+    /// The value is "user@host:port", just like "phiterm ssh" accepts.
     pub bootstrap_via_ssh: Option<String>,
 
     /// identifies the host:port pair of the remote server.

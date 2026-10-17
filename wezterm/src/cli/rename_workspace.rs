@@ -11,7 +11,7 @@ pub struct RenameWorkspace {
 
     /// Specify the current pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable PHITERM_PANE.
     ///
     /// The pane is used to figure out which workspace
     /// should be renamed.

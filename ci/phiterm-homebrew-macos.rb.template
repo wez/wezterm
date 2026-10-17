@@ -1,0 +1,52 @@
+# Note: if you are viewing this from the tap repo, this file is automatically
+# updated from:
+# https://github.com/wezterm/wezterm/blob/main/ci/phiterm-homebrew-macos.rb.template
+# by automation in the phiterm repo.
+# vim:ft=ruby:
+cask "phiterm" do
+  version "@TAG@"
+  sha256 "@SHA256@"
+
+  url "https://github.com/wezterm/wezterm/releases/download/#{version}/PhiTerm-macos-#{version}.zip"
+  name "PhiTerm"
+  desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"
+  homepage "https://wezterm.org/"
+
+  conflicts_with cask: "wezterm/wezterm/phiterm-nightly"
+
+  # Unclear what the minimal OS version is
+  # depends_on macos: ">= :sierra"
+
+  app "Phiterm.app"
+  [
+    "phiterm",
+    "phiterm-gui",
+    "phiterm-mux-server",
+    "strip-ansi-escapes"
+  ].each do |tool|
+    binary "#{appdir}/Phiterm.app/Contents/MacOS/#{tool}"
+  end
+
+  preflight do
+    # Move "PhiTerm-macos-#{version}/Phiterm.app" out of the subfolder
+    staged_subfolder = staged_path.glob(["PhiTerm-*", "phiterm-*"]).first
+    if staged_subfolder
+      FileUtils.mv(staged_subfolder/"Phiterm.app", staged_path)
+      FileUtils.rm_rf(staged_subfolder)
+    end
+  end
+
+  zap trash: [
+    "~/Library/Saved Application State/org.phiterm.phiterm.savedState",
+  ]
+
+  def caveats; <<~EOS
+    Cask #{token} related executables like 'phiterm', 'phiterm-gui',
+    'phiterm-mux-server', are linked into
+      /usr/local/bin/    for x86 Mac,
+      /opt/homebrew/bin/ for M1 Mac.
+
+    Removal of them is ensured by 'brew uninstall --cask #{token}'.
+  EOS
+  end
+end

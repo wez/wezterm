@@ -16,12 +16,12 @@ mod daemonize;
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
+    about = "Phiterm multiplexer server",
     version = config::wezterm_version(),
     trailing_var_arg = true,
 )]
 struct Opt {
-    /// Skip loading wezterm.lua
+    /// Skip loading phiterm.lua
     #[arg(long, short = 'n')]
     skip_config: bool,
 
@@ -194,6 +194,8 @@ fn run() -> anyhow::Result<()> {
         "OLDPWD",
         "PWD",
         "SHLVL",
+        "PHITERM_PANE",
+        "PHITERM_UNIX_SOCKET",
         "WEZTERM_PANE",
         "WEZTERM_UNIX_SOCKET",
         "_",
@@ -310,7 +312,7 @@ mod ossl;
 pub fn spawn_listener() -> anyhow::Result<()> {
     let config = configuration();
     for unix_dom in &config.unix_domains {
-        std::env::set_var("WEZTERM_UNIX_SOCKET", unix_dom.socket_path());
+        config::set_env_var("UNIX_SOCKET", unix_dom.socket_path());
         let mut listener = wezterm_mux_server_impl::local::LocalListener::with_domain(unix_dom)?;
         thread::spawn(move || {
             listener.run();

@@ -1,18 +1,18 @@
 # shellcheck shell=bash
 
-# This file hooks up shell integration for wezterm.
+# This file hooks up shell integration for phiterm.
 # It is suitable for zsh and bash.
 #
-# Although wezterm is mentioned here, the sequences used are not wezterm
+# Although phiterm is mentioned here, the sequences used are not phiterm
 # specific and may provide the same functionality for other terminals.  Most
 # terminals are good at ignoring OSC sequences that they don't understand, but
 # if not there are some bypasses:
 #
-# WEZTERM_SHELL_SKIP_ALL - disables all
-# WEZTERM_SHELL_SKIP_SEMANTIC_ZONES - disables zones
-# WEZTERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting
-# WEZTERM_SHELL_SKIP_USER_VARS - disable user vars that capture information
-#                                about running programs
+# PHITERM_SHELL_SKIP_ALL - disables all (legacy: WEZTERM_SHELL_SKIP_ALL)
+# PHITERM_SHELL_SKIP_SEMANTIC_ZONES - disables zones (legacy: WEZTERM_SHELL_SKIP_SEMANTIC_ZONES)
+# PHITERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting (legacy: WEZTERM_SHELL_SKIP_CWD)
+# PHITERM_SHELL_SKIP_USER_VARS - disable user vars that capture information
+#                                about running programs (legacy: WEZTERM_SHELL_SKIP_USER_VARS)
 
 # shellcheck disable=SC2166
 if [ -z "${BASH_VERSION-}" -a -z "${ZSH_NAME-}" ] ; then
@@ -20,7 +20,7 @@ if [ -z "${BASH_VERSION-}" -a -z "${ZSH_NAME-}" ] ; then
   return 0
 fi
 
-if [ "${WEZTERM_SHELL_SKIP_ALL-}" = "1" ] ; then
+if [ "${PHITERM_SHELL_SKIP_ALL-${WEZTERM_SHELL_SKIP_ALL-}}" = "1" ] ; then
   return 0
 fi
 
@@ -446,12 +446,12 @@ __wezterm_set_user_var() {
 
 # This function emits an OSC 7 sequence to inform the terminal
 # of the current working directory.  It prefers to use a helper
-# command provided by wezterm if wezterm is installed, but falls
+# command provided by phiterm if phiterm is installed, but falls
 # back to a simple printf command otherwise.
 __wezterm_osc7() {
-  if hash wezterm 2>/dev/null ; then
-    wezterm set-working-directory 2>/dev/null && return 0
-    # If the command failed (perhaps the installed wezterm
+  if hash phiterm 2>/dev/null ; then
+    phiterm set-working-directory 2>/dev/null && return 0
+    # If the command failed (perhaps the installed phiterm
     # is too old?) then fall back to the simple version below.
   fi
   printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "${PWD}"
@@ -542,7 +542,7 @@ __wezterm_user_vars_preexec() {
 # Register the various functions; take care to perform osc7 after
 # the semantic zones as we don't want to perturb the last command
 # status before we've had a chance to report it to the terminal
-if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}" ]]; then
+if [[ -z "${PHITERM_SHELL_SKIP_SEMANTIC_ZONES-${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}}" ]]; then
   if [[ -n "${BLE_VERSION-}" ]]; then
     blehook PRECMD+=__wezterm_semantic_precmd
     blehook PREEXEC+=__wezterm_semantic_preexec
@@ -552,7 +552,7 @@ if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}" ]]; then
   fi
 fi
 
-if [[ -z "${WEZTERM_SHELL_SKIP_USER_VARS-}" ]]; then
+if [[ -z "${PHITERM_SHELL_SKIP_USER_VARS-${WEZTERM_SHELL_SKIP_USER_VARS-}}" ]]; then
   if [[ -n "${BLE_VERSION-}" ]]; then
     blehook PRECMD+=__wezterm_user_vars_precmd
     blehook PREEXEC+=__wezterm_user_vars_preexec
@@ -562,7 +562,7 @@ if [[ -z "${WEZTERM_SHELL_SKIP_USER_VARS-}" ]]; then
   fi
 fi
 
-if [[ -z "${WEZTERM_SHELL_SKIP_CWD-}" ]] ; then
+if [[ -z "${PHITERM_SHELL_SKIP_CWD-${WEZTERM_SHELL_SKIP_CWD-}}" ]] ; then
   if [[ -n "${BLE_VERSION-}" ]]; then
     blehook PRECMD+=__wezterm_osc7
   else

@@ -23,7 +23,7 @@ mod cli;
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
+    about = "Phiterm: a GPU-accelerated terminal emulator",
     version = wezterm_version()
 )]
 pub struct Opt {
@@ -107,7 +107,7 @@ enum SubCommand {
     #[command(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[command(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[command(name = "connect", about = "Connect to phiterm multiplexer")]
     Connect(ConnectCommand),
 
     #[command(name = "ls-fonts", about = "Display information about fonts")]
@@ -772,9 +772,9 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     drop(saver);
 
     let exe_name = if cfg!(windows) {
-        "wezterm-gui.exe"
+        "phiterm-gui.exe"
     } else {
-        "wezterm-gui"
+        "phiterm-gui"
     };
 
     let exe = std::env::current_exe()?

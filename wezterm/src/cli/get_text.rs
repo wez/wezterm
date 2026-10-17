@@ -8,7 +8,7 @@ use wezterm_term::{ScrollbackOrVisibleRowIndex, StableRowIndex};
 pub struct GetText {
     /// Specify the target pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable PHITERM_PANE.
     #[arg(long)]
     pane_id: Option<PaneId>,
 

@@ -6,7 +6,7 @@ use wezterm_client::client::Client;
 pub struct ActivatePane {
     /// Specify the target pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable PHITERM_PANE.
     #[arg(long)]
     pane_id: Option<PaneId>,
 }

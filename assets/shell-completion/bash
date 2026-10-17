@@ -1,4 +1,4 @@
-_wezterm() {
+_phiterm() {
     local i cur prev opts cmd
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -10,268 +10,268 @@ _wezterm() {
     do
         case "${cmd},${i}" in
             ",$1")
-                cmd="wezterm"
+                cmd="phiterm"
                 ;;
-            wezterm,blocking-start)
-                cmd="wezterm__blocking__start"
+            phiterm,blocking-start)
+                cmd="phiterm__blocking__start"
                 ;;
-            wezterm,cli)
-                cmd="wezterm__cli"
+            phiterm,cli)
+                cmd="phiterm__cli"
                 ;;
-            wezterm,connect)
-                cmd="wezterm__connect"
+            phiterm,connect)
+                cmd="phiterm__connect"
                 ;;
-            wezterm,help)
-                cmd="wezterm__help"
+            phiterm,help)
+                cmd="phiterm__help"
                 ;;
-            wezterm,imgcat)
-                cmd="wezterm__imgcat"
+            phiterm,imgcat)
+                cmd="phiterm__imgcat"
                 ;;
-            wezterm,ls-fonts)
-                cmd="wezterm__ls__fonts"
+            phiterm,ls-fonts)
+                cmd="phiterm__ls__fonts"
                 ;;
-            wezterm,record)
-                cmd="wezterm__record"
+            phiterm,record)
+                cmd="phiterm__record"
                 ;;
-            wezterm,replay)
-                cmd="wezterm__replay"
+            phiterm,replay)
+                cmd="phiterm__replay"
                 ;;
-            wezterm,serial)
-                cmd="wezterm__serial"
+            phiterm,serial)
+                cmd="phiterm__serial"
                 ;;
-            wezterm,set-working-directory)
-                cmd="wezterm__set__working__directory"
+            phiterm,set-working-directory)
+                cmd="phiterm__set__working__directory"
                 ;;
-            wezterm,shell-completion)
-                cmd="wezterm__shell__completion"
+            phiterm,shell-completion)
+                cmd="phiterm__shell__completion"
                 ;;
-            wezterm,show-keys)
-                cmd="wezterm__show__keys"
+            phiterm,show-keys)
+                cmd="phiterm__show__keys"
                 ;;
-            wezterm,ssh)
-                cmd="wezterm__ssh"
+            phiterm,ssh)
+                cmd="phiterm__ssh"
                 ;;
-            wezterm,start)
-                cmd="wezterm__start"
+            phiterm,start)
+                cmd="phiterm__start"
                 ;;
-            wezterm__cli,activate-pane)
-                cmd="wezterm__cli__activate__pane"
+            phiterm__cli,activate-pane)
+                cmd="phiterm__cli__activate__pane"
                 ;;
-            wezterm__cli,activate-pane-direction)
-                cmd="wezterm__cli__activate__pane__direction"
+            phiterm__cli,activate-pane-direction)
+                cmd="phiterm__cli__activate__pane__direction"
                 ;;
-            wezterm__cli,activate-tab)
-                cmd="wezterm__cli__activate__tab"
+            phiterm__cli,activate-tab)
+                cmd="phiterm__cli__activate__tab"
                 ;;
-            wezterm__cli,adjust-pane-size)
-                cmd="wezterm__cli__adjust__pane__size"
+            phiterm__cli,adjust-pane-size)
+                cmd="phiterm__cli__adjust__pane__size"
                 ;;
-            wezterm__cli,get-pane-direction)
-                cmd="wezterm__cli__get__pane__direction"
+            phiterm__cli,get-pane-direction)
+                cmd="phiterm__cli__get__pane__direction"
                 ;;
-            wezterm__cli,get-text)
-                cmd="wezterm__cli__get__text"
+            phiterm__cli,get-text)
+                cmd="phiterm__cli__get__text"
                 ;;
-            wezterm__cli,help)
-                cmd="wezterm__cli__help"
+            phiterm__cli,help)
+                cmd="phiterm__cli__help"
                 ;;
-            wezterm__cli,kill-pane)
-                cmd="wezterm__cli__kill__pane"
+            phiterm__cli,kill-pane)
+                cmd="phiterm__cli__kill__pane"
                 ;;
-            wezterm__cli,list)
-                cmd="wezterm__cli__list"
+            phiterm__cli,list)
+                cmd="phiterm__cli__list"
                 ;;
-            wezterm__cli,list-clients)
-                cmd="wezterm__cli__list__clients"
+            phiterm__cli,list-clients)
+                cmd="phiterm__cli__list__clients"
                 ;;
-            wezterm__cli,move-pane-to-new-tab)
-                cmd="wezterm__cli__move__pane__to__new__tab"
+            phiterm__cli,move-pane-to-new-tab)
+                cmd="phiterm__cli__move__pane__to__new__tab"
                 ;;
-            wezterm__cli,proxy)
-                cmd="wezterm__cli__proxy"
+            phiterm__cli,proxy)
+                cmd="phiterm__cli__proxy"
                 ;;
-            wezterm__cli,rename-workspace)
-                cmd="wezterm__cli__rename__workspace"
+            phiterm__cli,rename-workspace)
+                cmd="phiterm__cli__rename__workspace"
                 ;;
-            wezterm__cli,send-text)
-                cmd="wezterm__cli__send__text"
+            phiterm__cli,send-text)
+                cmd="phiterm__cli__send__text"
                 ;;
-            wezterm__cli,set-tab-title)
-                cmd="wezterm__cli__set__tab__title"
+            phiterm__cli,set-tab-title)
+                cmd="phiterm__cli__set__tab__title"
                 ;;
-            wezterm__cli,set-window-title)
-                cmd="wezterm__cli__set__window__title"
+            phiterm__cli,set-window-title)
+                cmd="phiterm__cli__set__window__title"
                 ;;
-            wezterm__cli,spawn)
-                cmd="wezterm__cli__spawn"
+            phiterm__cli,spawn)
+                cmd="phiterm__cli__spawn"
                 ;;
-            wezterm__cli,split-pane)
-                cmd="wezterm__cli__split__pane"
+            phiterm__cli,split-pane)
+                cmd="phiterm__cli__split__pane"
                 ;;
-            wezterm__cli,tlscreds)
-                cmd="wezterm__cli__tlscreds"
+            phiterm__cli,tlscreds)
+                cmd="phiterm__cli__tlscreds"
                 ;;
-            wezterm__cli,zoom-pane)
-                cmd="wezterm__cli__zoom__pane"
+            phiterm__cli,zoom-pane)
+                cmd="phiterm__cli__zoom__pane"
                 ;;
-            wezterm__cli__help,activate-pane)
-                cmd="wezterm__cli__help__activate__pane"
+            phiterm__cli__help,activate-pane)
+                cmd="phiterm__cli__help__activate__pane"
                 ;;
-            wezterm__cli__help,activate-pane-direction)
-                cmd="wezterm__cli__help__activate__pane__direction"
+            phiterm__cli__help,activate-pane-direction)
+                cmd="phiterm__cli__help__activate__pane__direction"
                 ;;
-            wezterm__cli__help,activate-tab)
-                cmd="wezterm__cli__help__activate__tab"
+            phiterm__cli__help,activate-tab)
+                cmd="phiterm__cli__help__activate__tab"
                 ;;
-            wezterm__cli__help,adjust-pane-size)
-                cmd="wezterm__cli__help__adjust__pane__size"
+            phiterm__cli__help,adjust-pane-size)
+                cmd="phiterm__cli__help__adjust__pane__size"
                 ;;
-            wezterm__cli__help,get-pane-direction)
-                cmd="wezterm__cli__help__get__pane__direction"
+            phiterm__cli__help,get-pane-direction)
+                cmd="phiterm__cli__help__get__pane__direction"
                 ;;
-            wezterm__cli__help,get-text)
-                cmd="wezterm__cli__help__get__text"
+            phiterm__cli__help,get-text)
+                cmd="phiterm__cli__help__get__text"
                 ;;
-            wezterm__cli__help,help)
-                cmd="wezterm__cli__help__help"
+            phiterm__cli__help,help)
+                cmd="phiterm__cli__help__help"
                 ;;
-            wezterm__cli__help,kill-pane)
-                cmd="wezterm__cli__help__kill__pane"
+            phiterm__cli__help,kill-pane)
+                cmd="phiterm__cli__help__kill__pane"
                 ;;
-            wezterm__cli__help,list)
-                cmd="wezterm__cli__help__list"
+            phiterm__cli__help,list)
+                cmd="phiterm__cli__help__list"
                 ;;
-            wezterm__cli__help,list-clients)
-                cmd="wezterm__cli__help__list__clients"
+            phiterm__cli__help,list-clients)
+                cmd="phiterm__cli__help__list__clients"
                 ;;
-            wezterm__cli__help,move-pane-to-new-tab)
-                cmd="wezterm__cli__help__move__pane__to__new__tab"
+            phiterm__cli__help,move-pane-to-new-tab)
+                cmd="phiterm__cli__help__move__pane__to__new__tab"
                 ;;
-            wezterm__cli__help,proxy)
-                cmd="wezterm__cli__help__proxy"
+            phiterm__cli__help,proxy)
+                cmd="phiterm__cli__help__proxy"
                 ;;
-            wezterm__cli__help,rename-workspace)
-                cmd="wezterm__cli__help__rename__workspace"
+            phiterm__cli__help,rename-workspace)
+                cmd="phiterm__cli__help__rename__workspace"
                 ;;
-            wezterm__cli__help,send-text)
-                cmd="wezterm__cli__help__send__text"
+            phiterm__cli__help,send-text)
+                cmd="phiterm__cli__help__send__text"
                 ;;
-            wezterm__cli__help,set-tab-title)
-                cmd="wezterm__cli__help__set__tab__title"
+            phiterm__cli__help,set-tab-title)
+                cmd="phiterm__cli__help__set__tab__title"
                 ;;
-            wezterm__cli__help,set-window-title)
-                cmd="wezterm__cli__help__set__window__title"
+            phiterm__cli__help,set-window-title)
+                cmd="phiterm__cli__help__set__window__title"
                 ;;
-            wezterm__cli__help,spawn)
-                cmd="wezterm__cli__help__spawn"
+            phiterm__cli__help,spawn)
+                cmd="phiterm__cli__help__spawn"
                 ;;
-            wezterm__cli__help,split-pane)
-                cmd="wezterm__cli__help__split__pane"
+            phiterm__cli__help,split-pane)
+                cmd="phiterm__cli__help__split__pane"
                 ;;
-            wezterm__cli__help,tlscreds)
-                cmd="wezterm__cli__help__tlscreds"
+            phiterm__cli__help,tlscreds)
+                cmd="phiterm__cli__help__tlscreds"
                 ;;
-            wezterm__cli__help,zoom-pane)
-                cmd="wezterm__cli__help__zoom__pane"
+            phiterm__cli__help,zoom-pane)
+                cmd="phiterm__cli__help__zoom__pane"
                 ;;
-            wezterm__help,blocking-start)
-                cmd="wezterm__help__blocking__start"
+            phiterm__help,blocking-start)
+                cmd="phiterm__help__blocking__start"
                 ;;
-            wezterm__help,cli)
-                cmd="wezterm__help__cli"
+            phiterm__help,cli)
+                cmd="phiterm__help__cli"
                 ;;
-            wezterm__help,connect)
-                cmd="wezterm__help__connect"
+            phiterm__help,connect)
+                cmd="phiterm__help__connect"
                 ;;
-            wezterm__help,help)
-                cmd="wezterm__help__help"
+            phiterm__help,help)
+                cmd="phiterm__help__help"
                 ;;
-            wezterm__help,imgcat)
-                cmd="wezterm__help__imgcat"
+            phiterm__help,imgcat)
+                cmd="phiterm__help__imgcat"
                 ;;
-            wezterm__help,ls-fonts)
-                cmd="wezterm__help__ls__fonts"
+            phiterm__help,ls-fonts)
+                cmd="phiterm__help__ls__fonts"
                 ;;
-            wezterm__help,record)
-                cmd="wezterm__help__record"
+            phiterm__help,record)
+                cmd="phiterm__help__record"
                 ;;
-            wezterm__help,replay)
-                cmd="wezterm__help__replay"
+            phiterm__help,replay)
+                cmd="phiterm__help__replay"
                 ;;
-            wezterm__help,serial)
-                cmd="wezterm__help__serial"
+            phiterm__help,serial)
+                cmd="phiterm__help__serial"
                 ;;
-            wezterm__help,set-working-directory)
-                cmd="wezterm__help__set__working__directory"
+            phiterm__help,set-working-directory)
+                cmd="phiterm__help__set__working__directory"
                 ;;
-            wezterm__help,shell-completion)
-                cmd="wezterm__help__shell__completion"
+            phiterm__help,shell-completion)
+                cmd="phiterm__help__shell__completion"
                 ;;
-            wezterm__help,show-keys)
-                cmd="wezterm__help__show__keys"
+            phiterm__help,show-keys)
+                cmd="phiterm__help__show__keys"
                 ;;
-            wezterm__help,ssh)
-                cmd="wezterm__help__ssh"
+            phiterm__help,ssh)
+                cmd="phiterm__help__ssh"
                 ;;
-            wezterm__help,start)
-                cmd="wezterm__help__start"
+            phiterm__help,start)
+                cmd="phiterm__help__start"
                 ;;
-            wezterm__help__cli,activate-pane)
-                cmd="wezterm__help__cli__activate__pane"
+            phiterm__help__cli,activate-pane)
+                cmd="phiterm__help__cli__activate__pane"
                 ;;
-            wezterm__help__cli,activate-pane-direction)
-                cmd="wezterm__help__cli__activate__pane__direction"
+            phiterm__help__cli,activate-pane-direction)
+                cmd="phiterm__help__cli__activate__pane__direction"
                 ;;
-            wezterm__help__cli,activate-tab)
-                cmd="wezterm__help__cli__activate__tab"
+            phiterm__help__cli,activate-tab)
+                cmd="phiterm__help__cli__activate__tab"
                 ;;
-            wezterm__help__cli,adjust-pane-size)
-                cmd="wezterm__help__cli__adjust__pane__size"
+            phiterm__help__cli,adjust-pane-size)
+                cmd="phiterm__help__cli__adjust__pane__size"
                 ;;
-            wezterm__help__cli,get-pane-direction)
-                cmd="wezterm__help__cli__get__pane__direction"
+            phiterm__help__cli,get-pane-direction)
+                cmd="phiterm__help__cli__get__pane__direction"
                 ;;
-            wezterm__help__cli,get-text)
-                cmd="wezterm__help__cli__get__text"
+            phiterm__help__cli,get-text)
+                cmd="phiterm__help__cli__get__text"
                 ;;
-            wezterm__help__cli,kill-pane)
-                cmd="wezterm__help__cli__kill__pane"
+            phiterm__help__cli,kill-pane)
+                cmd="phiterm__help__cli__kill__pane"
                 ;;
-            wezterm__help__cli,list)
-                cmd="wezterm__help__cli__list"
+            phiterm__help__cli,list)
+                cmd="phiterm__help__cli__list"
                 ;;
-            wezterm__help__cli,list-clients)
-                cmd="wezterm__help__cli__list__clients"
+            phiterm__help__cli,list-clients)
+                cmd="phiterm__help__cli__list__clients"
                 ;;
-            wezterm__help__cli,move-pane-to-new-tab)
-                cmd="wezterm__help__cli__move__pane__to__new__tab"
+            phiterm__help__cli,move-pane-to-new-tab)
+                cmd="phiterm__help__cli__move__pane__to__new__tab"
                 ;;
-            wezterm__help__cli,proxy)
-                cmd="wezterm__help__cli__proxy"
+            phiterm__help__cli,proxy)
+                cmd="phiterm__help__cli__proxy"
                 ;;
-            wezterm__help__cli,rename-workspace)
-                cmd="wezterm__help__cli__rename__workspace"
+            phiterm__help__cli,rename-workspace)
+                cmd="phiterm__help__cli__rename__workspace"
                 ;;
-            wezterm__help__cli,send-text)
-                cmd="wezterm__help__cli__send__text"
+            phiterm__help__cli,send-text)
+                cmd="phiterm__help__cli__send__text"
                 ;;
-            wezterm__help__cli,set-tab-title)
-                cmd="wezterm__help__cli__set__tab__title"
+            phiterm__help__cli,set-tab-title)
+                cmd="phiterm__help__cli__set__tab__title"
                 ;;
-            wezterm__help__cli,set-window-title)
-                cmd="wezterm__help__cli__set__window__title"
+            phiterm__help__cli,set-window-title)
+                cmd="phiterm__help__cli__set__window__title"
                 ;;
-            wezterm__help__cli,spawn)
-                cmd="wezterm__help__cli__spawn"
+            phiterm__help__cli,spawn)
+                cmd="phiterm__help__cli__spawn"
                 ;;
-            wezterm__help__cli,split-pane)
-                cmd="wezterm__help__cli__split__pane"
+            phiterm__help__cli,split-pane)
+                cmd="phiterm__help__cli__split__pane"
                 ;;
-            wezterm__help__cli,tlscreds)
-                cmd="wezterm__help__cli__tlscreds"
+            phiterm__help__cli,tlscreds)
+                cmd="phiterm__help__cli__tlscreds"
                 ;;
-            wezterm__help__cli,zoom-pane)
-                cmd="wezterm__help__cli__zoom__pane"
+            phiterm__help__cli,zoom-pane)
+                cmd="phiterm__help__cli__zoom__pane"
                 ;;
             *)
                 ;;
@@ -279,7 +279,7 @@ _wezterm() {
     done
 
     case "${cmd}" in
-        wezterm)
+        phiterm)
             opts="-n -h -V --skip-config --config-file --config --help --version start blocking-start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -304,7 +304,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__blocking__start)
+        phiterm__blocking__start)
             opts="-e -h --no-auto-connect --always-new-process --new-tab --cwd --class --workspace --position --domain --attach --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -341,7 +341,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli)
+        phiterm__cli)
             opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -359,7 +359,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__activate__pane)
+        phiterm__cli__activate__pane)
             opts="-h --pane-id --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -377,7 +377,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__activate__pane__direction)
+        phiterm__cli__activate__pane__direction)
             opts="-h --pane-id --help Up Down Left Right Next Prev"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -395,7 +395,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__activate__tab)
+        phiterm__cli__activate__tab)
             opts="-h --tab-id --tab-index --tab-relative --no-wrap --pane-id --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -425,7 +425,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__adjust__pane__size)
+        phiterm__cli__adjust__pane__size)
             opts="-h --pane-id --amount --help Up Down Left Right Next Prev"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -447,7 +447,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__get__pane__direction)
+        phiterm__cli__get__pane__direction)
             opts="-h --pane-id --help Up Down Left Right Next Prev"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -465,7 +465,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__get__text)
+        phiterm__cli__get__text)
             opts="-h --pane-id --start-line --end-line --escapes --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -491,7 +491,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help)
+        phiterm__cli__help)
             opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -505,7 +505,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__activate__pane)
+        phiterm__cli__help__activate__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -519,7 +519,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__activate__pane__direction)
+        phiterm__cli__help__activate__pane__direction)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -533,7 +533,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__activate__tab)
+        phiterm__cli__help__activate__tab)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -547,7 +547,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__adjust__pane__size)
+        phiterm__cli__help__adjust__pane__size)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -561,7 +561,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__get__pane__direction)
+        phiterm__cli__help__get__pane__direction)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -575,7 +575,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__get__text)
+        phiterm__cli__help__get__text)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -589,7 +589,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__help)
+        phiterm__cli__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -603,7 +603,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__kill__pane)
+        phiterm__cli__help__kill__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -617,7 +617,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__list)
+        phiterm__cli__help__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -631,7 +631,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__list__clients)
+        phiterm__cli__help__list__clients)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -645,7 +645,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__move__pane__to__new__tab)
+        phiterm__cli__help__move__pane__to__new__tab)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -659,7 +659,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__proxy)
+        phiterm__cli__help__proxy)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -673,7 +673,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__rename__workspace)
+        phiterm__cli__help__rename__workspace)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -687,7 +687,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__send__text)
+        phiterm__cli__help__send__text)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -701,7 +701,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__set__tab__title)
+        phiterm__cli__help__set__tab__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -715,7 +715,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__set__window__title)
+        phiterm__cli__help__set__window__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -729,7 +729,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__spawn)
+        phiterm__cli__help__spawn)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -743,7 +743,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__split__pane)
+        phiterm__cli__help__split__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -757,7 +757,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__tlscreds)
+        phiterm__cli__help__tlscreds)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -771,7 +771,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__help__zoom__pane)
+        phiterm__cli__help__zoom__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -785,7 +785,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__kill__pane)
+        phiterm__cli__kill__pane)
             opts="-h --pane-id --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -803,7 +803,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__list)
+        phiterm__cli__list)
             opts="-h --format --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -821,7 +821,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__list__clients)
+        phiterm__cli__list__clients)
             opts="-h --format --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -839,7 +839,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__move__pane__to__new__tab)
+        phiterm__cli__move__pane__to__new__tab)
             opts="-h --pane-id --window-id --new-window --workspace --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -865,7 +865,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__proxy)
+        phiterm__cli__proxy)
             opts="-h --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -879,7 +879,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__rename__workspace)
+        phiterm__cli__rename__workspace)
             opts="-h --workspace --pane-id --help <NEW_WORKSPACE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -901,7 +901,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__send__text)
+        phiterm__cli__send__text)
             opts="-h --pane-id --no-paste --help [TEXT]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -919,7 +919,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__set__tab__title)
+        phiterm__cli__set__tab__title)
             opts="-h --tab-id --pane-id --help <TITLE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -941,7 +941,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__set__window__title)
+        phiterm__cli__set__window__title)
             opts="-h --window-id --pane-id --help <TITLE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -963,7 +963,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__spawn)
+        phiterm__cli__spawn)
             opts="-h --pane-id --domain-name --window-id --new-window --cwd --workspace --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1000,7 +1000,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__split__pane)
+        phiterm__cli__split__pane)
             opts="-h --pane-id --horizontal --left --right --top --bottom --top-level --cells --percent --cwd --move-pane-id --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1037,7 +1037,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__tlscreds)
+        phiterm__cli__tlscreds)
             opts="-h --pem --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1051,7 +1051,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__cli__zoom__pane)
+        phiterm__cli__zoom__pane)
             opts="-h --pane-id --zoom --unzoom --toggle --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1069,7 +1069,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__connect)
+        phiterm__connect)
             opts="-h --new-tab --class --workspace --position --help <DOMAIN_NAME> [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1095,7 +1095,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help)
+        phiterm__help)
             opts="start blocking-start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1109,7 +1109,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__blocking__start)
+        phiterm__help__blocking__start)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1123,7 +1123,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli)
+        phiterm__help__cli)
             opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title rename-workspace zoom-pane"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1137,7 +1137,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__activate__pane)
+        phiterm__help__cli__activate__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1151,7 +1151,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__activate__pane__direction)
+        phiterm__help__cli__activate__pane__direction)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1165,7 +1165,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__activate__tab)
+        phiterm__help__cli__activate__tab)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1179,7 +1179,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__adjust__pane__size)
+        phiterm__help__cli__adjust__pane__size)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1193,7 +1193,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__get__pane__direction)
+        phiterm__help__cli__get__pane__direction)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1207,7 +1207,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__get__text)
+        phiterm__help__cli__get__text)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1221,7 +1221,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__kill__pane)
+        phiterm__help__cli__kill__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1235,7 +1235,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__list)
+        phiterm__help__cli__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1249,7 +1249,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__list__clients)
+        phiterm__help__cli__list__clients)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1263,7 +1263,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__move__pane__to__new__tab)
+        phiterm__help__cli__move__pane__to__new__tab)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1277,7 +1277,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__proxy)
+        phiterm__help__cli__proxy)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1291,7 +1291,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__rename__workspace)
+        phiterm__help__cli__rename__workspace)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1305,7 +1305,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__send__text)
+        phiterm__help__cli__send__text)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1319,7 +1319,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__set__tab__title)
+        phiterm__help__cli__set__tab__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1333,7 +1333,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__set__window__title)
+        phiterm__help__cli__set__window__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1347,7 +1347,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__spawn)
+        phiterm__help__cli__spawn)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1361,7 +1361,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__split__pane)
+        phiterm__help__cli__split__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1375,7 +1375,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__tlscreds)
+        phiterm__help__cli__tlscreds)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1389,7 +1389,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__cli__zoom__pane)
+        phiterm__help__cli__zoom__pane)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1403,7 +1403,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__connect)
+        phiterm__help__connect)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1417,7 +1417,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__help)
+        phiterm__help__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1431,7 +1431,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__imgcat)
+        phiterm__help__imgcat)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1445,7 +1445,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__ls__fonts)
+        phiterm__help__ls__fonts)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1459,7 +1459,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__record)
+        phiterm__help__record)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1473,7 +1473,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__replay)
+        phiterm__help__replay)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1487,7 +1487,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__serial)
+        phiterm__help__serial)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1501,7 +1501,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__set__working__directory)
+        phiterm__help__set__working__directory)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1515,7 +1515,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__shell__completion)
+        phiterm__help__shell__completion)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1529,7 +1529,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__show__keys)
+        phiterm__help__show__keys)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1543,7 +1543,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__ssh)
+        phiterm__help__ssh)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1557,7 +1557,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__help__start)
+        phiterm__help__start)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1571,7 +1571,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__imgcat)
+        phiterm__imgcat)
             opts="-h --width --height --no-preserve-aspect-ratio --position --no-move-cursor --hold --tmux-passthru --max-pixels --no-resample --resample-format --resample-filter --resize --show-resample-timing --help [FILE_NAME]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1617,7 +1617,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__ls__fonts)
+        phiterm__ls__fonts)
             opts="-h --list-system --text --codepoints --rasterize-ascii --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1639,7 +1639,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__record)
+        phiterm__record)
             opts="-h --cwd --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1657,7 +1657,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__replay)
+        phiterm__replay)
             opts="-h --explain --explain-only --cat --help <CAST_FILE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1671,7 +1671,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__serial)
+        phiterm__serial)
             opts="-h --baud --class --position --help <PORT>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1697,7 +1697,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__set__working__directory)
+        phiterm__set__working__directory)
             opts="-h --tmux-passthru --help [CWD] [HOST]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1715,7 +1715,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__shell__completion)
+        phiterm__shell__completion)
             opts="-h --shell --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1733,7 +1733,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__show__keys)
+        phiterm__show__keys)
             opts="-h --lua --key-table --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1751,7 +1751,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__ssh)
+        phiterm__ssh)
             opts="-o -v -h --ssh-option --class --position --help <USER_AT_HOST_AND_PORT> [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1781,7 +1781,7 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        wezterm__start)
+        phiterm__start)
             opts="-e -h --no-auto-connect --always-new-process --new-tab --cwd --class --workspace --position --domain --attach --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1822,7 +1822,7 @@ _wezterm() {
 }
 
 if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
-    complete -F _wezterm -o nosort -o bashdefault -o default wezterm
+    complete -F _phiterm -o nosort -o bashdefault -o default phiterm
 else
-    complete -F _wezterm -o bashdefault -o default wezterm
+    complete -F _phiterm -o bashdefault -o default phiterm
 fi

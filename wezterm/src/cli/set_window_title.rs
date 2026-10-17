@@ -11,7 +11,7 @@ pub struct SetWindowTitle {
     window_id: Option<WindowId>,
     /// Specify the current pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable PHITERM_PANE.
     ///
     /// The pane is used to figure out which window
     /// should be renamed.

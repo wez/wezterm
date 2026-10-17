@@ -52,21 +52,21 @@ jobs:
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
-      - name: "Build wezterm (Release mode)"
+      - name: "Build phiterm (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm --release
-      - name: "Build wezterm-gui (Release mode)"
+          cargo build -p phiterm --release
+      - name: "Build phiterm-gui (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm-gui --release
-      - name: "Build wezterm-mux-server (Release mode)"
+          cargo build -p phiterm-gui --release
+      - name: "Build phiterm-mux-server (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm-mux-server --release
+          cargo build -p phiterm-mux-server --release
       - name: "Build strip-ansi-escapes (Release mode)"
         shell: cmd
         run: |
@@ -90,8 +90,8 @@ jobs:
         with:
           name: "windows"
           path: |
-            WezTerm-*.zip
-            WezTerm-*.exe
+            PhiTerm-*.zip
+            PhiTerm-*.exe
           retention-days: 5
 
   upload:
@@ -112,9 +112,9 @@ jobs:
           name: "windows"
       - name: "Checksum"
         shell: bash
-        run: "for f in WezTerm-*.zip WezTerm-*.exe ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in PhiTerm-*.zip PhiTerm-*.exe ; do sha256sum $f > $f.sha256 ; done"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly WezTerm-*.zip WezTerm-*.exe *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly PhiTerm-*.zip PhiTerm-*.exe *.sha256"

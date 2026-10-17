@@ -28,7 +28,7 @@ fn neuter_name(name: &str) -> Option<&str> {
 fn resolve_file_name(name: Option<&str>) -> anyhow::Result<(PathBuf, File)> {
     let name = name
         .and_then(neuter_name)
-        .unwrap_or("downloaded-via-wezterm");
+        .unwrap_or("downloaded-via-phiterm");
 
     let download_dir = dirs_next::download_dir()
         .ok_or_else(|| anyhow::anyhow!("unable to locate download directory"))?;

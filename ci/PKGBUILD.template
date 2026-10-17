@@ -1,9 +1,9 @@
 # Maintainer:  Wez Furlong <wez at wezfurlong dot org>
 # NOTE: if you're looking at this on AUR, this file is generated from
 # https://github.com/wezterm/wezterm/blob/main/ci/PKGBUILD.template
-# by automation in the wezterm repo.
+# by automation in the phiterm repo.
 
-pkgname=wezterm-bin
+pkgname=phiterm-bin
 _tag=@TAG@
 pkgver=$(echo $_tag | tr - .)
 pkgrel=2
@@ -11,8 +11,8 @@ pkgdesc='A GPU-accelerated cross-platform terminal emulator and multiplexer impl
 arch=('i686' 'x86_64')
 url='https://wezterm.org'
 license=('MIT')
-provides=('wezterm')
-conflicts=('wezterm')
+provides=('phiterm')
+conflicts=('phiterm')
 # Don't strip: it will break the binary and it only saves ~10% anyway
 options=('!strip')
 makedepends=('fuse')
@@ -27,10 +27,10 @@ depends=(
   'xcb-util-wm'
 )
 optdepends=(
-  'python-nautilus: WezTerm context menu in Nautilus'
+  'python-nautilus: PhiTerm context menu in Nautilus'
 )
 source=(
-  "wezterm::https://github.com/wezterm/wezterm/releases/download/${_tag}/WezTerm-${_tag}-Ubuntu16.04.AppImage"
+  "phiterm::https://github.com/wezterm/wezterm/releases/download/${_tag}/PhiTerm-${_tag}-Ubuntu16.04.AppImage"
   'LICENSE::https://github.com/wezterm/wezterm/raw/main/LICENSE.md'
 )
 sha256sums=(
@@ -39,26 +39,26 @@ sha256sums=(
 )
 
 prepare() {
-  chmod +x "${srcdir}/wezterm"
+  chmod +x "${srcdir}/phiterm"
 }
 
 pkgver() {
-  "${srcdir}/wezterm" --version | cut -d' ' -f2 | tr - .
+  "${srcdir}/phiterm" --version | cut -d' ' -f2 | tr - .
 }
 
 build() {
-  "${srcdir}/wezterm" --appimage-extract >/dev/null
+  "${srcdir}/phiterm" --appimage-extract >/dev/null
 }
 
 package() {
-  install -Dm755 squashfs-root/usr/bin/wezterm -t "${pkgdir}/usr/bin/"
-  install -Dm755 squashfs-root/usr/bin/wezterm-gui -t "${pkgdir}/usr/bin/"
-  install -Dm755 squashfs-root/usr/bin/wezterm-mux-server -t "${pkgdir}/usr/bin/"
+  install -Dm755 squashfs-root/usr/bin/phiterm -t "${pkgdir}/usr/bin/"
+  install -Dm755 squashfs-root/usr/bin/phiterm-gui -t "${pkgdir}/usr/bin/"
+  install -Dm755 squashfs-root/usr/bin/phiterm-mux-server -t "${pkgdir}/usr/bin/"
   install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
-  install -Dm644 squashfs-root/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png \
-                 "${pkgdir}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png"
-  install -Dm644 squashfs-root/usr/share/applications/org.wezfurlong.wezterm.desktop \
-                 "${pkgdir}/usr/share/applications/org.wezfurlong.wezterm.desktop"
-  install -Dm644 squashfs-root/usr/share/nautilus-python/extensions/wezterm-nautilus.py \
-                 "${pkgdir}/usr/share/nautilus-python/extensions/wezterm-nautilus.py"
+  install -Dm644 squashfs-root/usr/share/icons/hicolor/128x128/apps/org.phiterm.phiterm.png \
+                 "${pkgdir}/usr/share/icons/hicolor/128x128/apps/org.phiterm.phiterm.png"
+  install -Dm644 squashfs-root/usr/share/applications/org.phiterm.phiterm.desktop \
+                 "${pkgdir}/usr/share/applications/org.phiterm.phiterm.desktop"
+  install -Dm644 squashfs-root/usr/share/nautilus-python/extensions/phiterm-nautilus.py \
+                 "${pkgdir}/usr/share/nautilus-python/extensions/phiterm-nautilus.py"
 }

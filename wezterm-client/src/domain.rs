@@ -846,7 +846,7 @@ impl Domain for ClientDomain {
             result.tab_id,
             result.pane_id,
             size,
-            "wezterm",
+            "phiterm",
         ));
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
@@ -908,7 +908,7 @@ impl Domain for ClientDomain {
             result.tab_id,
             result.pane_id,
             result.size,
-            "wezterm",
+            "phiterm",
         ));
 
         let pane_index = match tab
@@ -942,7 +942,7 @@ impl Domain for ClientDomain {
             window_id,
             ..Default::default()
         });
-        ui.title("wezterm: Connecting...");
+        ui.title("phiterm: Connecting...");
 
         ui.async_run_and_log_error({
             let ui = ui.clone();

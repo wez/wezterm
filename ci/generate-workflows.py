@@ -27,12 +27,12 @@ TRIGGER_PATHS_APPIMAGE = [
 ]
 
 TRIGGER_PATHS_UNIX = [
-    "assets/open-wezterm-here",
+    "assets/open-phiterm-here",
     "assets/shell-completion/**/*",
     "assets/shell-integration/**/*",
-    "assets/wezterm-nautilus.py",
-    "assets/wezterm.appdata.xml",
-    "assets/wezterm.desktop",
+    "assets/phiterm-nautilus.py",
+    "assets/phiterm.appdata.xml",
+    "assets/phiterm.desktop",
     "get-deps",
     "ci/tag-name.sh",
     "termwiz/data/wezterm.terminfo",
@@ -437,9 +437,9 @@ rustup default {toolchain}
 
     def build_all_release(self):
         bin_crates = [
-            "wezterm",
-            "wezterm-gui",
-            "wezterm-mux-server",
+            "phiterm",
+            "phiterm-gui",
+            "phiterm-mux-server",
             "strip-ansi-escapes",
         ]
         steps = []
@@ -534,17 +534,17 @@ rustup default {toolchain}
                 # Add the distro name/version into the filename
                 RunStep(
                     "Rename APKs",
-                    f"mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-{self.name}-/')",
+                    f"mv ~/packages/phiterm/x86_64/*.apk $(echo ~/packages/phiterm/x86_64/*.apk | sed -e 's/phiterm-/phiterm-{self.name}-/')",
                 ),
                 # Move it to the repo dir
                 RunStep(
                     "Move APKs",
-                    f"mv ~/packages/wezterm/x86_64/*.apk .",
+                    f"mv ~/packages/phiterm/x86_64/*.apk .",
                 ),
                 # Move and rename the keys
                 RunStep(
                     "Move APK keys",
-                    f"mv ~/.abuild/*.pub wezterm-{self.name}.pub",
+                    f"mv ~/.abuild/*.pub phiterm-{self.name}.pub",
                 ),
             ]
         elif self.uses_zypper():
@@ -570,15 +570,15 @@ rustup default {toolchain}
     def asset_patterns(self):
         patterns = []
         if self.uses_yum() or self.uses_zypper():
-            patterns += ["wezterm-*.rpm"]
+            patterns += ["phiterm-*.rpm"]
         elif "win" in self.name:
-            patterns += ["WezTerm-*.zip", "WezTerm-*.exe"]
+            patterns += ["PhiTerm-*.zip", "PhiTerm-*.exe"]
         elif "mac" in self.name:
-            patterns += ["WezTerm-*.zip"]
+            patterns += ["PhiTerm-*.zip"]
         elif ("ubuntu" in self.name) or ("debian" in self.name):
-            patterns += ["wezterm-*.deb", "wezterm-*.xz"]
+            patterns += ["phiterm-*.deb", "phiterm-*.xz"]
         elif "alpine" in self.name:
-            patterns += ["wezterm-*.apk"]
+            patterns += ["phiterm-*.apk"]
             if self.is_tag:
                 patterns.append("*.pub")
 
@@ -598,9 +598,9 @@ rustup default {toolchain}
                 rpmbuild = "/usr/src/packages/RPMS/*"
 
             script = ""
-            # Note that 'wezterm' MUST be last in this list,
+            # Note that 'phiterm' MUST be last in this list,
             # otherwise the globbing will mess things up
-            for pkg in ['wezterm-common', 'wezterm-gui', 'wezterm-mux-server', 'wezterm']:
+            for pkg in ['phiterm-common', 'phiterm-gui', 'phiterm-mux-server', 'phiterm']:
                 script = script + f"mv {rpmbuild}/{pkg}-*.rpm {pkg}-nightly-{self.name}.rpm\n"
 
             steps.append(
@@ -613,7 +613,7 @@ rustup default {toolchain}
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-{self.name}.apk",
+                    f"mv ~/packages/phiterm/x86_64/*.apk phiterm-nightly-{self.name}.apk",
                 )
             )
 
@@ -645,7 +645,7 @@ rustup default {toolchain}
             steps += [
                 RunStep(
                     "Upload to gemfury",
-                    f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
+                    f"for f in phiterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
                     env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
                 ),
             ]
@@ -680,7 +680,7 @@ rustup default {toolchain}
             steps += [
                 RunStep(
                     "Upload to gemfury",
-                    f"for f in wezterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
+                    f"for f in phiterm*.deb ; do curl -i -F package=@$f https://$FURY_TOKEN@push.fury.io/wez/ ; done",
                     env={"FURY_TOKEN": "${{ secrets.FURY_TOKEN }}"},
                 ),
             ]
@@ -713,10 +713,10 @@ rustup default {toolchain}
             return []
         return [
             ActionStep(
-                "Checkout flathub/org.wezfurlong.wezterm",
+                "Checkout flathub/org.phiterm.phiterm",
                 action="actions/checkout@v5",
                 params={
-                    "repository": "flathub/org.wezfurlong.wezterm",
+                    "repository": "flathub/org.phiterm.phiterm",
                     "path": "flathub",
                     "token": "${{ secrets.GH_PAT }}",
                 },
@@ -727,7 +727,7 @@ rustup default {toolchain}
             ),
             RunStep(
                 "Submit PR",
-                'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
+                'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the phiterm repo"',
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                 },
@@ -757,11 +757,11 @@ rustup default {toolchain}
                 ),
                 RunStep(
                     "Create winget manifest and push to fork",
-                    "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe",
+                    "bash ci/make-winget-pr.sh winget-pkgs PhiTerm-*.exe",
                 ),
                 RunStep(
                     "Submit PR",
-                    'cd winget-pkgs && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
+                    'cd winget-pkgs && gh pr create --fill --body "PR automatically created by release automation in the phiterm repo"',
                     env={
                         "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                     },
@@ -785,7 +785,7 @@ rustup default {toolchain}
                 ),
                 RunStep(
                     "Update homebrew tap formula",
-                    "cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb",
+                    "cp phiterm.rb homebrew-wezterm/Casks/phiterm.rb",
                 ),
                 ActionStep(
                     "Commit homebrew tap changes",
@@ -809,7 +809,7 @@ rustup default {toolchain}
                 ),
                 RunStep(
                     "Update linuxbrew tap formula",
-                    "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb",
+                    "cp phiterm-linuxbrew.rb linuxbrew-wezterm/Formula/phiterm.rb",
                 ),
                 ActionStep(
                     "Commit linuxbrew tap changes",

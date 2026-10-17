@@ -29,10 +29,10 @@ body:
   - type: input
     id: version
     attributes:
-      label: WezTerm version
+      label: PhiTerm version
       description: |
-        Please run `wezterm -V` and include its output here.
-        If you installed the flatpak version of wezterm, please consider trying
+        Please run `phiterm -V` and include its output here.
+        If you installed the flatpak version of phiterm, please consider trying
         the native package format for your system and comparing the behavior,
         as flatpak runs in an isolated sandbox that can prevent some functionality
         from working fully.
@@ -69,7 +69,7 @@ body:
     attributes:
       label: Configuration
       description: |
-        Please include the relevant section(s) of your `wezterm.lua` configuration file.
+        Please include the relevant section(s) of your `phiterm.lua` configuration file.
         You can enter "no config" if the issue happens without you having made a config file.    
     validations:
       required: true
@@ -84,12 +84,12 @@ body:
       label: Logs
       description: |
         If possible, activate the Debug Overlay by pressing CTRL-SHIFT-L and then copy
-        and paste the log lines in here.  If you launched wezterm from
+        and paste the log lines in here.  If you launched phiterm from
         the command line, copy and paste that output here.
-        You can also find log files in `$XDG_RUNTIME_DIR/wezterm` on unix systems,
-        or `$HOME/.local/share/wezterm` on macOS and Windows systems.
+        You can also find log files in `$XDG_RUNTIME_DIR/phiterm` on unix systems,
+        or `$HOME/.local/share/phiterm` on macOS and Windows systems.
       placeholder: |
-        09:27:26.703 INFO wezterm_gui::termwindow > OpenGL initialized! NVIDIA GeForce GT 1030/PCIe/SSE2 4.6.0 NVIDIA 470.57.02 is_context_loss_possible=false wezterm version: 20210816-085256-935c1f48
+        09:27:26.703 INFO phiterm_gui::termwindow > OpenGL initialized! NVIDIA GeForce GT 1030/PCIe/SSE2 4.6.0 NVIDIA 470.57.02 is_context_loss_possible=false phiterm version: 20210816-085256-935c1f48
   - type: textarea
     id: other
     attributes:

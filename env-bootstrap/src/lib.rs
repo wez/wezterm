@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 pub fn set_wezterm_executable() {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
-            std::env::set_var("WEZTERM_EXECUTABLE_DIR", dir);
+            config::set_env_var("EXECUTABLE_DIR", dir);
         }
-        std::env::set_var("WEZTERM_EXECUTABLE", exe);
+        config::set_env_var("EXECUTABLE", exe);
     }
 }
 
@@ -52,9 +52,9 @@ pub fn fixup_appimage() {
 
         // Since our AppImage includes multiple utilities, we want to
         // be able to use them, so add that location to the PATH!
-        // WEZTERM_EXECUTABLE_DIR is set by `set_wezterm_executable`
+        // PHITERM_EXECUTABLE_DIR is set by `set_wezterm_executable`
         // which is called before `fixup_appimage`
-        if let Some(dir) = std::env::var_os("WEZTERM_EXECUTABLE_DIR") {
+        if let Some(dir) = config::env_var("EXECUTABLE_DIR") {
             if let Some(path) = std::env::var_os("PATH") {
                 let mut paths = std::env::split_paths(&path).collect::<Vec<_>>();
                 paths.insert(0, PathBuf::from(dir));
@@ -86,8 +86,8 @@ pub fn fixup_appimage() {
         /// However, if we are using the system wezterm to spawn a portable
         /// AppImage then we want these to not take effect.
         fn clean_wezterm_config_env() {
-            std::env::remove_var("WEZTERM_CONFIG_FILE");
-            std::env::remove_var("WEZTERM_CONFIG_DIR");
+            config::remove_env_var("CONFIG_FILE");
+            config::remove_env_var("CONFIG_DIR");
         }
 
         if config::HOME_DIR.starts_with(append_extra_file_name_suffix(&appimage, ".home")) {

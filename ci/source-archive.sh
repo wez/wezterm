@@ -6,19 +6,19 @@ set -x
 TAG_NAME=${TAG_NAME:-$(git -c "core.abbrev=8" show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%S")}
 
 if [[ "$BUILD_REASON" == "Schedule" ]] ; then
-  TAR_NAME=wezterm-nightly-src.tar
+  TAR_NAME=phiterm-nightly-src.tar
 else
-  TAR_NAME=wezterm-${TAG_NAME}-src.tar
+  TAR_NAME=phiterm-${TAG_NAME}-src.tar
 fi
 
 if test -n "${COPR_SRPM}" ; then
   TAG_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
-  TAR_NAME=wezterm-${TAG_NAME}.tar
+  TAR_NAME=phiterm-${TAG_NAME}.tar
 fi
 
 rm -f ${TAR_NAME}*
 
-NAME_PREFIX=wezterm-${TAG_NAME}
+NAME_PREFIX=phiterm-${TAG_NAME}
 
 git archive --prefix=${NAME_PREFIX}/ -o ${TAR_NAME} HEAD
 

@@ -656,7 +656,7 @@ impl Config {
             // For testing purposes only, allow pretending that we
             // have a specific fixed UID so that test expectations
             // are easier to handle with snapshots
-            if let Some(uid) = env.get("WEZTERM_SSH_UID") {
+            if let Some(uid) = env.get("PHITERM_SSH_UID").or_else(|| env.get("WEZTERM_SSH_UID")) {
                 return uid.to_string();
             }
         }
@@ -919,6 +919,7 @@ Config {
         let mut fake_env = ConfigMap::new();
         fake_env.insert("HOME".to_string(), "/home/me".to_string());
         fake_env.insert("USER".to_string(), "me".to_string());
+        fake_env.insert("PHITERM_SSH_UID".to_string(), "1000".to_string());
         fake_env.insert("WEZTERM_SSH_UID".to_string(), "1000".to_string());
         config.assign_environment(fake_env);
 

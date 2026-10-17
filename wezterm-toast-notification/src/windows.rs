@@ -78,7 +78,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     */
 
     let notifier = ToastNotificationManager::CreateToastNotifierWithId(HSTRING::from(
-        "org.wezfurlong.wezterm",
+        "org.phiterm.phiterm",
     ))?;
 
     notifier.Show(&notif)?;

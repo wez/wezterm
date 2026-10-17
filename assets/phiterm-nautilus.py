@@ -20,7 +20,7 @@ from gi import require_version
 from gi.repository import Nautilus, GObject, Gio, GLib
 
 
-class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
+class OpenInPhiTermAction(GObject.GObject, Nautilus.MenuProvider):
     def __init__(self):
         super().__init__()
         session = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -35,18 +35,18 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
                     "org.freedesktop.systemd1.Manager", None)
 
     def _open_terminal(self, path):
-        cmd = ['wezterm', 'start', '--cwd', path]
+        cmd = ['phiterm', 'start', '--cwd', path]
         child = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
         if self._systemd:
             # Move new terminal into a dedicated systemd scope to make systemd
             # track the terminal separately; in particular this makes systemd
-            # keep a separate CPU and memory account for Wezterm which in turn
+            # keep a separate CPU and memory account for PhiTerm which in turn
             # ensures that oomd doesn't take nautilus down if a process in
-            # wezterm consumes a lot of memory.
+            # phiterm consumes a lot of memory.
             pid = int(child.get_identifier())
             props = [("PIDs", GLib.Variant('au', [pid])),
                 ('CollectMode', GLib.Variant('s', 'inactive-or-failed'))]
-            name = 'app-nautilus-org.wezfurlong.wezterm-{}.scope'.format(pid)
+            name = 'app-nautilus-org.phiterm.phiterm-{}.scope'.format(pid)
             args = GLib.Variant('(ssa(sv)a(sa(sv)))', (name, 'fail', props, []))
             self._systemd.call_sync('StartTransientUnit', args,
                     Gio.DBusCallFlags.NO_AUTO_START, 500, None)
@@ -56,8 +56,8 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
             self._open_terminal(path)
 
     def _make_item(self, name, paths):
-        item = Nautilus.MenuItem(name=name, label='Open in WezTerm',
-            icon='org.wezfurlong.wezterm')
+        item = Nautilus.MenuItem(name=name, label='Open in PhiTerm',
+            icon='org.phiterm.phiterm')
         item.connect('activate', self._menu_item_activated, paths)
         return item
 
@@ -81,7 +81,7 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
         files = args[0] if len(args) == 1 else args[1]
         paths = self._paths_to_open(files)
         if paths:
-            return [self._make_item(name='WezTermNautilus::open_in_wezterm', paths=paths)]
+            return [self._make_item(name='PhiTermNautilus::open_in_phiterm', paths=paths)]
         else:
             return []
 
@@ -90,6 +90,6 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
         file = args[0] if len(args) == 1 else args[1]
         paths = self._paths_to_open([file])
         if paths:
-            return [self._make_item(name='WezTermNautilus::open_folder_in_wezterm', paths=paths)]
+            return [self._make_item(name='PhiTermNautilus::open_folder_in_phiterm', paths=paths)]
         else:
             return []

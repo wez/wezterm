@@ -227,7 +227,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             array.insert(1, format!("{}/?/init.lua", path.display()));
         }
 
-        prefix_path(&mut path_array, &crate::HOME_DIR.join(".wezterm"));
+        prefix_path(&mut path_array, &crate::HOME_DIR.join(".phiterm"));
         for dir in crate::CONFIG_DIRS.iter() {
             prefix_path(&mut path_array, dir);
         }
@@ -248,7 +248,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 if cfg!(windows) {
                     // For a portable windows install, force in this path ahead
                     // of the rest
-                    prefix_path(&mut path_array, &path.join("wezterm_modules"));
+                    prefix_path(&mut path_array, &path.join("phiterm_modules"));
                 }
             }
         }

@@ -12,7 +12,7 @@ use wezterm_client::client::Client;
 pub struct SpawnCommand {
     /// Specify the current pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable PHITERM_PANE.
     /// The pane is used to determine the current domain
     /// and window.
     #[arg(long)]

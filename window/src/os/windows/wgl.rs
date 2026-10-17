@@ -33,7 +33,7 @@ impl Drop for WglWrapper {
 
 impl WglWrapper {
     fn load() -> anyhow::Result<Self> {
-        let class_name = wide_string("wezterm wgl extension probing window");
+        let class_name = wide_string("phiterm wgl extension probing window");
         let h_inst = unsafe { GetModuleHandleW(null()) };
         let class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,

@@ -38,21 +38,21 @@ jobs:
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
-      - name: "Build wezterm (Release mode)"
+      - name: "Build phiterm (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm --release
-      - name: "Build wezterm-gui (Release mode)"
+          cargo build -p phiterm --release
+      - name: "Build phiterm-gui (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm-gui --release
-      - name: "Build wezterm-mux-server (Release mode)"
+          cargo build -p phiterm-gui --release
+      - name: "Build phiterm-mux-server (Release mode)"
         shell: cmd
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
-          cargo build -p wezterm-mux-server --release
+          cargo build -p phiterm-mux-server --release
       - name: "Build strip-ansi-escapes (Release mode)"
         shell: cmd
         run: |
@@ -76,8 +76,8 @@ jobs:
         with:
           name: "windows"
           path: |
-            WezTerm-*.zip
-            WezTerm-*.exe
+            PhiTerm-*.zip
+            PhiTerm-*.exe
 
   upload:
     runs-on: ubuntu-latest
@@ -97,7 +97,7 @@ jobs:
           name: "windows"
       - name: "Checksum"
         shell: bash
-        run: "for f in WezTerm-*.zip WezTerm-*.exe ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in PhiTerm-*.zip PhiTerm-*.exe ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,7 +107,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) WezTerm-*.zip WezTerm-*.exe *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) PhiTerm-*.zip PhiTerm-*.exe *.sha256"
       - name: "Checkout winget-pkgs"
         uses: actions/checkout@v5
         with:
@@ -122,9 +122,9 @@ jobs:
         run: "cd winget-pkgs && git config user.name 'Wez Furlong'"
       - name: "Create winget manifest and push to fork"
         shell: bash
-        run: "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe"
+        run: "bash ci/make-winget-pr.sh winget-pkgs PhiTerm-*.exe"
       - name: "Submit PR"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         shell: bash
-        run: 'cd winget-pkgs && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"'
+        run: 'cd winget-pkgs && gh pr create --fill --body "PR automatically created by release automation in the phiterm repo"'

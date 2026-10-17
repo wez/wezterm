@@ -1,16 +1,16 @@
 {
-    "app-id": "org.wezfurlong.wezterm",
+    "app-id": "org.phiterm.phiterm",
     "runtime": "org.freedesktop.Platform",
     "runtime-version": "25.08",
     "sdk": "org.freedesktop.Sdk",
     "sdk-extensions" : [
         "org.freedesktop.Sdk.Extension.rust-stable"
     ],
-    "command": "wezterm",
+    "command": "phiterm",
     "finish-args": [
         "--share=ipc",
         "--filesystem=home:ro",
-        "--filesystem=xdg-config/wezterm",
+        "--filesystem=xdg-config/phiterm",
         "--socket=fallback-x11",
         "--socket=wayland",
         "--device=dri",
@@ -20,27 +20,27 @@
     ],
     "modules": [
         {
-            "name": "wezterm",
+            "name": "phiterm",
             "buildsystem": "simple",
             "build-options": {
                 "append-path" : "/usr/lib/sdk/rust-stable/bin",
                 "env": {
-                    "CARGO_HOME": "/run/build/wezterm/cargo"
+                    "CARGO_HOME": "/run/build/phiterm/cargo"
                 }
             },
             "build-commands": [
                 "cargo --offline fetch --manifest-path Cargo.toml --verbose",
                 "cargo --offline build --release --verbose",
-                "install -Dm644 ./assets/icon/terminal.png /app/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png",
-                "install -Dm644 org.wezfurlong.wezterm.appdata.xml /app/share/metainfo/org.wezfurlong.wezterm.appdata.xml",
-                "install -Dm644 ./assets/wezterm.desktop /app/share/applications/org.wezfurlong.wezterm.desktop",
-                "install -Dm755 ./target/release/wezterm -t /app/bin/",
-                "install -Dm755 ./target/release/wezterm-gui -t /app/bin/",
-                "install -Dm755 ./target/release/wezterm-mux-server -t /app/bin/",
+                "install -Dm644 ./assets/icon/terminal.png /app/share/icons/hicolor/128x128/apps/org.phiterm.phiterm.png",
+                "install -Dm644 org.phiterm.phiterm.appdata.xml /app/share/metainfo/org.phiterm.phiterm.appdata.xml",
+                "install -Dm644 ./assets/phiterm.desktop /app/share/applications/org.phiterm.phiterm.desktop",
+                "install -Dm755 ./target/release/phiterm -t /app/bin/",
+                "install -Dm755 ./target/release/phiterm-gui -t /app/bin/",
+                "install -Dm755 ./target/release/phiterm-mux-server -t /app/bin/",
                 "install -Dm755 ./target/release/strip-ansi-escapes -t /app/bin/",
                 "install -Dm644 assets/shell-integration/* -t /app/extra/export/share/etc/profile.d",
-                "install -Dm644 assets/shell-completion/zsh /app/extra/export/share/zsh/site-functions/_wezterm",
-                "install -Dm644 assets/shell-completion/bash /app/extra/export/share/etc/bash_completion.d/wezterm"
+                "install -Dm644 assets/shell-completion/zsh /app/extra/export/share/zsh/site-functions/_phiterm",
+                "install -Dm644 assets/shell-completion/bash /app/extra/export/share/etc/bash_completion.d/phiterm"
               ],
             "sources": [
                 {
@@ -51,7 +51,7 @@
                 },
                 {
                   "type": "file",
-                  "path": "org.wezfurlong.wezterm.appdata.xml"
+                  "path": "org.phiterm.phiterm.appdata.xml"
                 },
                 "generated-sources.json"
             ]

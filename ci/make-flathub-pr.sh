@@ -18,16 +18,16 @@ else
 fi
 "${fcg_bin[@]}" Cargo.lock -o assets/flatpak/generated-sources.json
 
-URL="https://github.com/wezterm/wezterm/releases/download/${TAG_NAME}/wezterm-${TAG_NAME}-src.tar.gz"
+URL="https://github.com/wezterm/wezterm/releases/download/${TAG_NAME}/phiterm-${TAG_NAME}-src.tar.gz"
 
 # We require that something has obtained the source archive already and left it
 # in the current dir. This is handled by actions/download-artifact in CI
-SHA256=$(sha256sum wezterm*-src.tar.gz | cut -d' ' -f1)
+SHA256=$(sha256sum phiterm*-src.tar.gz | cut -d' ' -f1)
 
-sed -e "s,@URL@,$URL,g" -e "s/@SHA256@/$SHA256/g" < assets/flatpak/org.wezfurlong.wezterm.RELEASE-TEMPLATE.json > flathub/org.wezfurlong.wezterm.json
+sed -e "s,@URL@,$URL,g" -e "s/@SHA256@/$SHA256/g" < assets/flatpak/org.phiterm.phiterm.RELEASE-TEMPLATE.json > flathub/org.phiterm.phiterm.json
 
 RELEASE_DATE=$(git -c "core.abbrev=8" show -s "--format=%cd" "--date=format:%Y-%m-%d")
-sed -e "s,@TAG_NAME@,$TAG_NAME,g" -e "s/@DATE@/$RELEASE_DATE/g" < assets/flatpak/org.wezfurlong.wezterm.appdata.RELEASE-TEMPLATE.xml > flathub/org.wezfurlong.wezterm.appdata.xml
+sed -e "s,@TAG_NAME@,$TAG_NAME,g" -e "s/@DATE@/$RELEASE_DATE/g" < assets/flatpak/org.phiterm.phiterm.appdata.RELEASE-TEMPLATE.xml > flathub/org.phiterm.phiterm.appdata.xml
 
 cd flathub
 git config user.email wez@wezfurlong.org

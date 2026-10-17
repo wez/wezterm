@@ -62,15 +62,15 @@ jobs:
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
-      - name: "Build wezterm (Release mode)"
+      - name: "Build phiterm (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm --release"
-      - name: "Build wezterm-gui (Release mode)"
+        run: "cargo build -p phiterm --release"
+      - name: "Build phiterm-gui (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-gui --release"
-      - name: "Build wezterm-mux-server (Release mode)"
+        run: "cargo build -p phiterm-gui --release"
+      - name: "Build phiterm-mux-server (Release mode)"
         shell: bash
-        run: "cargo build -p wezterm-mux-server --release"
+        run: "cargo build -p phiterm-mux-server --release"
       - name: "Build strip-ansi-escapes (Release mode)"
         shell: bash
         run: "cargo build -p strip-ansi-escapes --release"
@@ -93,8 +93,8 @@ jobs:
         with:
           name: "ubuntu24.04"
           path: |
-            wezterm-*.deb
-            wezterm-*.xz
+            phiterm-*.deb
+            phiterm-*.xz
 
   upload:
     runs-on: ubuntu-latest
@@ -117,7 +117,7 @@ jobs:
           name: "ubuntu24.04"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in phiterm-*.deb phiterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -127,4 +127,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) phiterm-*.deb phiterm-*.xz *.sha256"

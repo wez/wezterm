@@ -20,7 +20,7 @@ if ! check_rust_version ; then
   echo "https://www.rust-lang.org/en-US/install.html"
   echo
   echo "See https://wezterm.org/install/source.html for complete"
-  echo "installation instructions for wezterm"
+  echo "installation instructions for phiterm"
   exit 1
 fi
 

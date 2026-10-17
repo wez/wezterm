@@ -63,11 +63,11 @@ impl Header {
         let mut env = HashMap::new();
         env.insert("TERM".to_string(), config.term.to_string());
         env.insert(
-            "WEZTERM_VERSION".to_string(),
+            "PHITERM_VERSION".to_string(),
             config::wezterm_version().to_string(),
         );
         env.insert(
-            "WEZTERM_TARGET_TRIPLE".to_string(),
+            "PHITERM_TARGET_TRIPLE".to_string(),
             config::wezterm_target_triple().to_string(),
         );
         if let Ok(shell) = std::env::var("SHELL") {

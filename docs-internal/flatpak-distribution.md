@@ -3,8 +3,8 @@
 ## Release build
 
 For a release build, the flatpak definition is
-`assets/flatpak/org.wezfurlong.wezterm.RELEASE-TEMPLATE.json` with metadata in
-`assets/flatpak/org.wezfurlong.wezterm.appdata.RELEASE-TEMPLATE.xml`.
+`assets/flatpak/org.phiterm.phiterm.RELEASE-TEMPLATE.json` with metadata in
+`assets/flatpak/org.phiterm.phiterm.appdata.RELEASE-TEMPLATE.xml`.
 
 A GHA workflow runs the `ci/flathub-prepare-pr.sh` script from repo root to prepare a few metadata
 files, followed by opening a PR on the [flathub repo][flathub-repo] for the new version.
@@ -12,12 +12,12 @@ files, followed by opening a PR on the [flathub repo][flathub-repo] for the new 
 Once merged, flathub builders will auto-schedule the actual build for later inclusion in the flathub
 app catalog. This can be followed on <https://builds.flathub.org/>.
 
-[flathub-repo]: https://github.com/flathub/org.wezfurlong.wezterm
+[flathub-repo]: https://github.com/flathub/org.phiterm.phiterm
 
 ## Local build
 
 For a local build, the flatpak definition is in
-`assets/flatpak/org.wezfurlong.wezterm.LOCAL-TESTING.json`. It is basically the same as the
+`assets/flatpak/org.phiterm.phiterm.LOCAL-TESTING.json`. It is basically the same as the
 release one but uses the local repo instead of a specific release from github.
 
 The script needs the following dependencies:
@@ -30,7 +30,7 @@ The script needs the following dependencies:
 > If using Nix, `nix develop` gives you these automatically.
 
 Run `ci/flatpak-build.sh` from the repo root to prepare, build & install the flatpak for the current
-user. Then run the built flatpak with `flatpak run org.wezfurlong.wezterm`.
+user. Then run the built flatpak with `flatpak run org.phiterm.phiterm`.
 
 > [!NOTE]
-> The script stores tmp data in `/var/tmp/wezterm-flatpak-*` directories.
+> The script stores tmp data in `/var/tmp/phiterm-flatpak-*` directories.

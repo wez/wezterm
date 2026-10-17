@@ -119,12 +119,12 @@ BEGIN
         BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName",      "Wez Furlong\0"
-            VALUE "FileDescription",  "WezTerm - Wez's Terminal Emulator\0"
+            VALUE "FileDescription",  "Phiterm - a GPU-accelerated terminal emulator\0"
             VALUE "FileVersion",      "{version}\0"
             VALUE "LegalCopyright",   "Wez Furlong, MIT licensed\0"
             VALUE "InternalName",     "\0"
             VALUE "OriginalFilename", "\0"
-            VALUE "ProductName",      "WezTerm\0"
+            VALUE "ProductName",      "Phiterm\0"
             VALUE "ProductVersion",   "{version}\0"
         END
     END
@@ -165,14 +165,14 @@ END
         let src_plist = repo_dir
             .join("assets")
             .join("macos")
-            .join("WezTerm.app")
+            .join("Phiterm.app")
             .join("Contents")
             .join("Info.plist");
         let build_target_dir = std::env::var("CARGO_TARGET_DIR")
             .and_then(|s| Ok(std::path::PathBuf::from(s)))
             .unwrap_or(repo_dir.join("target").join(profile));
         let dest_plist = build_target_dir.join("Info.plist");
-        println!("cargo:rerun-if-changed=assets/macos/WezTerm.app/Contents/Info.plist");
+        println!("cargo:rerun-if-changed=assets/macos/Phiterm.app/Contents/Info.plist");
 
         std::fs::copy(&src_plist, &dest_plist)
             .context(format!(
