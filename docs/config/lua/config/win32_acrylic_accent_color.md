@@ -11,4 +11,5 @@ When combined with `win32_system_backdrop = "Acrylic"` on Windows systems
 earlier than build 22621, this option specifies the accent color used with
 the *Acrylic* composition effect.
 
-See also [win32_system_backdrop](win32_system_backdrop.md).
+See also [win32_system_backdrop](win32_system_backdrop.md) and [win32_window_appearance](win32_window_appearance.md).
+

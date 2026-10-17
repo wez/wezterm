@@ -7,3 +7,11 @@ pub enum WindowLevel {
     Normal = 0,
     AlwaysOnTop = 3,
 }
+
+#[derive(Debug, Default, Clone, ToDynamic, PartialEq, Eq, FromDynamic)]
+pub enum Win32WindowAppearance {
+    #[default]
+    System,
+    Light,
+    Dark,
+}

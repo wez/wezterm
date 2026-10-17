@@ -35,6 +35,8 @@ a similar effect on macOS.
 See also [wayland_window_background_blur](wayland_window_background_blur.md) for a similar
 effect on Linux Wayland.
 
+See [win32_window_appearance](win32_window_appearance.md) how to override the app appearance set in Windows.
+
 ## Acrylic
 
 ```lua

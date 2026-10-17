@@ -5,7 +5,8 @@ use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::{Appearance, ScreenRect};
 use anyhow::Context;
-use config::ConfigHandle;
+use config::window::Win32WindowAppearance;
+use config::{configuration, ConfigHandle};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -38,6 +39,11 @@ pub struct Connection {
 }
 
 pub(crate) fn get_appearance() -> Appearance {
+    match configuration().win32_window_appearance {
+        Win32WindowAppearance::Dark => return Appearance::Dark,
+        Win32WindowAppearance::Light => return Appearance::Light,
+        Win32WindowAppearance::System => (),
+    };
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     match hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
         Ok(theme) => {
