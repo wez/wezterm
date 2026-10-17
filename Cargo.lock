@@ -6921,6 +6921,7 @@ name = "wezterm-blob-leases"
 version = "0.1.1"
 dependencies = [
  "getrandom 0.3.4",
+ "log",
  "serde",
  "sha2",
  "tempfile",

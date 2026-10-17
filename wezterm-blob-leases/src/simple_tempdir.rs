@@ -74,6 +74,15 @@ impl BlobStorage for SimpleTempDir {
     fn store(&self, content_id: ContentId, data: &[u8], _lease_id: LeaseId) -> Result<(), Error> {
         let mut refs = self.refs.lock().unwrap();
 
+        // A live reference means that this content-addressed file is already stored, reuse it.
+        if let Some(count) = refs.get_mut(&content_id) {
+            if *count > 0 {
+                *count += 1;
+                log::trace!("store: tempfile for content ID {content_id} already exists, reusing");
+                return Ok(());
+            }
+        }
+
         let path = self.path_for_content(content_id)?;
         let mut file = tempfile::Builder::new()
             .prefix("new-")
@@ -83,6 +92,7 @@ impl BlobStorage for SimpleTempDir {
         file.write_all(data)?;
         file.persist(&path)
             .map_err(|persist_err| persist_err.error)?;
+        log::trace!("store: tempfile for content ID {content_id} written");
 
         *refs.entry(content_id).or_insert(0) += 1;
 
@@ -168,5 +178,51 @@ impl BlobStorage for SimpleTempDir {
 
     fn advise_pid_terminated(&self, _pid: u32) -> Result<(), Error> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn storing_identical_content_reuses_existing_blob() {
+        let storage = SimpleTempDir::new().unwrap();
+        let data = b"shared animated image data";
+        let content_id = ContentId::for_bytes(data);
+        let first_lease = LeaseId::new();
+        let second_lease = LeaseId::new();
+        let reader_lease = LeaseId::new();
+
+        storage.store(content_id, data, first_lease).unwrap();
+
+        // Keeping this reader open reproduces Windows' access-denied error when
+        // store tries to replace the existing content-addressed file.
+        let reader = storage.get_reader(content_id, reader_lease).unwrap();
+        storage
+            .store(content_id, data, second_lease)
+            .expect("storing identical content should reuse the existing blob");
+
+        let stored = storage.get_data(content_id, first_lease).unwrap();
+        assert_eq!(stored.as_slice(), data);
+        assert_eq!(storage.refs.lock().unwrap().get(&content_id), Some(&3));
+
+        let path = storage.path_for_content(content_id).unwrap();
+        drop(reader);
+
+        // Reader::drop notifies the process-global storage, while this unit
+        // test owns its storage directly, so release that reference here.
+        storage
+            .advise_lease_dropped(reader_lease, content_id)
+            .unwrap();
+        storage
+            .advise_lease_dropped(first_lease, content_id)
+            .unwrap();
+        assert!(path.exists());
+
+        storage
+            .advise_lease_dropped(second_lease, content_id)
+            .unwrap();
+        assert!(!path.exists());
     }
 }

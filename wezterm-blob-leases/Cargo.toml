@@ -10,6 +10,7 @@ license = "MIT"
 
 [dependencies]
 getrandom.workspace = true
+log.workspace = true
 serde = {workspace=true, features=["derive"], optional=true}
 sha2.workspace = true
 tempfile = {workspace=true, optional=true}
