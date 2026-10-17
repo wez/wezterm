@@ -914,6 +914,17 @@ impl TermWindow {
                 // the window is gone and we'll linger forever.
                 // <https://github.com/wezterm/wezterm/issues/3522>
                 self.clear_all_overlays();
+                // Drop OpenGL/render resources while the window surface is still
+                // alive, before NSView dealloc invalidates the GPU drawable.
+                // If deferred until TermWindow::drop, glium's Drop impls
+                // (RawProgram, Context, VertexBuffer, etc.) call make_current
+                // which triggers NSOpenGLContext update on a stale IOSurface,
+                // causing SIGABRT.
+                // Order matters: render_state first (its Drop deletes programs,
+                // buffers, textures via the context), then gl (drops the
+                // context itself, which does FBO/VAO/sampler cleanup).
+                self.render_state.take();
+                self.gl.take();
                 Ok(false)
             }
             WindowEvent::CloseRequested => {
