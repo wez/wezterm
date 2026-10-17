@@ -127,6 +127,9 @@ pub(crate) struct WindowInner {
     config: ConfigHandle,
     paint_throttled: bool,
     invalidated: bool,
+    /// Screen position at which the cursor was hidden. Windows may emit a
+    /// stale mouse move at this position after keyboard input.
+    cursor_hidden_at: Option<(i32, i32)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -547,6 +550,7 @@ impl Window {
             config: config.clone(),
             paint_throttled: false,
             invalidated: true,
+            cursor_hidden_at: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -625,6 +629,10 @@ impl WindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<CursorIcon>) {
+        self.cursor_hidden_at = match cursor {
+            None => current_cursor_screen_position(),
+            Some(_) => None,
+        };
         apply_mouse_cursor(cursor);
     }
 
@@ -1710,6 +1718,19 @@ fn client_to_screen(hwnd: HWND, point: Point) -> ScreenPoint {
     ScreenPoint::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
 }
 
+fn current_cursor_screen_position() -> Option<(i32, i32)> {
+    let mut point = POINT { x: 0, y: 0 };
+    if unsafe { GetCursorPos(&mut point) } != 0 {
+        Some((point.x, point.y))
+    } else {
+        None
+    }
+}
+
+fn screen_position_tuple(point: ScreenPoint) -> (i32, i32) {
+    (point.x as i32, point.y as i32)
+}
+
 fn apply_mouse_cursor(cursor: Option<CursorIcon>) {
     match cursor {
         None => unsafe {
@@ -1754,6 +1775,7 @@ fn cursor_icons_use_windows_cursors() {
 
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
+    inner.borrow_mut().cursor_hidden_at = None;
     // To support dragging the window, capture when the left
     // button goes down and release when it goes up.
     // Without this, the drag state can be confused when dragging
@@ -1794,6 +1816,7 @@ unsafe fn nc_mouse_button(
     lparam: LPARAM,
 ) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
+    inner.borrow_mut().cursor_hidden_at = None;
 
     let no_native_title_bar = no_native_title_bar(inner.borrow().config.window_decorations);
     if !no_native_title_bar {
@@ -1840,6 +1863,10 @@ unsafe fn nc_mouse_button(
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
+    let coords = mouse_coords(lparam);
+    let screen_coords = client_to_screen(hwnd, coords);
+    let same_position_as_hidden_cursor =
+        inner.cursor_hidden_at == Some(screen_position_tuple(screen_coords));
 
     if !inner.track_mouse_leave {
         inner.track_mouse_leave = true;
@@ -1854,12 +1881,16 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
     }
 
+    if same_position_as_hidden_cursor {
+        return Some(0);
+    }
+    inner.cursor_hidden_at = None;
+
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-    let coords = mouse_coords(lparam);
     let event = MouseEvent {
         kind: MouseEventKind::Move,
         coords,
-        screen_coords: client_to_screen(hwnd, coords),
+        screen_coords,
         mouse_buttons,
         modifiers,
     };
@@ -1891,11 +1922,17 @@ unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
     let (modifiers, mouse_buttons) = mods_and_buttons(0);
     let coords = nc_mouse_coords(hwnd, lparam);
+    let screen_coords = client_to_screen(hwnd, coords);
+
+    if inner.cursor_hidden_at == Some(screen_position_tuple(screen_coords)) {
+        return Some(0);
+    }
+    inner.cursor_hidden_at = None;
 
     let event = MouseEvent {
         kind: MouseEventKind::Move,
         coords,
-        screen_coords: client_to_screen(hwnd, coords),
+        screen_coords,
         mouse_buttons,
         modifiers,
     };
@@ -1911,6 +1948,7 @@ unsafe fn mouse_leave(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) 
     let mut inner = inner.borrow_mut();
 
     inner.track_mouse_leave = false;
+    inner.cursor_hidden_at = None;
     inner.events.dispatch(WindowEvent::MouseLeave);
 
     Some(0)
@@ -1931,6 +1969,7 @@ fn read_scroll_speed(name: &str) -> io::Result<i16> {
 
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
+    inner.borrow_mut().cursor_hidden_at = None;
     let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
     // Wheel events return screen coordinates!
     let coords = mouse_coords(lparam);
