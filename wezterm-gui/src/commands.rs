@@ -1460,7 +1460,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 Modifiers::CTRL
                     .union(Modifiers::ALT)
                     .union(Modifiers::SHIFT),
-                "'".into(),
+                "\"".into(),
             )],
             args: &[ArgType::ActivePane],
             menubar: &["Shell"],
