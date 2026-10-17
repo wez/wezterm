@@ -58,8 +58,14 @@ impl super::TermWindow {
         }
 
         // For simple, user-interactive resizes where the dpi doesn't change,
-        // skip our scaling recalculation
-        if live_resizing && self.dimensions.dpi == dimensions.dpi {
+        // skip our scaling recalculation. During a live resize where DPI changes,
+		// we should also skip scaling_changed(). This can issue a SetWindowPos mid-drag, 
+		// which on Windows fights the user's drag & OS's suggested resize rect, causing a feedback loop
+		// that can lock the drag up / make the window repeatedly resize itself unexpectedly.
+        if live_resizing {
+			if self.dimensions.dpi != dimensions.dpi {
+				self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
+			}
             self.apply_dimensions(&dimensions, None, window);
         } else {
             self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
