@@ -55,8 +55,18 @@ impl SixelBuilder {
                 self.sixel.data.push(SixelData::NewLine);
             }
             0x3f..=0x7e if self.current_command == b'!' => {
+                // An omitted repeat count leaves params[0] at the -1 sentinel;
+                // per DEC, `!` (DECGRI) defaults to 1 when Pn is absent. Without
+                // this, `-1 as u32` becomes 4294967295 and the consumer loops
+                // billions of times on a tiny input. Mirrors the `"` raster
+                // branch's -1 handling below.
+                let repeat_count = if self.params[0] < 0 {
+                    1
+                } else {
+                    self.params[0] as u32
+                };
                 self.sixel.data.push(SixelData::Repeat {
-                    repeat_count: self.params[0] as u32,
+                    repeat_count,
                     data: data - 0x3f,
                 });
                 self.finish_command();
@@ -196,6 +206,41 @@ mod test {
     #[cfg(not(feature = "std"))]
     use alloc::format;
     use k9::assert_equal as assert_eq;
+
+    #[test]
+    fn sixel_repeat_omitted_count_defaults_to_one() {
+        // `!` (DECGRI) with no repeat count must default to 1. Previously the
+        // -1 "unspecified" sentinel was cast to u32, yielding 4294967295 and a
+        // multi-billion-iteration loop in the consumer from a tiny input.
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1bPq!~\x1b\\");
+        let sixel = match &actions[0] {
+            Action::Sixel(s) => s,
+            other => panic!("expected Sixel action, got {:?}", other),
+        };
+        assert_eq!(
+            sixel.data,
+            vec![SixelData::Repeat {
+                repeat_count: 1,
+                data: 0x3f
+            }]
+        );
+
+        // An explicit repeat count is still honored.
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1bPq!3~\x1b\\");
+        let sixel = match &actions[0] {
+            Action::Sixel(s) => s,
+            other => panic!("expected Sixel action, got {:?}", other),
+        };
+        assert_eq!(
+            sixel.data,
+            vec![SixelData::Repeat {
+                repeat_count: 3,
+                data: 0x3f
+            }]
+        );
+    }
 
     #[test]
     fn sixel() {
