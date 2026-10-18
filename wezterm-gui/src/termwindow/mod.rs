@@ -2823,6 +2823,7 @@ impl TermWindow {
             ExtendSelectionToMouseCursor(mode) => {
                 self.extend_selection_at_mouse_cursor(*mode, pane)
             }
+            ExtendSelectionToEndOfLine => self.extend_selection_to_end_of_line(pane),
             ClearSelection => {
                 self.clear_selection(pane);
             }
