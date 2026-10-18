@@ -1722,7 +1722,9 @@ impl KeyEvent {
             // Check for simple text generating keys
             match &self.key {
                 Char('\x08') => return '\x7f'.to_string(),
-                Char('\x7f') => return '\x08'.to_string(),
+                // Delete is not a text generating key: it falls through to the
+                // `CSI 3 ~` encoding below, like Insert and PageUp.
+                Char('\x7f') => {}
                 // With DISAMBIGUATE_ESCAPE_CODES, ESC must not be sent as a
                 // raw \x1b byte — the entire point of the flag is to eliminate
                 // that ambiguity.  Let it fall through to the CSI-u path below
@@ -2306,6 +2308,37 @@ impl Default for UIKeyCapRendering {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn encode_unmodified_delete_and_backspace() {
+        let key = |key| KeyEvent {
+            key,
+            modifiers: Modifiers::NONE,
+            leds: KeyboardLedStatus::empty(),
+            repeat_count: 1,
+            key_is_down: true,
+            raw: None,
+            #[cfg(windows)]
+            win32_uni_char: None,
+        };
+        for flags in [
+            KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES,
+            KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS,
+        ] {
+            // Delete used to be sent as BS (0x08), which applications read as
+            // Backspace or Ctrl+H.
+            assert_eq!(
+                key(KeyCode::Char('\x7f')).encode_kitty(flags),
+                "\x1b[3;1~".to_string()
+            );
+            // Backspace is DEL, as in the legacy encoding.
+            assert_eq!(
+                key(KeyCode::Char('\x08')).encode_kitty(flags),
+                "\x7f".to_string()
+            );
+        }
+    }
 
     #[test]
     fn encode_issue_3220() {
