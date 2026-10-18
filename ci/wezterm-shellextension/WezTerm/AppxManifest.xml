@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Package IgnorableNamespaces="uap uap2 uap3 rescap desktop desktop4 desktop5 uap10 com build desktop10" 
+         xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" 
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" 
+         xmlns:uap2="http://schemas.microsoft.com/appx/manifest/uap/windows10/2" 
+         xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" 
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" 
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10" 
+         xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4" 
+         xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5" 
+         xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10" 
+         xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10" 
+         xmlns:build="http://schemas.microsoft.com/developer/appx/2015/build"
+         xmlns:desktop10="http://schemas.microsoft.com/appx/manifest/desktop/windows10/10">
+
+  <Identity Name="WezTerm" ProcessorArchitecture="x86" Publisher="CN=WezTerm" Version="1.0.9.0"/>
+  <Properties>
+    <DisplayName>WezTerm</DisplayName>
+    <PublisherDisplayName>WezTerm</PublisherDisplayName>
+    <Logo>Assets\terminal.png</Logo>
+  </Properties>
+  
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0"/>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0"/>
+  </Dependencies>
+  
+  <Resources>
+    <Resource Language="EN-US"/>
+    <Resource uap:Scale="200"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="wezterm-gui.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="WezTerm" Description="WezTerm" BackgroundColor="transparent" 
+                          Square150x150Logo="Images\Square150x150Logo.png" Square44x44Logo="Images\Square44x44Logo.png">
+        <uap:DefaultTile/>
+      </uap:VisualElements>
+      
+      <Extensions>
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <!-- Context menu for directory background -->
+            <desktop5:ItemType Type="Directory\Background">
+              <desktop5:Verb Id="OpenWezTerm" Clsid="7A1E471F-0D43-4122-B1C4-D1AACE76CE9B"/>
+            </desktop5:ItemType>
+            <!-- Context menu for directories -->
+            <desktop5:ItemType Type="Directory">
+              <desktop5:Verb Id="OpenWezTerm" Clsid="7A1E471F-0D43-4122-B1C4-D1AACE76CE9B"/>
+            </desktop5:ItemType>
+            <!-- Context menu for drives -->
+            <desktop10:ItemType Type="Drive">
+              <desktop10:Verb Id="OpenWezTerm" Clsid="7A1E471F-0D43-4122-B1C4-D1AACE76CE9B"/>
+            </desktop10:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="Open WezTerm here">
+              <com:Class Id="7A1E471F-0D43-4122-B1C4-D1AACE76CE9B" Path="WezTermShellExtension.dll" ThreadingModel="STA"/>
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+      
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+</Package>
