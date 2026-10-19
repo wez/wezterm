@@ -786,6 +786,27 @@ impl TerminalState {
 
                 check_image_dimensions(width, height)?;
 
+                // The pixel count follows from the format and the dimensions,
+                // so the source only has to hold at least that much. A shared
+                // memory object can report more than was staged in it, and a
+                // file may be longer than the image inside it.
+                let bytes_per_pixel = match transmit.format {
+                    Some(KittyImageFormat::Rgb) => 3,
+                    _ => 4,
+                };
+                let needed = width as usize * height as usize * bytes_per_pixel;
+                anyhow::ensure!(
+                    data.len() >= needed,
+                    "transmit data len is {} but {}x{} at {} bytes per pixel needs {}",
+                    data.len(),
+                    width,
+                    height,
+                    bytes_per_pixel,
+                    needed
+                );
+                let mut data = data;
+                data.truncate(needed);
+
                 let data = match transmit.format {
                     Some(KittyImageFormat::Rgb) => {
                         let img = DynamicImage::ImageRgb8(

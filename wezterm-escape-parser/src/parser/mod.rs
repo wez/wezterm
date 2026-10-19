@@ -968,6 +968,169 @@ mod test {
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
         );
+
+        // The offset goes out under O, and leaves the size under S alone.
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=q,t=s,s=1,v=1,i=3,O=10,S=80;L3dlenRlcm0tc2htLXJ0\x1b\\",
+                "\x1b_GO=10,S=80,a=q,i=3,s=1,t=s,v=1;L3dlenRlcm0tc2htLXJ0\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(Box::new(KittyImage::Query {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::SharedMem {
+                            name: "/wezterm-shm-rt".to_string(),
+                            data_offset: Some(10),
+                            data_size: Some(80),
+                        },
+                        width: Some(1),
+                        height: Some(1),
+                        image_id: Some(3),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+    }
+
+    /// The inter-frame gap is `z`, so it survives a round trip.
+    #[test]
+    fn kitty_frame_gap() {
+        use crate::apc::*;
+
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=f,i=1,z=100;YWJjZA==\x1b\\",
+                "\x1b_Ga=f,i=1,z=100;YWJjZA==\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(Box::new(KittyImage::TransmitFrame {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::Direct("YWJjZA==".to_string()),
+                        width: None,
+                        height: None,
+                        image_id: Some(1),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                    frame: KittyImageFrame {
+                        x: None,
+                        y: None,
+                        base_frame: None,
+                        frame_number: None,
+                        duration_ms: Some(100),
+                        composition_mode: KittyFrameCompositionMode::AlphaBlending,
+                        background_pixel: None,
+                    },
+                    verbosity: KittyImageVerbosity::Verbose,
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+    }
+
+    /// `S` defaults to zero, so `S=0` is a size that was not given and the
+    /// whole file is read.
+    #[test]
+    fn kitty_zero_size_is_no_size() {
+        use crate::apc::*;
+
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=q,t=t,s=1,v=1,i=4,S=0;L3Zhci90bXAvdG1wdGYxd3E4Ym4=\x1b\\",
+                "\x1b_Ga=q,i=4,s=1,t=t,v=1;L3Zhci90bXAvdG1wdGYxd3E4Ym4=\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(Box::new(KittyImage::Query {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::TemporaryFile {
+                            path: "/var/tmp/tmptf1wq8bn".to_string(),
+                            data_offset: None,
+                            data_size: None,
+                        },
+                        width: Some(1),
+                        height: Some(1),
+                        image_id: Some(4),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+    }
+
+    /// Deleting placements at a cell with a given z-index is `d=q`; `d=p` is
+    /// the same delete without the z-index, so the two must not collapse.
+    #[test]
+    fn kitty_delete_at_cell_with_z() {
+        use crate::apc::*;
+
+        assert_eq!(
+            round_trip_parse("\x1b_Ga=d,d=q,x=3,y=4,z=-1\x1b\\"),
+            vec![
+                Action::KittyImage(Box::new(KittyImage::Delete {
+                    what: KittyImageDelete::DeleteAtZ {
+                        x: 3,
+                        y: 4,
+                        z: -1,
+                        delete: false,
+                    },
+                    verbosity: KittyImageVerbosity::Verbose,
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+    }
+
+    /// Transmit and display is `a=T`, so it survives a round trip.
+    #[test]
+    fn kitty_transmit_and_display() {
+        use crate::apc::*;
+
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=T,s=1,v=1,i=2;YWJjZA==\x1b\\",
+                "\x1b_Ga=T,i=2,s=1,v=1;YWJjZA==\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(Box::new(KittyImage::TransmitDataAndDisplay {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::Direct("YWJjZA==".to_string()),
+                        width: Some(1),
+                        height: Some(1),
+                        image_id: Some(2),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                    placement: KittyImagePlacement {
+                        x: None,
+                        y: None,
+                        w: None,
+                        h: None,
+                        x_offset: None,
+                        y_offset: None,
+                        columns: None,
+                        rows: None,
+                        do_not_move_cursor: false,
+                        placement_id: None,
+                        z_index: None,
+                    },
+                    verbosity: KittyImageVerbosity::Verbose,
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
     }
 
     /* Withdrawn because xterm introduced a conflict:

@@ -108,7 +108,7 @@ impl TerminalState {
         // !!! Guard against a zero-sized image, nothing to draw.
         // A zero-sized drawable region leaves nothing to display and would divide by zero when
         // computing the per-cell pixel deltas below.
-        // (e.g. an image with explicit `w=0`/`h=0`, or a source origin outside the image bounds)
+        // (e.g. a source origin that lies outside the image bounds)
         // => Refuse the image placement instead of panicking and taking down the terminal.
         // <https://github.com/wezterm/wezterm/issues/6344>
         anyhow::ensure!(
