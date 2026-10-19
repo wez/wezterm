@@ -9,7 +9,7 @@ use crate::termwindow::{ScrollHit, UIItem, UIItemType};
 use ::window::bitmaps::TextureRect;
 use ::window::DeadKeyStatus;
 use anyhow::Context;
-use config::VisualBellTarget;
+use config::{PaneBorderStatus, VisualBellTarget};
 use mux::pane::{PaneId, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::PositionedPane;
@@ -107,6 +107,18 @@ impl crate::TermWindow {
 
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
+
+        // When a pane title bar is shown at the top, push terminal content down
+        // one row so it does not overlap the bar.  The terminal process has
+        // already been resized to height-1 rows by get_pos_panes_for_tab, so
+        // no row-count adjustment is needed here.
+        let top_pixel_y_extra = if self.config.pane_border_status == PaneBorderStatus::Top {
+            cell_height
+        } else {
+            0.0f32
+        };
+
+
         let background_rect = {
             // We want to fill out to the edges of the splits
             let (x, width_delta) = if pos.left == 0 {
@@ -127,6 +139,11 @@ impl crate::TermWindow {
                     (top_pixel_y - padding_top),
                     padding_top + (cell_height / 2.0),
                 )
+            } else if self.config.pane_border_status != PaneBorderStatus::Off {
+                // pos.top has been rank-adjusted: the title bar sits exactly
+                // at pos.top*cell_height. Start the background there with no
+                // bleed into the pane above.
+                (top_pixel_y + (pos.top as f32 * cell_height), 0.0)
             } else {
                 (
                     top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
@@ -142,11 +159,14 @@ impl crate::TermWindow {
                 } else {
                     (pos.width as f32 * cell_width) + width_delta
                 },
-                // Go all the way to the bottom if we're bottom-most
+                // Go all the way to the bottom if we're bottom-most.
+                // When title bars are active, top_pixel_y_extra accounts for
+                // the title bar row so content starts one cell lower.
                 if pos.top + pos.height >= self.terminal_size.rows as usize {
                     self.dimensions.pixel_height as f32 - y
                 } else {
                     (pos.height as f32 * cell_height) + height_delta as f32
+                        + top_pixel_y_extra
                 },
             )
         };
@@ -317,6 +337,9 @@ impl crate::TermWindow {
                 rectangular: bool,
                 dims: RenderableDimensions,
                 top_pixel_y: f32,
+                /// Extra pixel offset added to `top_pixel_y` when the title bar is
+                /// at the top of the pane, pushing terminal content down one row.
+                top_pixel_y_extra: f32,
                 left_pixel_x: f32,
                 pos: &'a PositionedPane,
                 pane_id: PaneId,
@@ -347,6 +370,7 @@ impl crate::TermWindow {
                 rectangular,
                 dims,
                 top_pixel_y,
+                top_pixel_y_extra,
                 left_pixel_x,
                 pos,
                 pane_id,
@@ -434,7 +458,8 @@ impl crate::TermWindow {
                         selection: selrange.clone(),
                         cursor,
                         shape_hash,
-                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap()
+                        top_pixel_y: NotNan::new(self.top_pixel_y + self.top_pixel_y_extra)
+                            .unwrap()
                             + (line_idx + self.pos.top) as f32
                                 * self.term_window.render_metrics.cell_size.height as f32,
                         left_pixel_x: NotNan::new(self.left_pixel_x).unwrap(),
@@ -601,6 +626,11 @@ impl crate::TermWindow {
 
         let border = self.get_os_border();
         let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
+        let top_pixel_y_extra = if self.config.pane_border_status == PaneBorderStatus::Top {
+            cell_height
+        } else {
+            0.0f32
+        };
 
         // We want to fill out to the edges of the splits
         let (x, width_delta) = if pos.left == 0 {
@@ -621,6 +651,11 @@ impl crate::TermWindow {
                 (top_pixel_y - padding_top),
                 padding_top + (cell_height / 2.0),
             )
+        } else if self.config.pane_border_status != PaneBorderStatus::Off {
+            // pos.top has been rank-adjusted: the title bar sits exactly at
+            // pos.top*cell_height. Start the background there with no bleed
+            // into the pane above.
+            (top_pixel_y + (pos.top as f32 * cell_height), 0.0)
         } else {
             (
                 top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
@@ -637,11 +672,14 @@ impl crate::TermWindow {
             } else {
                 (pos.width as f32 * cell_width) + width_delta
             },
-            // Go all the way to the bottom if we're bottom-most
+            // Go all the way to the bottom if we're bottom-most.
+            // When title bars are active, top_pixel_y_extra accounts for
+            // the title bar row so content starts one cell lower.
             if pos.top + pos.height >= self.terminal_size.rows as usize {
                 self.dimensions.pixel_height as f32 - y
             } else {
                 (pos.height as f32 * cell_height) + height_delta as f32
+                    + top_pixel_y_extra
             },
         );
 

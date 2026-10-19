@@ -28,6 +28,14 @@ impl crate::TermWindow {
         let pos_y = split.top as f32 * cell_height + first_row_offset + padding_top;
         let pos_x = split.left as f32 * cell_width + padding_left + border.left.get() as f32;
 
+        // When pane title bars are shown, the title bar of each lower pane
+        // already serves as the visual separator between stacked panes.
+        // For vertical (top/bottom) splits: skip the split line but register
+        // the resize hit-target at the title bar row so the user can still
+        // drag to resize.
+        let suppress_line = self.config.pane_border_status != config::PaneBorderStatus::Off
+            && split.direction != SplitDirection::Horizontal;
+
         if split.direction == SplitDirection::Horizontal {
             self.filled_rectangle(
                 layers,
@@ -52,25 +60,35 @@ impl crate::TermWindow {
                 item_type: UIItemType::Split(split.clone()),
             });
         } else {
-            self.filled_rectangle(
-                layers,
-                2,
-                euclid::rect(
-                    pos_x - (cell_width / 2.0),
-                    pos_y + (cell_height / 2.0),
-                    (1.0 + split.size as f32) * cell_width,
-                    self.render_metrics.underline_height as f32,
-                ),
-                foreground,
-            )?;
+            if !suppress_line {
+                self.filled_rectangle(
+                    layers,
+                    2,
+                    euclid::rect(
+                        pos_x - (cell_width / 2.0),
+                        pos_y + (cell_height / 2.0),
+                        (1.0 + split.size as f32) * cell_width,
+                        self.render_metrics.underline_height as f32,
+                    ),
+                    foreground,
+                )?;
+            }
+            // Hit-target is the title bar row (one cell below split.top).
+            let hit_y = if suppress_line {
+                padding_top as usize
+                    + first_row_offset as usize
+                    + (split.top + 1) * cell_height as usize
+            } else {
+                padding_top as usize
+                    + first_row_offset as usize
+                    + split.top * cell_height as usize
+            };
             self.ui_items.push(UIItem {
                 x: border.left.get() as usize
                     + padding_left as usize
                     + (split.left * cell_width as usize),
                 width: split.size * cell_width as usize,
-                y: padding_top as usize
-                    + first_row_offset as usize
-                    + split.top * cell_height as usize,
+                y: hit_y,
                 height: cell_height as usize,
                 item_type: UIItemType::Split(split.clone()),
             });

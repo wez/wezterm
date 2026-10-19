@@ -114,6 +114,72 @@ fn call_format_tab_title(
     }
 }
 
+/// Compute the title `Line` for a pane title bar.
+///
+/// Build the default pane title `Line` from the pane's window title.
+///
+/// This is the fallback used when no `format-pane-title` Lua callback is
+/// registered.  It is a pure function with no Lua dependency, which makes
+/// it easy to unit-test independently.
+pub fn default_pane_title(pane: &PaneInformation) -> wezterm_term::Line {
+    parse_status_text(&pane.title, CellAttributes::default())
+}
+
+/// Compute the title `Line` for a pane title bar.
+///
+/// Calls the `format-pane-title` Lua event, which receives:
+///   * `pane`       – `PaneInformation` for the pane being titled
+///   * `panes`      – sequence of `PaneInformation` for every visible pane
+///   * `tabs`       – sequence of `TabInformation` for every tab
+///   * `config`     – the current configuration
+///
+/// The callback may return a string or a table of `wezterm.format` items.
+/// When no callback is registered `default_pane_title` is used as a fallback.
+pub fn compute_pane_title(
+    pane: &PaneInformation,
+    pane_info: &[PaneInformation],
+    tab_info: &[TabInformation],
+    config: &ConfigHandle,
+) -> wezterm_term::Line {
+    let custom = config::run_immediate_with_lua_config(|lua| {
+        if let Some(lua) = lua {
+            let panes = lua.create_sequence_from(pane_info.iter().cloned())?;
+            let tabs = lua.create_sequence_from(tab_info.iter().cloned())?;
+
+            let v = config::lua::emit_sync_callback(
+                &*lua,
+                (
+                    "format-pane-title".to_string(),
+                    (pane.clone(), panes, tabs, (**config).clone()),
+                ),
+            )?;
+            match v {
+                mlua::Value::Nil => Ok(None),
+                mlua::Value::Table(_) => {
+                    let items = <Vec<FormatItem>>::from_lua(v, &*lua)?;
+                    let esc = format_as_escapes(items)?;
+                    Ok(Some(parse_status_text(&esc, CellAttributes::default())))
+                }
+                _ => {
+                    let s = String::from_lua(v, &*lua)?;
+                    Ok(Some(parse_status_text(&s, CellAttributes::default())))
+                }
+            }
+        } else {
+            Ok(None)
+        }
+    });
+
+    match custom {
+        Ok(Some(line)) => line,
+        Ok(None) => default_pane_title(pane),
+        Err(err) => {
+            log::warn!("format-pane-title: {}", err);
+            default_pane_title(pane)
+        }
+    }
+}
+
 /// pct is a percentage in the range 0-100.
 /// We want to map it to one of the nerdfonts:
 ///
@@ -823,4 +889,87 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     });
     flush_print(&mut print_buffer, &mut cells, &pen);
     Line::from_cells(cells, SEQ_ZERO)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::termwindow::PaneInformation;
+    use std::collections::HashMap;
+
+    fn make_pane(title: &str) -> PaneInformation {
+        PaneInformation {
+            pane_id: 0,
+            pane_index: 0,
+            is_active: true,
+            is_zoomed: false,
+            has_unseen_output: false,
+            left: 0,
+            top: 0,
+            width: 80,
+            height: 24,
+            pixel_width: 800,
+            pixel_height: 240,
+            title: title.to_string(),
+            user_vars: HashMap::new(),
+            progress: wezterm_term::Progress::None,
+        }
+    }
+
+    fn line_to_string(line: &wezterm_term::Line) -> String {
+        line.as_str().into_owned()
+    }
+
+    /// parse_status_text must preserve plain ASCII text unchanged.
+    #[test]
+    fn parse_status_text_plain() {
+        let line = parse_status_text("hello world", CellAttributes::default());
+        assert_eq!(line_to_string(&line), "hello world");
+    }
+
+    /// parse_status_text stops at a newline so multi-line input only yields the
+    /// first line (matching the tab-bar behaviour for single-row rendering).
+    #[test]
+    fn parse_status_text_stops_at_newline() {
+        let line = parse_status_text("first\nsecond", CellAttributes::default());
+        assert_eq!(line_to_string(&line), "first");
+    }
+
+    /// parse_status_text must handle an SGR bold sequence without panicking and
+    /// produce the correct cell count.
+    #[test]
+    fn parse_status_text_sgr_bold() {
+        // ESC[1m  bold on  ESC[0m  reset
+        let line = parse_status_text("\x1b[1mhi\x1b[0m", CellAttributes::default());
+        assert_eq!(line.len(), 2);
+    }
+
+    /// The default fallback uses the pane's window title as-is.
+    #[test]
+    fn default_pane_title_uses_window_title() {
+        let pane = make_pane("my-pane-title");
+        let line = default_pane_title(&pane);
+        assert_eq!(line_to_string(&line), "my-pane-title");
+    }
+
+    /// An empty window title produces an empty line rather than panicking.
+    #[test]
+    fn default_pane_title_empty() {
+        let pane = make_pane("");
+        let line = default_pane_title(&pane);
+        assert_eq!(line.len(), 0);
+    }
+
+    /// default_pane_title is independent per-pane — two panes with different
+    /// titles produce distinct lines.
+    #[test]
+    fn default_pane_title_multiple_panes() {
+        let pane0 = make_pane("pane-0");
+        let mut pane1 = make_pane("pane-1");
+        pane1.pane_index = 1;
+        pane1.is_active = false;
+
+        assert_eq!(line_to_string(&default_pane_title(&pane0)), "pane-0");
+        assert_eq!(line_to_string(&default_pane_title(&pane1)), "pane-1");
+    }
 }

@@ -2,6 +2,7 @@ use crate::termwindow::{RenderFrame, TermWindowNotif};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::WindowOps;
 use anyhow::Context;
+use config::PaneBorderStatus;
 use smol::Timer;
 use std::time::{Duration, Instant};
 use wezterm_font::ClearShapeCache;
@@ -249,15 +250,15 @@ impl crate::TermWindow {
             .context("filled_rectangle for window background")?;
         }
 
-        for pos in panes {
+        for pos in &panes {
             if pos.is_active {
-                self.update_text_cursor(&pos);
+                self.update_text_cursor(pos);
                 if focused {
                     pos.pane.advise_focus();
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            self.paint_pane(&pos, &mut layers).context("paint_pane")?;
+            self.paint_pane(pos, &mut layers).context("paint_pane")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
@@ -265,6 +266,19 @@ impl crate::TermWindow {
             for split in &splits {
                 self.paint_split(&mut layers, split, &pane)
                     .context("paint_split")?;
+            }
+        }
+
+        // Paint pane title bars after pane content and splits so they are
+        // drawn on top (higher z-order within the same layer).
+        if self.config.pane_border_status != PaneBorderStatus::Off {
+            let pane_info = self.get_pane_information();
+            let tab_info = self.get_tab_information();
+            for pos in &panes {
+                let items = self
+                    .paint_pane_title_bar(pos, &pane_info, &tab_info, &mut layers)
+                    .context("paint_pane_title_bar")?;
+                self.ui_items.extend(items);
             }
         }
 

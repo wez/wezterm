@@ -8,7 +8,7 @@ use ::window::{
 };
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
-use mux::pane::{Pane, WithPaneLines};
+use mux::pane::{Pane, PaneId, WithPaneLines};
 use mux::tab::SplitDirection;
 use mux::Mux;
 use mux_lua::MuxPane;
@@ -40,6 +40,7 @@ impl super::TermWindow {
                 self.update_title_post_status();
             }
             UIItemType::CloseTab(_)
+            | UIItemType::ClosePane(_)
             | UIItemType::AboveScrollThumb
             | UIItemType::BelowScrollThumb
             | UIItemType::ScrollThumb
@@ -51,6 +52,7 @@ impl super::TermWindow {
         match item.item_type {
             UIItemType::TabBar(_) => {}
             UIItemType::CloseTab(_)
+            | UIItemType::ClosePane(_)
             | UIItemType::AboveScrollThumb
             | UIItemType::BelowScrollThumb
             | UIItemType::ScrollThumb
@@ -382,7 +384,22 @@ impl super::TermWindow {
             UIItemType::CloseTab(idx) => {
                 self.mouse_event_close_tab(idx, event, context);
             }
+            UIItemType::ClosePane(pane_id) => {
+                self.mouse_event_close_pane(pane_id, event, context);
+            }
         }
+    }
+
+    pub fn mouse_event_close_pane(
+        &mut self,
+        pane_id: PaneId,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        if let WMEK::Press(MousePress::Left) = event.kind {
+            self.close_specific_pane(pane_id);
+        }
+        context.set_cursor(Some(MouseCursor::Arrow));
     }
 
     pub fn mouse_event_close_tab(
@@ -706,10 +723,18 @@ impl super::TermWindow {
                 }
                 column = column.saturating_sub(pos.left);
                 row = row.saturating_sub(pos.top as i64);
+                // The title bar occupies row 0 of the pane's visual area;
+                // subtract it so that row 0 maps to the first terminal line.
+                if self.config.pane_border_status != config::PaneBorderStatus::Off {
+                    row = row.saturating_sub(1);
+                }
                 break;
             } else if is_already_captured && pane.pane_id() == pos.pane.pane_id() {
                 column = column.saturating_sub(pos.left);
                 row = row.saturating_sub(pos.top as i64).max(0);
+                if self.config.pane_border_status != config::PaneBorderStatus::Off {
+                    row = row.saturating_sub(1);
+                }
 
                 if position.column < pos.left {
                     x_pixel_offset -= self.render_metrics.cell_size.width

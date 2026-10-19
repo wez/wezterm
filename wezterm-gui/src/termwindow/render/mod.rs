@@ -40,6 +40,7 @@ pub mod draw;
 pub mod fancy_tab_bar;
 pub mod paint;
 pub mod pane;
+pub mod pane_bar;
 pub mod screen_line;
 pub mod split;
 pub mod tab_bar;

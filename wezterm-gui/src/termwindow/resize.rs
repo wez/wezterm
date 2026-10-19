@@ -2,6 +2,7 @@ use crate::resize_increment_calculator::ResizeIncrementCalculator;
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, ResizeIncrement, Window, WindowOps, WindowState};
 use config::{ConfigHandle, DimensionContext};
+use config::PaneBorderStatus;
 use mux::Mux;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -171,7 +172,7 @@ impl super::TermWindow {
 
         let border = self.get_os_border();
 
-        let (size, dims, ri_calc) = if let Some(cell_dims) = scale_changed_cells {
+        let (size, dims, ri_calc, window_base_rows) = if let Some(cell_dims) = scale_changed_cells {
             // Scaling preserves existing terminal dimensions, yielding a new
             // overall set of window dimensions
             let size = TerminalSize {
@@ -227,7 +228,7 @@ impl super::TermWindow {
                 tab_bar_height: tab_bar_height as usize,
             };
 
-            (size, dims, ri_calc)
+            (size, dims, ri_calc, None)
         } else {
             // Resize of the window dimensions may result in changed terminal dimensions
 
@@ -259,8 +260,22 @@ impl super::TermWindow {
                 )
                 .saturating_sub(tab_bar_height as usize);
 
-            let rows = avail_height / self.render_metrics.cell_size.height as usize;
             let cols = avail_width / self.render_metrics.cell_size.width as usize;
+
+            // Total rows available across the whole window (no title-bar deduction yet).
+            let base_rows = avail_height / self.render_metrics.cell_size.height as usize;
+
+            // When pane title bars are shown each pane loses one row to its title
+            // bar.  For terminal_size (used when spawning new single-pane tabs)
+            // subtract one row.  Per-tab resizes below subtract the exact number of
+            // title-bar rows needed for that tab's split layout.
+            let default_title_bar_rows =
+                if self.config.pane_border_status != PaneBorderStatus::Off {
+                    1usize
+                } else {
+                    0usize
+                };
+            let rows = base_rows.saturating_sub(default_title_bar_rows);
 
             let size = TerminalSize {
                 rows,
@@ -285,7 +300,7 @@ impl super::TermWindow {
                 tab_bar_height: tab_bar_height as usize,
             };
 
-            (size, *dimensions, ri_calc)
+            (size, *dimensions, ri_calc, Some(base_rows))
         };
 
         log::trace!("apply_dimensions computed size {:?}, dims {:?}", size, dims);
