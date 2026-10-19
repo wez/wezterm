@@ -1049,7 +1049,7 @@ impl LinearRgba {
         let g = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_;
         let b = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_;
 
-        Self(r, g, b, alpha)
+        Self(r.clamp(0.0, 1.0), g.clamp(0.0, 1.0), b.clamp(0.0, 1.0), alpha)
     }
 
     /// Assuming that `self` represents the foreground color
@@ -1074,41 +1074,94 @@ impl LinearRgba {
             return None;
         }
 
-        let [_fg_l, fg_a, fg_b, fg_alpha] = self.to_oklaba();
+        let [fg_l, fg_a, fg_b, fg_alpha] = self.to_oklaba();
 
-        let reduced_lum = ((bg_lum + 0.05) / min_ratio - 0.05).clamp(0.05, 1.0);
-        let reduced_col = Self::from_oklaba(reduced_lum, fg_a, fg_b, fg_alpha);
-        let reduced_ratio = reduced_col.contrast_ratio(other);
+        // Binary search: vary OKLab L while keeping a, b fixed.
+        // This preserves hue/chroma and evaluates actual WCAG contrast.
 
-        let increased_lum = ((bg_lum + 0.05) * min_ratio - 0.05).clamp(0.05, 1.0);
-        let increased_col = Self::from_oklaba(increased_lum, fg_a, fg_b, fg_alpha);
-        let increased_ratio = reduced_col.contrast_ratio(other);
+        // Try darkening: search L in [0, fg_l]
+        let darken_result = {
+            let endpoint = Self::from_oklaba(0.0, fg_a, fg_b, fg_alpha);
+            let endpoint_ratio = endpoint.contrast_ratio(other);
+            if endpoint_ratio >= min_ratio {
+                // Binary search for L closest to fg_l that meets the target
+                let (mut lo, mut hi) = (0.0_f32, fg_l);
+                for _ in 0..20 {
+                    let mid = (lo + hi) * 0.5;
+                    let col = Self::from_oklaba(mid, fg_a, fg_b, fg_alpha);
+                    if col.contrast_ratio(other) >= min_ratio {
+                        lo = mid; // meets target, try closer to fg_l
+                    } else {
+                        hi = mid;
+                    }
+                }
+                let col = Self::from_oklaba(lo, fg_a, fg_b, fg_alpha);
+                Some((col, col.contrast_ratio(other)))
+            } else {
+                // Can't meet target by darkening; record best effort
+                if endpoint_ratio > ratio {
+                    Some((endpoint, endpoint_ratio))
+                } else {
+                    None
+                }
+            }
+        };
 
-        // Prefer the reduced luminance version if the fg is dimmer than bg
-        if fg_lum < bg_lum {
-            if reduced_ratio >= min_ratio {
-                return Some(reduced_col);
+        // Try lightening: search L in [fg_l, 1]
+        let lighten_result = {
+            let endpoint = Self::from_oklaba(1.0, fg_a, fg_b, fg_alpha);
+            let endpoint_ratio = endpoint.contrast_ratio(other);
+            if endpoint_ratio >= min_ratio {
+                // Binary search for L closest to fg_l that meets the target
+                let (mut lo, mut hi) = (fg_l, 1.0_f32);
+                for _ in 0..20 {
+                    let mid = (lo + hi) * 0.5;
+                    let col = Self::from_oklaba(mid, fg_a, fg_b, fg_alpha);
+                    if col.contrast_ratio(other) >= min_ratio {
+                        hi = mid; // meets target, try closer to fg_l
+                    } else {
+                        lo = mid;
+                    }
+                }
+                let col = Self::from_oklaba(hi, fg_a, fg_b, fg_alpha);
+                Some((col, col.contrast_ratio(other)))
+            } else {
+                // Can't meet target by lightening; record best effort
+                if endpoint_ratio > ratio {
+                    Some((endpoint, endpoint_ratio))
+                } else {
+                    None
+                }
+            }
+        };
+
+        // Prefer the direction that keeps fg closer to its original brightness
+        let prefer_darken = fg_lum <= bg_lum;
+        let (first, second) = if prefer_darken {
+            (darken_result, lighten_result)
+        } else {
+            (lighten_result, darken_result)
+        };
+
+        // Pick first choice if it meets target, else second, else best effort
+        if let Some((col, r)) = first {
+            if r >= min_ratio {
+                return Some(col);
             }
         }
-        // Otherwise, let's find a satisfactory alternative
-        if increased_ratio >= min_ratio {
-            return Some(increased_col);
-        }
-        if reduced_ratio >= min_ratio {
-            return Some(reduced_col);
+        if let Some((col, r)) = second {
+            if r >= min_ratio {
+                return Some(col);
+            }
         }
 
-        // Didn't find one that satifies the min_ratio, but did we find
-        // one that is better than the existing ratio?
-        if reduced_ratio > ratio {
-            return Some(reduced_col);
+        // Neither met the target; return whichever improves contrast the most
+        match (first, second) {
+            (Some((c1, r1)), Some((_, r2))) if r1 >= r2 => Some(c1),
+            (_, Some((c2, _))) => Some(c2),
+            (Some((c1, _)), _) => Some(c1),
+            _ => None,
         }
-        if increased_ratio > ratio {
-            return Some(increased_col);
-        }
-
-        // What they had was as good as it gets
-        None
     }
 }
 
@@ -1202,5 +1255,92 @@ mod tests {
             "contrast({}) == 2.91",
             contrast_ratio
         );
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn ensure_contrast_dark_on_dark() {
+        // Dark gray text on black background — needs brightness increase
+        let fg = LinearRgba::with_srgba(30, 30, 30, 255);
+        let bg = LinearRgba::with_srgba(0, 0, 0, 255);
+        let min_ratio = 4.5;
+        let adjusted = fg
+            .ensure_contrast_ratio(&bg, min_ratio)
+            .expect("should adjust dark-on-dark");
+        let ratio = adjusted.contrast_ratio(&bg);
+        assert!(
+            ratio >= min_ratio - 0.1,
+            "dark-on-dark: adjusted ratio {} should be >= {}", ratio, min_ratio
+        );
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn ensure_contrast_light_on_light() {
+        // Light gray text on white background — needs brightness decrease
+        let fg = LinearRgba::with_srgba(220, 220, 220, 255);
+        let bg = LinearRgba::with_srgba(255, 255, 255, 255);
+        let min_ratio = 4.5;
+        let adjusted = fg
+            .ensure_contrast_ratio(&bg, min_ratio)
+            .expect("should adjust light-on-light");
+        let ratio = adjusted.contrast_ratio(&bg);
+        assert!(
+            ratio >= min_ratio - 0.1,
+            "light-on-light: adjusted ratio {} should be >= {}", ratio, min_ratio
+        );
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn ensure_contrast_already_sufficient() {
+        // Black text on white background — already max contrast
+        let fg = LinearRgba::with_srgba(0, 0, 0, 255);
+        let bg = LinearRgba::with_srgba(255, 255, 255, 255);
+        assert!(
+            fg.ensure_contrast_ratio(&bg, 4.5).is_none(),
+            "already sufficient contrast should return None"
+        );
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn ensure_contrast_same_color() {
+        // Same fg and bg — intentional, returns None
+        let color = LinearRgba::with_srgba(128, 128, 128, 255);
+        assert!(
+            color.ensure_contrast_ratio(&color, 4.5).is_none(),
+            "same color should return None (intentional)"
+        );
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn ensure_contrast_ratio_meets_target() {
+        let min_ratio = 4.5;
+        // Both achromatic and chromatic cases should meet the target precisely
+        let test_cases = [
+            (
+                LinearRgba::with_srgba(50, 50, 50, 255),
+                LinearRgba::with_srgba(20, 20, 20, 255),
+            ),
+            (
+                LinearRgba::with_srgba(200, 200, 200, 255),
+                LinearRgba::with_srgba(230, 230, 230, 255),
+            ),
+            (
+                LinearRgba::with_srgba(100, 50, 50, 255),
+                LinearRgba::with_srgba(80, 40, 40, 255),
+            ),
+        ];
+        for (i, (fg, bg)) in test_cases.iter().enumerate() {
+            if let Some(adjusted) = fg.ensure_contrast_ratio(bg, min_ratio) {
+                let ratio = adjusted.contrast_ratio(bg);
+                assert!(
+                    ratio >= min_ratio - 0.1,
+                    "case {}: adjusted ratio {} should be >= {}", i, ratio, min_ratio
+                );
+            }
+        }
     }
 }

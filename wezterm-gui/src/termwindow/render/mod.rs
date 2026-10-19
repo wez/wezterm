@@ -194,6 +194,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_is_default_color: bool,
     pub cursor_border_color: LinearRgba,
     pub pane: Option<&'a Arc<dyn Pane>>,
+    pub skip_min_contrast: bool,
 }
 
 #[derive(Debug)]
@@ -542,7 +543,11 @@ impl crate::TermWindow {
                     (params.cursor_fg, params.cursor_bg)
                 };
 
-                let fg_color = self.ensure_min_contrast(fg_color, bg_color);
+                let fg_color = if params.skip_min_contrast {
+                    fg_color
+                } else {
+                    self.ensure_min_contrast(fg_color, bg_color)
+                };
 
                 // interpolate between the background color and the target color
                 let bg_color_alt = params
@@ -597,7 +602,11 @@ impl crate::TermWindow {
                         }),
                 );
 
-                let fg_color = self.ensure_min_contrast(fg_color, bg_color);
+                let fg_color = if params.skip_min_contrast {
+                    fg_color
+                } else {
+                    self.ensure_min_contrast(fg_color, bg_color)
+                };
 
                 let color = params
                     .config
@@ -682,7 +691,11 @@ impl crate::TermWindow {
             _ => (params.fg_color, params.bg_color, params.cursor_border_color),
         };
 
-        let fg_color = self.ensure_min_contrast(fg_color, bg_color);
+        let fg_color = if params.skip_min_contrast {
+            fg_color
+        } else {
+            self.ensure_min_contrast(fg_color, bg_color)
+        };
 
         let blinking = params.cursor.is_some()
             && params.is_active_pane
