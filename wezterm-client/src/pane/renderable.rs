@@ -423,7 +423,7 @@ impl RenderableInner {
     }
 
     pub fn make_all_stale(&mut self) {
-        let mut lines = LruCache::unbounded();
+        let mut lines = LruCache::new(self.lines.cap());
         while let Some((stable_row, entry)) = self.lines.pop_lru() {
             let entry = match entry {
                 LineEntry::Stale(old) | LineEntry::Line(old) => LineEntry::Stale(old),
