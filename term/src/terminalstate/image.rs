@@ -235,9 +235,18 @@ impl TerminalState {
                     params.placement_id,
                 ));
                 match params.style {
-                    ImageAttachStyle::Kitty => cell.attrs_mut().attach_image(img),
+                    ImageAttachStyle::Kitty => {
+                        // Anonymous images (id 0) are never scrubbed by kitty_img_place(),
+                        // so without this every re-placement stacks another attachment.
+                        // See #7400.
+                        if let Some(image_id) = params.image_id {
+                            cell.attrs_mut()
+                                .detach_image_with_placement(image_id, params.placement_id);
+                        }
+                        cell.attrs_mut().attach_image(img);
+                    }
                     ImageAttachStyle::Sixel | ImageAttachStyle::Iterm => {
-                        cell.attrs_mut().set_image(img)
+                        cell.attrs_mut().set_image(img);
                     }
                 };
 

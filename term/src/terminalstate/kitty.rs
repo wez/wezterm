@@ -35,9 +35,9 @@ impl KittyImageState {
     }
 
     fn record_id_to_data(&mut self, image_id: u32, data: Arc<ImageData>) {
-        if image_id != 0 {
-            self.remove_data_for_id(image_id);
-        }
+        // insert() below replaces the entry for any id, including 0, so the old
+        // size must be dropped for every id or used_memory never shrinks.
+        self.remove_data_for_id(image_id);
         self.prune_unreferenced();
         self.used_memory += data.len();
         self.id_to_data.insert(image_id, data);
