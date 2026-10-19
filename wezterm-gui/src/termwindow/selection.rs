@@ -240,6 +240,19 @@ impl super::TermWindow {
         self.window.as_ref().unwrap().invalidate();
     }
 
+    /// Extends the end of the current selection (if any) to the end of
+    /// the logical line on which it ends.
+    pub fn extend_selection_to_end_of_line(&mut self, pane: &Arc<dyn Pane>) {
+        let Some(range) = self.selection(pane.pane_id()).range else {
+            return;
+        };
+        let mut selection = self.selection(pane.pane_id());
+        selection.range = Some(range.extend_to_end_of_line(&**pane));
+        selection.seqno = pane.get_current_seqno();
+        drop(selection);
+        self.window.as_ref().unwrap().invalidate();
+    }
+
     pub fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Arc<dyn Pane>) {
         let (x, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
             Some(coords) => (coords.0.column, coords.1),

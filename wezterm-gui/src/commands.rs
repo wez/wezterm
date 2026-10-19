@@ -1777,6 +1777,15 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: None,
         },
+        ExtendSelectionToEndOfLine => CommandDef {
+            brief: "Extends the selection to the end of the line".into(),
+            doc: "Extends the end of the current selection to the end of the logical line that it ends on"
+                .into(),
+            keys: vec![],
+            args: &[],
+            menubar: &[],
+            icon: None,
+        },
         ClearSelection => CommandDef {
             brief: "Clears the selection in the current pane".into(),
             doc: "Clears the selection in the current pane".into(),

@@ -589,6 +589,7 @@ pub enum KeyAssignment {
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(SelectionMode),
+    ExtendSelectionToEndOfLine,
     OpenLinkAtMouseCursor,
     ClearSelection,
     CompleteSelection(ClipboardCopyDestination),

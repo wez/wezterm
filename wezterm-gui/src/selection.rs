@@ -197,6 +197,41 @@ impl SelectionRange {
         Self { start, end: start }
     }
 
+    /// Returns this range, normalized, with its end moved to the end of
+    /// the logical line that the end currently falls on.
+    pub fn extend_to_end_of_line(&self, pane: &dyn Pane) -> Self {
+        let norm = self.normalize().normalize_same_row();
+        for logical in pane.get_logical_lines(norm.end.y..norm.end.y + 1) {
+            if logical.contains_y(norm.end.y) {
+                let last_row =
+                    logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex;
+                return norm.with_end_at_row_end(last_row);
+            }
+        }
+        norm
+    }
+
+    /// For a range within a single row, orders the endpoints by x so that
+    /// a right-to-left selection keeps its leftmost cell as the start.
+    fn normalize_same_row(self) -> Self {
+        if self.start.y == self.end.y && self.start.x > self.end.x {
+            Self {
+                start: self.end,
+                end: self.start,
+            }
+        } else {
+            self
+        }
+    }
+
+    /// Moves the end of a normalized range to the end of `row`.
+    fn with_end_at_row_end(self, row: StableRowIndex) -> Self {
+        Self {
+            start: self.start,
+            end: SelectionCoordinate::x_y(usize::max_value(), row),
+        }
+    }
+
     pub fn zone_around(start: SelectionCoordinate, pane: &dyn mux::pane::Pane) -> Self {
         let zones = match pane.get_semantic_zones() {
             Ok(z) => z,
@@ -354,5 +389,44 @@ impl SelectionRange {
                 0..usize::max_value()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn end_moves_to_end_of_row() {
+        // A "word" selected at cols 4..=7 of row 3 extends to the end of
+        // that row, keeping its start.
+        let word = SelectionRange {
+            start: SelectionCoordinate::x_y(4, 3),
+            end: SelectionCoordinate::x_y(7, 3),
+        };
+        let ext = word.with_end_at_row_end(3);
+        assert_eq!(ext.start, word.start);
+        assert_eq!(ext.cols_for_row(3, false), 4..usize::max_value());
+    }
+
+    #[test]
+    fn right_to_left_same_row_keeps_left_part() {
+        let rtl = SelectionRange {
+            start: SelectionCoordinate::x_y(7, 3),
+            end: SelectionCoordinate::x_y(4, 3),
+        };
+        let ext = rtl.normalize_same_row().with_end_at_row_end(3);
+        assert_eq!(ext.cols_for_row(3, false), 4..usize::max_value());
+    }
+
+    #[test]
+    fn wrapped_line_extends_to_last_physical_row() {
+        let word = SelectionRange {
+            start: SelectionCoordinate::x_y(4, 3),
+            end: SelectionCoordinate::x_y(7, 3),
+        };
+        let ext = word.with_end_at_row_end(4);
+        assert_eq!(ext.cols_for_row(3, false), 4..usize::max_value());
+        assert_eq!(ext.cols_for_row(4, false), 0..usize::max_value());
     }
 }

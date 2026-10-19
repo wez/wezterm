@@ -77,6 +77,9 @@ As features stabilize some brief notes about them will accumulate here.
   easier to spot the remaining candidates. Thanks to @mr-felixoid and @bew! #7752
 
 #### New
+* [ExtendSelectionToEndOfLine](config/lua/keyassignment/ExtendSelectionToEndOfLine.md)
+  key/mouse assignment to extend the selection to the end of the line, for example
+  to make triple click select from the word under the pointer to the end of the line. #780
 * [command_palette_line_height](config/lua/config/command_palette_line_height.md)
   option to scale the vertical spacing of rows in the command palette,
   independently of [line_height](config/lua/config/line_height.md) which is for terminal cells only.
