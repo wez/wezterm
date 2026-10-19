@@ -960,8 +960,9 @@ pub struct KittyImageFrame {
 
     /// Gap in milliseconds of this frame from the next one.
     /// Zero or omitted values are interpreted as 40ms.
+    /// Negative values indicate a gapless frame.
     /// z=...
-    pub duration_ms: Option<u32>,
+    pub duration_ms: Option<i32>,
 
     /// Composition mode.
     /// Default is AlphaBlending
@@ -987,7 +988,7 @@ impl KittyImageFrame {
                 None | Some(0) => None,
                 n => n,
             },
-            duration_ms: match geti(keys, "Z") {
+            duration_ms: match geti::<i32>(keys, "z").or_else(|| geti::<i32>(keys, "Z")) {
                 None | Some(0) => None,
                 n => n,
             },
@@ -1005,7 +1006,7 @@ impl KittyImageFrame {
         set(keys, "y", &self.y);
         set(keys, "c", &self.base_frame);
         set(keys, "r", &self.frame_number);
-        set(keys, "Z", &self.duration_ms);
+        set(keys, "z", &self.duration_ms);
         match &self.composition_mode {
             KittyFrameCompositionMode::AlphaBlending => {}
             KittyFrameCompositionMode::Overwrite => {
@@ -1013,6 +1014,69 @@ impl KittyImageFrame {
             }
         }
         set(keys, "Y", &self.background_pixel);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KittyImageAnimationControl {
+    /// i=...
+    pub image_id: Option<u32>,
+    /// I=...
+    pub image_number: Option<u32>,
+    /// The 1-based frame number whose gap should be updated
+    /// r=...
+    pub frame_number: Option<u32>,
+    /// The 1-based frame number that should be made current
+    /// c=...
+    pub current_frame: Option<u32>,
+    /// Gap in milliseconds for the referenced frame.
+    /// Negative values indicate a gapless frame.
+    /// z=...
+    pub gap_ms: Option<i32>,
+    /// Animation state
+    /// s=...
+    pub animation_state: Option<u32>,
+    /// Loop count
+    /// v=...
+    pub loop_count: Option<u32>,
+}
+
+impl KittyImageAnimationControl {
+    fn from_keys(keys: &BTreeMap<&str, &str>) -> Option<Self> {
+        Some(Self {
+            image_id: geti(keys, "i"),
+            image_number: geti(keys, "I"),
+            frame_number: match geti(keys, "r") {
+                None | Some(0) => None,
+                n => n,
+            },
+            current_frame: match geti(keys, "c") {
+                None | Some(0) => None,
+                n => n,
+            },
+            gap_ms: match geti::<i32>(keys, "z").or_else(|| geti::<i32>(keys, "Z")) {
+                None | Some(0) => None,
+                n => n,
+            },
+            animation_state: match geti(keys, "s") {
+                None | Some(0) => None,
+                n => n,
+            },
+            loop_count: match geti(keys, "v") {
+                None | Some(0) => None,
+                n => n,
+            },
+        })
+    }
+
+    fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
+        set(keys, "i", &self.image_id);
+        set(keys, "I", &self.image_number);
+        set(keys, "r", &self.frame_number);
+        set(keys, "c", &self.current_frame);
+        set(keys, "z", &self.gap_ms);
+        set(keys, "s", &self.animation_state);
+        set(keys, "v", &self.loop_count);
     }
 }
 
@@ -1054,6 +1118,11 @@ pub enum KittyImage {
         frame: KittyImageFrameCompose,
         verbosity: KittyImageVerbosity,
     },
+    /// a='a'
+    AnimationControl {
+        control: KittyImageAnimationControl,
+        verbosity: KittyImageVerbosity,
+    },
 }
 
 impl KittyImage {
@@ -1066,6 +1135,7 @@ impl KittyImage {
             Self::Delete { verbosity, .. } => *verbosity,
             Self::TransmitFrame { verbosity, .. } => *verbosity,
             Self::ComposeFrame { verbosity, .. } => *verbosity,
+            Self::AnimationControl { verbosity, .. } => *verbosity,
         }
     }
 
@@ -1117,6 +1187,10 @@ impl KittyImage {
             }),
             "c" => Some(Self::ComposeFrame {
                 frame: KittyImageFrameCompose::from_keys(&keys)?,
+                verbosity,
+            }),
+            "a" => Some(Self::AnimationControl {
+                control: KittyImageAnimationControl::from_keys(&keys)?,
                 verbosity,
             }),
             _ => None,
@@ -1181,6 +1255,11 @@ impl KittyImage {
             Self::ComposeFrame { frame, verbosity } => {
                 keys.insert("a", "c".to_string());
                 frame.to_keys(keys);
+                verbosity.to_keys(keys);
+            }
+            Self::AnimationControl { control, verbosity } => {
+                keys.insert("a", "a".to_string());
+                control.to_keys(keys);
                 verbosity.to_keys(keys);
             }
         }

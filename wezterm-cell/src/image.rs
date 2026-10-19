@@ -222,6 +222,20 @@ impl ImageCell {
 /// NOTE: The decoded RGBA variants cache a sha256 hash of their frame(s);
 /// mutation through [`ImageData::data`] must refresh them.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImageAnimationState {
+    Stopped,
+    Loading,
+    Running,
+}
+
+impl Default for ImageAnimationState {
+    fn default() -> Self {
+        Self::Running
+    }
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Eq)]
 pub enum ImageDataType {
     /// Data is in the native image file format
@@ -256,6 +270,9 @@ pub enum ImageDataType {
         /// sha256 of each `frames`.
         /// Must be updated whenever a frame changes.
         hashes: Vec<[u8; 32]>,
+        animation_state: ImageAnimationState,
+        max_loops: Option<u32>,
+        pending_frame: Option<u32>,
     },
 }
 
@@ -285,6 +302,9 @@ impl std::fmt::Debug for ImageDataType {
                 height,
                 durations,
                 hashes,
+                animation_state,
+                max_loops,
+                pending_frame,
             } => fmt
                 .debug_struct("AnimRgba8")
                 .field("frames_of_len", &frames.len())
@@ -292,6 +312,9 @@ impl std::fmt::Debug for ImageDataType {
                 .field("height", &height)
                 .field("durations", durations)
                 .field("hashes", hashes)
+                .field("animation_state", animation_state)
+                .field("max_loops", max_loops)
+                .field("pending_frame", pending_frame)
                 .finish(),
         }
     }
@@ -509,6 +532,9 @@ impl ImageDataType {
             frames,
             durations,
             hashes,
+            animation_state: ImageAnimationState::Running,
+            max_loops: None,
+            pending_frame: None,
         }
     }
 

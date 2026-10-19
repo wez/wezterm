@@ -392,17 +392,21 @@ impl CellAttributes {
     }
 
     /// Add an image attachement, preserving any existing attachments.
-    /// The list of images is maintained in z-index order
+    /// The list of images is maintained in (z-index, image_id) order.
     pub fn attach_image(&mut self, image: Box<ImageCell>) -> &mut Self {
         self.allocate_fat_attributes();
         let fat = self.fat.as_mut().unwrap();
-        let z_index = image.z_index();
-        match fat
-            .image
-            .binary_search_by(|probe| probe.z_index().cmp(&z_index))
-        {
-            Ok(idx) | Err(idx) => fat.image.insert(idx, image),
+        if let Some(image_id) = image.image_id() {
+            let placement_id = image.placement_id();
+            fat.image
+                .retain(|im| !im.matches_placement(image_id, placement_id));
         }
+
+        let key = (image.z_index(), image.image_id().unwrap_or(0));
+        let idx = fat
+            .image
+            .partition_point(|probe| (probe.z_index(), probe.image_id().unwrap_or(0)) <= key);
+        fat.image.insert(idx, image);
         self
     }
 }

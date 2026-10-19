@@ -23,7 +23,7 @@ use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryR
 use std::sync::{Arc, LazyLock, MutexGuard};
 use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
-use termwiz::image::{ImageData, ImageDataType};
+use termwiz::image::{ImageAnimationState, ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_blob_leases::{BlobLease, BlobManager, BoxedReader};
 use wezterm_font::units::*;
@@ -488,6 +488,9 @@ impl std::fmt::Debug for FrameState {
 pub struct DecodedImage {
     frame_start: RefCell<Instant>,
     current_frame: RefCell<usize>,
+    animation_state: RefCell<ImageAnimationState>,
+    max_loops: RefCell<Option<u32>>,
+    current_loop: RefCell<u32>,
     image: Arc<ImageData>,
     frames: RefCell<Option<FrameState>>,
 }
@@ -498,6 +501,9 @@ impl DecodedImage {
         Self {
             frame_start: RefCell::new(Instant::now()),
             current_frame: RefCell::new(0),
+            animation_state: RefCell::new(ImageAnimationState::Running),
+            max_loops: RefCell::new(None),
+            current_loop: RefCell::new(0),
             image: Arc::new(image),
             frames: RefCell::new(None),
         }
@@ -508,6 +514,9 @@ impl DecodedImage {
             Ok(rx) => Self {
                 frame_start: RefCell::new(Instant::now()),
                 current_frame: RefCell::new(0),
+                animation_state: RefCell::new(ImageAnimationState::Running),
+                max_loops: RefCell::new(None),
+                current_loop: RefCell::new(0),
                 image: Arc::clone(image_data),
                 frames: RefCell::new(Some(FrameState::new(rx))),
             },
@@ -530,7 +539,12 @@ impl DecodedImage {
                     Self::placeholder()
                 }
             },
-            ImageDataType::AnimRgba8 { durations, .. } => {
+            ImageDataType::AnimRgba8 {
+                durations,
+                animation_state,
+                max_loops,
+                ..
+            } => {
                 let current_frame = if durations.len() > 1 && durations[0].as_millis() == 0 {
                     // Skip possible 0-duration root frame
                     1
@@ -540,6 +554,9 @@ impl DecodedImage {
                 Self {
                     frame_start: RefCell::new(Instant::now()),
                     current_frame: RefCell::new(current_frame),
+                    animation_state: RefCell::new(*animation_state),
+                    max_loops: RefCell::new(*max_loops),
+                    current_loop: RefCell::new(0),
                     image: Arc::clone(image_data),
                     frames: RefCell::new(None),
                 }
@@ -548,6 +565,9 @@ impl DecodedImage {
             _ => Self {
                 frame_start: RefCell::new(Instant::now()),
                 current_frame: RefCell::new(0),
+                animation_state: RefCell::new(ImageAnimationState::Running),
+                max_loops: RefCell::new(None),
+                current_loop: RefCell::new(0),
                 image: Arc::clone(image_data),
                 frames: RefCell::new(None),
             },
@@ -914,6 +934,13 @@ impl GlyphCache {
             _ => None,
         };
 
+        let mut pending_frame_to_set = None;
+        {
+            if let ImageDataType::AnimRgba8 { pending_frame, .. } = &mut *handle.h {
+                pending_frame_to_set = pending_frame.take();
+            }
+        }
+
         match &*handle.h {
             ImageDataType::Rgba8 { hash, .. } => {
                 if let Some(sprite) = frame_cache.get(hash) {
@@ -930,43 +957,100 @@ impl GlyphCache {
                 hashes,
                 frames,
                 durations,
+                animation_state,
+                max_loops,
                 ..
             } => {
                 let mut next = None;
+                let now = Instant::now();
                 let mut decoded_frame_start = decoded.frame_start.borrow_mut();
                 let mut decoded_current_frame = decoded.current_frame.borrow_mut();
-                if frames.len() > 1 {
-                    let now = Instant::now();
+                let mut decoded_state = decoded.animation_state.borrow_mut();
+                let mut decoded_max_loops = decoded.max_loops.borrow_mut();
+                let mut decoded_current_loop = decoded.current_loop.borrow_mut();
 
-                    // We round up the frame duration to at least the minimum
-                    // frame duration that wezterm can use when rendering.
-                    // There's no point trying to deal with smaller intervals
-                    // because we simply cannot render them without dropping
-                    // frames.
-                    // In addition, with a 1ms frame delay, there's a good chance
-                    // that any given cell may switch to a different frame from
-                    // its neighbor while we are rendering the entire terminal
-                    // frame, so we want to avoid that.
-                    // <https://github.com/wezterm/wezterm/issues/3260>
-                    let mut next_due = *decoded_frame_start
-                        + durations[*decoded_current_frame].max(min_frame_duration);
-                    if now >= next_due {
-                        // Advance to next frame
-                        *decoded_current_frame = *decoded_current_frame + 1;
-                        if *decoded_current_frame >= frames.len() {
-                            *decoded_current_frame = 0;
-                            // Skip potential 0-duration root frame
-                            if durations[0].as_millis() == 0 && frames.len() > 1 {
-                                *decoded_current_frame = *decoded_current_frame + 1;
-                            }
-                        }
+                if *decoded_state != *animation_state {
+                    let old_state = *decoded_state;
+                    *decoded_state = *animation_state;
+                    if *decoded_state == ImageAnimationState::Stopped {
+                        *decoded_current_loop = 0;
+                    } else if old_state == ImageAnimationState::Stopped {
                         *decoded_frame_start = now;
-                        next_due = *decoded_frame_start
-                            + durations[*decoded_current_frame].max(min_frame_duration);
+                    }
+                }
+
+                if *decoded_max_loops != *max_loops {
+                    *decoded_max_loops = *max_loops;
+                }
+
+                if let Some(pending) = pending_frame_to_set.take() {
+                    let idx = pending as usize;
+                    if idx < frames.len() {
+                        *decoded_current_frame = idx;
+                        *decoded_frame_start = now;
                         handle.current_frame = *decoded_current_frame;
                     }
+                }
 
-                    next.replace(next_due);
+                if frames.len() > 1 {
+                    if *decoded_state != ImageAnimationState::Stopped {
+                        // We round up the frame duration to at least the minimum
+                        // frame duration that wezterm can use when rendering.
+                        // There's no point trying to deal with smaller intervals
+                        // because we simply cannot render them without dropping
+                        // frames.
+                        // In addition, with a 1ms frame delay, there's a good chance
+                        // that any given cell may switch to a different frame from
+                        // its neighbor while we are rendering the entire terminal
+                        // frame, so we want to avoid that.
+                        // <https://github.com/wezterm/wezterm/issues/3260>
+                        let mut next_due = *decoded_frame_start
+                            + durations[*decoded_current_frame].max(min_frame_duration);
+                        if now >= next_due {
+                            let mut next_frame = *decoded_current_frame + 1;
+                            let mut advance = true;
+
+                            if next_frame >= frames.len() {
+                                match *decoded_state {
+                                    ImageAnimationState::Loading => {
+                                        advance = false;
+                                    }
+                                    ImageAnimationState::Running => {
+                                        if let Some(max_loops) = *decoded_max_loops {
+                                            if *decoded_current_loop >= max_loops {
+                                                advance = false;
+                                            } else {
+                                                *decoded_current_loop += 1;
+                                                next_frame = 0;
+                                            }
+                                        } else {
+                                            next_frame = 0;
+                                        }
+                                    }
+                                    ImageAnimationState::Stopped => {
+                                        advance = false;
+                                    }
+                                }
+                            }
+
+                            if advance && next_frame == 0 && durations[0].as_millis() == 0 {
+                                if frames.len() > 1 {
+                                    next_frame = 1;
+                                }
+                            }
+
+                            if advance {
+                                *decoded_current_frame = next_frame;
+                                *decoded_frame_start = now;
+                                handle.current_frame = *decoded_current_frame;
+                                next_due = *decoded_frame_start
+                                    + durations[*decoded_current_frame].max(min_frame_duration);
+                                next.replace(next_due);
+                            }
+                        } else {
+                            next.replace(next_due);
+                        }
+                    }
                 }
 
                 let hash = hashes[*decoded_current_frame];
@@ -981,14 +1065,7 @@ impl GlyphCache {
 
                 frame_cache.insert(hash, sprite.clone());
 
-                return Ok((
-                    sprite,
-                    Some(
-                        *decoded_frame_start
-                            + durations[*decoded_current_frame].max(min_frame_duration),
-                    ),
-                    LoadState::Loaded,
-                ));
+                return Ok((sprite, next, LoadState::Loaded));
             }
             ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
                 let mut frames = decoded.frames.borrow_mut();

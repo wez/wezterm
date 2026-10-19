@@ -9,11 +9,11 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
-use wezterm_cell::image::ImageDataType;
+use wezterm_cell::image::{ImageAnimationState, ImageDataType};
 use wezterm_escape_parser::apc::{
-    KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageData, KittyImageDelete,
-    KittyImageFormat, KittyImageFrame, KittyImageFrameCompose, KittyImagePlacement,
-    KittyImageTransmit, KittyImageVerbosity,
+    KittyFrameCompositionMode, KittyImage, KittyImageAnimationControl, KittyImageCompression,
+    KittyImageData, KittyImageDelete, KittyImageFormat, KittyImageFrame, KittyImageFrameCompose,
+    KittyImagePlacement, KittyImageTransmit, KittyImageVerbosity,
 };
 use wezterm_surface::change::ImageData;
 
@@ -171,6 +171,40 @@ impl TerminalState {
         }
     }
 
+    fn is_base64_decode_error(err: &anyhow::Error) -> bool {
+        err.chain().any(|e| {
+            e.downcast_ref::<std::io::Error>()
+                .is_some_and(|io| io.kind() == std::io::ErrorKind::InvalidInput)
+                && e.to_string().contains("base64 decode")
+        })
+    }
+
+    fn kitty_img_inner_or_ignore_base64_decode_error(
+        &mut self,
+        img: KittyImage,
+    ) -> anyhow::Result<()> {
+        match self.kitty_img_inner(img) {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                // If a client is interrupted (eg: ctrl-c) while streaming image
+                // data, we may see an incomplete final chunk and fail to decode.
+                // Drop the in-progress accumulation so we don't poison any future
+                // kitty graphics input.
+                self.kitty_img.accumulator.clear();
+
+                if Self::is_base64_decode_error(&err) {
+                    log::debug!(
+                        "kitty_img: ignoring invalid/incomplete base64 image data: {:#}",
+                        err
+                    );
+                    Ok(())
+                } else {
+                    Err(err)
+                }
+            }
+        }
+    }
+
     pub(crate) fn kitty_img(&mut self, img: KittyImage) -> anyhow::Result<()> {
         log::trace!("{:?}", img);
         if !self.config.enable_kitty_graphics() {
@@ -210,7 +244,7 @@ impl TerminalState {
                 if more_data_follows {
                     self.kitty_img.accumulator.push(img);
                 } else {
-                    self.kitty_img_inner(img)?;
+                    self.kitty_img_inner_or_ignore_base64_decode_error(img)?;
                 }
             }
             KittyImage::TransmitDataAndDisplay {
@@ -227,7 +261,7 @@ impl TerminalState {
                 if more_data_follows {
                     self.kitty_img.accumulator.push(img);
                 } else {
-                    self.kitty_img_inner(img)?;
+                    self.kitty_img_inner_or_ignore_base64_decode_error(img)?;
                 }
             }
             KittyImage::Display {
@@ -284,6 +318,14 @@ impl TerminalState {
                     log::error!("Error {:#} while handling KittyImage::ComposeFrame", err);
                 }
             }
+            KittyImage::AnimationControl { control, verbosity } => {
+                if let Err(err) = self.kitty_animation_control(control, verbosity) {
+                    log::error!(
+                        "Error {:#} while handling KittyImage::AnimationControl",
+                        err
+                    );
+                }
+            }
         };
 
         Ok(())
@@ -335,6 +377,29 @@ impl TerminalState {
             self.kitty_img.id_to_data.len(),
             self.kitty_img.used_memory,
         );
+    }
+
+    fn kitty_mark_image_dirty(&mut self, image_id: u32) {
+        let placements: Vec<PlacementInfo> = self
+            .kitty_img
+            .placements
+            .iter()
+            .filter_map(|((id, _), info)| (*id == image_id).then_some(*info))
+            .collect();
+
+        if placements.is_empty() {
+            return;
+        }
+
+        let seqno = self.seqno;
+        let screen = self.screen_mut();
+        for info in placements {
+            let range = screen
+                .stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex));
+            for idx in range {
+                screen.line_mut(idx).update_last_change_seqno(seqno);
+            }
+        }
     }
 
     pub(crate) fn kitty_remove_all_placements(&mut self, delete: bool) {
@@ -534,6 +599,120 @@ impl TerminalState {
             }
         }
 
+        drop(img);
+        self.kitty_mark_image_dirty(image_id);
+        Ok(())
+    }
+
+    fn kitty_animation_control(
+        &mut self,
+        control: KittyImageAnimationControl,
+        verbosity: KittyImageVerbosity,
+    ) -> anyhow::Result<()> {
+        let image_id = match control.image_number {
+            Some(no) => match self.kitty_img.number_to_id.get(&no) {
+                Some(id) => *id,
+                None => {
+                    self.kitty_send_response(
+                        verbosity,
+                        false,
+                        control.image_id,
+                        control.image_number,
+                        "ENOENT".to_string(),
+                    );
+                    anyhow::bail!("no such image_number {}", no);
+                }
+            },
+            None => control.image_id.ok_or_else(|| {
+                self.kitty_send_response(
+                    verbosity,
+                    false,
+                    control.image_id,
+                    control.image_number,
+                    "ENOENT".to_string(),
+                );
+                anyhow::anyhow!("no image_id")
+            })?,
+        };
+
+        let img = self
+            .kitty_img
+            .id_to_data
+            .get(&image_id)
+            .ok_or_else(|| anyhow::anyhow!("invalid image id {}", image_id))?;
+
+        let mut img = img.data();
+        if let ImageDataType::Rgba8 {
+            data,
+            width,
+            height,
+            hash,
+        } = &mut *img
+        {
+            let frame_data = std::mem::take(data);
+            let frame_hash = *hash;
+            *img = ImageDataType::AnimRgba8 {
+                width: *width,
+                height: *height,
+                frames: vec![frame_data],
+                durations: vec![Duration::from_millis(0)],
+                hashes: vec![frame_hash],
+                animation_state: ImageAnimationState::Stopped,
+                max_loops: None,
+                pending_frame: None,
+            };
+        }
+
+        if let ImageDataType::AnimRgba8 {
+            durations,
+            frames,
+            animation_state,
+            max_loops,
+            pending_frame,
+            ..
+        } = &mut *img
+        {
+            if let Some(frame_number) = control.frame_number {
+                let idx = frame_number.saturating_sub(1) as usize;
+                if idx < durations.len() {
+                    if let Some(gap_ms) = control.gap_ms {
+                        let gap = if gap_ms > 0 {
+                            Duration::from_millis(gap_ms as u64)
+                        } else {
+                            Duration::from_millis(0)
+                        };
+                        durations[idx] = gap;
+                    }
+                }
+            }
+
+            if let Some(current_frame) = control.current_frame {
+                let idx = current_frame.saturating_sub(1) as usize;
+                if idx < frames.len() {
+                    *pending_frame = Some(idx as u32);
+                }
+            }
+
+            if let Some(state) = control.animation_state {
+                match state {
+                    1 => *animation_state = ImageAnimationState::Stopped,
+                    2 => *animation_state = ImageAnimationState::Loading,
+                    3 => *animation_state = ImageAnimationState::Running,
+                    _ => {}
+                }
+            }
+
+            if let Some(loop_count) = control.loop_count {
+                if loop_count > 1 {
+                    *max_loops = Some(loop_count - 1);
+                } else if loop_count == 1 {
+                    *max_loops = None;
+                }
+            }
+        }
+
+        drop(img);
+        self.kitty_mark_image_dirty(image_id);
         Ok(())
     }
 
@@ -596,10 +775,14 @@ impl TerminalState {
         let mut anim = anim.data();
         let x = frame.x.unwrap_or(0);
         let y = frame.y.unwrap_or(0);
-        let frame_gap = Duration::from_millis(match frame.duration_ms {
-            None | Some(0) => 40,
-            Some(n) => n.into(),
+        let gap_override = frame.duration_ms.map(|n| {
+            if n > 0 {
+                Duration::from_millis(n as u64)
+            } else {
+                Duration::from_millis(0)
+            }
         });
+        let frame_gap = gap_override.unwrap_or_else(|| Duration::from_millis(40));
 
         match &mut *anim {
             ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
@@ -665,6 +848,9 @@ impl TerminalState {
                             frames,
                             durations,
                             hashes,
+                            animation_state: ImageAnimationState::Stopped,
+                            max_loops: None,
+                            pending_frame: None,
                         };
                     }
                     Some(n) => anyhow::bail!(
@@ -679,6 +865,7 @@ impl TerminalState {
                 frames,
                 durations,
                 hashes,
+                ..
             } => {
                 let frame_no = frame.frame_number.unwrap_or(frames.len() as u32 + 1);
                 if frame_no == frames.len() as u32 + 1 {
@@ -733,10 +920,15 @@ impl TerminalState {
 
                     drop(anim_img);
                     hashes[frame_no - 1] = ImageDataType::hash_bytes(&frames[frame_no - 1]);
+                    if let Some(gap) = gap_override {
+                        durations[frame_no - 1] = gap;
+                    }
                 }
             }
         }
 
+        drop(anim);
+        self.kitty_mark_image_dirty(image_id);
         Ok(())
     }
 
@@ -889,24 +1081,55 @@ impl TerminalState {
                 }
             }
 
-            let mut b64_decoded = vec![];
-            for mut data in data.into_iter() {
-                match &mut data {
-                    KittyImageData::DirectBin(b) => {
-                        b64_decoded.append(b);
-                    }
-                    KittyImageData::Direct(b) => {
-                        if !b.is_empty() {
-                            b64_decoded.append(&mut data.load_data()?);
-                        }
-                    }
+            // Ideally, chunked pixel data is base64-encoded once and then split into chunks.
+            // However, some clients instead base64-encode each chunk independently, which
+            // introduces `=` padding in intermediate chunks; concatenating those chunks will
+            // fail to decode. To be robust, try decoding each chunk independently first and
+            // fall back to concatenating and decoding once if that fails.
+            let mut decoded = vec![];
+            let mut b64_chunks: Vec<String> = vec![];
+
+            for data in data.into_iter() {
+                match data {
+                    KittyImageData::DirectBin(mut bytes) => decoded.append(&mut bytes),
+                    KittyImageData::Direct(s) => b64_chunks.push(s),
                     data => {
                         anyhow::bail!("expected data chunks to be Direct data, found {:#?}", data)
                     }
                 }
             }
 
-            trans.data = KittyImageData::DirectBin(b64_decoded);
+            if !b64_chunks.is_empty() {
+                let mut per_chunk_decoded = vec![];
+                let mut per_chunk_err = None;
+
+                for chunk in &b64_chunks {
+                    match KittyImageData::Direct(chunk.clone()).load_data() {
+                        Ok(mut bytes) => per_chunk_decoded.append(&mut bytes),
+                        Err(err) => {
+                            per_chunk_err = Some(err);
+                            break;
+                        }
+                    }
+                }
+
+                if per_chunk_err.is_none() {
+                    decoded.append(&mut per_chunk_decoded);
+                } else {
+                    if let Some(err) = &per_chunk_err {
+                        log::debug!(
+                            "kitty_img: per-chunk base64 decode failed ({err}); retrying by concatenating chunks"
+                        );
+                    }
+                    let mut b64 = String::new();
+                    for chunk in b64_chunks {
+                        b64.push_str(&chunk);
+                    }
+                    decoded.append(&mut KittyImageData::Direct(b64).load_data()?);
+                }
+            }
+
+            trans.data = KittyImageData::DirectBin(decoded);
 
             if let Some(placement) = place {
                 Ok(KittyImage::TransmitDataAndDisplay {
