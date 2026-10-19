@@ -1010,6 +1010,27 @@ impl LinearRgba {
     }
 
     #[cfg(feature = "std")]
+    pub fn adjust_luminance(&self, target_luminance: f32) -> Self {
+        // Treat black as the darkest grey to let it be scaled to the target luminance
+        // Black will still be returned when the target luminance is 0.0
+        let r = self.0.clamp(f32::EPSILON, 1.0);
+        let g = self.1.clamp(f32::EPSILON, 1.0);
+        let b = self.2.clamp(f32::EPSILON, 1.0);
+
+        // Same formula as relative_luminance() above
+        let current_luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+        let scale_factor = target_luminance / current_luminance;
+
+        Self(
+            (r * scale_factor).clamp(0.0, 1.0),
+            (g * scale_factor).clamp(0.0, 1.0),
+            (b * scale_factor).clamp(0.0, 1.0),
+            self.3,
+        )
+    }
+
+    #[cfg(feature = "std")]
     pub fn contrast_ratio(&self, other: &Self) -> f32 {
         let lum_a = self.relative_luminance();
         let lum_b = other.relative_luminance();
@@ -1109,6 +1130,49 @@ impl LinearRgba {
 
         // What they had was as good as it gets
         None
+    }
+
+    /// Assuming that `self` represents the foreground color
+    /// and `other` represents the background color, if the
+    /// contrast difference is below min_diff, returns Some color
+    /// that equals or exceeds the min_diff to use as an alternative
+    /// foreground color.
+    /// If the difference is already suitable, returns None; the caller should
+    /// continue to use `self` as the foreground color.
+    #[cfg(feature = "std")]
+    pub fn ensure_contrast_difference(&self, other: &Self, min_diff: f32) -> Option<Self> {
+        let lum_fg = self.relative_luminance();
+        let lum_bg = other.relative_luminance();
+
+        if (lum_fg - lum_bg).abs() >= min_diff {
+            // Already has desired difference or better
+            None
+        } else if (lum_fg == lum_bg) {
+            // Exactly the same luminance - assume this is intended
+            None
+        } else {
+            let lum_fg_target = if lum_fg > lum_bg {
+                // fg is brighter than bg, but not sufficiently so
+                // if possible, increase the fg luminance to meet the min_diff
+                // otherwise, since we cannot alter bg, decrease the fg luminance to meet the min_diff
+                if lum_bg + min_diff <= 1.0 {
+                    lum_bg + min_diff
+                } else {
+                    lum_bg - min_diff
+                }
+            } else {
+                // fg is darker than bg, but not sufficiently so
+                // if possible, decrease the fg luminance to meet the min_diff
+                // otherwise, since we cannot alter bg, increase the fg luminance to meet the min_diff
+                if lum_bg - min_diff >= 0.0 {
+                    lum_bg - min_diff
+                } else {
+                    lum_bg + min_diff
+                }
+            };
+
+            Some(self.adjust_luminance(lum_fg_target))
+        }
     }
 }
 

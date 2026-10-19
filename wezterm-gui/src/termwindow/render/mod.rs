@@ -525,7 +525,12 @@ impl crate::TermWindow {
             Some(ratio) => fg_color
                 .ensure_contrast_ratio(&bg_color, ratio)
                 .unwrap_or(fg_color),
-            None => fg_color,
+            None => match self.config.text_min_contrast_difference {
+                Some(diff) => fg_color
+                    .ensure_contrast_difference(&bg_color, diff)
+                    .unwrap_or(fg_color),
+                None => fg_color,
+            },
         }
     }
 
