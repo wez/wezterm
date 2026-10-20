@@ -2525,4 +2525,27 @@ mod test {
     fn tab_is_send_and_sync() {
         assert!(is_send_and_sync::<Tab>());
     }
+
+    #[test]
+    fn tab_get_set_title() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+
+        assert_eq!(tab.get_title(), "");
+
+        tab.set_title("hello");
+        assert_eq!(tab.get_title(), "hello");
+
+        tab.set_title("hello");
+        assert_eq!(tab.get_title(), "hello");
+
+        tab.set_title("world");
+        assert_eq!(tab.get_title(), "world");
+    }
 }

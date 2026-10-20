@@ -14,6 +14,7 @@ use mux::{Mux, MuxNotification};
 use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
 
@@ -255,6 +256,7 @@ pub struct ClientDomain {
     label: String,
     inner: Mutex<Option<Arc<ClientInner>>>,
     local_domain_id: DomainId,
+    processing_remote_title_update: AtomicBool,
 }
 
 async fn update_remote_workspace(
@@ -339,6 +341,12 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
             .detach();
         }
         MuxNotification::TabTitleChanged { tab_id, title } => {
+            if client_domain
+                .processing_remote_title_update
+                .load(Ordering::SeqCst)
+            {
+                return true;
+            }
             if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
                 if let Some(inner) = client_domain.inner() {
                     promise::spawn::spawn(async move {
@@ -405,6 +413,7 @@ impl ClientDomain {
             label,
             inner: Mutex::new(None),
             local_domain_id,
+            processing_remote_title_update: AtomicBool::new(false),
         }
     }
 
@@ -495,7 +504,11 @@ impl ClientDomain {
         if let Some(inner) = self.inner() {
             if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                 if let Some(tab) = Mux::get().get_tab(local_tab_id) {
+                    self.processing_remote_title_update
+                        .store(true, Ordering::SeqCst);
                     tab.set_title(&title);
+                    self.processing_remote_title_update
+                        .store(false, Ordering::SeqCst);
                 }
             }
         }
@@ -573,7 +586,9 @@ impl ClientDomain {
                     inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                 }
 
-                tab.set_title(tab_title);
+                if !tab_title.is_empty() || tab.get_title().is_empty() {
+                    tab.set_title(tab_title);
+                }
 
                 log::debug!("domain: {} tree: {:#?}", inner.local_domain_id, tabroot);
                 let mut workspace = None;
