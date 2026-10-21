@@ -307,7 +307,7 @@ impl RemoteSshDomain {
                   case \"$SHELL\" in */zsh|*/bash|*/ksh ) exec -a \"-$(basename $SHELL)\" $SHELL ;; esac ; \
                   exec $SHELL";
 
-                format!("$SHELL -c {}", shell_words::quote(login_shell))
+                format!("sh -c {}", shell_words::quote(login_shell))
             } else {
                 cmd.as_unix_command_line()?
             };
