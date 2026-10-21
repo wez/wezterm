@@ -703,6 +703,8 @@ pub enum FontRasterizerSelection {
     #[default]
     FreeType,
     Harfbuzz,
+    #[cfg(target_os = "macos")]
+    CoreText,
 }
 
 #[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]

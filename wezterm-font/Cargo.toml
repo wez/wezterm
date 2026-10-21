@@ -50,6 +50,7 @@ winapi.workspace = true
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa.workspace = true
 core-foundation.workspace = true
+core-graphics.workspace = true
 core-text.workspace = true
 objc.workspace = true
 

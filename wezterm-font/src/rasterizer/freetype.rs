@@ -81,6 +81,10 @@ impl FontRasterizer for FreeTypeRasterizer {
                         FontRasterizerSelection::Harfbuzz => {
                             return self.hb_raster.rasterize_glyph(glyph_pos, size, dpi);
                         }
+                        #[cfg(target_os = "macos")]
+                        FontRasterizerSelection::CoreText => {
+                            return self.hb_raster.rasterize_glyph(glyph_pos, size, dpi);
+                        }
                     }
                 }
                 return Err(err);

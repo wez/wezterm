@@ -8,6 +8,8 @@ use image::{ImageBuffer, Rgba};
 pub(crate) const FAKE_ITALIC_SKEW: f64 = 0.2;
 
 pub mod colr;
+#[cfg(target_os = "macos")]
+pub mod core_text;
 pub mod freetype;
 pub mod harfbuzz;
 
@@ -48,6 +50,10 @@ pub fn new_rasterizer(
         )),
         FontRasterizerSelection::Harfbuzz => Ok(Box::new(
             harfbuzz::HarfbuzzRasterizer::from_locator(handle)?,
+        )),
+        #[cfg(target_os = "macos")]
+        FontRasterizerSelection::CoreText => Ok(Box::new(
+            core_text::CoreTextRasterizer::from_locator(handle)?,
         )),
     }
 }
