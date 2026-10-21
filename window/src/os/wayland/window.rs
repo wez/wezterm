@@ -84,7 +84,7 @@ impl WaylandDimensions for Dimensions {
 }
 
 use super::pointer::{PendingMouse, PointerUserData};
-use super::state::WaylandState;
+use super::state::{ActivationRequest, WaylandState};
 
 #[derive(Debug)]
 pub(super) struct KeyRepeatState {
@@ -331,6 +331,7 @@ impl WaylandWindow {
             config,
 
             title: None,
+            app_id: class_name.to_string(),
 
             wegl_surface: None,
             gl_state: None,
@@ -394,6 +395,13 @@ impl WindowOps for WaylandWindow {
     fn hide(&self) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.window.as_ref().unwrap().set_minimized();
+            Ok(())
+        });
+    }
+
+    fn focus(&self) {
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.focus();
             Ok(())
         });
     }
@@ -608,6 +616,7 @@ pub struct WaylandWindowInner {
     // cache the title for comparison to avoid spamming
     // the compositor with updates that don't actually change it
     title: Option<String>,
+    app_id: String,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -620,6 +629,41 @@ impl WaylandWindowInner {
     fn close(&mut self) {
         self.events.dispatch(WindowEvent::Destroyed);
         self.window.take();
+    }
+
+    /// Activation happens in `ActivationHandler::new_token` on the reply.
+    fn focus(&mut self) {
+        if self.window.is_none() {
+            return;
+        }
+
+        let conn = crate::Connection::get().unwrap().wayland();
+        let qh = conn.event_queue.borrow().handle();
+        let wayland_state = conn.wayland_state.borrow();
+
+        let Some(activation) = wayland_state.activation.as_ref() else {
+            log::warn!(
+                "compositor does not support xdg-activation-v1; \
+                 cannot focus the window"
+            );
+            return;
+        };
+
+        let press_serial = *wayland_state.last_press_serial.borrow();
+
+        activation.request_token_with_data::<WaylandState, ActivationRequest>(
+            &qh,
+            ActivationRequest {
+                app_id: self.app_id.clone(),
+                seat_and_serial: wayland_state
+                    .seat
+                    .seats()
+                    .next()
+                    .map(|seat| (seat, press_serial)),
+                requesting_surface: wayland_state.focused_surface.borrow().clone(),
+                surface_to_activate: self.surface().clone(),
+            },
+        );
     }
 
     fn show(&mut self) {

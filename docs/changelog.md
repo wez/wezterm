@@ -158,6 +158,11 @@ As features stabilize some brief notes about them will accumulate here.
   search matching. Thanks to @mrdziuban! #7385
 * The line editor used by prompt overlays and the debug overlay now supports
   `CTRL-u` to kill back to the start of the line. Thanks to @bew! #8013
+* Wayland: [window:focus()](config/lua/window/focus.md) is now implemented,
+  using `xdg-activation-v1`. It works while another WezTerm window has focus;
+  otherwise the compositor refuses and flags the window instead. `wezterm cli
+  activate-pane` and `activate-tab` now also raise the window containing the
+  target pane, on every platform.
 
 #### Fixed
 * Multiplexer: the mouse wheel was not mapped to cursor up/down keys in the

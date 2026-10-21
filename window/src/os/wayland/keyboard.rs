@@ -1,7 +1,9 @@
 use std::borrow::BorrowMut;
 
-use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeymapFormat, WlKeyboard};
-use wayland_client::{Dispatch, Proxy};
+use wayland_client::protocol::wl_keyboard::{
+    Event as WlKeyboardEvent, KeyState, KeymapFormat, WlKeyboard,
+};
+use wayland_client::{Dispatch, Proxy, WEnum};
 use xkbcommon::xkb;
 use xkbcommon::xkb::CONTEXT_NO_FLAGS;
 
@@ -27,6 +29,7 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
             } => {
                 *state.active_surface_id.borrow_mut() = Some(surface.id());
                 *state.last_serial.borrow_mut() = *serial;
+                *state.focused_surface.borrow_mut() = Some(surface.clone());
                 if let Some(sud) = SurfaceUserData::try_from_wl(&surface) {
                     let window_id = sud.window_id;
                     state.keyboard_window_id.borrow_mut().replace(window_id);
@@ -43,6 +46,7 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
             }
             WlKeyboardEvent::Leave { serial, .. } => {
                 *state.last_serial.borrow_mut() = *serial;
+                state.focused_surface.borrow_mut().take();
                 if let Some(text_input) = &state.text_input {
                     if let Some(input) = text_input.get_text_input_for_keyboard(keyboard) {
                         input.disable();
@@ -52,6 +56,13 @@ impl Dispatch<WlKeyboard, KeyboardData> for WaylandState {
             }
             WlKeyboardEvent::Key { serial, .. } | WlKeyboardEvent::Modifiers { serial, .. } => {
                 *state.last_serial.borrow_mut() = *serial;
+                if let WlKeyboardEvent::Key {
+                    state: WEnum::Value(KeyState::Pressed),
+                    ..
+                } = &event
+                {
+                    *state.last_press_serial.borrow_mut() = *serial;
+                }
             }
             WlKeyboardEvent::RepeatInfo { rate, delay } => {
                 *state.key_repeat_rate.borrow_mut() = *rate;

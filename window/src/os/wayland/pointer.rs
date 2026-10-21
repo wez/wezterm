@@ -44,6 +44,9 @@ impl PointerHandler for WaylandState {
                 *self.last_serial.borrow_mut() = serial;
                 pstate.serial = serial;
             }
+            if let PointerEventKind::Press { serial, .. } = &evt.kind {
+                *self.last_press_serial.borrow_mut() = *serial;
+            }
             if let Some(pending) = self
                 .surface_to_pending
                 .get(&self.active_surface_id.borrow().as_ref().unwrap())
