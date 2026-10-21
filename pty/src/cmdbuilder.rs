@@ -341,6 +341,31 @@ impl CommandBuilder {
         self.envs.clear();
     }
 
+    pub fn env_clear_base(&mut self) {
+        self.envs.retain(
+            |_,
+             EnvEntry {
+                 is_from_base_env,
+                 preferred_key,
+                 value,
+             }| { !*is_from_base_env },
+        )
+    }
+
+    pub fn env_insert_base(&mut self) {
+        for (k, v) in get_base_env() {
+            self.envs.entry(k).or_insert(v);
+        }
+    }
+
+    pub fn env_has_base(&self) -> bool {
+        self.envs.values().any(
+            |&EnvEntry {
+                 is_from_base_env, ..
+             }| { is_from_base_env },
+        )
+    }
+
     pub fn get_env<K>(&self, key: K) -> Option<&OsStr>
     where
         K: AsRef<OsStr>,

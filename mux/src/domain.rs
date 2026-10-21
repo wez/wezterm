@@ -443,6 +443,13 @@ impl LocalDomain {
                 cmd.clear_cwd();
             }
         }
+
+        // If there are no base variables then we received this command from a client and we should
+        // insert the base environment here.
+        if !cmd.env_has_base() {
+            cmd.env_insert_base();
+        }
+
         Ok(())
     }
 

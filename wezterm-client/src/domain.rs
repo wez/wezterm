@@ -817,7 +817,7 @@ impl Domain for ClientDomain {
     async fn spawn(
         &self,
         size: TerminalSize,
-        command: Option<CommandBuilder>,
+        mut command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
     ) -> anyhow::Result<Arc<Tab>> {
@@ -826,6 +826,11 @@ impl Domain for ClientDomain {
             .ok_or_else(|| anyhow!("domain is not attached"))?;
 
         let workspace = Mux::get().active_workspace();
+
+        match &mut command {
+            Some(cmd) => cmd.env_clear_base(),
+            None => (),
+        }
 
         let result = inner
             .client
