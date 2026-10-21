@@ -3,7 +3,7 @@ use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
+    Appearance, Clipboard, CursorIcon, DeadKeyStatus, Dimensions, MouseButtons, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResizeIncrement,
     ResolvedGeometry, ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender,
     WindowOps, WindowState,
@@ -235,7 +235,7 @@ impl XWindowInner {
         Ok(())
     }
 
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> anyhow::Result<()> {
+    fn set_cursor(&mut self, cursor: Option<CursorIcon>) -> anyhow::Result<()> {
         self.cursors.set_cursor(self.window_id, cursor)
     }
 
@@ -926,7 +926,12 @@ impl XWindowInner {
             conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
                 owner: xcb::x::Window::none(),
                 selection,
-                time: self.copy_and_paste.time,
+                // We use CURRENT_TIME rather than self.copy_and_paste.time here, because that field
+                // only advances on key/button events on *this* window, so for a window that hasn't
+                // been interacted with recently it lags behind the selection's lastTimeChanged.
+                // The X server ignores SetSelectionOwner with time before lastTimeChanged, so
+                // clipboard updates without explicit interaction (OSC 52) would never be accepted.
+                time: xcb::x::CURRENT_TIME,
             })?;
         } else if we_own_it {
             log::trace!(
@@ -937,7 +942,8 @@ impl XWindowInner {
             conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
                 owner: self.window_id,
                 selection,
-                time: self.copy_and_paste.time,
+                // See note about CURRENT_TIME in the other branch above.
+                time: xcb::x::CURRENT_TIME,
             })?;
         } else {
             log::trace!(
@@ -2028,7 +2034,7 @@ impl WindowOps for XWindow {
         });
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+    fn set_cursor(&self, cursor: Option<CursorIcon>) {
         XConnection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())

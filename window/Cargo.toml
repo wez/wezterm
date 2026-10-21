@@ -25,6 +25,7 @@ async-trait.workspace = true
 anyhow.workspace = true
 bytes.workspace = true
 config.workspace = true
+cursor-icon.workspace = true
 downcast-rs.workspace = true
 thiserror.workspace = true
 bitflags.workspace = true
@@ -48,7 +49,7 @@ wezterm-font.workspace = true
 wezterm-input-types.workspace = true
 
 [target."cfg(windows)".dependencies]
-clipboard-win.workspace = true
+clipboard-win = { workspace = true, features = ["std"] }
 shared_library.workspace = true
 winapi = { workspace=true, features = [
     "dwmapi",

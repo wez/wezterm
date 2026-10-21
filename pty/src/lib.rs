@@ -1,5 +1,5 @@
 //! This crate provides a cross platform API for working with the
-//! psuedo terminal (pty) interfaces provided by the system.
+//! pseudo terminal (pty) interfaces provided by the system.
 //! Unlike other crates in this space, this crate provides a set
 //! of traits that allow selecting from different implementations
 //! at runtime.
@@ -46,6 +46,8 @@ use serde::{Deserialize, Serialize};
 use std::io::Result as IoResult;
 #[cfg(windows)]
 use std::os::windows::prelude::{AsRawHandle, RawHandle};
+#[cfg(windows)]
+use windows_sys::Win32::System::Threading::TerminateProcess;
 
 pub mod cmdbuilder;
 pub use cmdbuilder::CommandBuilder;
@@ -303,9 +305,7 @@ impl ChildKiller for ProcessSignaller {
     fn kill(&mut self) -> IoResult<()> {
         if let Some(handle) = &self.handle {
             unsafe {
-                if winapi::um::processthreadsapi::TerminateProcess(handle.as_raw_handle() as _, 127)
-                    == 0
-                {
+                if TerminateProcess(handle.as_raw_handle(), 127) == 0 {
                     return Err(std::io::Error::last_os_error());
                 }
             }

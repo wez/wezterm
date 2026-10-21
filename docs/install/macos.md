@@ -47,7 +47,7 @@ $ brew install --cask wezterm@nightly
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```console
-$ brew upgrade --cask wezterm@nightly --no-quarantine --greedy-latest
+$ brew upgrade --cask wezterm@nightly --greedy-latest
 ```
 
 !!! note

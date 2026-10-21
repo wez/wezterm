@@ -9,8 +9,8 @@ use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::screen::Screens;
 use crate::{
-    Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ResizeIncrement,
-    ScreenPoint, WindowEvent, WindowOps,
+    Appearance, Clipboard, CursorIcon, Rect, RequestedWindowGeometry, ResizeIncrement, ScreenPoint,
+    WindowEvent, WindowOps,
 };
 use async_trait::async_trait;
 use config::ConfigHandle;
@@ -298,7 +298,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+    fn set_cursor(&self, cursor: Option<CursorIcon>) {
         match self {
             Self::X11(x) => x.set_cursor(cursor),
             #[cfg(feature = "wayland")]

@@ -1668,7 +1668,7 @@ impl WcLookupTable {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use crate::widechar_width::WcWidth;
 
     #[test]
     fn basics() {

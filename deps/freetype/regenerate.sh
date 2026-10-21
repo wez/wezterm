@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 bindgen bindings.h -o src/types.rs \
   --no-layout-tests \
@@ -19,8 +19,10 @@ bindgen bindings.h -o src/lib.rs \
   --raw-line "#![allow(non_upper_case_globals)]" \
   --raw-line "#![allow(clippy::unreadable_literal)]" \
   --raw-line "#![allow(clippy::upper_case_acronyms)]" \
-  --raw-line "mod types;" \
+  --raw-line "" \
   --raw-line "mod fixed_point;" \
+  --raw-line "mod types;" \
+  --raw-line "" \
   --raw-line "pub use fixed_point::*;" \
   --raw-line "pub type FT_Int16 = i16;" \
   --raw-line "pub type FT_UInt16 = u16;" \

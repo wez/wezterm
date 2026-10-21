@@ -47,7 +47,7 @@ impl MyWindow {
             WindowEvent::MouseEvent(event) => {
                 self.cursor_pos = event.coords;
                 // win.invalidate();
-                win.set_cursor(Some(MouseCursor::Arrow));
+                win.set_cursor(Some(CursorIcon::Default));
 
                 if event.kind == MouseEventKind::Press(MousePress::Left) {
                     eprintln!("{:?}", event);
@@ -55,11 +55,11 @@ impl MyWindow {
             }
             WindowEvent::KeyEvent(key) => {
                 eprintln!("{:?}", key);
-                win.set_cursor(Some(MouseCursor::Text));
+                win.set_cursor(Some(CursorIcon::Text));
             }
             WindowEvent::RawKeyEvent(key) => {
                 eprintln!("{:?}", key);
-                win.set_cursor(Some(MouseCursor::Text));
+                win.set_cursor(Some(CursorIcon::Text));
             }
             WindowEvent::NeedRepaint => {
                 if let Some(gl) = self.gl.as_mut() {

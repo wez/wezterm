@@ -12,30 +12,28 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::Path;
 use std::sync::Mutex;
 use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::{HRESULT, S_OK};
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::{
-    CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW,
+use windows_sys::core::HRESULT;
+use windows_sys::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE, S_OK};
+use windows_sys::Win32::System::Console::COORD;
+use windows_sys::Win32::System::Threading::{
+    CreateProcessW, CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
+    STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
-use winapi::um::wincon::COORD;
-use winapi::um::winnt::HANDLE;
 
 pub type HPCON = HANDLE;
 
-pub const PSUEDOCONSOLE_INHERIT_CURSOR: DWORD = 0x1;
-pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
-pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
+pub const PSEUDOCONSOLE_INHERIT_CURSOR: u32 = 0x1;
+pub const PSEUDOCONSOLE_RESIZE_QUIRK: u32 = 0x2;
+pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: u32 = 0x4;
 #[allow(dead_code)]
-pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: DWORD = 0x8;
+pub const PSEUDOCONSOLE_PASSTHROUGH_MODE: u32 = 0x8;
 
 shared_library!(ConPtyFuncs,
     pub fn CreatePseudoConsole(
         size: COORD,
         hInput: HANDLE,
         hOutput: HANDLE,
-        flags: DWORD,
+        flags: u32,
         hpc: *mut HPCON
     ) -> HRESULT,
     pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
@@ -63,28 +61,28 @@ lazy_static! {
     static ref CONPTY: ConPtyFuncs = load_conpty();
 }
 
-pub struct PsuedoCon {
+pub struct PseudoCon {
     con: HPCON,
 }
 
-unsafe impl Send for PsuedoCon {}
-unsafe impl Sync for PsuedoCon {}
+unsafe impl Send for PseudoCon {}
+unsafe impl Sync for PseudoCon {}
 
-impl Drop for PsuedoCon {
+impl Drop for PseudoCon {
     fn drop(&mut self) {
         unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
     }
 }
 
-impl PsuedoCon {
+impl PseudoCon {
     pub fn new(size: COORD, input: FileDescriptor, output: FileDescriptor) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
         let result = unsafe {
             (CONPTY.CreatePseudoConsole)(
                 size,
-                input.as_raw_handle() as _,
-                output.as_raw_handle() as _,
-                PSUEDOCONSOLE_INHERIT_CURSOR
+                input.as_raw_handle(),
+                output.as_raw_handle(),
+                PSEUDOCONSOLE_INHERIT_CURSOR
                     | PSEUDOCONSOLE_RESIZE_QUIRK
                     | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
@@ -92,7 +90,7 @@ impl PsuedoCon {
         };
         ensure!(
             result == S_OK,
-            "failed to create psuedo console: HRESULT {}",
+            "failed to create pseudo console: HRESULT {}",
             result
         );
         Ok(Self { con })

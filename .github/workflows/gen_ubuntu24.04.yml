@@ -18,10 +18,7 @@ on:
       - "assets/wezterm-nautilus.py"
       - "assets/wezterm.appdata.xml"
       - "assets/wezterm.desktop"
-      - "ci/appimage.sh"
-      - "ci/appstreamcli"
       - "ci/deploy.sh"
-      - "ci/source-archive.sh"
       - "ci/tag-name.sh"
       - "get-deps"
       - "termwiz/data/wezterm.terminfo"
@@ -29,9 +26,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container:
-      image: "ubuntu:24.04"
-      options: --privileged
+    container: "ubuntu:24.04"
     env:
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
@@ -78,7 +73,7 @@ jobs:
             vendor
             .cargo/config
           key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
-      - name: "Vendor dependecies"
+      - name: "Vendor dependencies"
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
@@ -105,21 +100,12 @@ jobs:
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
+      - name: "Test wezterm-escape-parser (no_std)"
+        shell: bash
+        run: "cargo nextest run -p wezterm-escape-parser"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Install libfuse2"
-        shell: bash
-        run: "apt-get install -y libfuse2"
-      - name: "Install file"
-        shell: bash
-        run: "apt-get install -y file"
-      - name: "Source Tarball"
-        shell: bash
-        run: "bash ci/source-archive.sh"
-      - name: "Build AppImage"
-        shell: bash
-        run: "bash ci/appimage.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v7
         with:
@@ -127,5 +113,3 @@ jobs:
           path: |
             wezterm-*.deb
             wezterm-*.xz
-            *src.tar.gz
-            *.AppImage

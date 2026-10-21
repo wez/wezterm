@@ -20,6 +20,9 @@
     pkgs.git
   ];
 
+  fonts.enableDefaultPackages = true;
+  fonts.packages = [pkgs.jetbrains-mono];
+
   nix.settings = {
     trusted-users = [
       "root"

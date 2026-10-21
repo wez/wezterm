@@ -266,6 +266,12 @@ impl FileDescriptor {
     }
 
     #[inline]
+    pub(crate) fn into_stdio_impl(self) -> std::process::Stdio {
+        let fd = self.into_raw_fd();
+        unsafe { std::process::Stdio::from_raw_fd(fd) }
+    }
+
+    #[inline]
     pub(crate) fn as_file_impl(&self) -> Result<std::fs::File> {
         let duped = OwnedHandle::dup(self)?;
         let fd = duped.into_raw_fd();

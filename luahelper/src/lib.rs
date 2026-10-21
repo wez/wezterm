@@ -1,5 +1,3 @@
-#![macro_use]
-
 pub use mlua;
 use mlua::{IntoLua, Value as LuaValue};
 use std::cell::RefCell;

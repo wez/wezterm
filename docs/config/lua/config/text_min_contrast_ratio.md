@@ -33,7 +33,7 @@ contrast ratio of at least 4.5:1 for normal text, so setting
 selected color scheme has poor contrast in the applications that you run in
 your terminal.
 
-In the screeshot below, the upper portion shows the default wezterm color scheme,
+In the screenshot below, the upper portion shows the default wezterm color scheme,
 while the lower portion shows how it renders with `text_min_contrast_ratio = 4.5`.
 
 ![Screenshot](../../../screenshots/wezterm-min-contrast-ratio.png)

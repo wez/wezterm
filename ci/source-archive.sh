@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Generate a source tarball that includes git submodules
 
 set -x

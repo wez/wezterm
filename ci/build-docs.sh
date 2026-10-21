@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SERVE=no
 if [ "$1" == "serve" ] ; then

@@ -5,15 +5,14 @@ use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::pin::Pin;
 use std::sync::Mutex;
 use std::task::{Context, Poll};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::minwinbase::STILL_ACTIVE;
-use winapi::um::processthreadsapi::*;
-use winapi::um::synchapi::WaitForSingleObject;
-use winapi::um::winbase::INFINITE;
+use windows_sys::Win32::Foundation::STILL_ACTIVE;
+use windows_sys::Win32::System::Threading::{
+    GetExitCodeProcess, GetProcessId, TerminateProcess, WaitForSingleObject, INFINITE,
+};
 
 pub mod conpty;
 mod procthreadattr;
-mod psuedocon;
+mod pseudocon;
 
 use filedescriptor::OwnedHandle;
 
@@ -24,11 +23,11 @@ pub struct WinChild {
 
 impl WinChild {
     fn is_complete(&mut self) -> IoResult<Option<ExitStatus>> {
-        let mut status: DWORD = 0;
+        let mut status: u32 = 0;
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
         if res != 0 {
-            if status == STILL_ACTIVE {
+            if status == STILL_ACTIVE as u32 {
                 Ok(None)
             } else {
                 Ok(Some(ExitStatus::with_exit_code(status)))
@@ -40,7 +39,7 @@ impl WinChild {
 
     fn do_kill(&mut self) -> IoResult<()> {
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
-        let res = unsafe { TerminateProcess(proc.as_raw_handle() as _, 1) };
+        let res = unsafe { TerminateProcess(proc.as_raw_handle(), 1) };
         let err = IoError::last_os_error();
         if res == 0 {
             Err(err)
@@ -69,7 +68,7 @@ pub struct WinChildKiller {
 
 impl ChildKiller for WinChildKiller {
     fn kill(&mut self) -> IoResult<()> {
-        let res = unsafe { TerminateProcess(self.proc.as_raw_handle() as _, 1) };
+        let res = unsafe { TerminateProcess(self.proc.as_raw_handle(), 1) };
         let err = IoError::last_os_error();
         if res == 0 {
             Err(err)
@@ -95,10 +94,10 @@ impl Child for WinChild {
         }
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
         unsafe {
-            WaitForSingleObject(proc.as_raw_handle() as _, INFINITE);
+            WaitForSingleObject(proc.as_raw_handle(), INFINITE);
         }
-        let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
+        let mut status: u32 = 0;
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
         if res != 0 {
             Ok(ExitStatus::with_exit_code(status))
         } else {
@@ -107,7 +106,7 @@ impl Child for WinChild {
     }
 
     fn process_id(&self) -> Option<u32> {
-        let res = unsafe { GetProcessId(self.proc.lock().unwrap().as_raw_handle() as _) };
+        let res = unsafe { GetProcessId(self.proc.lock().unwrap().as_raw_handle()) };
         if res == 0 {
             None
         } else {

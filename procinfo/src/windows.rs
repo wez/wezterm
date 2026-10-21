@@ -1,4 +1,5 @@
 #![cfg(windows)]
+
 use super::*;
 use ntapi::ntpebteb::PEB;
 use ntapi::ntpsapi::{
@@ -33,7 +34,7 @@ impl Snapshot {
         }
     }
 
-    pub fn iter(&self) -> ProcIter {
+    pub fn iter(&self) -> ProcIter<'_> {
         ProcIter {
             snapshot: &self,
             first: true,

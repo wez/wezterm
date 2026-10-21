@@ -14,6 +14,7 @@ pub enum Movement {
 #[derive(Debug, Clone)]
 pub enum Action {
     AcceptLine,
+    ClearLine,
     Cancel,
     EndOfFile,
     InsertChar(RepeatCount, char),

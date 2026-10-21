@@ -67,6 +67,7 @@ impl<'a> CellRef<'a> {
         self.str() == other.str() && self.width() == other.width() && self.attrs() == other.attrs()
     }
 
+    /// Computes a hash over the cell that only changes based on its content.
     pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
         self.str().hash(hasher);
         self.attrs().compute_shape_hash(hasher);

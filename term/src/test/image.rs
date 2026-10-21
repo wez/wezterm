@@ -1,6 +1,8 @@
 //! Tests for inline image protocol handling
 
 use super::*;
+use wezterm_cell::image::ImageDataType;
+use wezterm_surface::change::ImageData;
 
 /// A tiny but valid 11x11 PNG, base64 encoded.
 /// Taken from the reproduction in <https://github.com/wezterm/wezterm/issues/6344>.
@@ -69,4 +71,56 @@ fn kitty_image_with_zero_pixel_dimensions_does_not_panic() {
     // Printing normal text and observing it confirms we recovered rather than crashing.
     term.advance_bytes(b"ok");
     assert_visible_contents(&term, file!(), line!(), &["ok", "", ""]);
+}
+
+/// A 2x2 RGBA image, base64 encoded.
+const TINY_RGBA_BASE64: &str = "AQID/wQFBv8HCAn/CgsM/w==";
+
+/// The image data attached to the first cell that carries one.
+fn first_image(term: &TestTerm) -> Arc<ImageData> {
+    for line in term.screen().visible_lines().iter() {
+        for cell in line.visible_cells() {
+            if let Some(im) = cell
+                .attrs()
+                .images()
+                .and_then(|images| images.into_iter().next())
+            {
+                return Arc::clone(im.image_data());
+            }
+        }
+    }
+    panic!("no image was attached to the screen");
+}
+
+/// An Rgba8 stores the hash of its pixels and `compute_hash` reports it without
+/// recomputing, so a kitty frame transmission that edits those pixels in place
+/// must leave the stored hash describing what is now there.
+#[test]
+fn kitty_frame_edit_keeps_the_stored_hash_current() {
+    let mut term = TestTerm::new(3, 10, 0);
+
+    // a=T: transmit and display, f=32: RGBA, s/v: 2x2 pixels.
+    let seq = format!("\x1b_Ga=T,t=d,f=32,s=2,v=2,i=1;{}\x1b\\", TINY_RGBA_BASE64);
+    term.advance_bytes(seq.as_bytes());
+    let transmitted_hash = first_image(&term).data().compute_hash();
+
+    // a=f: transmit a frame, r=1: edit frame 1 in place, painting the top left
+    // pixel opaque red over the 0x01,0x02,0x03 it arrived with.
+    term.advance_bytes(b"\x1b_Ga=f,t=d,f=32,s=1,v=1,i=1,r=1,x=0,y=0;/wAA/w==\x1b\\");
+
+    let image = first_image(&term);
+    let image = image.data();
+    let edited_hash = image.compute_hash();
+
+    match &*image {
+        ImageDataType::Rgba8 { data, .. } => {
+            // Asserted on the pixels rather than on the hash, so a blit that
+            // did nothing cannot be mistaken for a hash that went stale.
+            k9::assert_equal!(&data[0..4], &[0xff, 0x00, 0x00, 0xff][..]);
+            k9::assert_equal!(edited_hash, ImageDataType::hash_bytes(data));
+        }
+        other => panic!("expected Rgba8, got {:?}", other),
+    }
+
+    assert_ne!(edited_hash, transmitted_hash);
 }

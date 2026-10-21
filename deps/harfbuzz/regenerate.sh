@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 bindgen bindings.h -o src/lib.rs \
   --no-layout-tests \

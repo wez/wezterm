@@ -1,6 +1,7 @@
 // The range_plus_one lint can't see when the LHS is not compatible with
 // and inclusive range
 #![allow(clippy::range_plus_one)]
+
 use mux::pane::Pane;
 use std::cmp::Ordering;
 use std::ops::Range;

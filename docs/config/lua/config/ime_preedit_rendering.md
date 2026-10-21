@@ -40,3 +40,23 @@ Note:
 * Changing `ime_preedit_rendering` usually requires re-launching WezTerm to take full effect.
 * In macOS, `ime_preedit_rendering` has effected nothing yet.
   IME preedit is always rendered by WezTerm itself.
+
+## Fcitx5 on X11
+
+When using Fcitx5 through XIM, `"Builtin"` rendering requires the
+`Use On The Spot Style` option in the Fcitx5 X Input Method Frontend.
+If committed text works but the text being composed appears in a separate
+Fcitx5 input panel instead of at the terminal cursor, enable that option in
+the Fcitx5 configuration tool or set the following root-level option (without
+a section header) in `~/.config/fcitx5/conf/xim.conf`:
+
+```ini
+UseOnTheSpot=True
+```
+
+Restart Fcitx5, then re-launch WezTerm for the change to take full effect.
+If that is not sufficient, log out of the desktop session and log back in.
+
+For more background on Fcitx5's XIM inline preedit behavior and why this
+option is not enabled by default, see [fcitx/fcitx5#590](https://github.com/fcitx/fcitx5/issues/590)
+and [fcitx/fcitx5#1162](https://github.com/fcitx/fcitx5/issues/1162).

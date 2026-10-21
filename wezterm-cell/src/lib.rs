@@ -1,5 +1,7 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 //! Model a cell in the terminal display
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use crate::color::{ColorAttribute, PaletteIndex};
 #[cfg(feature = "use_image")]
 use crate::image::ImageCell;
@@ -102,6 +104,7 @@ struct FatAttributes {
 }
 
 impl FatAttributes {
+    /// Computes a hash over the extra cell attributes that only changes based on its content.
     pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
         if let Some(link) = &self.hyperlink {
             link.compute_shape_hash(hasher);
@@ -227,6 +230,7 @@ impl CellAttributes {
         self.attributes == other.attributes
     }
 
+    /// Computes a hash over the cell attributes that only changes based on its content.
     pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
         self.attributes.hash(hasher);
         self.foreground.hash(hasher);

@@ -1,6 +1,6 @@
-#![cfg(all(unix, not(target_os = "macos")))]
-
 //! <https://github.com/flatpak/xdg-desktop-portal/blob/main/data/org.freedesktop.portal.Settings.xml>
+
+#![cfg(all(unix, not(target_os = "macos")))]
 
 use crate::{Appearance, Connection, ConnectionOps};
 use anyhow::Context;

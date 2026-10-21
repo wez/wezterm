@@ -4,7 +4,7 @@ use libc::{AF_UNSPEC, AI_CANONNAME, SOCK_DGRAM};
 use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
 use std::path::PathBuf;
 #[cfg(windows)]
-use winapi::shared::ws2def::{AF_UNSPEC, AI_CANONNAME, SOCK_DGRAM};
+use windows_sys::Win32::Networking::WinSock::{AF_UNSPEC, AI_CANONNAME, SOCK_DGRAM};
 
 /// A helper for managing keys for the TLS server component.
 /// Each time the server is started, a new CA is generated
@@ -35,8 +35,8 @@ impl Pki {
         let mut alt_names = vec![hostname.clone(), "localhost".to_owned()];
 
         let hints = dns_lookup::AddrInfoHints {
-            flags: AI_CANONNAME,
-            address: AF_UNSPEC,
+            flags: AI_CANONNAME as _,
+            address: AF_UNSPEC as _,
             socktype: SOCK_DGRAM,
             protocol: 0,
         };

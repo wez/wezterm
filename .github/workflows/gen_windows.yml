@@ -45,7 +45,7 @@ jobs:
             vendor
             .cargo/config
           key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
-      - name: "Vendor dependecies"
+      - name: "Vendor dependencies"
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"

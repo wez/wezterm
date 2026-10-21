@@ -49,11 +49,14 @@ impl WslDistro {
     pub fn load_distro_list() -> anyhow::Result<Vec<Self>> {
         #[cfg(windows)]
         use std::os::windows::process::CommandExt;
+        #[cfg(windows)]
+        use windows_sys::Win32::System::Threading::CREATE_NO_WINDOW;
+
         let mut cmd = std::process::Command::new("wsl.exe");
         cmd.arg("-l");
         cmd.arg("-v");
         #[cfg(windows)]
-        cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
+        cmd.creation_flags(CREATE_NO_WINDOW);
         let output = cmd.output()?;
 
         let stderr = String::from_utf8_lossy(&output.stderr);

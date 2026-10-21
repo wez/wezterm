@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use crate::line::CellRef;
 use alloc::borrow::Cow;
 use core::cmp::min;
@@ -304,6 +305,7 @@ impl Surface {
             Change::Attribute(change) => self.attributes.apply_change(change),
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
             Change::ClearScreen(color) => self.clear_screen(*color),
+            Change::ClearLine(color) => self.clear_line(*color),
             Change::ClearToEndOfLine(color) => self.clear_eol(*color),
             Change::ClearToEndOfScreen(color) => self.clear_eos(*color),
             Change::CursorColor(color) => self.cursor_color = *color,
@@ -398,6 +400,12 @@ impl Surface {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared, self.seqno);
+    }
+
+    fn clear_line(&mut self, color: ColorAttribute) {
+        self.attributes = CellAttributes::default().set_background(color).clone();
+        let cleared = Cell::new(' ', self.attributes.clone());
+        self.lines[self.ypos].fill_range(0..self.width, &cleared, self.seqno);
     }
 
     fn scroll_screen_up(&mut self) {
@@ -1012,6 +1020,25 @@ mod test {
         });
         s.add_change(Change::ClearToEndOfLine(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "   \nw\nfoo\n");
+    }
+
+    #[test]
+    fn clear_line() {
+        let mut s = Surface::new(3, 3);
+        s.add_change("helwowfoo");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(1),
+        });
+        s.add_change(Change::ClearLine(AnsiColor::Maroon.into()));
+
+        assert_eq!(s.xpos, 1);
+        assert_eq!(s.ypos, 1);
+        assert_eq!(s.screen_chars_to_string(), "hel\n   \nfoo\n");
+        assert_eq!(
+            s.lines[1].get_cell(0).unwrap().attrs().background(),
+            ColorAttribute::PaletteIndex(1)
+        );
     }
 
     #[test]

@@ -255,6 +255,12 @@
 
                 nightly.latest.rustfmt
                 nightly.latest.rust-analyzer
+              ]
+              ++ lib.optionals stdenv.isLinux [
+                # For local flatpak builds
+                pkgs.flatpak-builder
+                pkgs.flatpak-builder-tools # for flatpak-cargo-generator
+                pkgs.appstream
               ]);
 
             LD_LIBRARY_PATH = libPath;

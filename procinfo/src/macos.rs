@@ -1,4 +1,5 @@
 #![cfg(target_os = "macos")]
+
 use super::*;
 use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::{OsStrExt, OsStringExt};

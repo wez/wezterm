@@ -55,7 +55,7 @@ use wezterm_input_types::{
 use crate::wayland::WaylandConnection;
 use crate::x11::KeyboardWithFallback;
 use crate::{
-    Appearance, Clipboard, Connection, ConnectionOps, Dimensions, MouseCursor, Point, Rect,
+    Appearance, Clipboard, Connection, ConnectionOps, Dimensions, Point, Rect,
     RequestedWindowGeometry, ResizeIncrement, ResolvedGeometry, Window, WindowEvent,
     WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
@@ -241,16 +241,21 @@ impl WaylandWindow {
 
         let window = {
             let xdg_shell = &conn.wayland_state.borrow().xdg;
-            xdg_shell.create_window(surface.clone(), Decorations::RequestServer, &qh)
+            let initial_decorations =
+                if !config.window_decorations.contains(WindowDecorations::TITLE) {
+                    Decorations::None
+                } else {
+                    Decorations::RequestServer
+                };
+            xdg_shell.create_window(surface.clone(), initial_decorations, &qh)
         };
 
         window.set_app_id(class_name.to_string());
         window.set_title(name.to_string());
-        let decorations = config.window_decorations;
 
-        let decor_mode = if decorations == WindowDecorations::NONE {
+        let decor_mode = if !config.window_decorations.contains(WindowDecorations::TITLE) {
             None
-        } else if decorations == WindowDecorations::default() {
+        } else if config.window_decorations == WindowDecorations::default() {
             Some(DecorationMode::Server)
         } else {
             Some(DecorationMode::Client)
@@ -400,7 +405,7 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+    fn set_cursor(&self, cursor: Option<CursorIcon>) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_cursor(cursor);
             Ok(())
@@ -986,7 +991,7 @@ impl WaylandWindowInner {
         }
     }
 
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+    fn set_cursor(&mut self, cursor: Option<CursorIcon>) {
         if !PendingMouse::in_window(&self.pending_mouse) {
             return;
         }
@@ -1000,16 +1005,7 @@ impl WaylandWindowInner {
 
         match cursor {
             Some(cursor) => {
-                if let Err(err) = pointer.set_cursor(
-                    &conn.connection,
-                    match cursor {
-                        MouseCursor::Arrow => CursorIcon::Default,
-                        MouseCursor::Hand => CursorIcon::Pointer,
-                        MouseCursor::SizeUpDown => CursorIcon::NsResize,
-                        MouseCursor::SizeLeftRight => CursorIcon::EwResize,
-                        MouseCursor::Text => CursorIcon::Text,
-                    },
-                ) {
+                if let Err(err) = pointer.set_cursor(&conn.connection, cursor) {
                     log::error!("set_cursor: {}", err);
                 }
             }

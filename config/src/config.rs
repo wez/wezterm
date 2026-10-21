@@ -162,6 +162,12 @@ pub struct Config {
     #[dynamic(default = "default_command_palette_font_size")]
     pub command_palette_font_size: f64,
 
+    #[dynamic(
+        default = "default_one_point_oh_f64",
+        validate = "validate_line_height"
+    )]
+    pub command_palette_line_height: f64,
+
     pub command_palette_rows: Option<usize>,
     #[dynamic(default = "default_command_palette_fg_color")]
     pub command_palette_fg_color: RgbaColor,
@@ -2177,7 +2183,7 @@ fn validate_row_or_col(value: &u16) -> Result<(), String> {
 fn validate_line_height(value: &f64) -> Result<(), String> {
     if *value <= 0.0 {
         Err(format!(
-            "Illegal value {value} for line_height; it must be positive and greater than zero!"
+            "Illegal value {value}; it must be positive and greater than zero!"
         ))
     } else {
         Ok(())

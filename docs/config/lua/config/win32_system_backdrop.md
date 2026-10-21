@@ -7,8 +7,8 @@ tags:
 
 {{since('20230712-072601-f4abf8fd')}}
 
-When combined with `window_background_opacity`, chooses from available
-window background effects provided by Windows.
+When combined with [window_background_opacity](window_background_opacity.md),
+chooses from available window background effects provided by Windows.
 
 The possible values for `win32_system_backdrop` are:
 

@@ -71,8 +71,9 @@ When the search overlay is active the behavior of wezterm changes:
 * `CTRL-N` and `DownArrow` will cause the selection to move to any next matching text.
 * `PageDown` will traverse to the next match one page at a time.
 * `CTRL-R` will cycle through the pattern matching mode; the initial mode is case-sensitive
-  text matching, the next will match ignoring case and the last will match using the
-  [regular expression syntax described here](https://docs.rs/regex/1.3.9/regex/#syntax).
+  text matching, the next will match ignoring case, the next is "smart" and will be
+  case-sensitive if any input is uppercase, otherwise it will match ignoring case, and the
+  last will match using the [regular expression syntax described here](https://docs.rs/regex/1.3.9/regex/#syntax).
   The matching mode is indicated in the search bar.
 * `CTRL-U` will clear the *search pattern* so you can start over.
 * `CTRL-SHIFT-C` will copy the selected text to the clipboard.

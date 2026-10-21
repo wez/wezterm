@@ -7,9 +7,10 @@ tags:
 
 {{since('20210814-124438-54e29167')}}
 
-Dynamically generates a `window_background_image` from the provided gradient
-specification.  When `window_background_gradient` is configured, the value
-for `window_background_image` is ignored.
+Dynamically generates a [window_background_image](window_background_image.md) from the provided
+gradient specification.
+When `window_background_gradient` is configured, the value for `window_background_image` is
+ignored.
 
 Linear gradients with vertical or horizontal orientation are supported:
 

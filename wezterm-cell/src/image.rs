@@ -38,6 +38,12 @@ where
     value.into_inner().serialize(serializer)
 }
 
+/// A 2D point with floating coordinates, that guarantees finite (non-NaN) values.
+///
+/// The coordinates are intended to be normalized to [0,1] per axis, with (0,0)
+/// and (1,1) as opposite corners, so a pair of points can delimit a sub-region
+/// of a texture or image.
+/// The range is a convention of the caller, the type itself does not enforce it.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureCoordinate {
@@ -71,19 +77,24 @@ impl TextureCoordinate {
     }
 }
 
-/// Tracks data for displaying an image in the place of the normal cell
-/// character data.  Since an Image can span multiple cells, we need to logically
-/// carve up the image and track each slice of it.  Each cell needs to know
-/// its "texture coordinates" within that image so that we can render the
-/// right slice.
+/// Tracks data for displaying an image (or slice of one) in the place of the
+/// normal cell character data. Since an Image can span multiple cells, we need
+/// to logically slice up the image and track each slice of it.
+///
+/// Each cell knows its "texture coordinates" within that image so we can later
+/// render the right slice for the cell.
+///
+/// This models the Kitty graphics protocol, where an image placement can span
+/// several cells: the placement is sliced into one [`ImageCell`] per covered
+/// cell, all referencing the same [`ImageData`], `image_id`, `placement_id`.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageCell {
-    /// Texture coordinate for the top left of this cell.
-    /// (0,0) is the top left of the ImageData. (1, 1) is
-    /// the bottom right.
+    /// Floating texture coordinate for the top left of this cell.
+    /// (0,0) is the top left of the ImageData.
+    /// (1, 1) is the bottom right.
     top_left: TextureCoordinate,
-    /// Texture coordinates for the bottom right of this cell.
+    /// Floating texture coordinates for the bottom right of this cell.
     bottom_right: TextureCoordinate,
     /// References the underlying image data
     data: Arc<ImageData>,
@@ -95,7 +106,11 @@ pub struct ImageCell {
     padding_right: u16,
     padding_bottom: u16,
 
+    /// For the kitty protocol: the image id this cell's slice belongs to.
+    /// Must be in sync with the attached [`ImageData`].
     image_id: Option<u32>,
+    /// For the kitty protocol: the placement id for this cell.
+    /// Must be in sync with the attached image id/data.
     placement_id: Option<u32>,
 }
 
@@ -108,6 +123,10 @@ impl ImageCell {
         Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, 0, 0, None, None)
     }
 
+    /// Computes a hash over the image cell that only changes based on its content.
+    ///
+    /// The hash covers the layout and the image *identity*, not the pixels,
+    /// so it is unaffected by eventual in-place edits to the image data.
     pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
         self.top_left.hash(hasher);
         self.bottom_right.hash(hasher);
@@ -194,6 +213,14 @@ impl ImageCell {
     }
 }
 
+/// The raw payload of an image in one of several storage forms:
+/// - encoded file bytes (in memory or on-disk in the blob manager)
+/// - decoded RGBA pixels (single-frame or animated)
+///
+/// This is a value type, freely constructed and transformed independent of sharing.
+///
+/// NOTE: The decoded RGBA variants cache a sha256 hash of their frame(s);
+/// mutation through [`ImageData::data`] must refresh them.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Eq)]
 pub enum ImageDataType {
@@ -216,6 +243,8 @@ pub enum ImageDataType {
         data: Vec<u8>,
         width: u32,
         height: u32,
+        /// sha256 of `data`.
+        /// Must be updated whenever `data` changes.
         hash: [u8; 32],
     },
     /// Data is an animated sequence
@@ -224,6 +253,8 @@ pub enum ImageDataType {
         height: u32,
         durations: Vec<Duration>,
         frames: Vec<Vec<u8>>,
+        /// sha256 of each `frames`.
+        /// Must be updated whenever a frame changes.
         hashes: Vec<[u8; 32]>,
     },
 }
@@ -304,14 +335,14 @@ impl ImageDataType {
 
     pub fn compute_hash(&self) -> [u8; 32] {
         use sha2::Digest;
-        let mut hasher = sha2::Sha256::new();
         match self {
-            ImageDataType::EncodedFile(data) => hasher.update(data),
-            ImageDataType::EncodedLease(lease) => return lease.content_id().as_hash_bytes(),
-            ImageDataType::Rgba8 { data, .. } => hasher.update(data),
+            ImageDataType::EncodedLease(lease) => lease.content_id().as_hash_bytes(),
+            ImageDataType::Rgba8 { hash, .. } => *hash,
+            ImageDataType::EncodedFile(data) => ImageDataType::hash_bytes(data),
             ImageDataType::AnimRgba8 {
                 frames, durations, ..
             } => {
+                let mut hasher = sha2::Sha256::new();
                 for data in frames {
                     hasher.update(data);
                 }
@@ -320,9 +351,9 @@ impl ImageDataType {
                     let b = d.to_ne_bytes();
                     hasher.update(b);
                 }
+                hasher.finalize().into()
             }
-        };
-        hasher.finalize().into()
+        }
     }
 
     /// Divides the animation frame durations by the provided
@@ -514,6 +545,10 @@ pub enum ImageCellError {
     ImageError(#[from] image::ImageError),
 }
 
+/// A shareable image: an [`ImageDataType`] behind a `Mutex`,
+/// with an immutable content-identity hash captured at creation-time only.
+///
+/// The hash is the dedup key for this image: `PartialEq` compares hashes only.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct ImageData {
     data: Mutex<ImageDataType>,

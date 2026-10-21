@@ -35,7 +35,7 @@ impl Write for TmuxPtyWriter {
             keys: buf.to_vec(),
         }));
         TmuxDomainState::schedule_send_next_command(self.domain_id);
-        Ok(0)
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
@@ -56,7 +56,7 @@ impl Write for TmuxPty {
             keys: buf.to_vec(),
         }));
         TmuxDomainState::schedule_send_next_command(self.domain_id);
-        Ok(0)
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {

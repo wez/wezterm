@@ -8,6 +8,7 @@
 //! client and server instances that are built from different versions
 //! of this code; in this way the client and server can more gracefully
 //! manage unknown enum variants.
+
 #![allow(dead_code)]
 #![allow(clippy::range_plus_one)]
 
@@ -441,7 +442,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 45;
+pub const CODEC_VERSION: usize = 46;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -914,6 +915,7 @@ pub struct LivenessResponse {
 pub struct GetPaneRenderChangesResponse {
     pub pane_id: PaneId,
     pub mouse_grabbed: bool,
+    pub alt_screen_active: bool,
     pub cursor_position: StableCursorPosition,
     pub dimensions: RenderableDimensions,
     pub dirty_lines: Vec<Range<StableRowIndex>>,

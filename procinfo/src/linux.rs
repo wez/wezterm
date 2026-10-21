@@ -1,4 +1,5 @@
 #![cfg(target_os = "linux")]
+
 use super::*;
 
 impl From<&str> for LocalProcessStatus {

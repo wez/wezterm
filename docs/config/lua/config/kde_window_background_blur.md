@@ -6,10 +6,11 @@ tags:
 
 {{since('nightly')}}
 
-*Deprecated; this option was added & deprecated in the same version. Use [wayland_window_background_blur](wayland_window_background_blur.md) instead*
+*Deprecated; this option was added & deprecated in the same version.
+Use [wayland_window_background_blur](wayland_window_background_blur.md) instead*
 
-When combined with `window_background_opacity`, enables background blur
-using the KDE Wayland blur protocol.
+When combined with [window_background_opacity](window_background_opacity.md),
+enables background blur using the KDE Wayland blur protocol.
 
 This can be used to produce a translucent window effect rather than
 a crystal clear transparent window effect.

@@ -506,7 +506,7 @@ impl TmuxDomainState {
                 }
             };
 
-            // For new window, we wait for nature ouput instead of capturing
+            // For new window, we wait for natural output instead of capturing
             if !new_window {
                 for p in local_tab.panes.iter() {
                     self.cmd_queue.lock().push_back(Box::new(CapturePane {
@@ -590,7 +590,7 @@ impl TmuxDomainState {
                     }
                     MuxNotification::WindowInvalidated(window_id) => {
                         if let Some(window) = mux.get_window(window_id) {
-                            let Some(tab) = window.get_active() else {
+                            let Some(tab) = window.get_active_tab() else {
                                 return;
                             };
                             let tmux_window_id = match tmux_domain
@@ -1024,7 +1024,7 @@ impl TmuxCommand for SendKeys {
         for &byte in self.keys.iter() {
             write!(&mut s, "0x{:X} ", byte).expect("unable to write key");
         }
-        format!("send-keys -H -t %{} {}\r", self.pane, s)
+        format!("send-keys -H -t %{} {}\n", self.pane, s)
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {

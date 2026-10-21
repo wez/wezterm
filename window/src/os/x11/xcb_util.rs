@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types)]
+
 use libc::c_void;
 use xcb::ffi::*;
 

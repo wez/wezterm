@@ -355,7 +355,7 @@ wezterm.action.SpawnCommandInNewWindow {
 }
 ```
 Note: For zsh users, you may need to add -l or -i to the above if the PATH settings are specified
-in .zprofile or .zshrc repectively. Homebrew users probably need -l. 
+in .zprofile or .zshrc respectively. Homebrew users probably need -l.
 
 Another option is to explicitly use the full path to the program on your system,
 something like:

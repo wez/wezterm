@@ -7,7 +7,8 @@ from copy import deepcopy
 # The build from this target will be pushed to the gemfury APT repo
 GEMFURY_TARGET = "ubuntu:22.04"
 # The build from this target will be baked into the AppImage
-APPIMAGE_TARGET = "ubuntu:24.04"
+# This target is also used for updating the flathub & linuxbrew repos
+APPIMAGE_TARGET = "ubuntu:26.04"
 
 TRIGGER_PATHS = [
     "**/*.rs",
@@ -402,7 +403,7 @@ rustup default {toolchain}
         if cache:
             steps += [
                 SccacheStep(name="Compile with sccache"),
-                # Cache vendored dependecies
+                # Cache vendored dependencies
                 CacheStep(
                     name="Cache Rust Dependencies",
                     path="vendor\n.cargo/config",
@@ -411,7 +412,7 @@ rustup default {toolchain}
                 ),
                 # Vendor dependencies
                 RunStep(
-                    name="Vendor dependecies",
+                    name="Vendor dependencies",
                     condition="steps.cache-cargo-vendor.outputs.cache-hit != 'true'",
                     run="cargo vendor --locked --versioned-dirs >> .cargo/config",
                 ),
@@ -476,12 +477,15 @@ rustup default {toolchain}
         return steps
 
     def test_all(self):
-        run = "cargo nextest run --all --no-fail-fast"
+        target = ""
         if "macos" in self.name:
-            run += " --target=x86_64-apple-darwin"
+            target = " --target=x86_64-apple-darwin"
+        prefix = ""
         if self.name == "centos7":
-            run = "source /opt/rh/devtoolset-9/enable\n" + run
-        return [
+            prefix = "source /opt/rh/devtoolset-9/enable\n"
+        run = prefix + "cargo nextest run --all --no-fail-fast" + target
+        run_no_std = prefix + "cargo nextest run -p wezterm-escape-parser" + target
+        steps = [
             # Install cargo-nextest
             InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
@@ -489,6 +493,11 @@ rustup default {toolchain}
             if "win" in self.name
             else RunStep(name="Test", run=run),
         ]
+        if "win" not in self.name:
+            steps += [
+                RunStep(name="Test wezterm-escape-parser (no_std)", run=run_no_std)
+            ]
+        return steps
 
     def package(self, trusted=False):
         steps = []
@@ -1004,6 +1013,7 @@ rustup default {toolchain}
 TARGETS = [
     Target(container="ubuntu:22.04", continuous_only=True),
     Target(container="ubuntu:24.04", continuous_only=True),
+    Target(container="ubuntu:26.04", continuous_only=True),
     Target(container="debian:12", continuous_only=True),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-latest"),

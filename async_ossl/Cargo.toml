@@ -11,9 +11,9 @@ publish = false
 [dependencies]
 async-io.workspace = true
 
-[target.'cfg(not(any(windows, target_os="macos")))'.dependencies]
+[target.'cfg(not(any(windows, target_os="macos", target_env="musl")))'.dependencies]
 openssl.workspace = true
 
-[target.'cfg(any(windows, target_os="macos"))'.dependencies]
+[target.'cfg(any(windows, target_os="macos", target_env="musl"))'.dependencies]
 openssl = { workspace = true, features=["vendored"] }
 

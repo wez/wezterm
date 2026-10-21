@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sync the vendored sources from a pixman URL
 # eg:
 # wget 'https://cairographics.org/snapshots/cairo-1.17.8.tar.xz'

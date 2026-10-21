@@ -1,4 +1,5 @@
 //! Slightly higher level helper for fontconfig
+
 #![allow(clippy::mutex_atomic)]
 
 use anyhow::{anyhow, ensure, Error};

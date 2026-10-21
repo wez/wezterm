@@ -102,18 +102,12 @@ impl LineEditorHost for LuaReplHost {
         editor: &mut LineEditor<'_>,
     ) -> Option<Action> {
         let (line, _cursor) = editor.get_line_and_cursor();
-        if line.is_empty()
-            && matches!(
-                event,
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Escape,
-                    ..
-                })
-            )
-        {
-            Some(Action::Cancel)
-        } else {
-            None
+        match event {
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Escape,
+                ..
+            }) => line.is_empty().then_some(Action::Cancel),
+            _ => None,
         }
     }
 

@@ -68,7 +68,7 @@ impl UserData for MuxWindow {
             let mux = get_mux()?;
             let window = this.resolve(&mux)?;
             Ok(window
-                .iter()
+                .iter_tabs()
                 .map(|tab| MuxTab(tab.tab_id()))
                 .collect::<Vec<MuxTab>>())
         });
@@ -76,11 +76,11 @@ impl UserData for MuxWindow {
             let mux = get_mux()?;
             let window = this.resolve(&mux)?;
             let result = lua.create_table()?;
-            let active_idx = window.get_active_idx();
-            for (index, tab) in window.iter().enumerate() {
+            let active_tab_idx = window.get_active_tab_idx();
+            for (index, tab) in window.iter_tabs().enumerate() {
                 let info = MuxTabInfo {
                     index,
-                    is_active: index == active_idx,
+                    is_active: index == active_tab_idx,
                 };
                 let info = luahelper::dynamic_to_lua_value(lua, info.to_dynamic())?;
                 match &info {
@@ -96,13 +96,13 @@ impl UserData for MuxWindow {
         methods.add_method("active_tab", |_, this, _: ()| {
             let mux = get_mux()?;
             let window = this.resolve(&mux)?;
-            Ok(window.get_active().map(|tab| MuxTab(tab.tab_id())))
+            Ok(window.get_active_tab().map(|tab| MuxTab(tab.tab_id())))
         });
         methods.add_method("active_pane", |_, this, _: ()| {
             let mux = get_mux()?;
             let window = this.resolve(&mux)?;
             Ok(window
-                .get_active()
+                .get_active_tab()
                 .and_then(|tab| tab.get_active_pane().map(|pane| MuxPane(pane.pane_id()))))
         });
     }

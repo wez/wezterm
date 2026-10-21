@@ -112,6 +112,15 @@ config.colors = {
   -- to this color to give a visual cue about the compose state.
   compose_cursor = 'orange',
 
+  -- Override the foreground color for composition/IME preview text,
+  -- such as text being dictated via macOS dictation or composed via
+  -- a dead key sequence. Falls back to the cursor foreground color.
+  compose_fg = '#1e1e2e', -- {{since('nightly', inline=True)}}
+
+  -- Override the background color for composition/IME preview text.
+  -- Falls back to the cursor background color.
+  compose_bg = '#f5c2e7', -- {{since('nightly', inline=True)}}
+
   -- Colors for copy_mode and quick_select
   -- available since: 20220807-113146-c2fee766
   -- In copy_mode, the color of the active text is:
@@ -451,48 +460,9 @@ reduce it by half, and 2.0 will double the value.
 
 {{since('20201031-154415-9614e117')}}
 
-You can attach an image to the background of the wezterm window:
-
-```lua
-config.window_background_image = '/path/to/wallpaper.jpg'
-```
-
-If the path is a relative path then it will be expanded relative
-to the directory containing your `wezterm.lua` config file.
-
-PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files
-can be loaded.  Animated GIF and PNG files will animate while
-the window has focus.
-
-The image will be scaled to fit the window contents.  Very large
-images may decrease render performance and take up VRAM from the
-GPU, so you may wish to resize the image file before using it.
-
-You can optionally transform the background image by specifying
-a hue, saturation, brightness multiplier:
-
-```lua
-config.window_background_image = '/path/to/wallpaper.jpg'
-
-config.window_background_image_hsb = {
-  -- Darken the background image by reducing it to 1/3rd
-  brightness = 0.3,
-
-  -- You can adjust the hue by scaling its value.
-  -- a multiplier of 1.0 leaves the value unchanged.
-  hue = 1.0,
-
-  -- You can adjust the saturation also.
-  saturation = 1.0,
-}
-```
-
-See [Styling Inactive Panes](#styling-inactive-panes) for more information
-on hue, saturation, brightness transformations.
-
-If you'd like to have control over scaling, tiling/repeating, scrolling
-behavior and more, take a look at the more powerful
-[background](lua/config/background.md) configuration option.
+See [window_background_image](lua/config/window_background_image.md) and
+[window_background_image_hsb](lua/config/window_background_image_hsb.md)
+for configuration information on background images.
 
 ## Window Background Gradient
 
@@ -507,34 +477,17 @@ for configuration information on gradients.
 
 {{since('20201031-154415-9614e117')}}
 
-If your Operating System provides Compositing support then WezTerm is able to
-specify the alpha channel value for the background content, rendering the
-window background translucent (some refer to this as transparent rather than
-translucent) and causing the windows/desktop behind it to show through the
-window.
-
-macOS, Windows and Wayland support compositing out of the box. X11 may require
-installing or configuring a compositing window manager. XWayland under
-Mutter/Wayland also works without any additional configuration.
-
-`window_background_opacity` specifies the alpha channel value
-with floating point numbers in the range `0.0` (meaning completely
-translucent/transparent) through to `1.0` (meaning completely opaque).
-
-Setting this to a value other than the default `1.0` may impact render
-performance.
-
-```lua
-config.window_background_opacity = 1.0
-```
+See [window_background_opacity](lua/config/window_background_opacity.md)
+for configuration information on opacity.
 
 ## Text Background Opacity
 
 {{since('20201031-154415-9614e117')}}
 
-When using a background image or background opacity, the image content can
-have relatively low contrast with respect to the text you are trying to
-read in your terminal.
+When using a [background image](lua/config/window_background_image.md) or
+[background opacity](lua/config/window_background_opacity.md), the image
+content can have relatively low contrast with respect to the text you are
+trying to read in your terminal.
 
 The `text_background_opacity` setting specifies the alpha channel value to use
 for the background color of cells other than the default background color.

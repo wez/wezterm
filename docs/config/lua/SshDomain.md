@@ -48,7 +48,7 @@ config.ssh_domains = {
     name = 'my.server',
     remote_address = '192.168.1.1',
     ssh_option = {
-      identityfile = '/path/to/id_rsa.pub',
+      identityfile = '/path/to/id_rsa',
     },
   },
 }

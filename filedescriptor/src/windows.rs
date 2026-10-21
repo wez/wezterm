@@ -8,21 +8,25 @@ use std::os::windows::prelude::*;
 use std::ptr;
 use std::sync::Once;
 use std::time::Duration;
-use winapi::shared::ws2def::{AF_INET, INADDR_LOOPBACK, SOCKADDR_IN};
-use winapi::um::fileapi::*;
-use winapi::um::handleapi::*;
-use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
-use winapi::um::namedpipeapi::{CreatePipe, GetNamedPipeInfo};
-use winapi::um::processenv::{GetStdHandle, SetStdHandle};
-use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
-use winapi::um::winnt::HANDLE;
-use winapi::um::winsock2::{
-    accept, bind, closesocket, connect, getsockname, getsockopt, htonl, ioctlsocket, listen, recv,
-    send, WSAGetLastError, WSAPoll, WSASocketW, WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM,
-    SOL_SOCKET, SO_ERROR, WSADATA, WSAENOTSOCK, WSA_FLAG_NO_HANDLE_INHERIT,
+use windows_sys::Win32::Foundation::{
+    CloseHandle, DuplicateHandle, DUPLICATE_SAME_ACCESS, HANDLE, INVALID_HANDLE_VALUE,
 };
-pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
+use windows_sys::Win32::Networking::WinSock::{
+    accept, bind, closesocket, connect, getsockname, getsockopt, htonl, ioctlsocket, listen, recv,
+    send, WSAGetLastError, WSAPoll, WSASocketW, WSAStartup, ADDRESS_FAMILY, AF_INET, FIONBIO,
+    INADDR_LOOPBACK, INVALID_SOCKET, SOCKADDR_IN, SOCKET, SOCK_STREAM, SOL_SOCKET, SO_ERROR,
+    WSADATA, WSAENOTSOCK, WSA_FLAG_NO_HANDLE_INHERIT,
+};
+pub use windows_sys::Win32::Networking::WinSock::{
+    POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd,
+};
+use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
+use windows_sys::Win32::Storage::FileSystem::{
+    GetFileType, ReadFile, WriteFile, FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE,
+};
+use windows_sys::Win32::System::Console::{GetStdHandle, SetStdHandle};
+use windows_sys::Win32::System::Pipes::{CreatePipe, GetNamedPipeInfo};
+use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 /// `RawFileDescriptor` is a platform independent type alias for the
 /// underlying platform file descriptor type.  It is primarily useful
@@ -126,7 +130,7 @@ impl OwnedHandle {
                             handle as _,
                             SOL_SOCKET,
                             SO_ERROR,
-                            &mut err as *mut _ as *mut i8,
+                            &mut err as *mut _ as *mut _,
                             &mut errsize,
                         ) != 0
                             && WSAGetLastError() == WSAENOTSOCK
@@ -196,7 +200,7 @@ impl OwnedHandle {
                 &mut duped,
                 0,
                 0, // not inheritable
-                winapi::um::winnt::DUPLICATE_SAME_ACCESS,
+                DUPLICATE_SAME_ACCESS,
             )
         };
         if ok == 0 {
@@ -234,6 +238,12 @@ impl FileDescriptor {
     }
 
     #[inline]
+    pub(crate) fn into_stdio_impl(self) -> std::process::Stdio {
+        let handle = self.into_raw_handle();
+        unsafe { std::process::Stdio::from_raw_handle(handle) }
+    }
+
+    #[inline]
     pub(crate) fn as_file_impl(&self) -> Result<std::fs::File> {
         let duped = self.handle.try_clone()?;
         let handle = duped.into_raw_handle();
@@ -248,13 +258,7 @@ impl FileDescriptor {
         }
 
         let mut on = if non_blocking { 1 } else { 0 };
-        let res = unsafe {
-            ioctlsocket(
-                self.as_raw_socket() as SOCKET,
-                winapi::um::winsock2::FIONBIO,
-                &mut on,
-            )
-        };
+        let res = unsafe { ioctlsocket(self.as_raw_socket() as SOCKET, FIONBIO, &mut on) };
         if res != 0 {
             Err(Error::FionBio(std::io::Error::last_os_error()))
         } else {
@@ -321,7 +325,7 @@ impl AsRawSocket for FileDescriptor {
 }
 
 impl AsSocket for FileDescriptor {
-    fn as_socket(&self) -> BorrowedSocket {
+    fn as_socket(&self) -> BorrowedSocket<'_> {
         unsafe { BorrowedSocket::borrow_raw(self.as_raw_socket()) }
     }
 }
@@ -459,10 +463,10 @@ fn init_winsock() {
     });
 }
 
-fn socket(af: i32, sock_type: i32, proto: i32) -> Result<FileDescriptor> {
+fn socket(af: ADDRESS_FAMILY, sock_type: i32, proto: i32) -> Result<FileDescriptor> {
     let s = unsafe {
         WSASocketW(
-            af,
+            af as _,
             sock_type,
             proto,
             ptr::null_mut(),
@@ -489,10 +493,8 @@ pub fn socketpair_impl() -> Result<(FileDescriptor, FileDescriptor)> {
     let s = socket(AF_INET, SOCK_STREAM, 0)?;
 
     let mut in_addr: SOCKADDR_IN = unsafe { std::mem::zeroed() };
-    in_addr.sin_family = AF_INET as _;
-    unsafe {
-        *in_addr.sin_addr.S_un.S_addr_mut() = htonl(INADDR_LOOPBACK);
-    }
+    in_addr.sin_family = AF_INET;
+    in_addr.sin_addr.S_un.S_addr = unsafe { htonl(INADDR_LOOPBACK) };
 
     unsafe {
         if bind(

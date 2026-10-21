@@ -10,8 +10,10 @@
 //! You may wish to use `termwiz::escape::parser::Parser` in the
 //! [termwiz](https://docs.rs/termwiz/) crate if you don't want to have to research
 //! all those possible escape sequences for yourself.
+
 #![allow(clippy::upper_case_acronyms)]
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use utf8parse::Parser as Utf8Parser;
 mod enums;
 use crate::enums::*;

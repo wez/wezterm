@@ -74,13 +74,16 @@ impl Hyperlink {
     }
 
     pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>> {
-        ensure!(osc.len() == 3, "wrong param count");
-        if osc[1].is_empty() && osc[2].is_empty() {
+        ensure!(osc.len() >= 3, "wrong param count");
+        // Take everything after the params, so any further `;…` are counted as part of the URI
+        // e.g. `https://example.com/a;b;c=d` would have been split in 3 parts by the OSC splitter.
+        let uri = osc[2..].join(&b';');
+        if osc[1].is_empty() && uri.is_empty() {
             // Clearing current hyperlink
             Ok(None)
         } else {
             let param_str = String::from_utf8(osc[1].to_vec())?;
-            let uri = String::from_utf8(osc[2].to_vec())?;
+            let uri = String::from_utf8(uri)?;
 
             let mut params = HashMap::new();
             if !param_str.is_empty() {

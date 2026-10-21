@@ -578,7 +578,7 @@ impl AsRawSocket for SshStream {
 
 #[cfg(windows)]
 impl AsSocket for SshStream {
-    fn as_socket(&self) -> BorrowedSocket {
+    fn as_socket(&self) -> BorrowedSocket<'_> {
         self.stdout.as_socket()
     }
 }

@@ -70,7 +70,8 @@
   <developer_name>Wez Furlong</developer_name>
 
   <releases>
-    <release version="20220807-113146-c2fee766" date="2022-08-07">
+    <!-- NOTE: This release should only be used for local builds (e.g. for the flatpak package) -->
+    <release version="20260000-000000-local-build" date="2026-07-31">
       <description>
         <p>
           Featuring more powerful key and mouse bindings, new lua functions for

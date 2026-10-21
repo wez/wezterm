@@ -47,4 +47,4 @@ wezterm-term = { workspace = true, features=["use_serde"] }
 nix = {workspace=true, features=["resource"]}
 
 [target."cfg(windows)".dependencies]
-winapi = { workspace=true, features = ["winuser"]}
+windows-sys = { workspace = true, features = ["Win32_System_Threading"] }

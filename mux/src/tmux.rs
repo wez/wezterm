@@ -168,7 +168,7 @@ impl TmuxDomainState {
                         // the output may come early then pane is ready, in this case we
                         // backlog it
                         self.backlog.lock().insert(*pane, text.to_vec());
-                        log::debug!("Tmux pane {} havn't been attached", pane);
+                        log::debug!("Tmux pane {} haven't been attached", pane);
                     }
                 }
                 Event::SessionChanged { session, name: _ } => {

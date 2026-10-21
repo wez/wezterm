@@ -8,8 +8,7 @@ use crate::terminal::windows::ConsoleOutputHandle;
 use crate::Result;
 use num_traits::FromPrimitive;
 use std::io::Write;
-use winapi::shared::minwindef::WORD;
-use winapi::um::wincon::{
+use windows_sys::Win32::System::Console::{
     BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED, CHAR_INFO,
     COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, FOREGROUND_BLUE, FOREGROUND_GREEN,
     FOREGROUND_INTENSITY, FOREGROUND_RED,
@@ -125,7 +124,7 @@ struct ScreenBuffer {
     cols: usize,
     cursor_x: usize,
     cursor_y: usize,
-    pending_attr: WORD,
+    pending_attr: u16,
 }
 
 impl ScreenBuffer {
@@ -143,7 +142,7 @@ impl ScreenBuffer {
         idx
     }
 
-    fn fill(&mut self, c: char, attr: WORD, x: usize, y: usize, num_elements: usize) -> usize {
+    fn fill(&mut self, c: char, attr: u16, x: usize, y: usize, num_elements: usize) -> usize {
         let idx = (y * self.cols) + x;
         let max = self.rows * self.cols;
 
@@ -151,9 +150,7 @@ impl ScreenBuffer {
         let c = c as u16;
         for cell in &mut self.buf[idx..end] {
             cell.Attributes = attr;
-            unsafe {
-                *cell.Char.UnicodeChar_mut() = c;
-            }
+            cell.Char.UnicodeChar = c;
         }
         self.dirty = true;
         end
@@ -192,7 +189,7 @@ impl ScreenBuffer {
     fn write_text<B: ConsoleOutputHandle + Write>(
         &mut self,
         t: &str,
-        attr: WORD,
+        attr: u16,
         out: &mut B,
     ) -> Result<()> {
         for c in t.chars() {
@@ -215,9 +212,7 @@ impl ScreenBuffer {
 
                     let cell = &mut self.buf[idx];
                     cell.Attributes = attr;
-                    unsafe {
-                        *cell.Char.UnicodeChar_mut() = c as u16;
-                    }
+                    cell.Char.UnicodeChar = c as u16;
                     self.cursor_x += 1;
                     self.dirty = true;
                 }
@@ -332,6 +327,19 @@ impl WindowsConsoleRenderer {
                         cols * rows,
                     );
                     buffer.set_cursor(0, 0, out)?;
+                }
+                Change::ClearLine(color) => {
+                    let attr = CellAttributes::default()
+                        .set_background(color.clone())
+                        .clone();
+
+                    buffer.fill(
+                        ' ',
+                        to_attr_word(&self.capabilities, &attr),
+                        0,
+                        buffer.cursor_y,
+                        cols,
+                    );
                 }
                 Change::ClearToEndOfLine(color) => {
                     let attr = CellAttributes::default()

@@ -96,10 +96,10 @@ macro_rules! format_err {
         return $crate::error::Error::from($crate::error::StringWrap($msg.to_string()))
     };
     ($err:expr $(,)?) => {
-        return $crate::error::Error::from($crate::error::StringWrap(format!($err)))
+        return $crate::error::Error::from($crate::error::StringWrap(crate::format!($err)))
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return $crate::error::Error::from($crate::error::StringWrap(format!($fmt, $($arg)*)))
+        return $crate::error::Error::from($crate::error::StringWrap(crate::format!($fmt, $($arg)*)))
     };
 }
 
@@ -109,10 +109,10 @@ macro_rules! bail {
         return Err($crate::error::StringWrap($msg.to_string()).into())
     };
     ($err:expr $(,)?) => {
-        return Err($crate::error::StringWrap(format!($err)).into())
+        return Err($crate::error::StringWrap(crate::format!($err)).into())
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return Err($crate::error::StringWrap(format!($fmt, $($arg)*)).into())
+        return Err($crate::error::StringWrap(crate::format!($fmt, $($arg)*)).into())
     };
 }
 
@@ -120,17 +120,17 @@ macro_rules! bail {
 macro_rules! ensure {
     ($cond:expr, $msg:literal $(,)?) => {
         if !$cond {
-            return Err($crate::error::StringWrap(format!($msg)).into());
+            return Err($crate::error::StringWrap(crate::format!($msg)).into());
         }
     };
     ($cond:expr, $err:expr $(,)?) => {
         if !$cond {
-            return Err($crate::error::StringWrap(format!($err)).into());
+            return Err($crate::error::StringWrap(crate::format!($err)).into());
         }
     };
     ($cond:expr, $fmt:expr, $($arg:tt)*) => {
         if !$cond {
-            return Err($crate::error::StringWrap(format!($fmt, $($arg)*)).into());
+            return Err($crate::error::StringWrap(crate::format!($fmt, $($arg)*)).into());
         }
     };
 }

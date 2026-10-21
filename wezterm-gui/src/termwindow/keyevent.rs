@@ -735,7 +735,9 @@ impl super::TermWindow {
                 if self.config.debug_key_events {
                     log::info!("send to pane string={:?}", s);
                 }
-                pane.writer().write_all(s.as_bytes()).ok();
+                if let Err(err) = pane.send_composed_text(&s) {
+                    log::error!("failed to send composed text to pane: {err:#}");
+                }
                 self.maybe_scroll_to_bottom_for_input(&pane);
                 context.invalidate();
             }

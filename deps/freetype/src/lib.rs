@@ -5,8 +5,10 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
+
 mod fixed_point;
 mod types;
+
 pub use fixed_point::*;
 pub type FT_Int16 = i16;
 pub type FT_UInt16 = u16;

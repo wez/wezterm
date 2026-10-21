@@ -8,9 +8,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container:
-      image: "ubuntu:24.04"
-      options: --privileged
+    container: "ubuntu:24.04"
     env:
       CARGO_INCREMENTAL: "0"
       SCCACHE_GHA_ENABLED: "true"
@@ -57,7 +55,7 @@ jobs:
             vendor
             .cargo/config
           key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
-      - name: "Vendor dependecies"
+      - name: "Vendor dependencies"
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
@@ -84,21 +82,12 @@ jobs:
       - name: "Test"
         shell: bash
         run: "cargo nextest run --all --no-fail-fast"
+      - name: "Test wezterm-escape-parser (no_std)"
+        shell: bash
+        run: "cargo nextest run -p wezterm-escape-parser"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Install libfuse2"
-        shell: bash
-        run: "apt-get install -y libfuse2"
-      - name: "Install file"
-        shell: bash
-        run: "apt-get install -y file"
-      - name: "Source Tarball"
-        shell: bash
-        run: "bash ci/source-archive.sh"
-      - name: "Build AppImage"
-        shell: bash
-        run: "bash ci/appimage.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v7
         with:
@@ -106,8 +95,6 @@ jobs:
           path: |
             wezterm-*.deb
             wezterm-*.xz
-            *src.tar.gz
-            *.AppImage
 
   upload:
     runs-on: ubuntu-latest
@@ -124,27 +111,13 @@ jobs:
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
         uses: actions/checkout@v5
-      - name: "Checkout linuxbrew tap"
-        uses: actions/checkout@v5
-        with:
-          repository: "wez/homebrew-wezterm-linuxbrew"
-          path: "linuxbrew-wezterm"
-          token: "${{ secrets.GH_PAT }}"
-      - name: "Update linuxbrew tap formula"
-        shell: bash
-        run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
-      - name: "Commit linuxbrew tap changes"
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Automated update to match latest tag"
-          repository: "linuxbrew-wezterm"
       - name: "Download artifact"
         uses: actions/download-artifact@v8
         with:
           name: "ubuntu24.04"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -154,18 +127,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.sha256"
-      - name: "Checkout flathub/org.wezfurlong.wezterm"
-        uses: actions/checkout@v5
-        with:
-          repository: "flathub/org.wezfurlong.wezterm"
-          path: "flathub"
-          token: "${{ secrets.GH_PAT }}"
-      - name: "Create flathub commit and push"
-        shell: bash
-        run: "bash ci/make-flathub-pr.sh"
-      - name: "Submit PR"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        shell: bash
-        run: 'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"'
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *.sha256"

@@ -41,7 +41,7 @@ impl OpenSSLNetListener {
             .entries_by_nid(openssl::nid::Nid::COMMONNAME)
             .next()
             .ok_or_else(|| anyhow!("cert has no CN"))?;
-        let cn_str = cn.data().as_utf8()?.to_string();
+        let cn_str = cn.data().to_string()?.to_string();
 
         let wanted_unix_name = std::env::var("USER")?;
 

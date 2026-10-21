@@ -1,5 +1,6 @@
-#![cfg(all(not(target_os = "macos"), not(windows)))]
 //! See <https://developer.gnome.org/notification-spec/>
+
+#![cfg(all(not(target_os = "macos"), not(windows)))]
 
 use crate::ToastNotification;
 use futures_util::stream::{abortable, StreamExt};

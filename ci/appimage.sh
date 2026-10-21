@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -x
 rm -rf AppDir *.AppImage *.zsync
 set -e

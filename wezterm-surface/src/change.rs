@@ -45,6 +45,9 @@ pub enum Change {
     /// Implicitly clears all attributes prior to clearing the screen.
     /// Moves the cursor to the home position (top left).
     ClearScreen(ColorAttribute),
+    /// Clear the entire current line.  The background color is set to the
+    /// provided color.  The cursor position remains unchanged.
+    ClearLine(ColorAttribute),
     /// Clear from the current cursor X position to the rightmost
     /// edge of the screen.  The background color is set to the
     /// provided color.  The cursor position remains unchanged.
@@ -218,6 +221,7 @@ impl ChangeSequence {
             | Change::CursorColor(_)
             | Change::CursorShape(_)
             | Change::CursorVisibility(_)
+            | Change::ClearLine(_)
             | Change::ClearToEndOfLine(_)
             | Change::Title(_)
             | Change::LineAttribute(_)

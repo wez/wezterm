@@ -1,0 +1,77 @@
+name: Update cargo dependencies with cooldown
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, early Monday
+    - cron: "0 5 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+# The default GITHUB_TOKEN is used only for checkout; the branch push and PR
+# creation use the App token generated below, which has its own installation
+# permissions.
+permissions:
+  contents: read
+
+jobs:
+  cooldown-update:
+    runs-on: ubuntu-latest
+    if: github.repository == 'wezterm/wezterm'
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: "Install Rust"
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-cooldown
+        uses: baptiste0928/cargo-install@v3.4.0
+        with:
+          crate: cargo-cooldown
+
+      - name: Run cooldown update
+        run: ./ci/update-cargo-deps-with-cooldown.sh 2>&1 | tee "$RUNNER_TEMP/cooldown.log"
+
+      - name: Compose pull request body
+        run: |
+          {
+            echo 'Automated dependency update produced by'
+            echo '`ci/update-cargo-deps-with-cooldown.sh`, which runs'
+            echo '`cargo cooldown update` and respects the cooldown settings in'
+            echo '`cooldown.toml`.'
+            echo
+            echo 'Opened only because the cooldown procedure changed `Cargo.lock`.'
+            echo
+            echo '<details><summary>cooldown output</summary>'
+            echo
+            echo '```'
+            # The console log keeps its ANSI color; strip the escape sequences
+            # here to keep the rendered PR description readable.
+            sed -E 's/\x1b\[[0-9;?]*[ -/]*[@-~]//g' "$RUNNER_TEMP/cooldown.log"
+            echo '```'
+            echo
+            echo '</details>'
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      # Mint a short-lived token for the App installed on this repo. Signing
+      # commits with it attributes them to the App bot and marks them Verified,
+      # and the PR it opens triggers the build workflows.
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          app-id: ${{ secrets.COOLDOWN_APP_ID }}
+          private-key: ${{ secrets.COOLDOWN_APP_PRIVATE_KEY }}
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8.1.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          sign-commits: true
+          branch: cargo-cooldown/update
+          delete-branch: true
+          add-paths: Cargo.lock
+          commit-message: "deps: update Cargo.lock via cooldown"
+          title: "deps: update Cargo.lock via cooldown"
+          body-path: ${{ runner.temp }}/pr-body.md

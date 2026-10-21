@@ -385,6 +385,19 @@ impl TerminfoRenderer {
                         out.write_all(buf.as_slice())?;
                     }
                 }
+                Change::ClearLine(color) => {
+                    let defaults = CellAttributes::default().set_background(*color).clone();
+                    if self.current_attr != defaults {
+                        self.pending_attr = Some(defaults);
+                        self.flush_pending_attr(out)?;
+                    }
+                    self.pending_attr = None;
+                    write!(
+                        out,
+                        "{}",
+                        CSI::Edit(Edit::EraseInLine(EraseInLine::EraseLine))
+                    )?;
+                }
                 Change::ClearToEndOfLine(color) => {
                     // ClearScreen implicitly resets all to default
                     let defaults = CellAttributes::default().set_background(*color).clone();
@@ -1010,6 +1023,27 @@ mod test {
         );
 
         assert_eq!(out.renderer.current_attr, CellAttributes::default());
+    }
+
+    #[test]
+    fn clear_line() {
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[Change::ClearLine(AnsiColor::Maroon.into())])
+            .unwrap();
+
+        assert_eq!(
+            out.parse(),
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Background(AnsiColor::Maroon.into()))),
+                Action::CSI(CSI::Edit(Edit::EraseInLine(EraseInLine::EraseLine))),
+            ]
+        );
+        assert_eq!(
+            out.renderer.current_attr,
+            CellAttributes::default()
+                .set_background(AnsiColor::Maroon)
+                .clone()
+        );
     }
 
     #[test]

@@ -27,14 +27,12 @@ serde_support = ["serde"]
 bitflags.workspace = true
 lazy_static.workspace = true
 shared_library.workspace = true
-winapi = { workspace=true, features = [
-    "winuser",
-    "consoleapi",
-    "handleapi",
-    "fileapi",
-    "namedpipeapi",
-    "synchapi",
-]}
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
+    "Win32_System_Environment",
+    "Win32_System_Threading",
+] }
 winreg.workspace = true
 
 [dev-dependencies]

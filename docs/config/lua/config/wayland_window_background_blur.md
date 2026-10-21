@@ -4,8 +4,8 @@ tags:
 ---
 # wayland_window_background_blur = false
 
-When combined with `window_background_opacity`, enables background blur
-using the Wayland background effect protocol.
+When combined with [window_background_opacity](window_background_opacity.md),
+enables background blur using the Wayland background effect protocol.
 
 This can be used to produce a translucent window effect rather than
 a crystal clear transparent window effect.
@@ -17,7 +17,7 @@ config.wayland_window_background_blur = true
 ```
 
 !!! note
-    Wayland compositors may need to have blur enabled explicitely.
+    Wayland compositors may need to have blur enabled explicitly.
     e.g. on KDE Plasma, enable the _Blur_ plugin in _Window Effect_ settings.
 
 [Screenshot](../../../screenshots/wezterm-ext-background-effects-v1.png)

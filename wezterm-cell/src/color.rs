@@ -1,4 +1,5 @@
 //! Colors for attributes
+
 // for FromPrimitive
 #![allow(clippy::useless_attribute)]
 

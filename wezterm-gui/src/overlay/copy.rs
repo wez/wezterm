@@ -645,6 +645,7 @@ impl CopyRenderable {
         match self.pattern_type {
             PatternType::CaseSensitiveString => Pattern::CaseSensitiveString(pattern),
             PatternType::CaseInSensitiveString => Pattern::CaseInSensitiveString(pattern),
+            PatternType::CaseSmartString => Pattern::CaseSmartString(pattern),
             PatternType::Regex => Pattern::Regex(pattern),
         }
     }
@@ -694,7 +695,8 @@ impl CopyRenderable {
     fn cycle_match_type(&mut self) {
         let pattern_type = match &self.pattern_type {
             PatternType::CaseSensitiveString => PatternType::CaseInSensitiveString,
-            PatternType::CaseInSensitiveString => PatternType::Regex,
+            PatternType::CaseInSensitiveString => PatternType::CaseSmartString,
+            PatternType::CaseSmartString => PatternType::Regex,
             PatternType::Regex => PatternType::CaseSensitiveString,
         };
         self.pattern_type = pattern_type;
@@ -1433,6 +1435,7 @@ impl Pane for CopyOverlay {
                         let mode = &match pattern {
                             Pattern::CaseSensitiveString(_) => "case-sensitive",
                             Pattern::CaseInSensitiveString(_) => "ignore-case",
+                            Pattern::CaseSmartString(_) => "smart-case",
                             Pattern::Regex(_) => "regex",
                         };
 
@@ -1534,6 +1537,7 @@ impl Pane for CopyOverlay {
                 let mode = &match pattern {
                     Pattern::CaseSensitiveString(_) => "case-sensitive",
                     Pattern::CaseInSensitiveString(_) => "ignore-case",
+                    Pattern::CaseSmartString(_) => "smart-case",
                     Pattern::Regex(_) => "regex",
                 };
                 line.overlay_text_with_attribute(

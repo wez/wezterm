@@ -1,4 +1,5 @@
 #![cfg(all(unix, not(target_os = "macos")))]
+
 pub mod connection;
 pub mod cursor;
 pub mod keyboard;

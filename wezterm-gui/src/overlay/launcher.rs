@@ -94,7 +94,7 @@ impl LauncherArgs {
                 .get_window(mux_window_id)
                 .expect("to resolve my own window_id");
             window
-                .iter()
+                .iter_tabs()
                 .enumerate()
                 .map(|(tab_idx, tab)| {
                     let tab_title = tab.get_title();

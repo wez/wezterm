@@ -319,11 +319,11 @@ fn read_shared_memory_data(
 
 #[cfg(all(feature = "kitty-shm", windows))]
 mod win {
-    use winapi::um::handleapi::CloseHandle;
-    use winapi::um::memoryapi::{
-        FILE_MAP_ALL_ACCESS, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery,
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::System::Memory::{
+        FILE_MAP_ALL_ACCESS, MEMORY_BASIC_INFORMATION, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile,
+        OpenFileMappingW, UnmapViewOfFile, VirtualQuery,
     };
-    use winapi::um::winnt::{HANDLE, MEMORY_BASIC_INFORMATION};
 
     struct HandleWrapper {
         handle: HANDLE,
@@ -331,7 +331,7 @@ mod win {
 
     struct SharedMemObject {
         _handle: HandleWrapper,
-        buf: *mut u8,
+        buf: MEMORY_MAPPED_VIEW_ADDRESS,
     }
 
     impl Drop for HandleWrapper {
@@ -345,7 +345,7 @@ mod win {
     impl Drop for SharedMemObject {
         fn drop(&mut self) {
             unsafe {
-                UnmapViewOfFile(self.buf as _);
+                UnmapViewOfFile(self.buf);
             }
         }
     }
@@ -377,7 +377,7 @@ mod win {
 
         let handle_wrapper = HandleWrapper { handle };
         let buf = unsafe { MapViewOfFile(handle_wrapper.handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
-        if buf.is_null() {
+        if buf.Value.is_null() {
             let err = std::io::Error::last_os_error();
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -387,14 +387,14 @@ mod win {
 
         let shm = SharedMemObject {
             _handle: handle_wrapper,
-            buf: buf as *mut u8,
+            buf,
         };
 
         let mut memory_info = MEMORY_BASIC_INFORMATION::default();
         let res = unsafe {
             VirtualQuery(
-                shm.buf as _,
-                &mut memory_info as *mut MEMORY_BASIC_INFORMATION,
+                shm.buf.Value,
+                &mut memory_info,
                 std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
             )
         };
@@ -423,8 +423,19 @@ mod win {
         if let Some(val) = data_size {
             size = size.min(val as usize);
         }
-        let buf_slice = unsafe { std::slice::from_raw_parts(shm.buf.add(offset), size) };
-        let data = buf_slice.to_vec();
+
+        // Shared memory can technically be edited by any process, so we copy the data out.
+        let mut data = Vec::with_capacity(size);
+        if size > 0 {
+            let src = unsafe { shm.buf.Value.cast::<u8>().add(offset) };
+
+            // SAFETY: We have allocated a vector with enough capacity to hold `size` bytes,
+            // and we are copying from a valid memory region (`src`) into that vector.
+            unsafe {
+                src.copy_to_nonoverlapping(data.as_mut_ptr(), size);
+                data.set_len(size);
+            }
+        }
 
         Ok(data)
     }
@@ -1208,6 +1219,8 @@ impl Display for KittyImage {
 #[cfg(test)]
 mod test {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
     use k9::assert_equal as assert_eq;
 
     #[test]

@@ -50,7 +50,9 @@ impl UserData for GuiWin {
             let window = mux.get_window(this.mux_window_id).ok_or_else(|| {
                 mlua::Error::external(format!("invalid window {}", this.mux_window_id))
             })?;
-            Ok(window.get_active().map(|tab| mux_lua::MuxTab(tab.tab_id())))
+            Ok(window
+                .get_active_tab()
+                .map(|tab| mux_lua::MuxTab(tab.tab_id())))
         });
 
         methods.add_method(

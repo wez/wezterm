@@ -2,14 +2,17 @@
 
 {{since('20200607-144723-74889cd4')}}
 
-This action will trigger the search overlay for the current tab.
-It accepts a typed pattern string as its parameter, allowing for
-`Regex`, `CaseSensitiveString` and `CaseInSensitiveString` as
-pattern matching types.
+This action will trigger the search overlay for the current tab.  It accepts a
+typed pattern string as its parameter, allowing for `Regex`,
+`CaseSensitiveString`, `CaseInSensitiveString` and `CaseSmartString` as pattern
+matching types.
 
-The supported [regular expression syntax is described
-here](https://docs.rs/regex/1.3.9/regex/#syntax).
+For `Regex` matching, the supported [regular expression syntax is described here](https://docs.rs/regex/1.3.9/regex/#syntax).
 
+{{since('nightly')}}
+
+`CaseSmartString` was added, to make the search case-_insensitive_ until the search term
+includes any uppercase character, which triggers the search to become case-_sensitive_.
 
 ```lua
 local act = wezterm.action
@@ -34,6 +37,13 @@ config.keys = {
     key = 'H',
     mods = 'SHIFT|CTRL',
     action = act.Search { CaseInSensitiveString = 'hash' },
+  },
+  -- search for the string "hash" matching regardless of case, until the search string is edited
+  -- with an uppercase and the matching becomes case sensitive.
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search { CaseSmartString = 'hash' },
   },
 }
 ```

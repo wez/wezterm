@@ -1,5 +1,7 @@
 use super::OneBased;
 use crate::color::{AnsiColor, ColorSpec, RgbColor, SrgbaTuple};
+#[cfg(not(feature = "std"))]
+use alloc::{format, vec};
 use bitflags::bitflags;
 use core::convert::TryInto;
 use core::fmt::{Display, Error as FmtError, Formatter};

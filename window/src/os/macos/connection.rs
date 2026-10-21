@@ -4,6 +4,7 @@
 use super::nsstring_to_str;
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
+use crate::macos::from_yes_no;
 use crate::os::macos::app::create_app_delegate;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
@@ -11,7 +12,7 @@ use crate::Appearance;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular, NSScreen};
 use cocoa::base::{id, nil};
 use cocoa::foundation::{NSArray, NSInteger};
-use objc::runtime::{Object, BOOL, YES};
+use objc::runtime::Object;
 use objc::*;
 use serde::Deserialize;
 use std::cell::RefCell;
@@ -208,8 +209,9 @@ pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         backing_frame.size.width as isize,
         backing_frame.size.height as isize,
     );
-    let has_name: BOOL = unsafe { msg_send!(screen, respondsToSelector: sel!(localizedName)) };
-    let name = if has_name == YES {
+    let has_name =
+        from_yes_no(unsafe { msg_send!(screen, respondsToSelector: sel!(localizedName)) });
+    let name = if has_name {
         unsafe { nsstring_to_str(msg_send!(screen, localizedName)) }.to_string()
     } else {
         format!(
@@ -221,9 +223,9 @@ pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         )
     };
 
-    let has_max_fps: BOOL =
-        unsafe { msg_send!(screen, respondsToSelector: sel!(maximumFramesPerSecond)) };
-    let max_fps = if has_max_fps == YES {
+    let has_max_fps =
+        from_yes_no(unsafe { msg_send!(screen, respondsToSelector: sel!(maximumFramesPerSecond)) });
+    let max_fps = if has_max_fps {
         let max_fps: NSInteger = unsafe { msg_send!(screen, maximumFramesPerSecond) };
         Some(max_fps as usize)
     } else {

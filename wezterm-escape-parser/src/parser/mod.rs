@@ -1,10 +1,13 @@
 #![allow(clippy::many_single_char_names)]
+
 #[cfg(feature = "tmux_cc")]
 use crate::tmux_cc::Event;
 use crate::{
     Action, CSI, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand,
     ShortDeviceControl,
 };
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 #[cfg(feature = "tmux_cc")]
 use core::borrow::BorrowMut;
 use core::cell::RefCell;
@@ -669,6 +672,23 @@ mod test {
             actions
         );
         assert_eq!(encode(&actions), "\x1b]532534523;hello\x1b\\");
+    }
+
+    #[test]
+    fn hyperlink_uri_with_semicolons() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1b]8;id=x;https://example.com/a;b?c=d;e\x07");
+        let link = crate::hyperlink::Hyperlink::new_with_id("https://example.com/a;b?c=d;e", "x");
+        assert_eq!(
+            vec![Action::OperatingSystemCommand(Box::new(
+                OperatingSystemCommand::SetHyperlink(Some(link)),
+            ))],
+            actions
+        );
+        assert_eq!(
+            encode(&actions),
+            "\x1b]8;id=x;https://example.com/a;b?c=d;e\x1b\\"
+        );
     }
 
     #[test]

@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
@@ -1152,7 +1153,7 @@ impl super::TermWindow {
                 layers,
                 0,
                 euclid::rect(
-                    element.border_rect.max_x() - top_right_width,
+                    element.border_rect.max_x() - top_right_width.max(bottom_right_width),
                     element.border_rect.min_y() + top_right_height,
                     top_right_width.max(bottom_right_width),
                     element.border_rect.height() - (top_right_height + bottom_right_height),

@@ -183,7 +183,7 @@ All notable changes to this project will be documented in this file.
 - Respect Dec Private Mode 8452
 - Hide internal red, green, blue fields
 - Store 10bpc
-- Move fg/bg color accesses to accesors
+- Move fg/bg color accesses to accessors
 - Split color into thin/fat components
 - Cargo update, and a couple of dependabot suggestions
 - Improve CSI parsing fidelity

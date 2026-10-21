@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Use eg: `xwininfo -int` to get the id of a wezterm
 # and pass it to this script

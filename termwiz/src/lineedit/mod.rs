@@ -497,6 +497,10 @@ impl<'term> LineEditor<'term> {
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Repaint),
             InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('U'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::Kill(Movement::StartOfLine)),
+            InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('K'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Kill(Movement::EndOfLine)),
@@ -701,6 +705,11 @@ impl<'term> LineEditor<'term> {
                 self.cancel_search_state();
 
                 self.state = EditorState::Accepted;
+            }
+            Action::ClearLine => {
+                self.clear_completion();
+                self.cancel_search_state();
+                self.line.clear();
             }
             Action::EndOfFile => {
                 return Err(

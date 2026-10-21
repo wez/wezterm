@@ -570,11 +570,32 @@ impl crate::TermWindow {
                 self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
 
             if dead_key_or_leader && params.is_active_pane {
-                let (fg_color, bg_color) = if self.use_reverse_video_cursor(&params) {
-                    (params.bg_color, params.fg_color)
-                } else {
-                    (params.cursor_fg, params.cursor_bg)
-                };
+                let (fg_color, bg_color) = (
+                    params
+                        .config
+                        .resolved_palette
+                        .compose_fg
+                        .map(|c| c.to_linear())
+                        .unwrap_or_else(|| {
+                            if self.use_reverse_video_cursor(&params) {
+                                params.bg_color
+                            } else {
+                                params.cursor_fg
+                            }
+                        }),
+                    params
+                        .config
+                        .resolved_palette
+                        .compose_bg
+                        .map(|c| c.to_linear())
+                        .unwrap_or_else(|| {
+                            if self.use_reverse_video_cursor(&params) {
+                                params.fg_color
+                            } else {
+                                params.cursor_bg
+                            }
+                        }),
+                );
 
                 let fg_color = self.ensure_min_contrast(fg_color, bg_color);
 

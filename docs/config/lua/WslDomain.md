@@ -20,7 +20,7 @@ A `WslDomain` is a lua object with the following fields:
 ```lua
 config.wsl_domains = {
   {
-    -- The name of this specific domain.  Must be unique amonst all types
+    -- The name of this specific domain.  Must be unique amongst all types
     -- of domain in the configuration file.
     name = 'WSL:Ubuntu-18.04',
 

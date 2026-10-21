@@ -84,10 +84,10 @@ A source can be one of the following:
 
 Specifying the following options:
 
-* `window_background_gradient`
-* `window_background_image`
-* `window_background_opacity`
-* `window_background_image_hsb`
+* [window_background_gradient](window_background_gradient.md)
+* [window_background_image](window_background_image.md)
+* [window_background_opacity](window_background_opacity.md)
+* [window_background_image_hsb](window_background_image_hsb.md)
 
 will implicitly prepend a layer to the `background` configuration with width
 and height set to 100%.

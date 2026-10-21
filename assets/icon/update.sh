@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This script updates the icon files from the svg file.
 # It assumes that the svg file is square.
 set -x

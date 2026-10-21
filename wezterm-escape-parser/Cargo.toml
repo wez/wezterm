@@ -30,26 +30,15 @@ wezterm-color-types.workspace = true
 wezterm-dynamic.workspace = true
 wezterm-input-types = {workspace = true, default-features=false}
 
-[target."cfg(windows)".dependencies.winapi]
-workspace = true
-optional = true
-features = [
-    "winbase",
-    "winerror",
-    "winnls",
-    "winuser",
-    "consoleapi",
-    "handleapi",
-    "fileapi",
-    "synchapi",
-    "memoryapi",
-    "winnt",
-    "impl-default"
-]
+[target."cfg(windows)".dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+], optional = true }
 
 [features]
 std = ["vtparse/std", "thiserror/std", "wezterm-input-types/std", "hex/std", "wezterm-dynamic/std"]
-kitty-shm = ["dep:nix", "dep:winapi"]
+kitty-shm = ["dep:nix", "dep:windows-sys"]
 use_serde = ["dep:serde", "wezterm-color-types/use_serde", "wezterm-blob-leases/serde", "bitflags/serde", "wezterm-input-types/serde"]
 use_image = ["image", "dep:image"]
 image = ["sha2", "wezterm-blob-leases"]

@@ -62,7 +62,7 @@ chrono = {version="0.4", default-features=false, features=["clock", "unstable-lo
 clap = {version="4.0", features=["derive"]}
 clap_complete = "4.4"
 clap_complete_fig = "4.0"
-clipboard-win = "2.2"
+clipboard-win = "5.4.1"
 cocoa = "=0.25.0"
 codec = { path = "codec" }
 color-funcs = { path = "lua-api-crates/color-funcs" }
@@ -74,6 +74,7 @@ core-text = "=21.0.0"
 criterion = "0.5"
 crossbeam = "0.8"
 csscolorparser = "0.6"
+cursor-icon = "1.2"
 deltae = "0.3"
 dhat = "0.3"
 dirs-next = "2.0"
@@ -188,7 +189,7 @@ rusqlite = "0.32"
 serde = {version="1.0", default-features=false, features = ["derive"]}
 serde-funcs = { path = "lua-api-crates/serde-funcs" }
 serde_json = "1.0"
-serde_with = {version="2.0", features = ["chrono_0_4"]}
+serde_with = {version="3.0", features = ["chrono_0_4"]}
 serde_yaml = "0.9"
 serial2 = "0.2"
 sha2 = "0.10"
@@ -217,7 +218,7 @@ termios = "0.3"
 termwiz = { version="0.24.0", path = "termwiz" }
 termwiz-funcs = { path = "lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
-thiserror = "1.0"
+thiserror = "2.0"
 time-funcs = { path = "lua-api-crates/time-funcs" }
 tiny-skia = "0.11"
 tokio = "1.43"
@@ -266,6 +267,7 @@ winapi = "0.3.9"
 window = {path="window"}
 window-funcs = { path = "lua-api-crates/window-funcs" }
 windows = "0.33.0"
+windows-sys = { version = "0.61.2", default-features = false }
 winreg = "0.10"
 x11 = "2.21"
 xcb = "1.3"

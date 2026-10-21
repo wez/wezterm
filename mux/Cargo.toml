@@ -51,13 +51,7 @@ wezterm-term = { workspace=true, features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
 ntapi.workspace = true
-winapi = { workspace=true, features = [
-    "handleapi",
-    "memoryapi",
-    "psapi",
-    "processthreadsapi",
-    "tlhelp32",
-]}
+windows-sys = { workspace = true, features = ["Win32_Networking_WinSock"] }
 
 [dev-dependencies]
 k9.workspace = true

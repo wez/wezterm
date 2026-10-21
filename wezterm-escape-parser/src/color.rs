@@ -1,3 +1,5 @@
+#[cfg(not(feature = "std"))]
+use alloc::format;
 use num_derive::FromPrimitive;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

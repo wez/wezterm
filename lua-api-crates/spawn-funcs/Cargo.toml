@@ -17,4 +17,4 @@ wezterm-dynamic.workspace = true
 wezterm-open-url.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { workspace=true, features = ["winuser"]}
+windows-sys = { workspace = true, features = ["Win32_System_Threading"] }

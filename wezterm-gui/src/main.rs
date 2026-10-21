@@ -266,7 +266,7 @@ fn have_panes_in_domain_and_ws(domain: &Arc<dyn Domain>, workspace: &Option<Stri
     if let Some(ws) = &workspace {
         for window_id in mux.iter_windows_in_workspace(ws) {
             if let Some(win) = mux.get_window(window_id) {
-                for t in win.iter() {
+                for t in win.iter_tabs() {
                     for p in t.iter_panes_ignoring_zoom() {
                         if p.pane.domain_id() == domain.domain_id() {
                             return true;
@@ -483,8 +483,8 @@ async fn async_run_terminal_gui(
             let mut window = mux
                 .get_window_mut(window_id)
                 .ok_or_else(|| anyhow!("failed to get mux window id {window_id}"))?;
-            if let Some(tab_idx) = window.idx_by_id(tab.tab_id()) {
-                window.set_active_without_saving(tab_idx);
+            if let Some(tab_idx) = window.get_tab_idx_for_id(tab.tab_id()) {
+                window.set_active_tab_idx_without_saving(tab_idx);
             }
             trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
         }

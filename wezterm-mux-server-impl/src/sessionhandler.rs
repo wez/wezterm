@@ -42,6 +42,7 @@ pub(crate) struct PerPane {
     working_dir: Option<Url>,
     dimensions: RenderableDimensions,
     mouse_grabbed: bool,
+    alt_screen_active: bool,
     sent_initial_palette: bool,
     seqno: SequenceNo,
     config_generation: usize,
@@ -57,6 +58,11 @@ impl PerPane {
         let mut changed = false;
         let mouse_grabbed = pane.is_mouse_grabbed();
         if mouse_grabbed != self.mouse_grabbed {
+            changed = true;
+        }
+
+        let alt_screen_active = pane.is_alt_screen_active();
+        if alt_screen_active != self.alt_screen_active {
             changed = true;
         }
 
@@ -126,11 +132,13 @@ impl PerPane {
         self.working_dir = working_dir.clone();
         self.dimensions = dims;
         self.mouse_grabbed = mouse_grabbed;
+        self.alt_screen_active = alt_screen_active;
 
         let bonus_lines = bonus_lines.into();
         Some(GetPaneRenderChangesResponse {
             pane_id: pane.pane_id(),
             mouse_grabbed,
+            alt_screen_active,
             dirty_lines: all_dirty_lines.iter().cloned().collect(),
             dimensions: dims,
             cursor_position,
@@ -348,12 +356,13 @@ impl SessionHandler {
                                     mux.get_window_mut(window_id).ok_or_else(|| {
                                         anyhow::anyhow!("window {window_id} not found")
                                     })?;
-                                let tab_idx = window.idx_by_id(tab_id).ok_or_else(|| {
-                                    anyhow::anyhow!(
-                                        "tab {tab_id} isn't really in window {window_id}!?"
-                                    )
-                                })?;
-                                window.save_and_then_set_active(tab_idx);
+                                let tab_idx =
+                                    window.get_tab_idx_for_id(tab_id).ok_or_else(|| {
+                                        anyhow::anyhow!(
+                                            "tab {tab_id} isn't really in window {window_id}!?"
+                                        )
+                                    })?;
+                                window.remember_and_set_active_tab_idx(tab_idx);
                             }
                             let tab = mux
                                 .get_tab(tab_id)
@@ -396,7 +405,7 @@ impl SessionHandler {
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
                                 window_titles.insert(window_id, window.get_title().to_string());
-                                for tab in window.iter() {
+                                for tab in window.iter_tabs() {
                                     tabs.push(tab.codec_pane_tree());
                                     tab_titles.push(tab.get_title());
                                 }

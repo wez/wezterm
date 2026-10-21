@@ -35,7 +35,7 @@ so that the panes are now `1, 2, 0`
 
 The sizes of original positions are preserved; as you can see from the examples
 above, the left-most pane is still the largest of the panes despite rotating
-the panes withing those placements.
+the panes within those placements.
 
 ```lua
 local act = wezterm.action

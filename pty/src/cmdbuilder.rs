@@ -104,7 +104,7 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStringExt;
-        use winapi::um::processenv::ExpandEnvironmentStringsW;
+        use windows_sys::Win32::System::Environment::ExpandEnvironmentStringsW;
         use winreg::enums::{RegType, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
         use winreg::types::FromRegValue;
         use winreg::{RegKey, RegValue};

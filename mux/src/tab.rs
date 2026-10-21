@@ -634,7 +634,7 @@ impl Tab {
     /// iter_splits() as PositionedSplit::index, revised the split position
     /// by the provided delta; positive values move the split to the right/bottom,
     /// and negative values to the left/top.
-    /// The adjusted size is propogated downwards to contained children and
+    /// The adjusted size is propagated downwards to contained children and
     /// their panes are resized accordingly.
     pub fn resize_split_by(&self, split_index: usize, delta: isize) {
         self.inner.lock().resize_split_by(split_index, delta)
@@ -2279,7 +2279,7 @@ mod test {
         fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
             Ok(None)
         }
-        fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
+        fn writer(&self) -> MappedMutexGuard<'_, dyn std::io::Write> {
             unimplemented!()
         }
         fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {

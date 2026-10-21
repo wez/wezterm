@@ -39,7 +39,7 @@ pub struct KeyCodeEncodeModes {
 }
 
 #[cfg(windows)]
-use winapi::um::wincon::{
+use windows_sys::Win32::System::Console::{
     INPUT_RECORD, KEY_EVENT, KEY_EVENT_RECORD, MOUSE_EVENT, MOUSE_EVENT_RECORD,
     WINDOW_BUFFER_SIZE_EVENT, WINDOW_BUFFER_SIZE_RECORD,
 };
@@ -635,22 +635,22 @@ pub struct InputParser {
 mod windows {
     use super::*;
     use std;
-    use winapi::um::winuser;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse;
 
     fn modifiers_from_ctrl_key_state(state: u32) -> Modifiers {
-        use winapi::um::wincon::*;
+        use windows_sys::Win32::System::Console;
 
         let mut mods = Modifiers::NONE;
 
-        if (state & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0 {
+        if (state & (Console::LEFT_ALT_PRESSED | Console::RIGHT_ALT_PRESSED)) != 0 {
             mods |= Modifiers::ALT;
         }
 
-        if (state & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0 {
+        if (state & (Console::LEFT_CTRL_PRESSED | Console::RIGHT_CTRL_PRESSED)) != 0 {
             mods |= Modifiers::CTRL;
         }
 
-        if (state & SHIFT_PRESSED) != 0 {
+        if (state & Console::SHIFT_PRESSED) != 0 {
             mods |= Modifiers::SHIFT;
         }
 
@@ -669,7 +669,7 @@ mod windows {
                 return;
             }
 
-            let key_code = match std::char::from_u32(*unsafe { event.uChar.UnicodeChar() } as u32) {
+            let key_code = match std::char::from_u32(unsafe { event.uChar.UnicodeChar } as u32) {
                 Some(unicode) if unicode > '\x00' => {
                     let mut buf = [0u8; 4];
                     self.buf
@@ -677,99 +677,99 @@ mod windows {
                     self.process_bytes(callback, true);
                     return;
                 }
-                _ => match event.wVirtualKeyCode as i32 {
-                    winuser::VK_CANCEL => KeyCode::Cancel,
-                    winuser::VK_BACK => KeyCode::Backspace,
-                    winuser::VK_TAB => KeyCode::Tab,
-                    winuser::VK_CLEAR => KeyCode::Clear,
-                    winuser::VK_RETURN => KeyCode::Enter,
-                    winuser::VK_SHIFT => KeyCode::Shift,
-                    winuser::VK_CONTROL => KeyCode::Control,
-                    winuser::VK_MENU => KeyCode::Menu,
-                    winuser::VK_PAUSE => KeyCode::Pause,
-                    winuser::VK_CAPITAL => KeyCode::CapsLock,
-                    winuser::VK_ESCAPE => KeyCode::Escape,
-                    winuser::VK_PRIOR => KeyCode::PageUp,
-                    winuser::VK_NEXT => KeyCode::PageDown,
-                    winuser::VK_END => KeyCode::End,
-                    winuser::VK_HOME => KeyCode::Home,
-                    winuser::VK_LEFT => KeyCode::LeftArrow,
-                    winuser::VK_RIGHT => KeyCode::RightArrow,
-                    winuser::VK_UP => KeyCode::UpArrow,
-                    winuser::VK_DOWN => KeyCode::DownArrow,
-                    winuser::VK_SELECT => KeyCode::Select,
-                    winuser::VK_PRINT => KeyCode::Print,
-                    winuser::VK_EXECUTE => KeyCode::Execute,
-                    winuser::VK_SNAPSHOT => KeyCode::PrintScreen,
-                    winuser::VK_INSERT => KeyCode::Insert,
-                    winuser::VK_DELETE => KeyCode::Delete,
-                    winuser::VK_HELP => KeyCode::Help,
-                    winuser::VK_LWIN => KeyCode::LeftWindows,
-                    winuser::VK_RWIN => KeyCode::RightWindows,
-                    winuser::VK_APPS => KeyCode::Applications,
-                    winuser::VK_SLEEP => KeyCode::Sleep,
-                    winuser::VK_NUMPAD0 => KeyCode::Numpad0,
-                    winuser::VK_NUMPAD1 => KeyCode::Numpad1,
-                    winuser::VK_NUMPAD2 => KeyCode::Numpad2,
-                    winuser::VK_NUMPAD3 => KeyCode::Numpad3,
-                    winuser::VK_NUMPAD4 => KeyCode::Numpad4,
-                    winuser::VK_NUMPAD5 => KeyCode::Numpad5,
-                    winuser::VK_NUMPAD6 => KeyCode::Numpad6,
-                    winuser::VK_NUMPAD7 => KeyCode::Numpad7,
-                    winuser::VK_NUMPAD8 => KeyCode::Numpad8,
-                    winuser::VK_NUMPAD9 => KeyCode::Numpad9,
-                    winuser::VK_MULTIPLY => KeyCode::Multiply,
-                    winuser::VK_ADD => KeyCode::Add,
-                    winuser::VK_SEPARATOR => KeyCode::Separator,
-                    winuser::VK_SUBTRACT => KeyCode::Subtract,
-                    winuser::VK_DECIMAL => KeyCode::Decimal,
-                    winuser::VK_DIVIDE => KeyCode::Divide,
-                    winuser::VK_F1 => KeyCode::Function(1),
-                    winuser::VK_F2 => KeyCode::Function(2),
-                    winuser::VK_F3 => KeyCode::Function(3),
-                    winuser::VK_F4 => KeyCode::Function(4),
-                    winuser::VK_F5 => KeyCode::Function(5),
-                    winuser::VK_F6 => KeyCode::Function(6),
-                    winuser::VK_F7 => KeyCode::Function(7),
-                    winuser::VK_F8 => KeyCode::Function(8),
-                    winuser::VK_F9 => KeyCode::Function(9),
-                    winuser::VK_F10 => KeyCode::Function(10),
-                    winuser::VK_F11 => KeyCode::Function(11),
-                    winuser::VK_F12 => KeyCode::Function(12),
-                    winuser::VK_F13 => KeyCode::Function(13),
-                    winuser::VK_F14 => KeyCode::Function(14),
-                    winuser::VK_F15 => KeyCode::Function(15),
-                    winuser::VK_F16 => KeyCode::Function(16),
-                    winuser::VK_F17 => KeyCode::Function(17),
-                    winuser::VK_F18 => KeyCode::Function(18),
-                    winuser::VK_F19 => KeyCode::Function(19),
-                    winuser::VK_F20 => KeyCode::Function(20),
-                    winuser::VK_F21 => KeyCode::Function(21),
-                    winuser::VK_F22 => KeyCode::Function(22),
-                    winuser::VK_F23 => KeyCode::Function(23),
-                    winuser::VK_F24 => KeyCode::Function(24),
-                    winuser::VK_NUMLOCK => KeyCode::NumLock,
-                    winuser::VK_SCROLL => KeyCode::ScrollLock,
-                    winuser::VK_LSHIFT => KeyCode::LeftShift,
-                    winuser::VK_RSHIFT => KeyCode::RightShift,
-                    winuser::VK_LCONTROL => KeyCode::LeftControl,
-                    winuser::VK_RCONTROL => KeyCode::RightControl,
-                    winuser::VK_LMENU => KeyCode::LeftMenu,
-                    winuser::VK_RMENU => KeyCode::RightMenu,
-                    winuser::VK_BROWSER_BACK => KeyCode::BrowserBack,
-                    winuser::VK_BROWSER_FORWARD => KeyCode::BrowserForward,
-                    winuser::VK_BROWSER_REFRESH => KeyCode::BrowserRefresh,
-                    winuser::VK_BROWSER_STOP => KeyCode::BrowserStop,
-                    winuser::VK_BROWSER_SEARCH => KeyCode::BrowserSearch,
-                    winuser::VK_BROWSER_FAVORITES => KeyCode::BrowserFavorites,
-                    winuser::VK_BROWSER_HOME => KeyCode::BrowserHome,
-                    winuser::VK_VOLUME_MUTE => KeyCode::VolumeMute,
-                    winuser::VK_VOLUME_DOWN => KeyCode::VolumeDown,
-                    winuser::VK_VOLUME_UP => KeyCode::VolumeUp,
-                    winuser::VK_MEDIA_NEXT_TRACK => KeyCode::MediaNextTrack,
-                    winuser::VK_MEDIA_PREV_TRACK => KeyCode::MediaPrevTrack,
-                    winuser::VK_MEDIA_STOP => KeyCode::MediaStop,
-                    winuser::VK_MEDIA_PLAY_PAUSE => KeyCode::MediaPlayPause,
+                _ => match event.wVirtualKeyCode {
+                    KeyboardAndMouse::VK_CANCEL => KeyCode::Cancel,
+                    KeyboardAndMouse::VK_BACK => KeyCode::Backspace,
+                    KeyboardAndMouse::VK_TAB => KeyCode::Tab,
+                    KeyboardAndMouse::VK_CLEAR => KeyCode::Clear,
+                    KeyboardAndMouse::VK_RETURN => KeyCode::Enter,
+                    KeyboardAndMouse::VK_SHIFT => KeyCode::Shift,
+                    KeyboardAndMouse::VK_CONTROL => KeyCode::Control,
+                    KeyboardAndMouse::VK_MENU => KeyCode::Menu,
+                    KeyboardAndMouse::VK_PAUSE => KeyCode::Pause,
+                    KeyboardAndMouse::VK_CAPITAL => KeyCode::CapsLock,
+                    KeyboardAndMouse::VK_ESCAPE => KeyCode::Escape,
+                    KeyboardAndMouse::VK_PRIOR => KeyCode::PageUp,
+                    KeyboardAndMouse::VK_NEXT => KeyCode::PageDown,
+                    KeyboardAndMouse::VK_END => KeyCode::End,
+                    KeyboardAndMouse::VK_HOME => KeyCode::Home,
+                    KeyboardAndMouse::VK_LEFT => KeyCode::LeftArrow,
+                    KeyboardAndMouse::VK_RIGHT => KeyCode::RightArrow,
+                    KeyboardAndMouse::VK_UP => KeyCode::UpArrow,
+                    KeyboardAndMouse::VK_DOWN => KeyCode::DownArrow,
+                    KeyboardAndMouse::VK_SELECT => KeyCode::Select,
+                    KeyboardAndMouse::VK_PRINT => KeyCode::Print,
+                    KeyboardAndMouse::VK_EXECUTE => KeyCode::Execute,
+                    KeyboardAndMouse::VK_SNAPSHOT => KeyCode::PrintScreen,
+                    KeyboardAndMouse::VK_INSERT => KeyCode::Insert,
+                    KeyboardAndMouse::VK_DELETE => KeyCode::Delete,
+                    KeyboardAndMouse::VK_HELP => KeyCode::Help,
+                    KeyboardAndMouse::VK_LWIN => KeyCode::LeftWindows,
+                    KeyboardAndMouse::VK_RWIN => KeyCode::RightWindows,
+                    KeyboardAndMouse::VK_APPS => KeyCode::Applications,
+                    KeyboardAndMouse::VK_SLEEP => KeyCode::Sleep,
+                    KeyboardAndMouse::VK_NUMPAD0 => KeyCode::Numpad0,
+                    KeyboardAndMouse::VK_NUMPAD1 => KeyCode::Numpad1,
+                    KeyboardAndMouse::VK_NUMPAD2 => KeyCode::Numpad2,
+                    KeyboardAndMouse::VK_NUMPAD3 => KeyCode::Numpad3,
+                    KeyboardAndMouse::VK_NUMPAD4 => KeyCode::Numpad4,
+                    KeyboardAndMouse::VK_NUMPAD5 => KeyCode::Numpad5,
+                    KeyboardAndMouse::VK_NUMPAD6 => KeyCode::Numpad6,
+                    KeyboardAndMouse::VK_NUMPAD7 => KeyCode::Numpad7,
+                    KeyboardAndMouse::VK_NUMPAD8 => KeyCode::Numpad8,
+                    KeyboardAndMouse::VK_NUMPAD9 => KeyCode::Numpad9,
+                    KeyboardAndMouse::VK_MULTIPLY => KeyCode::Multiply,
+                    KeyboardAndMouse::VK_ADD => KeyCode::Add,
+                    KeyboardAndMouse::VK_SEPARATOR => KeyCode::Separator,
+                    KeyboardAndMouse::VK_SUBTRACT => KeyCode::Subtract,
+                    KeyboardAndMouse::VK_DECIMAL => KeyCode::Decimal,
+                    KeyboardAndMouse::VK_DIVIDE => KeyCode::Divide,
+                    KeyboardAndMouse::VK_F1 => KeyCode::Function(1),
+                    KeyboardAndMouse::VK_F2 => KeyCode::Function(2),
+                    KeyboardAndMouse::VK_F3 => KeyCode::Function(3),
+                    KeyboardAndMouse::VK_F4 => KeyCode::Function(4),
+                    KeyboardAndMouse::VK_F5 => KeyCode::Function(5),
+                    KeyboardAndMouse::VK_F6 => KeyCode::Function(6),
+                    KeyboardAndMouse::VK_F7 => KeyCode::Function(7),
+                    KeyboardAndMouse::VK_F8 => KeyCode::Function(8),
+                    KeyboardAndMouse::VK_F9 => KeyCode::Function(9),
+                    KeyboardAndMouse::VK_F10 => KeyCode::Function(10),
+                    KeyboardAndMouse::VK_F11 => KeyCode::Function(11),
+                    KeyboardAndMouse::VK_F12 => KeyCode::Function(12),
+                    KeyboardAndMouse::VK_F13 => KeyCode::Function(13),
+                    KeyboardAndMouse::VK_F14 => KeyCode::Function(14),
+                    KeyboardAndMouse::VK_F15 => KeyCode::Function(15),
+                    KeyboardAndMouse::VK_F16 => KeyCode::Function(16),
+                    KeyboardAndMouse::VK_F17 => KeyCode::Function(17),
+                    KeyboardAndMouse::VK_F18 => KeyCode::Function(18),
+                    KeyboardAndMouse::VK_F19 => KeyCode::Function(19),
+                    KeyboardAndMouse::VK_F20 => KeyCode::Function(20),
+                    KeyboardAndMouse::VK_F21 => KeyCode::Function(21),
+                    KeyboardAndMouse::VK_F22 => KeyCode::Function(22),
+                    KeyboardAndMouse::VK_F23 => KeyCode::Function(23),
+                    KeyboardAndMouse::VK_F24 => KeyCode::Function(24),
+                    KeyboardAndMouse::VK_NUMLOCK => KeyCode::NumLock,
+                    KeyboardAndMouse::VK_SCROLL => KeyCode::ScrollLock,
+                    KeyboardAndMouse::VK_LSHIFT => KeyCode::LeftShift,
+                    KeyboardAndMouse::VK_RSHIFT => KeyCode::RightShift,
+                    KeyboardAndMouse::VK_LCONTROL => KeyCode::LeftControl,
+                    KeyboardAndMouse::VK_RCONTROL => KeyCode::RightControl,
+                    KeyboardAndMouse::VK_LMENU => KeyCode::LeftMenu,
+                    KeyboardAndMouse::VK_RMENU => KeyCode::RightMenu,
+                    KeyboardAndMouse::VK_BROWSER_BACK => KeyCode::BrowserBack,
+                    KeyboardAndMouse::VK_BROWSER_FORWARD => KeyCode::BrowserForward,
+                    KeyboardAndMouse::VK_BROWSER_REFRESH => KeyCode::BrowserRefresh,
+                    KeyboardAndMouse::VK_BROWSER_STOP => KeyCode::BrowserStop,
+                    KeyboardAndMouse::VK_BROWSER_SEARCH => KeyCode::BrowserSearch,
+                    KeyboardAndMouse::VK_BROWSER_FAVORITES => KeyCode::BrowserFavorites,
+                    KeyboardAndMouse::VK_BROWSER_HOME => KeyCode::BrowserHome,
+                    KeyboardAndMouse::VK_VOLUME_MUTE => KeyCode::VolumeMute,
+                    KeyboardAndMouse::VK_VOLUME_DOWN => KeyCode::VolumeDown,
+                    KeyboardAndMouse::VK_VOLUME_UP => KeyCode::VolumeUp,
+                    KeyboardAndMouse::VK_MEDIA_NEXT_TRACK => KeyCode::MediaNextTrack,
+                    KeyboardAndMouse::VK_MEDIA_PREV_TRACK => KeyCode::MediaPrevTrack,
+                    KeyboardAndMouse::VK_MEDIA_STOP => KeyCode::MediaStop,
+                    KeyboardAndMouse::VK_MEDIA_PLAY_PAUSE => KeyCode::MediaPlayPause,
                     _ => return,
                 },
             };
@@ -796,27 +796,28 @@ mod windows {
             event: &MOUSE_EVENT_RECORD,
             callback: &mut F,
         ) {
-            use winapi::um::wincon::*;
+            use windows_sys::Win32::System::Console;
+
             let mut buttons = MouseButtons::NONE;
 
-            if (event.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0 {
+            if (event.dwButtonState & Console::FROM_LEFT_1ST_BUTTON_PRESSED) != 0 {
                 buttons |= MouseButtons::LEFT;
             }
-            if (event.dwButtonState & RIGHTMOST_BUTTON_PRESSED) != 0 {
+            if (event.dwButtonState & Console::RIGHTMOST_BUTTON_PRESSED) != 0 {
                 buttons |= MouseButtons::RIGHT;
             }
-            if (event.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0 {
+            if (event.dwButtonState & Console::FROM_LEFT_2ND_BUTTON_PRESSED) != 0 {
                 buttons |= MouseButtons::MIDDLE;
             }
 
             let modifiers = modifiers_from_ctrl_key_state(event.dwControlKeyState);
 
-            if (event.dwEventFlags & MOUSE_WHEELED) != 0 {
+            if (event.dwEventFlags & Console::MOUSE_WHEELED) != 0 {
                 buttons |= MouseButtons::VERT_WHEEL;
                 if (event.dwButtonState >> 8) != 0 {
                     buttons |= MouseButtons::WHEEL_POSITIVE;
                 }
-            } else if (event.dwEventFlags & MOUSE_HWHEELED) != 0 {
+            } else if (event.dwEventFlags & Console::MOUSE_HWHEELED) != 0 {
                 buttons |= MouseButtons::HORZ_WHEEL;
                 if (event.dwButtonState >> 8) != 0 {
                     buttons |= MouseButtons::WHEEL_POSITIVE;
@@ -830,7 +831,7 @@ mod windows {
                 modifiers,
             });
 
-            if (event.dwEventFlags & DOUBLE_CLICK) != 0 {
+            if (event.dwEventFlags & Console::DOUBLE_CLICK) != 0 {
                 callback(mouse.clone());
             }
             callback(mouse);
@@ -853,15 +854,15 @@ mod windows {
             callback: &mut F,
         ) {
             for record in records {
-                match record.EventType {
+                match record.EventType as _ {
                     KEY_EVENT => {
-                        self.decode_key_record(unsafe { record.Event.KeyEvent() }, callback)
+                        self.decode_key_record(unsafe { &record.Event.KeyEvent }, callback)
                     }
                     MOUSE_EVENT => {
-                        self.decode_mouse_record(unsafe { record.Event.MouseEvent() }, callback)
+                        self.decode_mouse_record(unsafe { &record.Event.MouseEvent }, callback)
                     }
                     WINDOW_BUFFER_SIZE_EVENT => self.decode_resize_record(
-                        unsafe { record.Event.WindowBufferSizeEvent() },
+                        unsafe { &record.Event.WindowBufferSizeEvent },
                         callback,
                     ),
                     _ => {}

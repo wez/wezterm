@@ -1,0 +1,174 @@
+name: ubuntu26.04_tag
+
+on:
+  push:
+    tags:
+      - "20*"
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    container:
+      image: "ubuntu:26.04"
+      options: --privileged
+    env:
+      CARGO_INCREMENTAL: "0"
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+      - name: "set APT to non-interactive"
+        shell: bash
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install git"
+        shell: bash
+        run: "apt-get install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "apt-get install -y openssh-server"
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v5
+        with:
+          submodules: "recursive"
+      - name: "Install Rust"
+        uses: dtolnay/rust-toolchain@stable
+      - name: "Compile with sccache"
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: "Cache Rust Dependencies"
+        uses: actions/cache@v4
+        id: cache-cargo-vendor
+        with:
+          path: |
+            vendor
+            .cargo/config
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+      - name: "Vendor dependencies"
+        if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
+        shell: bash
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env CI=yes PATH=$PATH ./get-deps"
+      - name: "Build wezterm (Release mode)"
+        shell: bash
+        run: "cargo build -p wezterm --release"
+      - name: "Build wezterm-gui (Release mode)"
+        shell: bash
+        run: "cargo build -p wezterm-gui --release"
+      - name: "Build wezterm-mux-server (Release mode)"
+        shell: bash
+        run: "cargo build -p wezterm-mux-server --release"
+      - name: "Build strip-ansi-escapes (Release mode)"
+        shell: bash
+        run: "cargo build -p strip-ansi-escapes --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: "cargo-nextest"
+          cache-key: "ubuntu26.04"
+      - name: "Test"
+        shell: bash
+        run: "cargo nextest run --all --no-fail-fast"
+      - name: "Test wezterm-escape-parser (no_std)"
+        shell: bash
+        run: "cargo nextest run -p wezterm-escape-parser"
+      - name: "Package"
+        shell: bash
+        run: "bash ci/deploy.sh"
+      - name: "Install libfuse2"
+        shell: bash
+        run: "apt-get install -y libfuse2"
+      - name: "Install file"
+        shell: bash
+        run: "apt-get install -y file"
+      - name: "Source Tarball"
+        shell: bash
+        run: "bash ci/source-archive.sh"
+      - name: "Build AppImage"
+        shell: bash
+        run: "bash ci/appimage.sh"
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v7
+        with:
+          name: "ubuntu26.04"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
+            *src.tar.gz
+            *.AppImage
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.repository == 'wezterm/wezterm'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v5
+      - name: "Checkout linuxbrew tap"
+        uses: actions/checkout@v5
+        with:
+          repository: "wez/homebrew-wezterm-linuxbrew"
+          path: "linuxbrew-wezterm"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Update linuxbrew tap formula"
+        shell: bash
+        run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
+      - name: "Commit linuxbrew tap changes"
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Automated update to match latest tag"
+          repository: "linuxbrew-wezterm"
+      - name: "Download artifact"
+        uses: actions/download-artifact@v8
+        with:
+          name: "ubuntu26.04"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage ; do sha256sum $f > $f.sha256 ; done"
+      - name: "Create pre-release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
+      - name: "Upload to Tagged Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.sha256"
+      - name: "Checkout flathub/org.wezfurlong.wezterm"
+        uses: actions/checkout@v5
+        with:
+          repository: "flathub/org.wezfurlong.wezterm"
+          path: "flathub"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Create flathub commit and push"
+        shell: bash
+        run: "bash ci/make-flathub-pr.sh"
+      - name: "Submit PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        shell: bash
+        run: 'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"'

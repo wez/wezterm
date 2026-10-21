@@ -32,4 +32,4 @@ wezterm-term = { workspace=true, features=["use_serde"] }
 wezterm-uds.workspace = true
 
 [target."cfg(windows)".dependencies]
-winapi = { workspace=true, features = [ "winuser" ]}
+windows-sys = { workspace = true, features = ["Win32_Networking_WinSock"] }

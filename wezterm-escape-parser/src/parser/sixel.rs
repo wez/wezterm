@@ -1,5 +1,7 @@
 use crate::color::RgbColor;
 use crate::{Sixel, SixelData};
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 
 const MAX_PARAMS: usize = 5;
 const MAX_SIXEL_SIZE: usize = 100_000_000;
@@ -191,6 +193,8 @@ mod test {
     use crate::parser::Parser;
     use crate::{Action, Esc, EscCode};
     use alloc::boxed::Box;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
     use k9::assert_equal as assert_eq;
 
     #[test]

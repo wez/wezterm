@@ -57,6 +57,7 @@ pub struct SearchResult {
 pub enum Pattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),
+    CaseSmartString(String),
     Regex(String),
 }
 
@@ -72,6 +73,7 @@ impl std::ops::Deref for Pattern {
         match self {
             Pattern::CaseSensitiveString(s) => s,
             Pattern::CaseInSensitiveString(s) => s,
+            Pattern::CaseSmartString(s) => s,
             Pattern::Regex(s) => s,
         }
     }
@@ -82,6 +84,7 @@ impl std::ops::DerefMut for Pattern {
         match self {
             Pattern::CaseSensitiveString(s) => s,
             Pattern::CaseInSensitiveString(s) => s,
+            Pattern::CaseSmartString(s) => s,
             Pattern::Regex(s) => s,
         }
     }
@@ -91,6 +94,7 @@ impl std::ops::DerefMut for Pattern {
 pub enum PatternType {
     CaseSensitiveString,
     CaseInSensitiveString,
+    CaseSmartString,
     Regex,
 }
 
@@ -99,6 +103,7 @@ impl From<&Pattern> for PatternType {
         match value {
             Pattern::CaseSensitiveString(_) => PatternType::CaseSensitiveString,
             Pattern::CaseInSensitiveString(_) => PatternType::CaseInSensitiveString,
+            Pattern::CaseSmartString(_) => PatternType::CaseSmartString,
             Pattern::Regex(_) => PatternType::Regex,
         }
     }
@@ -236,6 +241,10 @@ pub trait Pane: Downcast + Send + Sync {
         Progress::None
     }
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
+    fn send_composed_text(&self, text: &str) -> anyhow::Result<()> {
+        self.writer().write_all(text.as_bytes())?;
+        Ok(())
+    }
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>>;
     fn writer(&self) -> MappedMutexGuard<'_, dyn std::io::Write>;
     fn resize(&self, size: TerminalSize) -> anyhow::Result<()>;

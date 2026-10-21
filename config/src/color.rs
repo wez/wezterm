@@ -160,6 +160,10 @@ pub struct Palette {
     pub visual_bell: Option<RgbaColor>,
     /// The color to use for the cursor when a dead key or leader state is active
     pub compose_cursor: Option<RgbaColor>,
+    /// The foreground color for composition/IME preview text (e.g., dictation)
+    pub compose_fg: Option<RgbaColor>,
+    /// The background color for composition/IME preview text (e.g., dictation)
+    pub compose_bg: Option<RgbaColor>,
 
     pub copy_mode_active_highlight_fg: Option<ColorSpec>,
     pub copy_mode_active_highlight_bg: Option<ColorSpec>,
@@ -217,6 +221,8 @@ impl Palette {
             split: overlay!(split),
             visual_bell: overlay!(visual_bell),
             compose_cursor: overlay!(compose_cursor),
+            compose_fg: overlay!(compose_fg),
+            compose_bg: overlay!(compose_bg),
             copy_mode_active_highlight_fg: overlay!(copy_mode_active_highlight_fg),
             copy_mode_active_highlight_bg: overlay!(copy_mode_active_highlight_bg),
             copy_mode_inactive_highlight_fg: overlay!(copy_mode_inactive_highlight_fg),

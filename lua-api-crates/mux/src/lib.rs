@@ -282,12 +282,12 @@ impl SpawnTab {
         {
             let window = window.resolve(&mux)?;
             size = window
-                .get_by_idx(0)
+                .get_tab_at_idx(0)
                 .map(|tab| tab.get_size())
                 .unwrap_or_else(|| config::configuration().initial_size(0, None));
 
             pane = window
-                .get_active()
+                .get_active_tab()
                 .and_then(|tab| tab.get_active_pane().map(|pane| pane.pane_id()));
         };
 

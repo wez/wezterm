@@ -304,6 +304,12 @@ impl FileDescriptor {
         self.as_stdio_impl()
     }
 
+    /// A convenience method for creating a `std::process::Stdio` object,
+    /// transferring ownership of the underlying handle to the returned `Stdio`.
+    pub fn into_stdio(self) -> std::process::Stdio {
+        self.into_stdio_impl()
+    }
+
     /// A convenience method for creating a `std::fs::File` object.
     /// The `File` is created using a duplicated handle so
     /// that the source handle remains alive.
@@ -328,6 +334,12 @@ impl FileDescriptor {
     /// Supports stdin, stdout, and stderr redirections.
     pub fn redirect_stdio<F: AsRawFileDescriptor>(f: &F, stdio: StdioDescriptor) -> Result<Self> {
         Self::redirect_stdio_impl(f, stdio)
+    }
+}
+
+impl From<FileDescriptor> for std::process::Stdio {
+    fn from(value: FileDescriptor) -> Self {
+        value.into_stdio()
     }
 }
 

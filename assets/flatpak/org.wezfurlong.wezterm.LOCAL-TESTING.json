@@ -1,7 +1,7 @@
 {
     "app-id": "org.wezfurlong.wezterm",
     "runtime": "org.freedesktop.Platform",
-    "runtime-version": "23.08",
+    "runtime-version": "25.08",
     "sdk": "org.freedesktop.Sdk",
     "sdk-extensions" : [
         "org.freedesktop.Sdk.Extension.rust-stable"
@@ -32,7 +32,7 @@
                 "cargo --offline fetch --manifest-path Cargo.toml --verbose",
                 "cargo --offline build --release --verbose",
                 "install -Dm644 ./assets/icon/terminal.png /app/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png",
-                "install -Dm644 org.wezfurlong.wezterm.appdata.xml /app/share/metainfo/org.wezfurlong.wezterm.appdata.xml",
+                "install -Dm644 ./assets/wezterm.appdata.xml /app/share/metainfo/org.wezfurlong.wezterm.appdata.xml",
                 "install -Dm644 ./assets/wezterm.desktop /app/share/applications/org.wezfurlong.wezterm.desktop",
                 "install -Dm755 ./target/release/wezterm -t /app/bin/",
                 "install -Dm755 ./target/release/wezterm-gui -t /app/bin/",
@@ -44,14 +44,8 @@
               ],
             "sources": [
                 {
-                    "type": "archive",
-                    "archive-type": "tar-gzip",
-                    "url": "@URL@",
-                    "sha256": "@SHA256@"
-                },
-                {
-                  "type": "file",
-                  "path": "org.wezfurlong.wezterm.appdata.xml"
+                    "type": "dir",
+                    "path": "../.."
                 },
                 "generated-sources.json"
             ]

@@ -1,9 +1,11 @@
-use crate::win::psuedocon::HPCON;
+use crate::win::pseudocon::HPCON;
 use anyhow::{ensure, Error};
 use std::io::Error as IoError;
 use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::processthreadsapi::*;
+use windows_sys::Win32::System::Threading::{
+    DeleteProcThreadAttributeList, InitializeProcThreadAttributeList, UpdateProcThreadAttribute,
+    LPPROC_THREAD_ATTRIBUTE_LIST,
+};
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
@@ -12,7 +14,7 @@ pub struct ProcThreadAttributeList {
 }
 
 impl ProcThreadAttributeList {
-    pub fn with_capacity(num_attributes: DWORD) -> Result<Self, Error> {
+    pub fn with_capacity(num_attributes: u32) -> Result<Self, Error> {
         let mut bytes_required: usize = 0;
         unsafe {
             InitializeProcThreadAttributeList(

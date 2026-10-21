@@ -71,7 +71,7 @@ impl ClientInner {
             .retain(
                 |_remote_window_id, local_window_id| match mux.get_window(*local_window_id) {
                     Some(w) => {
-                        for tab in w.iter() {
+                        for tab in w.iter_tabs() {
                             for pos in tab.iter_panes_ignoring_zoom() {
                                 if pos.pane.domain_id() == self.local_domain_id {
                                     return true;
@@ -627,8 +627,8 @@ impl ClientDomain {
                         inner.local_domain_id,
                         local_window_id
                     );
-                    if window.idx_by_id(tab.tab_id()).is_none() {
-                        window.push(&tab);
+                    if window.get_tab_idx_for_id(tab.tab_id()).is_none() {
+                        window.push_tab(&tab);
                     }
                     continue;
                 }

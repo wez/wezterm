@@ -348,7 +348,7 @@ mod test {
         }
     }
 
-    fn frequency_order<K, V, S>(cache: &LfuCache<K, V, S>) -> Vec<EntryData<K, V>> {
+    fn frequency_order<K, V, S>(cache: &LfuCache<K, V, S>) -> Vec<EntryData<'_, K, V>> {
         let mut entries = vec![];
         for item in cache.frequency_index.iter() {
             entries.push(EntryData::new(item));
@@ -356,7 +356,7 @@ mod test {
         entries
     }
 
-    fn recency_order<K, V, S>(cache: &LfuCache<K, V, S>) -> Vec<EntryData<K, V>> {
+    fn recency_order<K, V, S>(cache: &LfuCache<K, V, S>) -> Vec<EntryData<'_, K, V>> {
         let mut entries = vec![];
         for item in cache.recency_index.iter() {
             entries.push(EntryData::new(item));
