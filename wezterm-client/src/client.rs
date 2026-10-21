@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
-use futures::FutureExt;
+use futures::AsyncReadExt as _;
 use mux::client::ClientId;
 use mux::connui::ConnectionUI;
 use mux::domain::DomainId;
@@ -48,7 +48,6 @@ enum ReaderMessage {
         pdu: Pdu,
         promise: Sender<anyhow::Result<Pdu>>,
     },
-    Readable,
 }
 
 #[derive(Clone)]
@@ -350,87 +349,117 @@ async fn client_thread_async(
     local_domain_id: Option<DomainId>,
     rx: &mut Receiver<ReaderMessage>,
 ) -> anyhow::Result<()> {
-    let mut next_serial = 1u64;
+    let stream = reconnectable.take_stream().unwrap();
+    let (reader, writer) = futures::AsyncReadExt::split(stream);
 
-    struct Promises {
-        map: HashMap<u64, Sender<anyhow::Result<Pdu>>>,
-    }
+    // Channel for writer to register promises with the reader task.
+    // Writer sends (serial, promise_sender) before writing the PDU to the socket,
+    // so the reader always has the promise registered before the response can arrive.
+    let (promise_tx, promise_rx) = smol::channel::unbounded::<(u64, Sender<anyhow::Result<Pdu>>)>();
 
-    impl Promises {
-        fn fail_all(&mut self, reason: &str) {
-            log::trace!("failing all promises: {}", reason);
-            for (_, promise) in self.map.drain() {
-                let _ = promise.try_send(Err(anyhow!("{}", reason)));
-            }
-        }
-    }
+    let writer_fut = async {
+        let mut writer = writer;
+        let mut next_serial = 1u64;
 
-    impl Drop for Promises {
-        fn drop(&mut self) {
-            self.fail_all("Client was destroyed");
-        }
-    }
-    let mut promises = Promises {
-        map: HashMap::new(),
-    };
+        loop {
+            match rx.recv().await {
+                Ok(ReaderMessage::SendPdu { pdu, promise }) => {
+                    let serial = next_serial;
+                    next_serial += 1;
 
-    let mut stream = reconnectable.take_stream().unwrap();
+                    // Register promise with reader before writing to socket
+                    promise_tx
+                        .send((serial, promise))
+                        .await
+                        .map_err(|_| anyhow!("reader task gone"))?;
 
-    loop {
-        let rx_msg = rx.recv();
-        let wait_for_read = stream
-            .wait_for_readable()
-            .map(|_| Ok(ReaderMessage::Readable));
-
-        match smol::future::or(rx_msg, wait_for_read).await {
-            Ok(ReaderMessage::SendPdu { pdu, promise }) => {
-                let serial = next_serial;
-                next_serial += 1;
-                promises.map.insert(serial, promise);
-
-                pdu.encode_async(&mut stream, serial)
-                    .await
-                    .context("encoding a PDU to send to the server")?;
-                stream.flush().await.context("flushing PDU to server")?;
-            }
-            Ok(ReaderMessage::Readable) => {
-                match Pdu::decode_async(&mut stream, Some(next_serial)).await {
-                    Ok(decoded) => {
-                        log::debug!(
-                            "decoded serial {} {}",
-                            decoded.serial,
-                            decoded.pdu.pdu_name()
-                        );
-                        if decoded.serial == 0 {
-                            process_unilateral(local_domain_id, decoded)
-                                .context("processing unilateral PDU from server")
-                                .map_err(|e| {
-                                    log::error!("process_unilateral: {:?}", e);
-                                    e
-                                })?;
-                        } else if let Some(promise) = promises.map.remove(&decoded.serial) {
-                            if promise.try_send(Ok(decoded.pdu)).is_err() {
-                                return Err(NotReconnectableError::ClientWasDestroyed.into());
-                            }
-                        } else {
-                            let reason =
-                                format!("got serial {:?} without a corresponding promise", decoded);
-                            promises.fail_all(&reason);
-                            anyhow::bail!("{}", reason);
-                        }
-                    }
-                    Err(err) => {
-                        let reason = format!("Error while decoding response pdu: {:#}", err);
-                        log::error!("{}", reason);
-                        promises.fail_all(&reason);
-                        return Err(err).context("Error while decoding response pdu");
-                    }
+                    pdu.encode_async(&mut writer, serial)
+                        .await
+                        .context("encoding a PDU to send to the server")?;
+                    writer.flush().await.context("flushing PDU to server")?;
+                }
+                Err(_) => {
+                    return Err(NotReconnectableError::ClientWasDestroyed.into());
                 }
             }
-            Err(_) => {
-                return Err(NotReconnectableError::ClientWasDestroyed.into());
+        }
+    };
+
+    let reader_fut = async {
+        let mut reader = reader;
+        let mut promises = PromiseMap::new();
+
+        loop {
+            // Pass None for max_serial: with split read/write, the reader cannot
+            // track the writer's next_serial without a race condition, since new
+            // serials may be assigned while decode_async is awaiting.
+            match Pdu::decode_async(&mut reader, None).await {
+                Ok(decoded) => {
+                    log::debug!(
+                        "decoded serial {} {}",
+                        decoded.serial,
+                        decoded.pdu.pdu_name()
+                    );
+
+                    // Drain any newly registered promises from the writer
+                    while let Ok((serial, promise)) = promise_rx.try_recv() {
+                        promises.map.insert(serial, promise);
+                    }
+
+                    if decoded.serial == 0 {
+                        process_unilateral(local_domain_id, decoded)
+                            .context("processing unilateral PDU from server")
+                            .map_err(|e| {
+                                log::error!("process_unilateral: {:?}", e);
+                                e
+                            })?;
+                    } else if let Some(promise) = promises.map.remove(&decoded.serial) {
+                        if promise.try_send(Ok(decoded.pdu)).is_err() {
+                            return Err(NotReconnectableError::ClientWasDestroyed.into());
+                        }
+                    } else {
+                        let reason =
+                            format!("got serial {:?} without a corresponding promise", decoded);
+                        promises.fail_all(&reason);
+                        anyhow::bail!("{}", reason);
+                    }
+                }
+                Err(err) => {
+                    let reason = format!("Error while decoding response pdu: {:#}", err);
+                    log::error!("{}", reason);
+                    promises.fail_all(&reason);
+                    return Err(err).context("Error while decoding response pdu");
+                }
             }
         }
+    };
+
+    // Run both tasks concurrently; first error terminates both
+    smol::future::race(writer_fut, reader_fut).await
+}
+
+struct PromiseMap {
+    map: HashMap<u64, Sender<anyhow::Result<Pdu>>>,
+}
+
+impl PromiseMap {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    fn fail_all(&mut self, reason: &str) {
+        log::trace!("failing all promises: {}", reason);
+        for (_, promise) in self.map.drain() {
+            let _ = promise.try_send(Err(anyhow!("{}", reason)));
+        }
+    }
+}
+
+impl Drop for PromiseMap {
+    fn drop(&mut self) {
+        self.fail_all("Client was destroyed");
     }
 }
 
