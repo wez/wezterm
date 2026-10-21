@@ -313,15 +313,29 @@ pub(crate) struct ImageInfo {
 }
 
 impl ImgCatCommand {
+    /// Compute the dimensions of the image in cells, honoring the requested
+    /// `--width`/`--height` and the terminal geometry.
+    ///
+    /// Returns `None` when the terminal didn't report its cell size in
+    /// pixels. That happens when the `CSI 16 t` response is missing or
+    /// arrives too late: older tmux versions don't answer it at all, and
+    /// ConPTY (Windows, and WSL sessions relayed through wsl.exe) answers
+    /// DA1 itself ahead of forwarding the pixel query to the outer terminal,
+    /// which terminates the probe before the answer arrives.
+    /// Without the cell size we cannot reason about the geometry (and
+    /// dividing by it would panic; see #4912, #5522, #6781).
     fn compute_image_cell_dimensions(
         &self,
         info: ImageInfo,
         term_size: ScreenSize,
-    ) -> (usize, usize) {
+    ) -> Option<(usize, usize)> {
         let physical_cols = term_size.cols;
         let physical_rows = term_size.rows;
         let cell_pixel_width = term_size.xpixel;
         let cell_pixel_height = term_size.ypixel;
+        if cell_pixel_width == 0 || cell_pixel_height == 0 {
+            return None;
+        }
         let pixel_width = cell_pixel_width * physical_cols;
         let pixel_height = cell_pixel_height * physical_rows;
 
@@ -380,7 +394,7 @@ impl ImgCatCommand {
         };
 
         // And convert to cells
-        (width / cell_pixel_width, height / cell_pixel_height)
+        Some((width / cell_pixel_width, height / cell_pixel_height))
     }
 
     fn image_dimensions(data: &[u8]) -> anyhow::Result<ImageInfo> {
@@ -514,7 +528,10 @@ impl ImgCatCommand {
         // TODO: ideally we'd do some kind of probing to see if conpty
         // is in the mix. For now we just assume that if we are on windows
         // then it must be in there somewhere.
-        let is_conpty = cfg!(windows);
+        // The same is true under WSL: wsl.exe relays the session through
+        // conpty, so even though we are a unix binary here, conpty gets to
+        // re-interpret the image escape and the cursor position.
+        let is_conpty = cfg!(windows) || config::running_under_wsl();
 
         // Not all systems understand that the cursor should move as
         // part of processing the image escapes, so we need to move it
@@ -542,7 +559,7 @@ impl ImgCatCommand {
 
         let image_dims = self.compute_image_cell_dimensions(image_info, term_size);
 
-        if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
+        if let (Some((_cursor_x, cursor_y)), true) = (image_dims, needs_force_cursor_move) {
             // Before we emit the image, we need to emit some new lines so that
             // if the image would scroll the display, things end up in the right place
             let new_lines = "\n".repeat(cursor_y);
@@ -575,7 +592,7 @@ impl ImgCatCommand {
             .encode(osc.to_string());
         println!("{encoded}");
 
-        if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
+        if let (Some((_cursor_x, cursor_y)), true) = (image_dims, needs_force_cursor_move) {
             // tell the terminal that doesn't fully understand the image sequence
             // to move the cursor to where it should end up
             term.render(&[Change::CursorPosition {
@@ -809,5 +826,108 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
         let status = child.wait()?;
         let code = status.code().unwrap_or(1);
         std::process::exit(code);
+    }
+}
+
+#[cfg(test)]
+mod imgcat_tests {
+    use super::*;
+
+    fn imgcat(args: &[&str]) -> ImgCatCommand {
+        let mut argv = vec!["imgcat"];
+        argv.extend_from_slice(args);
+        ImgCatCommand::try_parse_from(argv).expect("valid imgcat arguments")
+    }
+
+    fn image(width: u32, height: u32) -> ImageInfo {
+        ImageInfo {
+            width,
+            height,
+            format: image::ImageFormat::Png,
+        }
+    }
+
+    /// 80x24 cells of 10x20 pixels each, 800x480 pixels overall
+    fn screen() -> ScreenSize {
+        ScreenSize {
+            rows: 24,
+            cols: 80,
+            xpixel: 10,
+            ypixel: 20,
+        }
+    }
+
+    /// tmux < 3.2 doesn't answer `CSI 16 t` at all, and conpty (Windows, or
+    /// WSL relayed through wsl.exe) may deliver the answer only after the DA1
+    /// response that ends the probe. Either way we end up without a cell
+    /// size. That must not panic (#4912, #5522, #6781) and must not pretend
+    /// that we know the geometry.
+    #[test]
+    fn unknown_cell_size_is_none() {
+        let no_pixels = ScreenSize {
+            rows: 24,
+            cols: 80,
+            xpixel: 0,
+            ypixel: 0,
+        };
+        assert_eq!(
+            imgcat(&[]).compute_image_cell_dimensions(image(64, 32), no_pixels),
+            None
+        );
+
+        // Explicit pixel sizes don't help: converting them to cells still
+        // needs to know the size of a cell.
+        assert_eq!(
+            imgcat(&[
+                "--width",
+                "400px",
+                "--height",
+                "300px",
+                "--no-preserve-aspect-ratio"
+            ])
+            .compute_image_cell_dimensions(image(64, 32), no_pixels),
+            None
+        );
+
+        // A half-known cell size is just as useless
+        let no_height = ScreenSize {
+            rows: 24,
+            cols: 80,
+            xpixel: 10,
+            ypixel: 0,
+        };
+        assert_eq!(
+            imgcat(&[]).compute_image_cell_dimensions(image(64, 32), no_height),
+            None
+        );
+    }
+
+    #[test]
+    fn native_size_when_it_fits() {
+        // 64x32 pixels in 10x20 pixel cells: 6 columns, 1 row
+        assert_eq!(
+            imgcat(&[]).compute_image_cell_dimensions(image(64, 32), screen()),
+            Some((6, 1))
+        );
+    }
+
+    #[test]
+    fn oversized_image_is_scaled_to_fit_the_screen() {
+        // 2000x1000 doesn't fit into 800x480. Scaling by 0.4 gives 800x400,
+        // which fits and is the larger of the two candidates: 80x20 cells.
+        assert_eq!(
+            imgcat(&[]).compute_image_cell_dimensions(image(2000, 1000), screen()),
+            Some((80, 20))
+        );
+    }
+
+    #[test]
+    fn explicit_width_keeps_the_aspect_ratio() {
+        // 40 cells are 400 pixels wide; a 2:1 image is then 200 pixels,
+        // ie: 10 rows, tall.
+        assert_eq!(
+            imgcat(&["--width", "40"]).compute_image_cell_dimensions(image(200, 100), screen()),
+            Some((40, 10))
+        );
     }
 }
