@@ -3163,6 +3163,18 @@ impl TermWindow {
             PromptInputLine(args) => self.show_prompt_input_line(args),
             InputSelector(args) => self.show_input_selector(args),
             Confirmation(args) => self.show_confirmation(args),
+            TogglePaneInputSynchronization => {
+                let mux = Mux::get();
+                if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
+                    let enabled = !tab.sync_input();
+                    tab.set_sync_input(enabled);
+                    log::info!(
+                        "Pane input synchronization {}",
+                        if enabled { "enabled" } else { "disabled" }
+                    );
+                    self.update_title();
+                }
+            }
         };
         Ok(PerformAssignmentResult::Handled)
     }

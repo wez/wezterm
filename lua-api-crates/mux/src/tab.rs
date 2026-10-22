@@ -80,6 +80,19 @@ impl UserData for MuxTab {
             Ok(was_zoomed)
         });
 
+        methods.add_method("get_input_synchronization", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            Ok(tab.sync_input())
+        });
+
+        methods.add_method("set_input_synchronization", |_, this, enabled: bool| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            tab.set_sync_input(enabled);
+            Ok(())
+        });
+
         methods.add_method("panes_with_info", |lua, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;

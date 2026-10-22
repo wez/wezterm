@@ -1092,6 +1092,18 @@ impl Line {
             .unwrap_or(false)
     }
 
+    /// Returns true if this line was marked as the start of a clear boundary,
+    /// meaning a full-screen clear (`clear` / Ctrl+L) happened here.
+    pub fn is_clear_boundary(&self) -> bool {
+        self.bits.contains(LineBits::CLEAR_BOUNDARY)
+    }
+
+    /// Mark or unmark this line as a clear boundary.
+    pub fn set_clear_boundary(&mut self, boundary: bool, seqno: SequenceNo) {
+        self.update_last_change_seqno(seqno);
+        self.bits.set(LineBits::CLEAR_BOUNDARY, boundary);
+    }
+
     /// Adjust the value of the wrapped attribute on the last cell of this
     /// line.
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool, seqno: SequenceNo) {

@@ -2254,6 +2254,19 @@ impl TerminalState {
                 let line_idx = screen.phys_row(y);
                 screen.line_mut(line_idx).set_single_width(seqno);
             }
+            // Mark the top line of the viewport as a clear boundary so that
+            // rewrap_lines() and resize() will not expose old scrollback content
+            // after a resize.  This applies to:
+            //  - EraseDisplay (CSI 2 J): always a full-screen clear
+            //  - EraseToEndOfDisplay (CSI J / CSI 0 J) when the cursor is at
+            //    row 0: the shell typically sends CSI H (home) + CSI J to
+            //    implement Ctrl+L, which effectively clears the entire viewport.
+            let is_full_clear = matches!(erase, EraseInDisplay::EraseDisplay)
+                || (matches!(erase, EraseInDisplay::EraseToEndOfDisplay) && cy == 0);
+            if is_full_clear {
+                let top_idx = screen.phys_row(0);
+                screen.line_mut(top_idx).set_clear_boundary(true, seqno);
+            }
         }
     }
 

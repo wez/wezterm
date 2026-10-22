@@ -2011,6 +2011,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: None,
         },
+        TogglePaneInputSynchronization => CommandDef {
+            brief: "Toggle pane input synchronization".into(),
+            doc: "Mirrors keyboard input to all panes in the current tab when enabled".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["View"],
+            icon: Some("md_sync"),
+        },
     })
 }
 

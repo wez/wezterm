@@ -1378,3 +1378,530 @@ fn test_hyperlinks() {
         Compare::TEXT | Compare::ATTRS,
     );
 }
+
+// -------------------------------------------------------------------
+// CLEAR_BOUNDARY tests: verify that cleared content does not reappear
+// after various resize operations.
+// -------------------------------------------------------------------
+
+/// Assert that every visible line is blank (only spaces or empty).
+/// This catches old content (letters, digits, etc.) reappearing after resize.
+fn assert_viewport_is_blank(term: &TestTerm, file: &str, line_no: u32) {
+    print_visible_lines(term);
+    let screen = term.screen();
+    for (idx, vis_line) in screen.visible_lines().iter().enumerate() {
+        let s = vis_line.as_str();
+        assert!(
+            s.chars().all(|c| c == ' '),
+            "{}:{}: line {} should be blank but contains: '{}'",
+            file,
+            line_no,
+            idx,
+            s.escape_default()
+        );
+    }
+}
+
+/// EraseDisplay (CSI 2 J) should mark the top viewport line as a clear
+/// boundary so that subsequent resizes never pull old scrollback into view.
+#[test]
+fn test_clear_boundary_erase_display_sets_flag() {
+    let mut term = TestTerm::new(4, 10, 10);
+    term.print("line1\r\nline2\r\nline3\r\n");
+    term.erase_in_display(EraseInDisplay::EraseDisplay);
+
+    // The visible area should be blank (spaces or empty after clearing).
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // The first visible line must carry the CLEAR_BOUNDARY flag.
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    assert!(
+        visible[0].is_clear_boundary(),
+        "EraseDisplay should set CLEAR_BOUNDARY on the first viewport line"
+    );
+}
+
+/// Ctrl+L is typically CSI H (cursor home) + CSI J (erase to end of display).
+/// When cursor is at row 0, EraseToEndOfDisplay must also set CLEAR_BOUNDARY.
+#[test]
+fn test_clear_boundary_erase_to_end_at_row0_sets_flag() {
+    let mut term = TestTerm::new(4, 10, 10);
+    term.print("line1\r\nline2\r\nline3\r\n");
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    assert!(
+        visible[0].is_clear_boundary(),
+        "EraseToEndOfDisplay at row 0 should set CLEAR_BOUNDARY"
+    );
+}
+
+/// EraseToEndOfDisplay when cursor is NOT at row 0 should NOT set the flag,
+/// since it is only a partial clear.
+#[test]
+fn test_clear_boundary_erase_to_end_not_at_row0_no_flag() {
+    let mut term = TestTerm::new(4, 10, 10);
+    term.print("line1\r\nline2\r\nline3\r\n");
+    // Cursor at row 3, col 0 — erase to end only clears below.
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    for (i, l) in visible.iter().enumerate() {
+        assert!(
+            !l.is_clear_boundary(),
+            "Line {} should NOT have CLEAR_BOUNDARY for a partial erase",
+            i
+        );
+    }
+}
+
+/// After Ctrl+L (clear) with scrollback, resizing the pane wider must not
+/// pull the old scrollback content back via line-joining (rewrap).
+#[test]
+fn test_clear_boundary_resize_wider_no_reappear() {
+    let mut term = TestTerm::new(4, 6, 20);
+    term.print("abcdefghij\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["abcdef", "ghij", "", ""]);
+
+    // Simulate Ctrl+L: cursor home + erase to end.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize wider — the wrapped "ghij" must NOT rejoin "abcdef" into the viewport.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// After Ctrl+L with scrollback, resizing the pane narrower must not
+/// expose cleared content.
+#[test]
+fn test_clear_boundary_resize_narrower_no_reappear() {
+    let mut term = TestTerm::new(4, 10, 20);
+    term.print("hello world\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["hello worl", "d", "", ""]);
+
+    // Simulate Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize narrower.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 5,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// After Ctrl+L with scrollback, making the pane taller must not expose
+/// old scrollback lines above the clear boundary.
+#[test]
+fn test_clear_boundary_resize_taller_no_reappear() {
+    let mut term = TestTerm::new(4, 10, 20);
+    term.print("aaa\r\nbbb\r\nccc\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["aaa", "bbb", "ccc", ""]);
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Grow taller — the extra rows should be blank, not filled with "aaa"/"bbb"/"ccc".
+    term.resize(TerminalSize {
+        rows: 8,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+    assert_eq!(
+        term.screen().visible_lines().len(),
+        8,
+        "viewport should have 8 rows after resize"
+    );
+}
+
+/// Combining Ctrl+L with a full-screen clear (CSI 2 J) then resize taller.
+#[test]
+fn test_clear_boundary_erase_display_resize_taller() {
+    let mut term = TestTerm::new(3, 10, 20);
+    term.print("row1\r\nrow2\r\nrow3");
+    assert_visible_contents(&term, file!(), line!(), &["row1", "row2", "row3"]);
+
+    // Full-screen erase.
+    term.erase_in_display(EraseInDisplay::EraseDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Grow taller.
+    term.resize(TerminalSize {
+        rows: 6,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+    assert_eq!(
+        term.screen().visible_lines().len(),
+        6,
+        "viewport should have 6 rows after resize"
+    );
+}
+
+/// After clear, a sequence of width changes (wider then narrower) must keep
+/// the viewport clean.
+#[test]
+fn test_clear_boundary_resize_wider_then_narrower() {
+    let mut term = TestTerm::new(4, 8, 20);
+    term.print("AABBCCDDXXYYWWZZ\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["AABBCCDD", "XXYYWWZZ", "", ""]);
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Wider.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Back to narrow.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 5,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// Resizing after clear with both width AND height changes at once.
+#[test]
+fn test_clear_boundary_resize_wider_and_taller() {
+    let mut term = TestTerm::new(3, 6, 20);
+    term.print("foobar_baz\r\nqux\r\n");
+    // "foobar_baz" wraps at col 6, then \r\n + "qux\r\n" scrolls "foobar" off.
+    assert_visible_contents(&term, file!(), line!(), &["_baz", "qux", ""]);
+
+    // Clear.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize both wider and taller simultaneously.
+    term.resize(TerminalSize {
+        rows: 6,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+    assert_eq!(
+        term.screen().visible_lines().len(),
+        6,
+        "viewport should have 6 rows after resize"
+    );
+}
+
+/// EraseToStartOfDisplay (CSI 1 J) should NOT set CLEAR_BOUNDARY because
+/// it only erases above the cursor, not the full screen.
+#[test]
+fn test_clear_boundary_erase_to_start_no_flag() {
+    let mut term = TestTerm::new(4, 10, 10);
+    term.print("line1\r\nline2\r\nline3\r\n");
+    // Cursor at row 3.  Erase to start clears rows 0..2, but row 3 remains.
+    term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
+
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    for (i, l) in visible.iter().enumerate() {
+        assert!(
+            !l.is_clear_boundary(),
+            "Line {} should NOT have CLEAR_BOUNDARY for EraseToStartOfDisplay",
+            i
+        );
+    }
+}
+
+/// After clear, resizing shorter should keep the boundary intact
+/// and not expose old scrollback.
+#[test]
+fn test_clear_boundary_resize_shorter_no_reappear() {
+    let mut term = TestTerm::new(6, 10, 20);
+    term.print("aaa\r\nbbb\r\nccc\r\nddd\r\neee\r\n");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["aaa", "bbb", "ccc", "ddd", "eee", ""],
+    );
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize shorter.
+    term.resize(TerminalSize {
+        rows: 3,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// Resize shorter then taller again — the boundary must survive the
+/// round-trip and still prevent old scrollback from appearing.
+#[test]
+fn test_clear_boundary_resize_shorter_then_taller() {
+    let mut term = TestTerm::new(4, 10, 20);
+    term.print("aaa\r\nbbb\r\nccc\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["aaa", "bbb", "ccc", ""]);
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Shrink.
+    term.resize(TerminalSize {
+        rows: 2,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Grow back taller than the original — old content must still not appear.
+    term.resize(TerminalSize {
+        rows: 8,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// After clearing, the user types new content on the cleared viewport.
+/// Resizing must preserve the new content and still not expose old scrollback.
+#[test]
+fn test_clear_boundary_new_content_after_clear_then_resize() {
+    let mut term = TestTerm::new(4, 10, 20);
+    term.print("old_stuff1\r\nold_stuff2\r\nold_stuff3\r\n");
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Type new content after the clear.
+    term.print("new");
+
+    // Resize taller — "new" should remain visible, old_stuff must not reappear.
+    term.resize(TerminalSize {
+        rows: 8,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    // First line should start with "new".
+    let first = visible[0].as_str();
+    assert!(
+        first.starts_with("new"),
+        "first line should start with 'new' but got: '{}'",
+        first.escape_default()
+    );
+    // No line should contain old_stuff.
+    for (i, l) in visible.iter().enumerate() {
+        let s = l.as_str();
+        assert!(
+            !s.contains("old"),
+            "line {} should not contain old content but has: '{}'",
+            i,
+            s.escape_default()
+        );
+    }
+}
+
+/// After Ctrl+L, the shell redraws a prompt on the boundary line.
+/// If the prompt is long enough to wrap when the terminal is resized narrower,
+/// the CLEAR_BOUNDARY flag must survive the rewrap so that a subsequent resize
+/// does not re-expose old scrollback content.  This is the scenario reported
+/// when SSHing: clear → prompt redrawn → resize left/right → old output shown.
+#[test]
+fn test_clear_boundary_prompt_on_boundary_line_resize_narrower() {
+    let mut term = TestTerm::new(4, 20, 30);
+    // Print enough lines to overflow the viewport and push content into scrollback.
+    for i in 0..10 {
+        term.print(format!("old_output_line_{:02}\r\n", i));
+    }
+
+    // Ctrl+L: cursor home + erase to end.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Shell redraws its prompt on the first (boundary) line.
+    term.print("user@host:~/project$");
+
+    // Resize narrower — the prompt wraps, which loses the boundary flag
+    // because Line::wrap() creates new Line objects without it.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    // The viewport should show the wrapped prompt, not old scrollback.
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    for (i, l) in visible.iter().enumerate() {
+        let s = l.as_str();
+        assert!(
+            !s.contains("old"),
+            "line {} should not contain old content but has: '{}'",
+            i,
+            s.escape_default()
+        );
+    }
+
+    // Resize back wider — old content must still not reappear.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    for (i, l) in visible.iter().enumerate() {
+        let s = l.as_str();
+        assert!(
+            !s.contains("old"),
+            "line {} should not contain old content after re-widen but has: '{}'",
+            i,
+            s.escape_default()
+        );
+    }
+
+    // Resize taller — old content must still not reappear.
+    term.resize(TerminalSize {
+        rows: 8,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    let screen = term.screen();
+    let visible = screen.visible_lines();
+    for (i, l) in visible.iter().enumerate() {
+        let s = l.as_str();
+        assert!(
+            !s.contains("old"),
+            "line {} should not contain old content after growing taller but has: '{}'",
+            i,
+            s.escape_default()
+        );
+    }
+}
+
+/// Multiple clears: clear → type → clear again → resize.
+/// The second boundary should be the one that protects the viewport.
+#[test]
+fn test_clear_boundary_double_clear_then_resize() {
+    let mut term = TestTerm::new(4, 10, 20);
+    term.print("first\r\n");
+
+    // First clear.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+
+    // Type something after the first clear.
+    term.print("second\r\n");
+
+    // Second clear.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize taller — neither "first" nor "second" should reappear.
+    term.resize(TerminalSize {
+        rows: 8,
+        cols: 10,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}
+
+/// Heavy scrollback: fill the terminal with enough output to push many lines
+/// into scrollback, then clear and resize.
+#[test]
+fn test_clear_boundary_heavy_scrollback_then_resize() {
+    let mut term = TestTerm::new(4, 10, 50);
+    // Generate 20 lines of output, which overflows the 4-row viewport
+    // into scrollback.
+    for i in 0..20 {
+        term.print(format!("line{:02}\r\n", i));
+    }
+
+    // Ctrl+L.
+    term.cup(0, 0);
+    term.erase_in_display(EraseInDisplay::EraseToEndOfDisplay);
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize wider.
+    term.resize(TerminalSize {
+        rows: 4,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+
+    // Resize taller.
+    term.resize(TerminalSize {
+        rows: 10,
+        cols: 20,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_viewport_is_blank(&term, file!(), line!());
+}

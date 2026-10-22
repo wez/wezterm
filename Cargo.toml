@@ -25,6 +25,7 @@ exclude = [
 
 [profile.release]
 opt-level = 3
+# strip = true
 # debug = 2
 
 [profile.dev]

@@ -46,6 +46,8 @@ struct TabInner {
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
     recency: Recency,
+    /// When true, keyboard input is mirrored to every pane in this tab
+    sync_input: bool,
 }
 
 /// A Tab is a container of Panes
@@ -706,6 +708,17 @@ impl Tab {
         self.inner.lock().set_active_idx(pane_index)
     }
 
+    /// Returns whether synchronized input is enabled for this tab.
+    /// When enabled, every keystroke is mirrored to all panes in the tab.
+    pub fn sync_input(&self) -> bool {
+        self.inner.lock().sync_input
+    }
+
+    /// Enable or disable synchronized input for this tab.
+    pub fn set_sync_input(&self, enabled: bool) {
+        self.inner.lock().sync_input = enabled;
+    }
+
     /// Assigns the root pane.
     /// This is suitable when creating a new tab and then assigning
     /// the initial pane
@@ -764,6 +777,7 @@ impl TabInner {
             zoomed: None,
             title: String::new(),
             recency: Recency::default(),
+            sync_input: false,
         }
     }
 
@@ -2524,5 +2538,92 @@ mod test {
     #[test]
     fn tab_is_send_and_sync() {
         assert!(is_send_and_sync::<Tab>());
+    }
+
+    #[test]
+    fn sync_input_defaults_to_off() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+        assert_eq!(tab.sync_input(), false);
+    }
+
+    #[test]
+    fn sync_input_toggle() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+
+        tab.set_sync_input(true);
+        assert_eq!(tab.sync_input(), true);
+
+        tab.set_sync_input(false);
+        assert_eq!(tab.sync_input(), false);
+    }
+
+    #[test]
+    fn sync_input_persists_across_splits() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+        let tab = Tab::new(&size);
+        tab.assign_pane(&FakePane::new(1, size));
+
+        tab.set_sync_input(true);
+
+        // Split the tab — sync_input should remain enabled
+        let split_size = tab
+            .compute_split_size(
+                0,
+                SplitRequest {
+                    direction: SplitDirection::Horizontal,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        tab.split_and_insert(
+            0,
+            SplitRequest {
+                direction: SplitDirection::Horizontal,
+                ..Default::default()
+            },
+            FakePane::new(2, split_size.second),
+        )
+        .unwrap();
+
+        assert_eq!(tab.sync_input(), true);
+        assert_eq!(tab.iter_panes().len(), 2);
+    }
+
+    #[test]
+    fn sync_input_independent_per_tab() {
+        let size = TerminalSize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 96,
+        };
+        let tab_a = Tab::new(&size);
+        let tab_b = Tab::new(&size);
+
+        tab_a.set_sync_input(true);
+
+        assert_eq!(tab_a.sync_input(), true);
+        assert_eq!(tab_b.sync_input(), false);
     }
 }

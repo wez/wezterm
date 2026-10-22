@@ -110,13 +110,96 @@ impl Screen {
         let mut logical_line: Option<Line> = None;
         let mut logical_cursor_x: Option<usize> = None;
         let mut adjusted_cursor = (cursor_x, cursor_y);
+        let old_physical_cols = self.physical_cols;
+
+        // Flush one completed logical line into `rewrapped`, computing the
+        // adjusted cursor position if the cursor lives in this logical line.
+        // This is a standalone closure so the same logic isn't duplicated at
+        // the clear-boundary branch and the normal end-of-logical-line branch.
+        let flush = |line: Line,
+                     logical_cursor_x: &mut Option<usize>,
+                     adjusted_cursor: &mut (usize, PhysRowIndex),
+                     rewrapped: &mut VecDeque<Line>| {
+            if let Some(x) = logical_cursor_x.take() {
+                let num_lines = x / physical_cols;
+                let last_x = x - (num_lines * physical_cols);
+                *adjusted_cursor = (last_x, rewrapped.len() + num_lines);
+
+                // Special case: if the cursor lands in column zero, we'll
+                // lose track of its logical association with the wrapped
+                // line and it won't resize with the line correctly.
+                // Put it back on the prior line. The cursor is now
+                // technically outside of the viewport width.
+                if adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
+                    if physical_cols < old_physical_cols {
+                        adjusted_cursor.0 = cursor_x;
+                    } else {
+                        adjusted_cursor.0 = physical_cols;
+                    }
+                    adjusted_cursor.1 -= 1;
+                }
+            }
+
+            let is_boundary = line.is_clear_boundary();
+            let first_idx = rewrapped.len();
+
+            if line.len() <= physical_cols {
+                rewrapped.push_back(line);
+            } else {
+                for l in line.wrap(physical_cols, seqno) {
+                    rewrapped.push_back(l);
+                }
+            }
+
+            // Line::wrap() creates new Line objects that do not inherit the
+            // CLEAR_BOUNDARY flag.  Re-apply it to the first resulting
+            // sub-line so that subsequent resizes can still locate the
+            // boundary and avoid re-exposing old scrollback content.
+            if is_boundary {
+                if let Some(first) = rewrapped.get_mut(first_idx) {
+                    first.set_clear_boundary(true, seqno);
+                }
+            }
+        };
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
             line.update_last_change_seqno(seqno);
             let was_wrapped = line.last_cell_was_wrapped();
+            let is_boundary = line.is_clear_boundary();
 
             if was_wrapped {
                 line.set_last_cell_was_wrapped(false, seqno);
+            }
+
+            // If this line is a clear boundary (set when the shell calls `clear`
+            // or Ctrl+L), we must NOT join it with any accumulated logical line.
+            // Flush the pending logical line first, then treat this line as a new
+            // logical start — preventing cleared scrollback from reappearing on resize.
+            if is_boundary {
+                if let Some(prior) = logical_line.take() {
+                    // `logical_cursor_x` belongs to the prior logical line
+                    flush(
+                        prior,
+                        &mut logical_cursor_x,
+                        &mut adjusted_cursor,
+                        &mut rewrapped,
+                    );
+                }
+                // The boundary line starts a new logical line.
+                if phys_idx == cursor_y {
+                    logical_cursor_x = Some(cursor_x);
+                }
+                if was_wrapped {
+                    logical_line = Some(line);
+                } else {
+                    flush(
+                        line,
+                        &mut logical_cursor_x,
+                        &mut adjusted_cursor,
+                        &mut rewrapped,
+                    );
+                }
+                continue;
             }
 
             let line = match logical_line.take() {
@@ -140,39 +223,24 @@ impl Screen {
                 continue;
             }
 
-            if let Some(x) = logical_cursor_x.take() {
-                let num_lines = x / physical_cols;
-                let last_x = x - (num_lines * physical_cols);
-                adjusted_cursor = (last_x, rewrapped.len() + num_lines);
-
-                // Special case: if the cursor lands in column zero, we'll
-                // lose track of its logical association with the wrapped
-                // line and it won't resize with the line correctly.
-                // Put it back on the prior line. The cursor is now
-                // technically outside of the viewport width.
-                if adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
-                    if physical_cols < self.physical_cols {
-                        // getting smaller: preserve its original position
-                        // on the prior line
-                        adjusted_cursor.0 = cursor_x;
-                    } else {
-                        // getting larger; we were most likely in column 1
-                        // or somewhere close. Jump to the end of the
-                        // prior line.
-                        adjusted_cursor.0 = physical_cols;
-                    }
-                    adjusted_cursor.1 -= 1;
-                }
-            }
-
-            if line.len() <= physical_cols {
-                rewrapped.push_back(line);
-            } else {
-                for line in line.wrap(physical_cols, seqno) {
-                    rewrapped.push_back(line);
-                }
-            }
+            flush(
+                line,
+                &mut logical_cursor_x,
+                &mut adjusted_cursor,
+                &mut rewrapped,
+            );
         }
+
+        // Flush any trailing logical line (e.g. the last line of scrollback was wrapped)
+        if let Some(line) = logical_line.take() {
+            flush(
+                line,
+                &mut logical_cursor_x,
+                &mut adjusted_cursor,
+                &mut rewrapped,
+            );
+        }
+
         self.lines = rewrapped;
 
         // If we resized narrower and generated additional lines,
@@ -216,8 +284,26 @@ impl Screen {
         // pre-prune blank lines that range from the cursor position to the end of the display;
         // this avoids growing the scrollback size when rapidly switching between normal and
         // maximized states.
+        //
+        // However, if a CLEAR_BOUNDARY line exists in the current viewport (set by Ctrl+L /
+        // CSI 2 J), we must not prune so aggressively that the viewport (at the NEW row count)
+        // shifts above the boundary — that would re-expose cleared scrollback content.
+        // We compute a minimum line count that keeps the boundary at the viewport top.
         let cursor_phys = self.phys_row(cursor.y);
+        let viewport_start = self.lines.len().saturating_sub(self.physical_rows);
+        let min_lines_for_boundary = (viewport_start..self.lines.len())
+            .find(|&i| {
+                self.lines
+                    .get(i)
+                    .map(|l| l.is_clear_boundary())
+                    .unwrap_or(false)
+            })
+            .map(|boundary_phys| boundary_phys + physical_rows)
+            .unwrap_or(0);
         for _ in cursor_phys + 1..self.lines.len() {
+            if self.lines.len() <= min_lines_for_boundary {
+                break;
+            }
             if self.lines.back().map(Line::is_whitespace).unwrap_or(false) {
                 self.lines.pop_back();
             }
@@ -263,7 +349,7 @@ impl Screen {
             self.lines.push_back(Line::new(seqno));
         }
 
-        let new_cursor_y;
+        let mut new_cursor_y;
 
         // true if a resize operation should consider rows that have
         // made it to scrollback as being immutable.
@@ -313,6 +399,34 @@ impl Screen {
             // computes its new VisibleRowIndex given the new viewport size.
             new_cursor_y = cursor_y as VisibleRowIndex
                 - (self.lines.len() as VisibleRowIndex - physical_rows as VisibleRowIndex);
+        }
+
+        // If a CLEAR_BOUNDARY exists in the line buffer, the viewport must not
+        // scroll above it — otherwise a resize (especially making the pane taller)
+        // would re-expose old scrollback content that was cleared with Ctrl+L.
+        // Pad blank lines at the bottom so that viewport_start >= boundary_index.
+        if self.allow_scrollback {
+            let viewport_start = self.lines.len().saturating_sub(physical_rows);
+            // Scan backwards for the most recent CLEAR_BOUNDARY (highest index).
+            if let Some(boundary_idx) = (0..self.lines.len()).rev().find(|&i| {
+                self.lines
+                    .get(i)
+                    .map(|l| l.is_clear_boundary())
+                    .unwrap_or(false)
+            }) {
+                if viewport_start < boundary_idx {
+                    let pad = boundary_idx - viewport_start;
+                    for _ in 0..pad {
+                        self.lines.push_back(Line::new(seqno));
+                    }
+                    // Recalculate cursor Y since we changed lines.len()
+                    if !resize_preserves_scrollback {
+                        new_cursor_y = cursor_y as VisibleRowIndex
+                            - (self.lines.len() as VisibleRowIndex
+                                - physical_rows as VisibleRowIndex);
+                    }
+                }
+            }
         }
 
         self.physical_rows = physical_rows;

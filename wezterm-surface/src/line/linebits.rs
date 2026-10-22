@@ -49,5 +49,10 @@ bitflags! {
         /// Otherwise, the auto-detect direction is used, falling back
         /// to the direction specified by the RTL bit.
         const AUTO_DETECT_DIRECTION = 1<<8;
+
+        /// Marks the first visible line after a full-screen clear (e.g. Ctrl+L / `clear`).
+        /// During terminal resize, `rewrap_lines` will not join wrapped lines across this
+        /// boundary, preventing previously cleared content from reappearing after a resize.
+        const CLEAR_BOUNDARY = 1<<9;
     }
 }

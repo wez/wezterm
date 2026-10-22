@@ -5,6 +5,7 @@ use ::window::{
 use anyhow::Context;
 use config::keyassignment::{KeyAssignment, KeyTableEntry};
 use mux::pane::{Pane, PerformAssignmentResult};
+use mux::Mux;
 use smol::Timer;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -205,6 +206,81 @@ impl super::TermWindow {
             Some(key.encode_kitty(flags))
         } else {
             None
+        }
+    }
+
+    /// When synchronized input is enabled for the active tab, mirror the key event
+    /// to every pane in that tab except the one that already received it.
+    /// Each pane is encoded individually so that per-pane keyboard protocols
+    /// (win32, kitty) are respected.  Errors from individual panes are logged and
+    /// swallowed so a malfunctioning pane never disrupts the primary input path.
+    fn sync_input_to_other_panes(&mut self, active_pane: &Arc<dyn Pane>, window_key: &KeyEvent) {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+        if !tab.sync_input() {
+            return;
+        }
+        let active_id = active_pane.pane_id();
+        // Collect into a Vec to release the tab/mux lock before we call &mut self methods.
+        let other_panes: Vec<Arc<dyn Pane>> = tab
+            .iter_panes_ignoring_zoom()
+            .into_iter()
+            .filter(|p| p.pane.pane_id() != active_id)
+            .map(|p| p.pane)
+            .collect();
+        drop(tab);
+        drop(mux);
+
+        // Decode the key once outside the loop — same result for every pane.
+        let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
+
+        for other in other_panes {
+            // Do not forward into panes that have an overlay (copy mode, search, etc.)
+            // to avoid corrupting their state.
+            if self.pane_state(other.pane_id()).overlay.is_some() {
+                continue;
+            }
+            match &key {
+                Key::Code(key_code) => {
+                    let res = if let Some(encoded) = self.encode_win32_input(&other, window_key) {
+                        other
+                            .writer()
+                            .write_all(encoded.as_bytes())
+                            .context("sync: win32-input-mode")
+                    } else if let Some(encoded) = self.encode_kitty_input(&other, window_key) {
+                        other
+                            .writer()
+                            .write_all(encoded.as_bytes())
+                            .context("sync: kitty encoded")
+                    } else if window_key.key_is_down {
+                        other
+                            .key_down(*key_code, window_key.modifiers)
+                            .context("sync: key_down")
+                    } else {
+                        other
+                            .key_up(*key_code, window_key.modifiers)
+                            .context("sync: key_up")
+                    };
+                    if let Err(err) = res {
+                        log::warn!("sync_input pane {}: {:#}", other.pane_id(), err);
+                    } else if window_key.key_is_down && !key_code.is_modifier() {
+                        self.maybe_scroll_to_bottom_for_input(&other);
+                    }
+                }
+                Key::Composed(s) => {
+                    if window_key.key_is_down {
+                        if let Err(err) = other.writer().write_all(s.as_bytes()) {
+                            log::warn!("sync_input pane {} composed: {:#}", other.pane_id(), err);
+                        } else {
+                            self.maybe_scroll_to_bottom_for_input(&other);
+                        }
+                    }
+                }
+                Key::None => {}
+            }
         }
     }
 
@@ -717,6 +793,11 @@ impl super::TermWindow {
                     }
                     if !key.is_modifier() {
                         context.invalidate();
+                        // Mirror to other panes only when no overlay is active on
+                        // the source pane, matching the same guard used above.
+                        if self.pane_state(pane.pane_id()).overlay.is_none() {
+                            self.sync_input_to_other_panes(&pane, &window_key);
+                        }
                     }
                 }
             }
@@ -739,6 +820,7 @@ impl super::TermWindow {
                     log::error!("failed to send composed text to pane: {err:#}");
                 }
                 self.maybe_scroll_to_bottom_for_input(&pane);
+                self.sync_input_to_other_panes(&pane, &window_key);
                 context.invalidate();
             }
             Key::None => {}
