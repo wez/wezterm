@@ -141,8 +141,7 @@ This setup sends the text of the commands directly into the active pane which ha
 - When a shell is not detected (see the `is_shell` function), WezTerm falls back to a long shell command, which may clutter the prompt slightly. This happens because WezTerm cannot directly determine a file's MIME type when not connected to a local shell.
 
 If you're using [tmux](https://github.com/tmux/tmux), you'll need to enable the
-hyperlinks terminal feature and, depending in your configuration
-(see [bypass mouse reporting modifiers](../config/lua/config/bypass_mouse_reporting_modifiers.md)), add `Shift` when clicking an hyperlink.
+hyperlinks terminal feature.
 
 ```tmux
 set -sa terminal-features ",*:hyperlinks"

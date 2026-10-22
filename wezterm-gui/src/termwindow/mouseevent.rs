@@ -843,6 +843,9 @@ impl super::TermWindow {
             CursorIcon::Text
         }));
 
+        // Flag to track if we should open a hyperlink after normal event processing
+        let mut should_open_hyperlink = false;
+
         let event_trigger_type = match &event.kind {
             WMEK::Press(press) => {
                 let press = mouse_press_to_tmb(press);
@@ -938,6 +941,91 @@ impl super::TermWindow {
                     self.scroll_to_bottom(&pane);
                 }
 
+                // Allow opening hyperlinks by clicking on them.
+                // We use the ORIGINAL event modifiers for the lookup to find the
+                // user's binding for hyperlinks. Using event.modifiers (not the
+                // modified `modifiers` variable) is important because in bypass mode
+                // the bypass_mouse_reporting_modifiers have been removed from
+                // `modifiers`, but the user's binding uses the full modifier set.
+                // In normal mode, event.modifiers == modifiers, so this works too.
+                let mut should_skip_action = false;
+                if self.current_highlight.is_some() {
+                    let hyperlink_check_mods = config::MouseEventTriggerMods {
+                        mods: event.modifiers,
+                        mouse_reporting: false,
+                        alt_screen: if pane.is_alt_screen_active() {
+                            MouseEventAltScreen::True
+                        } else {
+                            MouseEventAltScreen::False
+                        },
+                    };
+
+                    // For Down and Drag events, skip the action when clicking on a
+                    // hyperlink to prevent starting/extending a selection. We use
+                    // streak: 1 for the lookup to handle double/triple clicks
+                    // consistently. Drag events must also be skipped because slight
+                    // mouse movement during a click generates Drag events that would
+                    // otherwise extend the selection.
+                    if let MouseEventTrigger::Down { button, .. }
+                    | MouseEventTrigger::Drag { button, .. } = &event_trigger_type
+                    {
+                        let up_trigger = MouseEventTrigger::Up {
+                            streak: 1,
+                            button: button.clone(),
+                        };
+                        if let Some(action) =
+                            self.input_map.lookup_mouse(up_trigger, hyperlink_check_mods.clone())
+                        {
+                            use config::keyassignment::KeyAssignment::*;
+                            if matches!(action, OpenLinkAtMouseCursor | CompleteSelectionOrOpenLinkAtMouseCursor(_)) {
+                                should_skip_action = true;
+                            }
+                        }
+                    }
+
+                    // For Up events, handle hyperlink-opening actions specially.
+                    // In mouse reporting mode with bypass_mouse_reporting_modifiers,
+                    // the modifier (e.g., SHIFT) is removed from `modifiers`, so the
+                    // normal action lookup won't find the binding. We need to look up
+                    // using the original event.modifiers and handle the action here.
+                    // We use streak: 1 for the lookup to handle double/triple clicks
+                    // consistently - any click on a hyperlink should open it.
+                    if let MouseEventTrigger::Up { button, .. } = &event_trigger_type {
+                        let normalized_trigger = MouseEventTrigger::Up {
+                            streak: 1,
+                            button: button.clone(),
+                        };
+                        if let Some(action) =
+                            self.input_map.lookup_mouse(normalized_trigger, hyperlink_check_mods)
+                        {
+                            use config::keyassignment::KeyAssignment::*;
+                            // Check if there was a click (Down event before this Up).
+                            // We don't require exact position match because slight mouse
+                            // movement during a click is normal human behavior.
+                            let is_click = self.last_mouse_click.is_some();
+
+                            match &action {
+                                OpenLinkAtMouseCursor if is_click => {
+                                    // Mark that we should open the hyperlink after normal
+                                    // event processing completes. This ensures the Release
+                                    // event is properly sent to the terminal in mouse
+                                    // reporting mode.
+                                    should_open_hyperlink = true;
+                                }
+                                CompleteSelectionOrOpenLinkAtMouseCursor(_) if is_click => {
+                                    // Run the action directly. In bypass mode, the terminal
+                                    // doesn't see these events anyway, so we don't need to
+                                    // send the Release first.
+                                    self.perform_key_assignment(&pane, &action).ok();
+                                    context.invalidate();
+                                    return;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+
                 // normalize delta and streak to make mouse assignment
                 // easier to wrangle
                 match event_trigger_type {
@@ -981,9 +1069,16 @@ impl super::TermWindow {
                     },
                 };
 
-                if let Some(action) = self.input_map.lookup_mouse(event_trigger_type, mouse_mods) {
-                    self.perform_key_assignment(&pane, &action).ok();
-                    return;
+                // Skip the normal action lookup if:
+                // - should_open_hyperlink: we'll handle OpenLinkAtMouseCursor after
+                //   the Release event is processed
+                // - should_skip_action: this is a Down event and the Up will open a
+                //   hyperlink, so we don't want to start a selection
+                if !should_open_hyperlink && !should_skip_action {
+                    if let Some(action) = self.input_map.lookup_mouse(event_trigger_type, mouse_mods) {
+                        self.perform_key_assignment(&pane, &action).ok();
+                        return;
+                    }
                 }
             }
         }
@@ -1040,6 +1135,13 @@ impl super::TermWindow {
             _ => {
                 context.invalidate();
             }
+        }
+
+        // Open hyperlink after normal event processing completes.
+        // This ensures the Release event is properly sent to the terminal
+        // in mouse reporting mode before we open the link.
+        if should_open_hyperlink {
+            self.do_open_link_at_mouse_cursor(&pane);
         }
     }
 }
