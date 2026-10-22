@@ -121,6 +121,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch --no-tags https://github.com/CoderTCY/wezterm.git "$PATCH_SHA"
+          # Retain both sides of additive changelog entries. This rule lives
+          # only in runner-local Git metadata; source conflicts still fail.
+          printf '\ndocs/changelog.md merge=union\n' >> "$(git rev-parse --git-path info/attributes)"
           if git merge-base --is-ancestor "$PATCH_SHA" HEAD; then
             echo 'The IME patch is already included in upstream/main.'
           else
@@ -232,10 +235,17 @@ jobs:
           set -euo pipefail
           sha256sum --check WezTerm-nightly-setup.exe.sha256 WezTerm-windows-nightly.zip.sha256
           tag=ime-nightly
+          # Draft releases do not create their Git tag until publication.
+          tag_sha="$(gh api "repos/$GH_REPO/git/matching-refs/tags/$tag" --jq '.[] | select(.ref == "refs/tags/ime-nightly") | .object.sha')"
+          if [[ -z "$tag_sha" ]]; then
+            gh api --method POST "repos/$GH_REPO/git/refs" \
+              -f ref="refs/tags/$tag" -f sha="$FORK_MAIN_SHA"
+          fi
           existing="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[] | select(.tag_name == "ime-nightly") | .id')"
           if [[ -z "$existing" ]]; then
             gh release create "$tag" --target "$FORK_MAIN_SHA" \
-              --title 'WezTerm IME Nightly (Windows x64)' --draft --prerelease
+              --title 'WezTerm IME Nightly (Windows x64)' \
+              --notes 'Windows packages are being uploaded.' --draft --prerelease
           fi
           gh release upload "$tag" --clobber \
             WezTerm-nightly-setup.exe WezTerm-windows-nightly.zip \
