@@ -1061,18 +1061,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-text"
-version = "21.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a593227b66cbd4007b2a050dfdd9e1d1318311409c8d600dc82ba1b15ca9c130"
-dependencies = [
- "core-foundation 0.10.0",
- "core-graphics 0.24.0",
- "foreign-types 0.5.0",
- "libc",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3929,7 +3917,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a180dd8642fa45cdb7dd721cd4c11b1cadd4929ce112ebd8b9f5803cc79d536"
 dependencies = [
  "bitflags 2.13.1",
+ "block2",
  "dispatch2",
+ "libc",
  "objc2",
 ]
 
@@ -3957,6 +3947,20 @@ checksum = "ca347214e24bc973fc025fd0d36ebb179ff30536ed1f80252706db19ee452009"
 dependencies = [
  "objc2",
  "objc2-foundation",
+]
+
+[[package]]
+name = "objc2-core-text"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cde0dfb48d25d2b4862161a4d5fcc0e3c24367869ad306b0c9ec0073bfed92d"
+dependencies = [
+ "bitflags 2.13.1",
+ "block2",
+ "libc",
+ "objc2",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
 ]
 
 [[package]]
@@ -7069,10 +7073,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cairo-rs",
- "cocoa",
  "config",
- "core-foundation 0.10.0",
- "core-text",
  "dwrote",
  "encoding_rs",
  "enum-display-derive",
@@ -7089,7 +7090,8 @@ dependencies = [
  "log",
  "memmap2 0.9.11",
  "metrics",
- "objc",
+ "objc2-core-foundation",
+ "objc2-core-text",
  "ordered-float 4.6.0",
  "rangeset",
  "termwiz",

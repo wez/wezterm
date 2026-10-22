@@ -1,17 +1,15 @@
 #![cfg(target_os = "macos")]
-#![allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
-use cocoa::base::id;
 use config::{FontAttributes, FontStretch, FontStyle, FontWeight};
-use core_foundation::array::CFArray;
-use core_foundation::base::{CFRange, TCFType};
-use core_foundation::dictionary::CFDictionary;
-use core_foundation::string::{CFString, CFStringRef};
-use core_text::font::*;
-use core_text::font_descriptor::*;
-use objc::*;
+use objc2_core_foundation::{
+    kCFPreferencesCurrentApplication, CFArray, CFDictionary, CFPreferencesCopyAppValue, CFRange,
+    CFRetained, CFString, CFURL,
+};
+use objc2_core_text::{
+    kCTFontFamilyNameAttribute, kCTFontURLAttribute, CTFont, CTFontCollection, CTFontDescriptor,
+};
 use rangeset::RangeSet;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -20,40 +18,24 @@ lazy_static::lazy_static! {
     static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
 }
 
-#[link(name = "CoreText", kind = "framework")]
-extern "C" {
-    fn CTFontCreateForString(
-        currentFont: CTFontRef,
-        string: CFStringRef,
-        range: CFRange,
-    ) -> CTFontRef;
-}
-
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
 pub struct CoreTextFontLocator {}
 
-fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontDescriptor>> {
-    let family_name = attr
-        .family
-        .parse::<CFString>()
-        .map_err(|_| anyhow::anyhow!("failed to parse family name {} as CFString", attr.family))?;
+fn descriptor_from_attr(
+    attr: &FontAttributes,
+) -> anyhow::Result<CFRetained<CFArray<CTFontDescriptor>>> {
+    let family_name = CFString::from_str(&attr.family);
 
-    let family_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontFamilyNameAttribute) };
+    let family_attr = unsafe { kCTFontFamilyNameAttribute };
 
-    let attributes = CFDictionary::from_CFType_pairs(&[(family_attr, family_name.as_CFType())]);
-    let desc = core_text::font_descriptor::new_from_attributes(&attributes);
+    let attributes = CFDictionary::from_slices(&[family_attr], &[&*family_name]);
+    let desc = unsafe { CTFontDescriptor::with_attributes(attributes.as_opaque()) };
 
-    let array = unsafe {
-        core_text::font_descriptor::CTFontDescriptorCreateMatchingFontDescriptors(
-            desc.as_concrete_TypeRef(),
-            std::ptr::null(),
-        )
-    };
-    if array.is_null() {
-        anyhow::bail!("no font matches {:?}", attr);
-    } else {
-        Ok(unsafe { CFArray::wrap_under_get_rule(array) })
+    let array = unsafe { desc.matching_font_descriptors(None) };
+    match array {
+        Some(array) => Ok(unsafe { CFRetained::cast_unchecked(array) }),
+        None => anyhow::bail!("no font matches {:?}", attr),
     }
 }
 
@@ -65,7 +47,10 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontD
 /// the descriptor is referencing.
 fn handles_from_descriptor(descriptor: &CTFontDescriptor) -> Vec<ParsedFont> {
     let mut result = vec![];
-    if let Some(path) = descriptor.font_path() {
+    let path = unsafe { descriptor.attribute(kCTFontURLAttribute) }
+        .and_then(|url| url.downcast::<CFURL>().ok())
+        .and_then(|url| url.to_file_path());
+    if let Some(path) = path {
         let source = FontDataSource::OnDisk(path);
         let _ =
             crate::parser::parse_and_collect_font_info(&source, &mut result, FontOrigin::CoreText);
@@ -129,28 +114,17 @@ impl FontLocator for CoreTextFontLocator {
         let mut matches = vec![];
 
         let menlo =
-            new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+            unsafe { CTFont::with_name(&CFString::from_str("Menlo"), 0.0, std::ptr::null()) };
 
         for &c in codepoints {
             let mut wanted = RangeSet::new();
             wanted.add(c as u32);
-            let text = CFString::new(&c.to_string());
+            let text = CFString::from_str(&c.to_string());
 
-            let font = unsafe {
-                CTFontCreateForString(
-                    menlo.as_concrete_TypeRef(),
-                    text.as_concrete_TypeRef(),
-                    CFRange::init(0, 1),
-                )
-            };
+            let font = unsafe { menlo.for_string(&text, CFRange::new(0, 1)) };
 
-            if font.is_null() {
-                continue;
-            }
-
-            let font = unsafe { CTFont::wrap_under_create_rule(font) };
-
-            let candidates = handles_from_descriptor(&font.copy_descriptor());
+            let font_desc = unsafe { font.font_descriptor() };
+            let candidates = handles_from_descriptor(&font_desc);
 
             let mut matched_any = false;
 
@@ -228,8 +202,10 @@ impl FontLocator for CoreTextFontLocator {
     fn enumerate_all_fonts(&self) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
-        let collection = core_text::font_collection::create_for_all_families();
-        if let Some(descriptors) = collection.get_descriptors() {
+        let collection = unsafe { CTFontCollection::from_available_fonts(None) };
+        if let Some(descriptors) = unsafe { collection.matching_font_descriptors() } {
+            let descriptors =
+                unsafe { CFRetained::cast_unchecked::<CFArray<CTFontDescriptor>>(descriptors) };
             for descriptor in descriptors.iter() {
                 fonts.append(&mut handles_from_descriptor(&descriptor));
             }
@@ -249,26 +225,24 @@ fn build_fallback_list() -> Vec<ParsedFont> {
 }
 
 fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
-    let menlo =
-        new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+    let menlo = unsafe { CTFont::with_name(&CFString::from_str("Menlo"), 0.0, std::ptr::null()) };
 
-    let user_defaults: id = unsafe { msg_send![class!(NSUserDefaults), standardUserDefaults] };
+    let key = CFString::from_str("AppleLanguages");
+    let langs = CFPreferencesCopyAppValue(&key, unsafe { kCFPreferencesCurrentApplication })
+        .and_then(|langs| langs.downcast::<CFArray>().ok());
 
-    let apple_lang = "AppleLanguages"
-        .parse::<CFString>()
-        .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
-
-    let langs: CFArray<CFString> =
-        unsafe { msg_send![user_defaults, stringArrayForKey:apple_lang] };
-
-    let cascade = cascade_list_for_languages(&menlo, &langs);
+    let cascade = unsafe { menlo.default_cascade_list_for_languages(langs.as_deref()) };
     let mut fonts = vec![];
     // Explicitly include Menlo itself, as it appears to be the only
     // font on macOS that contains U+2718.
     // <https://github.com/wezterm/wezterm/issues/849>
-    fonts.append(&mut handles_from_descriptor(&menlo.copy_descriptor()));
-    for descriptor in &cascade {
-        fonts.append(&mut handles_from_descriptor(&descriptor));
+    let menlo_desc = unsafe { menlo.font_descriptor() };
+    fonts.append(&mut handles_from_descriptor(&menlo_desc));
+    if let Some(cascade) = cascade {
+        let cascade = unsafe { CFRetained::cast_unchecked::<CFArray<CTFontDescriptor>>(cascade) };
+        for descriptor in cascade.iter() {
+            fonts.append(&mut handles_from_descriptor(&descriptor));
+        }
     }
     // Some of the fallback fonts are special fonts that don't exist on
     // disk, and that we can't open.

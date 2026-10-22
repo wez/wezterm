@@ -48,10 +48,8 @@ dwrote.workspace = true
 winapi.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa.workspace = true
-core-foundation.workspace = true
-core-text.workspace = true
-objc.workspace = true
+objc2-core-foundation.workspace = true
+objc2-core-text.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true
