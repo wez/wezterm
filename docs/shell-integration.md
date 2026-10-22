@@ -23,6 +23,18 @@ or `.zshrc`, or you can install it at `/etc/profile.d` on most unix systems.
 
 Xonsh is supported via a [term-integrations](https://github.com/jnoortheen/xontrib-term-integrations) plugin.
 
+If you use PowerShell, you can add the following lines to your
+[powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1).
+If you also use [Starship](https://starship.rs/), make sure to add these _after_ Starship's init:
+
+```powershell
+. /path/to/wezterm.ps1
+Enable-Wezterm-Integration
+```
+
+Have a look at the bottom of the `wezterm.ps1` script if you want to enable/disable
+specific shell integration features.
+
 Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
 Starting with version 20230320.124340.559cb7b0, the Arch Linux package
@@ -109,43 +121,6 @@ span multiple lines:
 ```lua
 config.set_environment_variables = {
   prompt = '$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m ',
-}
-```
-
-## OSC 7 on Windows with powershell
-
-You can configure a custom prompt in powershell by creating/editing your
-[powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1)
-and defining a function like this:
-
-```powershell
-function prompt {
-    $p = $executionContext.SessionState.Path.CurrentLocation
-    $osc7 = ""
-    if ($p.Provider.Name -eq "FileSystem") {
-        $ansi_escape = [char]27
-        $provider_path = $p.ProviderPath -Replace "\\", "/"
-        $osc7 = "$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}${ansi_escape}\"
-    }
-    "${osc7}PS $p$('>' * ($nestedPromptLevel + 1)) ";
-}
-```
-
-## OSC 7 on Windows with powershell (with starship)
-
-When using [Starship](https://starship.rs/), since it has taken control of the prompt, hooking in to set
-OSC 7 can be achieved this way instead:
-
-```powershell
-$prompt = ""
-function Invoke-Starship-PreCommand {
-    $current_location = $executionContext.SessionState.Path.CurrentLocation
-    if ($current_location.Provider.Name -eq "FileSystem") {
-        $ansi_escape = [char]27
-        $provider_path = $current_location.ProviderPath -replace "\\", "/"
-        $prompt = "$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}$ansi_escape\"
-    }
-    $host.ui.Write($prompt)
 }
 ```
 
