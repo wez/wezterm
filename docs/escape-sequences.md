@@ -126,9 +126,23 @@ action.
 |ESC 8  | [DECRC](https://vt100.net/docs/vt510-rm/DECRC.html)  | Restored Saved Cursor Position | Moves cursor to location it had when DECSC was used |
 |ESC =  | [DECPAM](https://vt100.net/docs/vt510-rm/DECPAM.html) | Application Keypad  | Enable Application Keypad Mode |
 |ESC >  | [DECPNM](https://vt100.net/docs/vt510-rm/DECPNM.html) | Normal Keypad       | Set Normal Keypad Mode |
-|ESC (0 |        | DEC Line Drawing character set | Translate characters `j-x` to line drawing glyphs |
-|ESC (B |        | US ASCII character set | Disables DEC Line Drawing character translation |
+|ESC (0 |        | DEC Line Drawing character set (G0) | Translate characters `j-x` to line drawing glyphs |
+|ESC (B |        | US ASCII character set (G0) | Disables DEC Line Drawing character translation |
+|ESC (A |        | UK character set (G0) | Select the UK national character set for G0 |
+|ESC )0 |        | DEC Line Drawing character set (G1) | Designate DEC line drawing to the G1 set |
+|ESC )B |        | US ASCII character set (G1) | Designate US ASCII to the G1 set |
+|ESC )A |        | UK character set (G1) | Designate the UK national character set to the G1 set |
+|ESC #3 | [DECDHL](https://vt100.net/docs/vt510-rm/DECDHL.html) | Double-Height Line, top half | Marks the current line as the top half of a double-height line |
+|ESC #4 | [DECDHL](https://vt100.net/docs/vt510-rm/DECDHL.html) | Double-Height Line, bottom half | Marks the current line as the bottom half of a double-height line |
+|ESC #5 | [DECSWL](https://vt100.net/docs/vt510-rm/DECSWL.html) | Single-Width Line | Marks the current line as single-width (the default) |
+|ESC #6 | [DECDWL](https://vt100.net/docs/vt510-rm/DECDWL.html) | Double-Width Line | Marks the current line as double-width |
 |ESC #8 | [DECALN](https://vt100.net/docs/vt510-rm/DECALN.html) | Screen Alignment Display | Fills the display with `E` characters for diagnostic/test purposes (for vttest) |
+|ESC k  |        | Set window title (tmux/screen) | Accumulates a title string until `ST`, then applies it as the window title |
+
+A few other `ESC` codes are recognized by the parser but have no effect:
+`ESC F` (cursor to lower left), `ESC 6` (DECBI, Back Index), `ESC N`/`ESC O`
+(SS2/SS3 single shifts), `ESC Z` (DECID), `ESC V`/`ESC W` (SPA/EPA), and
+`ESC X`/`ESC ^`/`ESC _` (SOS/PM/APC).
 
 ### CSI - Control Sequence Introducer Sequences
 
@@ -345,18 +359,183 @@ CSI 58 : 6 : : R : G : B : A m
 
 #### Cursor Movement
 
+These sequences have the form `CSI Ps X`, where the parameter `Ps` defaults to
+`1` when it is omitted.  Movement is constrained by the current top/bottom and
+left/right margins.
+
+|Seq|Name|Action|
+|---|----|------|
+|CSI Ps A|[CUU](https://vt100.net/docs/vt510-rm/CUU.html)|Move the cursor up `Ps` rows; stops at the top margin|
+|CSI Ps B|[CUD](https://vt100.net/docs/vt510-rm/CUD.html)|Move the cursor down `Ps` rows; stops at the bottom margin|
+|CSI Ps C|[CUF](https://vt100.net/docs/vt510-rm/CUF.html)|Move the cursor right `Ps` columns; stops at the right margin|
+|CSI Ps D|[CUB](https://vt100.net/docs/vt510-rm/CUB.html)|Move the cursor left `Ps` columns.  Implemented as `Ps` Backspaces to match xterm (see [#1273](https://github.com/wezterm/wezterm/issues/1273))|
+|CSI Ps E|[CNL](https://vt100.net/docs/vt510-rm/CNL.html)|Move down `Ps` lines and to the left margin|
+|CSI Ps F|[CPL](https://vt100.net/docs/vt510-rm/CPL.html)|Move up `Ps` lines and to the left margin|
+|CSI Ps G|[CHA](https://vt100.net/docs/vt510-rm/CHA.html)|Move to column `Ps` on the current line|
+|CSI Ps ; Ps H|[CUP](https://vt100.net/docs/vt510-rm/CUP.html)|Move to the given line;column, honoring origin mode|
+|CSI Ps ; Ps f|[HVP](https://vt100.net/docs/vt510-rm/HVP.html)|Horizontal and Vertical Position; identical to CUP|
+|CSI Ps I|[CHT](https://vt100.net/docs/vt510-rm/CHT.html)|Advance the cursor to the `Ps`-th following tab stop|
+|CSI Ps Z|[CBT](https://vt100.net/docs/vt510-rm/CBT.html)|Move the cursor back to the `Ps`-th preceding tab stop|
+|CSI Ps &#96;|[HPA](https://vt100.net/docs/vt510-rm/HPA.html)|Move to absolute column position `Ps` (the final byte is a backtick)|
+|CSI Ps a|[HPR](https://vt100.net/docs/vt510-rm/HPR.html)|Move the cursor right `Ps` columns (relative)|
+|CSI Ps j|HPB|Move the cursor left `Ps` columns (relative)|
+|CSI Ps d|[VPA](https://vt100.net/docs/vt510-rm/VPA.html)|Move to absolute line position `Ps`; the column is unchanged|
+|CSI Ps e|[VPR](https://vt100.net/docs/vt510-rm/VPR.html)|Move the cursor down `Ps` lines (relative)|
+|CSI Ps k|VPB|Move the cursor up `Ps` lines (relative)|
+|CSI Ps g|[TBC](https://vt100.net/docs/vt510-rm/TBC.html)|Clear tab stops: `0` (default) clears the stop at the cursor column, `3` clears all tab stops|
+|CSI Ps W|CTC|Cursor Tabulation Control; recognized but has no effect|
+|CSI Ps Y|CVT|Cursor Line Tabulation; recognized but has no effect|
+|CSI 6 n|[CPR](https://vt100.net/docs/vt510-rm/CPR.html)|Cursor Position Report (DSR 6); replies with the cursor position as `CSI line ; col R`, honoring origin mode|
+|CSI Pt ; Pb r|[DECSTBM](https://vt100.net/docs/vt510-rm/DECSTBM.html)|Set the top and bottom margins (the vertical scrolling region) and home the cursor|
+|CSI Pl ; Pr s|[DECSLRM](https://vt100.net/docs/vt510-rm/DECSLRM.html)|Set the left and right margins **when DECLRMM (private mode 69) is enabled**; otherwise the `s` byte is SCP, below|
+|CSI s|SCP / DECSLRM|Save the cursor position and pen (like [DECSC](https://vt100.net/docs/vt510-rm/DECSC.html)); or act as DECSLRM when DECLRMM is enabled|
+|CSI u|RCP|Restore the cursor position and pen saved by SCP (like [DECRC](https://vt100.net/docs/vt510-rm/DECRC.html))|
+|CSI Ps SP q|[DECSCUSR](https://vt100.net/docs/vt510-rm/DECSCUSR.html)|Set the cursor style (`SP` is a literal space): `0`/`1` blinking block, `2` steady block, `3` blinking underline, `4` steady underline, `5` blinking bar, `6` steady bar|
+
 #### Editing Functions
 
+These sequences have the form `CSI Ps X`, where the parameter `Ps` defaults to
+`1` when it is omitted.
+
+|Seq|Name|Action|
+|---|----|------|
+|CSI Ps @|[ICH](https://vt100.net/docs/vt510-rm/ICH.html)|Insert `Ps` blank cells at the cursor; existing cells shift right and any past the right margin are lost|
+|CSI Ps P|[DCH](https://vt100.net/docs/vt510-rm/DCH.html)|Delete `Ps` characters at the cursor; the rest of the line shifts left within the margins|
+|CSI Ps X|[ECH](https://vt100.net/docs/vt510-rm/ECH.html)|Erase (blank) `Ps` cells starting at the cursor; the cursor does not move|
+|CSI Ps L|[IL](https://vt100.net/docs/vt510-rm/IL.html)|Insert `Ps` blank lines at the cursor row within the scrolling region|
+|CSI Ps M|[DL](https://vt100.net/docs/vt510-rm/DL.html)|Delete `Ps` lines at the cursor row within the scrolling region|
+|CSI Ps K|[EL](https://vt100.net/docs/vt510-rm/EL.html)|Erase in line: `0` cursor to end of line, `1` start of line to cursor, `2` the whole line|
+|CSI Ps J|[ED](https://vt100.net/docs/vt510-rm/ED.html)|Erase in display: `0` cursor to end, `1` start to cursor, `2` the whole display, `3` the scrollback (xterm extension)|
+|CSI Ps S|[SU](https://vt100.net/docs/vt510-rm/SU.html)|Scroll the scrolling region up `Ps` lines|
+|CSI Ps T|[SD](https://vt100.net/docs/vt510-rm/SD.html)|Scroll the scrolling region down `Ps` lines|
+|CSI Ps b|REP|Repeat the preceding printed character `Ps` times|
+
 #### Mode Functions
+
+Modes are enabled with Set Mode (`CSI Ps h`) and disabled with Reset Mode
+(`CSI Ps l`).  The DEC private modes below use the `?` prefix form: DECSET
+(`CSI ? Ps h`) and DECRST (`CSI ? Ps l`).  The current state of a mode can be
+queried with DECRQM (`CSI Ps $ p`, or `CSI ? Ps $ p` for private modes), which
+replies with a DECRPM report of the form `CSI ? Ps ; Pstate $ y`.
+
+ANSI modes (`CSI Ps h` / `CSI Ps l`):
+
+|Code|Name|Action|
+|----|----|------|
+|2|KAM|Keyboard Action Mode; recognized but has no effect|
+|4|IRM|Insert/Replace Mode; when set, printed cells are inserted rather than overwriting|
+|8|—|Enable or disable bidirectional text support|
+|12|SRM|Send/Receive (local echo); recognized but has no effect|
+|20|LNM|Automatic Newline; when set, `LF`, `VT` and `FF` also perform a carriage return|
+|25|—|Show or hide the cursor (a Microsoft terminal variant of DECTCEM)|
+
+DEC private modes (`CSI ? Ps h` / `CSI ? Ps l`):
+
+|Code|Name|Action|
+|----|----|------|
+|1|DECCKM|Application cursor keys|
+|2|DECANM|Select VT52 (reset) or ANSI (set) behavior|
+|3|DECCOLM|132-column mode is not supported; either value resets the margins, homes the cursor and erases the display|
+|4|DECSCLM|Smooth scroll; recognized but has no effect|
+|5|DECSCNM|Reverse video across the whole screen|
+|6|DECOM|Origin mode; cursor addressing becomes relative to the scrolling region|
+|7|DECAWM|Auto-wrap mode|
+|8|DECARM|Auto-repeat; recognized but has no effect|
+|12|att610|Start blinking cursor; recognized but has no effect|
+|25|DECTCEM|Show or hide the cursor|
+|45|—|Reverse-wraparound mode (see the Backspace `C0` control above)|
+|47|—|Switch to the alternate screen (without clearing it or saving the cursor)|
+|69|DECLRMM|Left/right margin mode; enables DECSLRM|
+|80|DECSDM|Sixel display mode|
+|1036|—|`metaSendsEscape`; recognized but has no effect|
+|1039|—|`altSendsEscape`; recognized but has no effect|
+|1047|—|Switch to the alternate screen; resetting it first erases the alternate screen|
+|1048|—|Save (set) or restore (reset) the cursor, like DECSC / DECRC|
+|1049|—|Save the cursor and switch to a cleared alternate screen; reverse this on reset|
+|1070|—|Use private color registers for each sixel/ReGIS graphic|
+|2004|—|Bracketed paste mode; pasted text is bracketed with `CSI 200 ~` and `CSI 201 ~`|
+|2026|—|Synchronized output; see the note below|
+|2027|—|Grapheme clustering; permanently enabled (DECRQM reports it as permanently set)|
+|7727|—|minTTY application-escape-key mode; recognized but has no effect|
+|8452|—|Position the cursor to the right of a sixel graphic after drawing it|
+|9001|—|Win32 input mode (Windows Terminal)|
 
 {{since('20210814-124438-54e29167')}}
 
 WezTerm supports [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036).
 DECSET 2026 is set to batch (hold) rendering until DECSET 2026 is reset to flush the queued screen data.
 
+Related notes:
+
+* `CSI ? Ps s` / `CSI ? Ps r` (save/restore a DEC private mode) are recognized
+  but not implemented.
+* XTMODKEYS (`CSI > Ps ; Ps m`) is accepted, but only resource `4`
+  (`modifyOtherKeys`) has an effect.
+* The mouse-tracking private modes are documented separately under
+  [Mouse Functions](#mouse-functions), below.
+
+#### Mouse Functions
+
+These DEC private modes (set with `CSI ? Ps h`, reset with `CSI ? Ps l`) control
+mouse and focus reporting.  The *tracking* modes select which events are
+reported and the *encoding* modes select how the coordinates are encoded; the
+two groups are independent and combine.
+
+Mouse tracking modes:
+
+|Code|Name|Action|
+|----|----|------|
+|1000|Normal tracking|Report mouse button press and release|
+|1001|Highlight tracking|Recognized but has no effect|
+|1002|Button-event tracking|Report press/release plus motion while a button is held (drag)|
+|1003|Any-event tracking|Report all pointer motion, with buttons up or down|
+|1004|Focus tracking|Report window focus changes as `CSI I` (focus in) / `CSI O` (focus out)|
+
+Mouse encoding modes:
+
+|Code|Name|Action|
+|----|----|------|
+|1005|UTF-8|Encode the coordinates as UTF-8, extending their range beyond the default byte encoding|
+|1006|SGR|Report events as `CSI < b ; x ; y M` (press/motion) and `CSI < b ; x ; y m` (release), in character cells|
+|1016|SGR-Pixels|As SGR, but the coordinates are reported in pixels rather than cells|
+
+With no encoding mode set, WezTerm uses the default X10 encoding
+(`CSI M Cb Cx Cy`); resetting an encoding mode returns to X10.  There is
+deliberately no urxvt (mode 1015) encoding.
+
 #### Device Functions
 
+|Seq|Name|Action|
+|---|----|------|
+|CSI c|[DA1](https://vt100.net/docs/vt510-rm/DA1.html)|Primary Device Attributes; replies `CSI ? 65 ; 4 ; 6 ; 18 ; 22 ; 52 c` (VT500 with sixel, selective erase, windowing extensions, ANSI color and clipboard access)|
+|CSI > c|[DA2](https://vt100.net/docs/vt510-rm/DA2.html)|Secondary Device Attributes; replies `CSI > 1 ; 277 ; 0 c` (VT220 class; firmware `277` advertises SGR mouse)|
+|CSI = c|[DA3](https://vt100.net/docs/vt510-rm/DA3.html)|Tertiary Device Attributes; replies `DCS ! | 00000000 ST`|
+|CSI 5 n|[DSR](https://vt100.net/docs/vt510-rm/DSR-OS.html)|Device Status Report; replies `CSI 0 n` (terminal OK)|
+|CSI ! p|[DECSTR](https://vt100.net/docs/vt510-rm/DECSTR.html)|Soft terminal reset: resets the pen, insert mode, origin mode, margins, saved cursors, character sets and related state without erasing the screen|
+|CSI > q|XTVERSION|Report the terminal name and version; replies `DCS > | <program> <version> ST`|
+|CSI Ps x|DECREQTPARM|Request Terminal Parameters; replies `CSI <Ps+2> ; 1 ; 1 ; 128 ; 128 ; 1 ; 0 x`|
+|CSI ? Pi ; Pa ; Pv S|XTSMGRAPHICS|Query/reset the number of color registers (item `1` → 65536) and the sixel/ReGIS geometry (items `2` and `3` → the pixel dimensions); replies `CSI ? ... S`|
+
+The Cursor Position Report request (`CSI 6 n`) is listed under
+[Cursor Movement](#cursor-movement), above.
+
 #### Window Functions
+
+Window manipulation (XTWINOPS) uses `CSI Ps ; Ps ; Ps t`.  WezTerm answers the
+reporting variants and ignores the ones that would let an application move,
+resize, raise or lower the window.
+
+|Seq|Name|Action|
+|---|----|------|
+|CSI 14 t|Report text area size (pixels)|Replies `CSI 4 ; height ; width t`|
+|CSI 16 t|Report cell size (pixels)|Replies `CSI 6 ; height ; width t`|
+|CSI 18 t|Report text area size (cells)|Replies `CSI 8 ; rows ; cols t`|
+|CSI 21 t|Report window title|Replies with the title via OSC `l`; gated on `enable_title_reporting` (disabled by default)|
+|CSI 1 t / CSI 2 t|De-iconify / iconify|Recognized but has no effect|
+|CSI 8 ; h ; w t|Resize in cells|Ignored; applications are not permitted to resize the window|
+|CSI 22 ; Ps t / CSI 23 ; Ps t|Push / pop title stack|Recognized but not implemented|
+|CSI 3/4/5/6/7/9/10/11/13/15/19/20 ... t|Move / resize / raise / lower / report window|Recognized but not implemented|
+|CSI Pid ; Pt ; Pl ; Pb ; Pr * y|DECRQCRA|Checksum of a rectangular area; replies `DCS Pid ! ~ <hex> ST`.  Gated on `enable_checksum_rectangular_area` (used by esctest).  Note the `* y` final bytes|
 
 ### DCS - Device Control String
 
@@ -370,7 +549,11 @@ In the table below, `DCS` can be either the 7-bit representation (`ESC P`) or th
 |DCS $ q r ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSTBM](https://vt100.net/docs/vt510-rm/DECSTBM.html) | Request top and bottom margin report; Reports the margins |
 |DCS $ q s ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSLRM](https://vt100.net/docs/vt510-rm/DECSLRM.html) | Request left and right margin report; Reports the margins |
 |DCS \[PARAMS\] q \[DATA\] ST | Sixel Graphic Data | Decodes [Sixel graphic data](https://vt100.net/docs/vt3xx-gp/chapter14.html) and apply the image to the terminal model. Support is preliminary and incomplete; see [this issue](https://github.com/wezterm/wezterm/issues/217) for status. |
-|DCS 1000 q | tmux control mode | Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see [this issue](https://github.com/wezterm/wezterm/issues/336) for status. |
+|DCS + q \[NAMES\] ST | XTGETTCAP | Request Termcap/Terminfo String. Replies with the hex-encoded value for each hex-encoded capability name. `TN`/`name` reports the terminal program, `Co`/`colors` reports `256`, `RGB` reports `8/8/8`; other names are looked up in the terminfo database. Unknown names get an invalid `DCS 0 + r ... ST` reply. |
+|DCS 1000 p | tmux control mode | Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see [this issue](https://github.com/wezterm/wezterm/issues/336) for status. |
+
+A DECRQSS (`DCS $ q ... ST`) request for anything other than the three settings
+listed above is answered with the invalid reply `DCS 0 $ r ST`.
 
 ### Operating System Command Sequences
 
@@ -393,14 +576,36 @@ The table below is keyed by the OSC code.
 |7  |Set Current Working Directory | [See Shell Integration](shell-integration.md#osc-7-escape-sequence-to-set-the-working-directory) ||
 |8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.md#explicit-hyperlinks) | |
 |9  |iTerm2 Show System Notification | Show a "toast" notification | `printf "\e]9;%s\e\\" "hello there"` |
+|9;4 |ConEmu Progress | Reports task progress to the tab/window (percentage, error, indeterminate or none) | `printf "\e]9;4;1;50\e\\"` |
 |10 |Set Default Text Foreground Color| | `\x1b]10;#ff0000\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]10;rgba(127,127,127,0.4)\x07"` |
 |11 |Set Default Text Background Color| | `\x1b]11;#0000ff\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]11;rgba:efff/ecff/f4ff/d000\x07"` |
 |12 |Set Text Cursor Color| | `\x1b]12;#00ff00\x1b\\`.<br/> Also supports RGBA in nightly builds. |
+|13 |Set Mouse Pointer Foreground Color | Recognized but has no effect | |
+|14 |Set Mouse Pointer Background Color | Recognized but has no effect | |
+|15 |Set Tektronix Foreground Color | Recognized but has no effect | |
+|16 |Set Tektronix Background Color | Recognized but has no effect | |
+|17 |Set Selection Background Color | Sets the background color used for selected text | `\x1b]17;#cccccc\x1b\\` |
+|18 |Set Tektronix Cursor Color | Recognized but has no effect | |
+|19 |Set Selection Foreground Color | Sets the foreground color used for selected text | `\x1b]19;#000000\x1b\\` |
+|46 |Set Log File Name | Ignored | |
+|50 |Set Font | Ignored | |
+|51 |Emacs Shell | Ignored | |
 |52 |Manipulate clipboard | Requests to query the clipboard are ignored. Allows setting or clearing the clipboard | |
 |104|ResetColors | Reset color palette entries to their default values | |
+|105|Reset Special Color | Ignored | |
+|110|Reset Default Text Foreground Color | Reset the default text foreground color to the configured value | |
+|111|Reset Default Text Background Color | Reset the default text background color to the configured value | |
+|112|Reset Text Cursor Color | Reset the text cursor color to the configured value | |
+|113|Reset Mouse Pointer Foreground Color | Recognized but has no effect | |
+|114|Reset Mouse Pointer Background Color | Recognized but has no effect | |
+|115|Reset Tektronix Foreground Color | Recognized but has no effect | |
+|116|Reset Tektronix Background Color | Recognized but has no effect | |
+|117|Reset Selection Background Color | Reset the selection background color | |
+|118|Reset Tektronix Cursor Color | Recognized but has no effect | |
+|119|Reset Selection Foreground Color | Reset the selection foreground color | |
 |133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.md) |
 |777|Call rxvt extension| Only the notify extension is supported; it shows a "toast" notification | `printf "\e]777;notify;%s;%s\e\\" "title" "body"` |
-|1337 |iTerm2 File Upload Protocol | Allows displaying images inline | [See iTerm Image Protocol](imgcat.md) |
+|1337 |iTerm2 proprietary escapes | `File=` displays images inline; `SetUserVar=NAME=BASE64` sets a user var (exposed to the config/Lua as a user var); `UnicodeVersion=` sets, pushes or pops the active Unicode width version; `RequestCellSize` replies with the per-cell pixel size. Other iTerm2 subcommands are parsed but ignored. | [See iTerm Image Protocol](imgcat.md) |
 |L  |Set Icon Name (Sun) | Same as OSC 1 | `\x1b]Ltab-title\x1b\\` |
 |l  |Set Window Title (Sun) | Same as OSC 2 | `\x1b]lwindow-title\x1b\\` |
 
