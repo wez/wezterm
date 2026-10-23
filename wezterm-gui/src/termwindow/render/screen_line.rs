@@ -21,7 +21,7 @@ use wezterm_term::CellAttributes;
 
 /// Keep the caret within the pane, covering whole graphemes for block and
 /// underline shapes. A trailing bar stays on the preedit background; other
-/// shapes use a blank cell after the text, or the last grapheme at the pane edge.
+/// shapes use the following cell, or the last grapheme at the pane edge.
 fn composition_caret_quad(
     start_column: usize,
     text: &str,
@@ -189,8 +189,6 @@ impl crate::TermWindow {
                 .min(composition_caret_pixels.start);
             cursor_range_pixels.end = cursor_range_pixels.end.max(composition_caret_pixels.end);
         }
-        let composition_text_end =
-            params.left_pixel_x + (params.cursor.x + composition_width) as f32 * cell_width;
 
         let mut shaped = None;
         let mut invalidate_on_hover_change = false;
@@ -796,14 +794,6 @@ impl crate::TermWindow {
                             let is_cursor = cursor_range_pixels.contains(&range.start);
                             let selected =
                                 !is_cursor && selection_pixel_range.contains(&range.start);
-                            // The caret may reserve a blank cell after the
-                            // preedit. Do not expose the underlying terminal text.
-                            if composition_cursor.is_some()
-                                && is_cursor
-                                && range.start >= composition_text_end
-                            {
-                                continue;
-                            }
 
                             let computed_colors;
                             let colors = if is_cursor && composition_cursor.is_some() {
@@ -1173,7 +1163,7 @@ mod tests {
     }
 
     #[test]
-    fn trailing_block_uses_blank_cell_or_last_grapheme_at_pane_edge() {
+    fn trailing_caret_uses_following_cell_or_last_grapheme_at_pane_edge() {
         for shape in [CursorShape::SteadyBlock, CursorShape::SteadyUnderline] {
             assert_eq!(
                 composition_caret_quad(3, "你好", 6, shape, 10., 200.),
