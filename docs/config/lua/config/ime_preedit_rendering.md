@@ -25,8 +25,12 @@ WezTerm supports the following IME preedit rendering.
 
   The caret uses the resolved composition foreground color, not
   `colors.compose_cursor`. Block carets fill with that foreground color and
-  draw the covered preedit text in the resolved composition background color.
+  draw the covered text in the resolved composition background color.
   Bar and underline carets leave the preedit text colors unchanged.
+
+  At the end of the preedit, block and underline carets use the following
+  terminal cell when there is room. Any terminal text in that cell remains
+  visible; it is not replaced with a blank cell.
 
 * `"System"` - IME preedit is rendered by system
 
