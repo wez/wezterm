@@ -634,7 +634,7 @@ impl Tab {
     /// iter_splits() as PositionedSplit::index, revised the split position
     /// by the provided delta; positive values move the split to the right/bottom,
     /// and negative values to the left/top.
-    /// The adjusted size is propogated downwards to contained children and
+    /// The adjusted size is propagated downwards to contained children and
     /// their panes are resized accordingly.
     pub fn resize_split_by(&self, split_index: usize, delta: isize) {
         self.inner.lock().resize_split_by(split_index, delta)

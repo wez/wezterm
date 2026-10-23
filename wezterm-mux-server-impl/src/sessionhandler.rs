@@ -42,6 +42,7 @@ pub(crate) struct PerPane {
     working_dir: Option<Url>,
     dimensions: RenderableDimensions,
     mouse_grabbed: bool,
+    alt_screen_active: bool,
     sent_initial_palette: bool,
     seqno: SequenceNo,
     config_generation: usize,
@@ -57,6 +58,11 @@ impl PerPane {
         let mut changed = false;
         let mouse_grabbed = pane.is_mouse_grabbed();
         if mouse_grabbed != self.mouse_grabbed {
+            changed = true;
+        }
+
+        let alt_screen_active = pane.is_alt_screen_active();
+        if alt_screen_active != self.alt_screen_active {
             changed = true;
         }
 
@@ -126,11 +132,13 @@ impl PerPane {
         self.working_dir = working_dir.clone();
         self.dimensions = dims;
         self.mouse_grabbed = mouse_grabbed;
+        self.alt_screen_active = alt_screen_active;
 
         let bonus_lines = bonus_lines.into();
         Some(GetPaneRenderChangesResponse {
             pane_id: pane.pane_id(),
             mouse_grabbed,
+            alt_screen_active,
             dirty_lines: all_dirty_lines.iter().cloned().collect(),
             dimensions: dims,
             cursor_position,

@@ -1219,6 +1219,8 @@ impl Display for KittyImage {
 #[cfg(test)]
 mod test {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
     use k9::assert_equal as assert_eq;
 
     #[test]

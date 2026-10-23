@@ -166,6 +166,10 @@ As features stabilize some brief notes about them will accumulate here.
   [#8229](https://github.com/wezterm/wezterm/issues/8229)
 * Windows: Explicitly declare the `window` crate's Shell API dependency,
   fixing standalone builds and tests that previously relied on feature unification.
+* Multiplexer: the mouse wheel was not mapped to cursor up/down keys in the
+  alternate screen for panes in a `wezterm connect` domain, because the client
+  always reported the alternate screen as inactive. The server now advises the
+  client of the alternate screen state. #4922
 * macOS: Fix window border when opacity<1 and shadow enabled.
   Thanks to @Adams-Galaxy! #8038 #5158
 * perf: Terminal images were hashed three times each on the transmit path; the sha256

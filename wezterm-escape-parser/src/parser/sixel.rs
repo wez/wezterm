@@ -193,6 +193,8 @@ mod test {
     use crate::parser::Parser;
     use crate::{Action, Esc, EscCode};
     use alloc::boxed::Box;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
     use k9::assert_equal as assert_eq;
 
     #[test]

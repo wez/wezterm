@@ -171,6 +171,8 @@ impl Display for Esc {
 #[cfg(test)]
 mod test {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
     use alloc::string::String;
 
     fn encode(osc: &Esc) -> String {

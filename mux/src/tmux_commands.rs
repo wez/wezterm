@@ -506,7 +506,7 @@ impl TmuxDomainState {
                 }
             };
 
-            // For new window, we wait for nature ouput instead of capturing
+            // For new window, we wait for natural output instead of capturing
             if !new_window {
                 for p in local_tab.panes.iter() {
                     self.cmd_queue.lock().push_back(Box::new(CapturePane {

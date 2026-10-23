@@ -477,12 +477,15 @@ rustup default {toolchain}
         return steps
 
     def test_all(self):
-        run = "cargo nextest run --all --no-fail-fast"
+        target = ""
         if "macos" in self.name:
-            run += " --target=x86_64-apple-darwin"
+            target = " --target=x86_64-apple-darwin"
+        prefix = ""
         if self.name == "centos7":
-            run = "source /opt/rh/devtoolset-9/enable\n" + run
-        return [
+            prefix = "source /opt/rh/devtoolset-9/enable\n"
+        run = prefix + "cargo nextest run --all --no-fail-fast" + target
+        run_no_std = prefix + "cargo nextest run -p wezterm-escape-parser" + target
+        steps = [
             # Install cargo-nextest
             InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
@@ -490,6 +493,11 @@ rustup default {toolchain}
             if "win" in self.name
             else RunStep(name="Test", run=run),
         ]
+        if "win" not in self.name:
+            steps += [
+                RunStep(name="Test wezterm-escape-parser (no_std)", run=run_no_std)
+            ]
+        return steps
 
     def package(self, trusted=False):
         steps = []
