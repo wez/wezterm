@@ -160,6 +160,16 @@ As features stabilize some brief notes about them will accumulate here.
   `CTRL-u` to kill back to the start of the line. Thanks to @bew! #8013
 
 #### Fixed
+* Windows: Builtin IME preedit rendering now shows the composition caret,
+  including caret-only movement and a bar caret at the end of the preedit.
+  The caret follows the terminal cursor's shape and blinking, using preedit
+  foreground/background colors to keep it distinct from the preedit highlight.
+  Block and underline carets only cover preedit graphemes, not the terminal
+  cell after the preedit or a preceding grapheme at the pane edge.
+  Fixes missing caret tracking with Microsoft Pinyin.
+  [#8229](https://github.com/wezterm/wezterm/issues/8229)
+* Windows: Explicitly declare the `window` crate's Shell API dependency,
+  fixing standalone builds and tests that previously relied on feature unification.
 * Multiplexer: the mouse wheel was not mapped to cursor up/down keys in the
   alternate screen for panes in a `wezterm connect` domain, because the client
   always reported the alternate screen as inactive. The server now advises the

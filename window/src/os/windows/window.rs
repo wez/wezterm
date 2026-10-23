@@ -54,6 +54,7 @@ use winreg::RegKey;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
+const GCS_CURSORPOS: DWORD = 0x80;
 const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
 
 #[allow(non_snake_case)]
@@ -2053,6 +2054,12 @@ impl ImmContext {
             ImmSetCompositionWindow(self.imc, &mut cf);
         }
     }
+    pub fn get_cursor_pos(&self, composing: &str) -> Option<usize> {
+        // Unlike GCS_COMPSTR, GCS_CURSORPOS returns the position directly,
+        // measured in UTF-16 code units, rather than writing to a buffer.
+        let cursor = unsafe { ImmGetCompositionStringW(self.imc, GCS_CURSORPOS, null_mut(), 0) };
+        composition_cursor_byte_offset(composing, cursor)
+    }
 
     pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
         // This returns a size in bytes even though it is for a buffer of u16!
@@ -2074,6 +2081,52 @@ impl ImmContext {
             Ok(String::new())
         }
     }
+}
+
+fn composition_cursor_byte_offset(composing: &str, cursor: LONG) -> Option<usize> {
+    // Negative values are IMM errors, not positions. Clamp to a character
+    // boundary if an IME reports a position inside a surrogate pair.
+    let mut remaining: usize = cursor.try_into().ok()?;
+    for (offset, c) in composing.char_indices() {
+        if remaining < c.len_utf16() {
+            return Some(offset);
+        }
+        remaining -= c.len_utf16();
+    }
+    Some(composing.len())
+}
+
+#[test]
+fn ime_cursor_moves_within_unchanged_preedit() {
+    // Arrow keys can move the caret without changing GCS_COMPSTR.
+    let text = "zhongguo";
+    for cursor in 0..=text.len() {
+        assert_eq!(
+            composition_cursor_byte_offset(text, cursor as LONG),
+            Some(cursor)
+        );
+    }
+}
+
+#[test]
+fn ime_cursor_uses_utf16_positions() {
+    // CJK, surrogate pairs and combining marks must retain their UTF-8
+    // boundaries, so the renderer can measure the text before the caret.
+    let text = "a中😀e\u{301}";
+    assert_eq!(composition_cursor_byte_offset(text, 1), Some(1));
+    assert_eq!(composition_cursor_byte_offset(text, 2), Some(4));
+    assert_eq!(composition_cursor_byte_offset(text, 4), Some(8));
+    assert_eq!(composition_cursor_byte_offset(text, 5), Some(9));
+    assert_eq!(composition_cursor_byte_offset(text, 6), Some(text.len()));
+}
+
+#[test]
+fn ime_cursor_handles_missing_and_out_of_range_positions() {
+    assert_eq!(composition_cursor_byte_offset("text", -1), None);
+    assert_eq!(composition_cursor_byte_offset("text", -2), None);
+    assert_eq!(composition_cursor_byte_offset("", 0), Some(0));
+    assert_eq!(composition_cursor_byte_offset("😀", 1), Some(0));
+    assert_eq!(composition_cursor_byte_offset("中", 10), Some(3));
 }
 
 impl Drop for ImmContext {
@@ -2154,14 +2207,16 @@ unsafe fn ime_composition(
     }
 
     if lparam & GCS_RESULTSTR == 0 {
-        // No finished result; continue with the default
-        // processing
+        // Read both values even for cursor-only updates, where GCS_COMPSTR
+        // is not set in lparam but the current composition is still available.
         if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
+            let cursor = imc.get_cursor_pos(&composing);
             inner
                 .events
-                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
-                    composing,
-                )));
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing {
+                    text: composing,
+                    cursor,
+                }));
         }
         // We will show the composing string ourselves.
         // Suppress the default composition display.
@@ -2786,7 +2841,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 if inner.config.use_dead_keys {
                     inner.dead_pending.replace((modifiers, vk));
                     inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                        DeadKeyStatus::Composing(c.to_string()),
+                        DeadKeyStatus::Composing {
+                            text: c.to_string(),
+                            cursor: None,
+                        },
                     ));
                     return Some(0);
                 }

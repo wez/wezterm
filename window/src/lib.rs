@@ -141,9 +141,14 @@ pub enum WindowKeyEvent {
 pub enum DeadKeyStatus {
     /// Not in a dead key processing hold
     None,
-    /// Holding until composition is done; the string is the uncommitted
-    /// composition text to show as a placeholder
-    Composing(String),
+    /// Holding until composition is done.
+    Composing {
+        /// Uncommitted composition text to show as a placeholder.
+        text: String,
+        /// Composition caret as a UTF-8 byte offset into `text`, on a character
+        /// boundary. None when the input source does not supply a caret.
+        cursor: Option<usize>,
+    },
 }
 
 #[derive(Debug)]

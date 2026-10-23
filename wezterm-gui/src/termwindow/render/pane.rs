@@ -397,8 +397,8 @@ impl crate::TermWindow {
                                 cursor_is_default_color: self.cursor_is_default_color,
                             }),
                             match (self.pos.is_active, &self.term_window.dead_key_status) {
-                                (true, DeadKeyStatus::Composing(composing)) => {
-                                    Some(composing.to_string())
+                                (true, DeadKeyStatus::Composing { text, cursor }) => {
+                                    Some((text.clone(), *cursor))
                                 }
                                 _ => None,
                             },
@@ -430,7 +430,7 @@ impl crate::TermWindow {
                         config_generation: self.term_window.config.generation(),
                         shape_generation: self.term_window.shape_generation,
                         quad_generation: self.term_window.quad_generation,
-                        composing: composing.clone(),
+                        composing,
                         selection: selrange.clone(),
                         cursor,
                         shape_hash,
@@ -473,17 +473,11 @@ impl crate::TermWindow {
                     let shape_key = LineToEleShapeCacheKey {
                         shape_hash,
                         shape_generation: quad_key.shape_generation,
-                        composing: if self.cursor.y == stable_row && self.pos.is_active {
-                            if let DeadKeyStatus::Composing(composing) =
-                                &self.term_window.dead_key_status
-                            {
-                                Some((self.cursor.x, composing.to_string()))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        },
+                        // Moving the composition caret does not change text shaping.
+                        composing: quad_key
+                            .composing
+                            .as_ref()
+                            .map(|(text, _)| (self.cursor.x, text.clone())),
                     };
 
                     let render_result = self

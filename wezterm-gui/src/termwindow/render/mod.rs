@@ -58,8 +58,9 @@ pub struct LineQuadCacheKey {
     pub config_generation: usize,
     pub shape_generation: usize,
     pub quad_generation: usize,
-    /// Only set if cursor.y == stable_row
-    pub composing: Option<String>,
+    /// Only set if cursor.y == stable_row; includes the composition caret so
+    /// that cursor-only IME updates invalidate the rendered quads.
+    pub composing: Option<(String, Option<usize>)>,
     pub selection: Range<usize>,
     pub shape_hash: [u8; 16],
     pub top_pixel_y: NotNan<f32>,

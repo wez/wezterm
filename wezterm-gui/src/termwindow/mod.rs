@@ -996,6 +996,9 @@ impl TermWindow {
                 } else {
                     log::trace!("DeadKeyStatus now: {:?}", status);
                 }
+                if self.dead_key_status != status {
+                    self.prev_cursor.bump();
+                }
                 self.dead_key_status = status;
                 self.update_title();
                 // Ensure that we repaint so that any composing

@@ -323,9 +323,10 @@ impl KeyboardWithFallback {
                         "process_key_event: RawKeyEvent FeedResult::Composing: {:?}",
                         composition
                     );
-                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
-                        composition,
-                    )));
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing {
+                        text: composition,
+                        cursor: None,
+                    }));
                     return None;
                 }
                 FeedResult::Composed(utf8, sym) => {

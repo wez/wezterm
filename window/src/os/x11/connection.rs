@@ -892,7 +892,7 @@ impl XConnection {
                         let mut inner = window.lock().unwrap();
 
                         let text = info.text();
-                        let status = DeadKeyStatus::Composing(text);
+                        let status = DeadKeyStatus::Composing { text, cursor: None };
                         inner.dispatch_ime_compose_status(status);
                     }
                 });

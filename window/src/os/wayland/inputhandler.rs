@@ -190,7 +190,7 @@ impl Dispatch<ZwpTextInputV3, TextInputData, WaylandState> for TextInputState {
                     }));
                 }
                 let status = if let Some(text) = pending_state.pre_edit.take() {
-                    DeadKeyStatus::Composing(text)
+                    DeadKeyStatus::Composing { text, cursor: None }
                 } else {
                     DeadKeyStatus::None
                 };
