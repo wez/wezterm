@@ -8,37 +8,57 @@ use crate::termwindow::LineToElementShapeItem;
 use ::window::DeadKeyStatus;
 use anyhow::Context;
 use config::{HsbTransform, TextStyle};
+use finl_unicode::grapheme_clusters::Graphemes;
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::Instant;
-use termwiz::cell::{unicode_column_width, Blink};
+use termwiz::cell::{grapheme_column_width, unicode_column_width, Blink};
 use termwiz::color::LinearRgba;
 use termwiz::surface::CursorShape;
 use wezterm_bidi::Direction;
 use wezterm_term::color::ColorAttribute;
 use wezterm_term::CellAttributes;
 
-/// Position a caret quad within the pane. At the end of the preedit, the
-/// bar is right-aligned so it stays on the composition background.
+/// Keep the caret within the pane, covering whole graphemes for block and
+/// underline shapes. A trailing bar stays on the preedit background; other
+/// shapes use a blank cell after the text, or the last grapheme at the pane edge.
 fn composition_caret_quad(
     start_column: usize,
-    cursor_column: usize,
-    composition_width: usize,
+    text: &str,
+    cursor: usize,
+    shape: CursorShape,
     cell_width: f32,
     pixel_width: f32,
 ) -> Option<(Range<f32>, bool)> {
-    let x = (start_column + cursor_column) as f32 * cell_width;
-    if x > pixel_width {
+    text.get(..cursor)?;
+    let is_bar = matches!(shape, CursorShape::BlinkingBar | CursorShape::SteadyBar);
+    let mut column = 0;
+    let mut byte_offset = 0;
+    let mut width = 1;
+    let mut last_width = 1;
+    for grapheme in Graphemes::new(text) {
+        let grapheme_width = grapheme_column_width(grapheme, None);
+        if cursor < byte_offset + grapheme.len() {
+            width = grapheme_width.max(1);
+            break;
+        }
+        column += grapheme_width;
+        byte_offset += grapheme.len();
+        last_width = grapheme_width.max(1);
+    }
+    let x = (start_column + column) as f32 * cell_width;
+    if x > pixel_width || pixel_width <= 0. {
         return None;
     }
-    let right_aligned =
-        (composition_width > 0 && cursor_column == composition_width) || x == pixel_width;
+    let right_aligned = is_bar && ((column > 0 && cursor == text.len()) || x == pixel_width);
     let range = if right_aligned {
         x - cell_width..x
+    } else if x == pixel_width {
+        x - last_width as f32 * cell_width..x
     } else {
-        x..x + cell_width
+        x..(x + if is_bar { 1 } else { width } as f32 * cell_width).min(pixel_width)
     };
-    Some((range, right_aligned))
+    Some((range.start.max(0.)..range.end, right_aligned))
 }
 
 impl crate::TermWindow {
@@ -119,15 +139,37 @@ impl crate::TermWindow {
             composition_width = unicode_column_width(text, None);
         }
         let composition_cursor = composing
-            .and_then(|(text, cursor)| cursor.and_then(|cursor| text.get(..cursor)))
-            .map(|prefix| unicode_column_width(prefix, None));
+            .and_then(|(text, cursor)| cursor.map(|cursor| (text, cursor)))
+            .filter(|(text, cursor)| text.is_char_boundary(*cursor));
+        let composition_cursor_shape = composition_cursor.map(|_| {
+            params
+                .config
+                .default_cursor_style
+                .effective_shape(params.cursor.shape)
+        });
+        let composition_caret = composition_cursor.and_then(|(text, cursor)| {
+            composition_caret_quad(
+                params.cursor.x,
+                text,
+                cursor,
+                composition_cursor_shape.unwrap(),
+                cell_width,
+                params.pixel_width,
+            )
+        });
+        let composition_is_block = matches!(
+            composition_cursor_shape,
+            Some(CursorShape::Default | CursorShape::BlinkingBlock | CursorShape::SteadyBlock)
+        );
         let cursor_cell = if params.stable_line_idx == Some(params.cursor.y) {
             params.line.get_cell(params.cursor.x)
         } else {
             None
         };
 
-        let cursor_range = if composition_width > 0 {
+        let cursor_range = if composition_cursor.is_some() {
+            params.cursor.x..params.cursor.x + composition_width.max(1)
+        } else if composition_width > 0 {
             params.cursor.x..params.cursor.x + composition_width
         } else if params.stable_line_idx == Some(params.cursor.y) {
             params.cursor.x..params.cursor.x + cursor_cell.as_ref().map(|c| c.width()).unwrap_or(1)
@@ -135,8 +177,20 @@ impl crate::TermWindow {
             0..0
         };
 
-        let cursor_range_pixels = params.left_pixel_x + cursor_range.start as f32 * cell_width
+        let mut cursor_range_pixels = params.left_pixel_x + cursor_range.start as f32 * cell_width
             ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
+        let composition_caret_pixels = composition_caret
+            .as_ref()
+            .map(|(range, _)| params.left_pixel_x + range.start..params.left_pixel_x + range.end)
+            .unwrap_or(0.0..0.0);
+        if composition_caret.is_some() {
+            cursor_range_pixels.start = cursor_range_pixels
+                .start
+                .min(composition_caret_pixels.start);
+            cursor_range_pixels.end = cursor_range_pixels.end.max(composition_caret_pixels.end);
+        }
+        let composition_text_end =
+            params.left_pixel_x + (params.cursor.x + composition_width) as f32 * cell_width;
 
         let mut shaped = None;
         let mut invalidate_on_hover_change = false;
@@ -365,6 +419,38 @@ impl crate::TermWindow {
             None
         };
 
+        // Use the terminal's blink phase, but keep an IME caret visible even
+        // when the application has hidden its own cursor.
+        let composition_cursor_mix = if composition_caret.is_some()
+            && composition_cursor_shape.unwrap().is_blinking()
+            && params.config.cursor_blink_rate != 0
+            && self.focused.is_some()
+        {
+            let mut ease = self.cursor_blink_state.borrow_mut();
+            ease.update_start(self.prev_cursor.last_cursor_movement());
+            let (mix, next) = ease.intensity_continuous();
+            self.update_next_frame_time(Some(next));
+            mix
+        } else {
+            0.
+        };
+        // Resolve the visual-bell background before using it as the foreground
+        // of a glyph underneath a block caret.
+        let composition_background = cursor_colors
+            .as_ref()
+            .filter(|_| composition_caret.is_some() && composition_is_block)
+            .map(|colors| {
+                let bg = colors.bg_color;
+                let alt = colors.bg_color_alt;
+                let mix = colors.bg_color_mix;
+                LinearRgba(
+                    bg.0 + (alt.0 - bg.0) * mix,
+                    bg.1 + (alt.1 - bg.1) * mix,
+                    bg.2 + (alt.2 - bg.2) * mix,
+                    bg.3 + (alt.3 - bg.3) * mix,
+                )
+            });
+
         // Render composition/IME preview background
         if composition_width > 0 || composition_cursor.is_some() {
             let compose_bg = if composition_cursor.is_some() {
@@ -378,8 +464,8 @@ impl crate::TermWindow {
                 })
             };
             if let Some((compose_bg, compose_bg_alt, compose_bg_mix)) = compose_bg {
-                let start = params.left_pixel_x + (params.cursor.x as f32 * cell_width);
-                let width = (cursor_range.end - cursor_range.start) as f32 * cell_width;
+                let start = cursor_range_pixels.start;
+                let width = cursor_range_pixels.end - start;
                 if let Some(rect) = euclid::rect(start, params.top_pixel_y, width, cell_height)
                     .intersection(&bounding_rect)
                 {
@@ -477,53 +563,47 @@ impl crate::TermWindow {
             }
         }
 
-        // A composition caret is independent of the terminal cursor's shape
-        // and visibility, and must be drawn above the preedit glyphs.
-        if let Some(cursor) = composition_cursor {
-            if let Some((range, right_aligned)) = composition_caret_quad(
-                params.cursor.x,
-                cursor,
-                composition_width,
-                cell_width,
-                params.pixel_width,
-            ) {
-                let colors = cursor_colors.as_ref().unwrap();
-                let color = params
-                    .config
-                    .resolved_palette
-                    .compose_cursor
-                    .map(|color| color.to_linear())
-                    .unwrap_or(colors.fg_color);
-                let sprite = gl_state.glyph_cache.borrow_mut().cursor_sprite(
-                    Some(CursorShape::SteadyBar),
-                    &params.render_metrics,
-                    1,
-                )?;
-                let mut quad = layers.allocate(2).context("composition caret")?;
-                let left = gl_x + params.left_pixel_x;
-                quad.set_position(
-                    left + range.start,
-                    pos_y,
-                    left + range.end,
-                    pos_y + cell_height,
+        if let Some((range, right_aligned)) = &composition_caret {
+            let colors = cursor_colors.as_ref().unwrap();
+            let shape = if composition_is_block {
+                CursorShape::Default
+            } else {
+                composition_cursor_shape.unwrap()
+            };
+            let sprite = gl_state.glyph_cache.borrow_mut().cursor_sprite(
+                Some(shape),
+                &params.render_metrics,
+                ((range.end - range.start) / cell_width).ceil() as u8,
+            )?;
+            let layer = if matches!(shape, CursorShape::BlinkingBar | CursorShape::SteadyBar) {
+                2
+            } else {
+                0
+            };
+            let mut quad = layers.allocate(layer).context("composition caret")?;
+            let left = gl_x + params.left_pixel_x;
+            quad.set_position(
+                left + range.start,
+                pos_y,
+                left + range.end,
+                pos_y + cell_height,
+            );
+            let texture = sprite.texture_coords();
+            if *right_aligned {
+                quad.set_texture_discrete(
+                    texture.max_x(),
+                    texture.min_x(),
+                    texture.min_y(),
+                    texture.max_y(),
                 );
-                let texture = sprite.texture_coords();
-                if right_aligned {
-                    // Mirror the left-edge bar onto the right edge of the
-                    // previous cell, rather than drawing on the next cell.
-                    quad.set_texture_discrete(
-                        texture.max_x(),
-                        texture.min_x(),
-                        texture.min_y(),
-                        texture.max_y(),
-                    );
-                } else {
-                    quad.set_texture(texture);
-                }
-                quad.set_has_color(false);
-                quad.set_fg_color(color);
-                quad.set_hsv(hsv);
+            } else {
+                quad.set_texture(texture);
             }
+            quad.set_has_color(false);
+            // compose_cursor colors the old composition highlight, not an
+            // insertion caret drawn on top of the composition background.
+            quad.set_fg_color(colors.fg_color.mul_alpha(1. - composition_cursor_mix));
+            quad.set_hsv(hsv);
         }
 
         let mut overlay_images = vec![];
@@ -697,9 +777,14 @@ impl crate::TermWindow {
                         // Then sub-divide the non-cursor ranges according to selection
                         let (la, lb, lc) = range3(&left, &selection_pixel_range);
                         let (ra, rb, rc) = range3(&right, &selection_pixel_range);
+                        let (mid_left, caret, mid_right) = if composition_caret.is_some() {
+                            range3(&mid, &composition_caret_pixels)
+                        } else {
+                            (mid, 0.0..0.0, 0.0..0.0)
+                        };
 
                         // and render each of these strips
-                        for range in [la, lb, lc, mid, ra, rb, rc] {
+                        for range in [la, lb, lc, mid_left, caret, mid_right, ra, rb, rc] {
                             if range.is_empty() {
                                 continue;
                             }
@@ -707,6 +792,14 @@ impl crate::TermWindow {
                             let is_cursor = cursor_range_pixels.contains(&range.start);
                             let selected =
                                 !is_cursor && selection_pixel_range.contains(&range.start);
+                            // The caret may reserve a blank cell after the
+                            // preedit. Do not expose the underlying terminal text.
+                            if composition_cursor.is_some()
+                                && is_cursor
+                                && range.start >= composition_text_end
+                            {
+                                continue;
+                            }
 
                             let computed_colors;
                             let colors = if is_cursor && composition_cursor.is_some() {
@@ -752,11 +845,21 @@ impl crate::TermWindow {
                                 gl_x + range.end,
                                 pos_y + top + texture.coords.size.height as f32 * height_scale,
                             );
-                            quad.set_fg_color(colors.fg_color);
-                            quad.set_alt_color_and_mix_value(
-                                colors.fg_color_alt,
-                                colors.fg_color_mix,
-                            );
+                            if composition_is_block
+                                && composition_caret_pixels.contains(&range.start)
+                            {
+                                quad.set_fg_color(composition_background.unwrap());
+                                quad.set_alt_color_and_mix_value(
+                                    colors.fg_color,
+                                    composition_cursor_mix,
+                                );
+                            } else {
+                                quad.set_fg_color(colors.fg_color);
+                                quad.set_alt_color_and_mix_value(
+                                    colors.fg_color_alt,
+                                    colors.fg_color_mix,
+                                );
+                            }
                             quad.set_texture(texture_rect);
                             quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                 let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
@@ -1025,54 +1128,93 @@ impl crate::TermWindow {
 #[cfg(test)]
 mod tests {
     use super::composition_caret_quad;
+    use termwiz::surface::CursorShape;
 
     #[test]
-    fn composition_caret_moves_and_stays_inside_preedit_at_end() {
-        // Moving the caret does not change the preedit text or its width.
-        assert_eq!(
-            composition_caret_quad(3, 0, 8, 10., 200.),
-            Some((30.0..40.0, false))
-        );
-        assert_eq!(
-            composition_caret_quad(3, 3, 8, 10., 200.),
-            Some((60.0..70.0, false))
-        );
-        assert_eq!(
-            composition_caret_quad(3, 8, 8, 10., 200.),
-            Some((100.0..110.0, true))
-        );
+    fn bar_caret_moves_and_stays_inside_preedit_at_end() {
+        for (cursor, expected) in [
+            (0, (30.0..40.0, false)),
+            (3, (60.0..70.0, false)),
+            (8, (100.0..110.0, true)),
+        ] {
+            assert_eq!(
+                composition_caret_quad(3, "abcdefgh", cursor, CursorShape::SteadyBar, 10., 200.),
+                Some(expected)
+            );
+        }
     }
 
     #[test]
-    fn composition_caret_is_visible_when_preedit_fills_row() {
-        assert_eq!(
-            composition_caret_quad(72, 8, 8, 10., 800.),
-            Some((790.0..800.0, true))
-        );
+    fn block_and_underline_carets_cover_whole_graphemes() {
+        for shape in [
+            CursorShape::BlinkingBlock,
+            CursorShape::SteadyBlock,
+            CursorShape::BlinkingUnderline,
+            CursorShape::SteadyUnderline,
+        ] {
+            assert_eq!(
+                composition_caret_quad(3, "a你好", 1, shape, 10., 200.),
+                Some((40.0..60.0, false))
+            );
+            // A position inside a combining sequence still covers its base.
+            assert_eq!(
+                composition_caret_quad(3, "e\u{301}x", 1, shape, 10., 200.),
+                Some((30.0..40.0, false))
+            );
+            assert_eq!(
+                composition_caret_quad(3, "👩‍💻x", "👩".len(), shape, 10., 200.),
+                Some((30.0..50.0, false))
+            );
+        }
     }
 
     #[test]
-    fn composition_caret_does_not_overflow_with_truncated_preedit() {
-        assert_eq!(composition_caret_quad(72, 9, 9, 10., 800.), None);
-        assert_eq!(
-            composition_caret_quad(72, 8, 9, 10., 800.),
-            Some((790.0..800.0, true))
-        );
+    fn trailing_block_uses_blank_cell_or_last_grapheme_at_pane_edge() {
+        for shape in [CursorShape::SteadyBlock, CursorShape::SteadyUnderline] {
+            assert_eq!(
+                composition_caret_quad(3, "你好", 6, shape, 10., 200.),
+                Some((70.0..80.0, false))
+            );
+            assert_eq!(
+                composition_caret_quad(76, "你好", 6, shape, 10., 800.),
+                Some((780.0..800.0, false))
+            );
+            assert_eq!(
+                composition_caret_quad(3, "", 0, shape, 10., 200.),
+                Some((30.0..40.0, false))
+            );
+        }
     }
 
     #[test]
-    fn composition_caret_respects_scaled_cells() {
+    fn caret_is_clipped_to_pane_and_respects_scaled_cells() {
         assert_eq!(
-            composition_caret_quad(32, 8, 8, 20., 800.),
+            composition_caret_quad(72, "abcdefghi", 9, CursorShape::SteadyBar, 10., 800.),
+            None
+        );
+        for shape in [CursorShape::SteadyBar, CursorShape::SteadyBlock] {
+            assert_eq!(
+                composition_caret_quad(72, "abcdefghi", 8, shape, 10., 800.),
+                Some((790.0..800.0, shape == CursorShape::SteadyBar))
+            );
+        }
+        assert_eq!(
+            composition_caret_quad(32, "abcdefgh", 8, CursorShape::SteadyBar, 20., 800.),
             Some((780.0..800.0, true))
         );
+        assert_eq!(
+            composition_caret_quad(79, "你", 0, CursorShape::SteadyBlock, 10., 800.),
+            Some((790.0..800.0, false))
+        );
     }
 
     #[test]
-    fn empty_preedit_caret_stays_at_insertion_point() {
-        assert_eq!(
-            composition_caret_quad(3, 0, 0, 10., 200.),
-            Some((30.0..40.0, false))
-        );
+    fn invalid_caret_offsets_do_not_create_a_cursor() {
+        for cursor in [1, 4] {
+            assert_eq!(
+                composition_caret_quad(0, "你", cursor, CursorShape::SteadyBlock, 10., 200.),
+                None
+            );
+        }
     }
 }
