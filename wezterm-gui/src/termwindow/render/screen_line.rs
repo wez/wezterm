@@ -438,7 +438,7 @@ impl crate::TermWindow {
         // of a glyph underneath a block caret.
         let composition_background = cursor_colors
             .as_ref()
-            .filter(|_| composition_caret.is_some() && composition_is_block)
+            .filter(|_| composition_caret.is_some())
             .map(|colors| {
                 let bg = colors.bg_color;
                 let alt = colors.bg_color_alt;
@@ -602,7 +602,11 @@ impl crate::TermWindow {
             quad.set_has_color(false);
             // compose_cursor colors the old composition highlight, not an
             // insertion caret drawn on top of the composition background.
-            quad.set_fg_color(colors.fg_color.mul_alpha(1. - composition_cursor_mix));
+            quad.set_fg_color(colors.fg_color);
+            quad.set_alt_color_and_mix_value(
+                composition_background.unwrap(),
+                composition_cursor_mix,
+            );
             quad.set_hsv(hsv);
         }
 
