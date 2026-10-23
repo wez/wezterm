@@ -162,6 +162,8 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * Windows: Builtin IME preedit rendering now shows the composition caret,
   including caret-only movement and positions at the end of the preedit.
+  The caret follows the terminal cursor's shape and blinking, using preedit
+  foreground/background colors to keep it distinct from the preedit highlight.
   Fixes missing caret tracking with Microsoft Pinyin.
   [#8229](https://github.com/wezterm/wezterm/issues/8229)
 * Windows: Explicitly declare the `window` crate's Shell API dependency,

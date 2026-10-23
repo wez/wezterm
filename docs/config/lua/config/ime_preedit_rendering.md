@@ -18,9 +18,15 @@ WezTerm supports the following IME preedit rendering.
   works in concert with features like [window:composition_status()](../window/composition_status.md).
 
   On Windows, when the IME supplies a caret position, builtin rendering also
-  displays a steady bar that follows the caret within the preedit text.
-  The bar uses `colors.compose_cursor` when configured, otherwise the resolved
-  composition foreground color. It is independent of the terminal cursor shape.
+  displays a caret within the preedit text. Its shape follows the effective
+  terminal cursor style, including application-requested shapes, and it uses
+  the terminal cursor's blink settings. Hiding the terminal cursor does not
+  hide the preedit caret.
+
+  The caret uses the resolved composition foreground color, not
+  `colors.compose_cursor`. Block carets fill with that foreground color and
+  draw the covered preedit text in the resolved composition background color.
+  Bar and underline carets leave the preedit text colors unchanged.
 
 * `"System"` - IME preedit is rendered by system
 
