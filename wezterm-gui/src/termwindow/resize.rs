@@ -19,6 +19,127 @@ pub enum ScaleChange {
     Relative(f64),
 }
 
+/// On Windows, scaling changes may adjust the pixel geometry by a few pixels,
+/// so this function checks if we're in a close-enough ballpark.
+fn close_enough(a: f32, b: f32) -> bool {
+    let diff = (a - b).abs();
+    diff < 10.
+}
+
+/// DPI-adjusted dimensions are in inches, so the raw-pixel tolerance
+/// above would allow a ten-inch resize. One inch is a heuristic allowance
+/// for rounding and decoration differences during a DPI transition;
+/// larger changes, such as the tile in #8112, fail this comparison.
+fn close_enough_inches(a: f32, b: f32) -> bool {
+    let diff = (a - b).abs();
+    diff < 1.
+}
+
+fn is_simple_dpi_change(old: Dimensions, new: Dimensions) -> bool {
+    fn dpi_adjusted(n: usize, dpi: usize) -> f32 {
+        n as f32 / dpi as f32
+    }
+
+    // Distinguish DPI discovery with unchanged pixel dimensions from a DPI
+    // transition that preserves physical size. A simultaneous compositor
+    // tile/resize should instead adopt the new dimensions.
+    new.dpi != old.dpi
+        && ((close_enough_inches(
+            dpi_adjusted(new.pixel_height, new.dpi),
+            dpi_adjusted(old.pixel_height, old.dpi),
+        ) && close_enough_inches(
+            dpi_adjusted(new.pixel_width, new.dpi),
+            dpi_adjusted(old.pixel_width, old.dpi),
+        )) || (close_enough(new.pixel_width as f32, old.pixel_width as f32)
+            && close_enough(new.pixel_height as f32, old.pixel_height as f32)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_simple_dpi_change, Dimensions};
+
+    fn dimensions(pixel_width: usize, pixel_height: usize, dpi: usize) -> Dimensions {
+        Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi,
+        }
+    }
+
+    #[test]
+    fn first_hidpi_tile_is_not_a_simple_dpi_change() {
+        // Actual configure dimensions from #8112; the old ten-inch
+        // comparison classified this tile as DPI-only and undid it.
+        let initial = dimensions(820, 583, 96);
+        let tiled = dimensions(2552, 2760, 192);
+        assert!(!is_simple_dpi_change(initial, tiled));
+    }
+
+    #[test]
+    fn resize_in_either_axis_is_not_a_simple_dpi_change() {
+        let old = dimensions(960, 576, 96);
+        for new in [dimensions(2304, 1152, 192), dimensions(1920, 1536, 192)] {
+            assert!(!is_simple_dpi_change(old, new), "{:?}", new);
+            assert!(!is_simple_dpi_change(new, old), "{:?}", new);
+        }
+    }
+
+    #[test]
+    fn same_physical_size_is_a_simple_dpi_change() {
+        let old = dimensions(960, 576, 96);
+        for new in [dimensions(1440, 864, 144), dimensions(1920, 1152, 192)] {
+            assert!(is_simple_dpi_change(old, new), "{:?}", new);
+            assert!(is_simple_dpi_change(new, old), "{:?}", new);
+        }
+    }
+
+    #[test]
+    fn dpi_discovery_with_unchanged_pixels_is_a_simple_dpi_change() {
+        let old = dimensions(820, 583, 96);
+        let new = dimensions(820, 583, 192);
+        assert!(is_simple_dpi_change(old, new));
+        assert!(is_simple_dpi_change(new, old));
+    }
+
+    #[test]
+    fn axes_must_satisfy_the_same_size_comparison() {
+        // Width retains its physical size, while height retains its pixel
+        // size. Neither comparison accepts the whole window.
+        assert!(!is_simple_dpi_change(
+            dimensions(960, 576, 96),
+            dimensions(1920, 576, 192),
+        ));
+    }
+
+    #[test]
+    fn unchanged_dpi_is_not_a_simple_dpi_change() {
+        let old = dimensions(960, 576, 96);
+        for new in [old, dimensions(969, 585, 96), dimensions(1920, 1152, 96)] {
+            assert!(!is_simple_dpi_change(old, new), "{:?}", new);
+        }
+    }
+
+    #[test]
+    fn raw_pixel_comparison_keeps_ten_unit_tolerance() {
+        let old = dimensions(960, 576, 96);
+        assert!(is_simple_dpi_change(old, dimensions(969, 585, 192)));
+        for new in [dimensions(970, 585, 192), dimensions(969, 586, 192)] {
+            assert!(!is_simple_dpi_change(old, new), "{:?}", new);
+        }
+    }
+
+    #[test]
+    fn physical_size_comparison_keeps_one_inch_tolerance() {
+        let old = dimensions(960, 576, 96);
+        // At 192 DPI, 191 extra pixels are just under an inch; 192
+        // pixels reach the limit. Both axes must remain within it.
+        assert!(is_simple_dpi_change(old, dimensions(2111, 1343, 192)));
+        for new in [dimensions(2112, 1343, 192), dimensions(2111, 1344, 192)] {
+            assert!(!is_simple_dpi_change(old, new), "{:?}", new);
+        }
+    }
+}
+
 impl super::TermWindow {
     pub fn resize(
         &mut self,
@@ -351,35 +472,7 @@ impl super::TermWindow {
 
     #[allow(clippy::float_cmp)]
     pub fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64, window: &Window) {
-        fn dpi_adjusted(n: usize, dpi: usize) -> f32 {
-            n as f32 / dpi as f32
-        }
-
-        /// On Windows, scaling changes may adjust the pixel geometry by a few pixels,
-        /// so this function checks if we're in a close-enough ballpark.
-        fn close_enough(a: f32, b: f32) -> bool {
-            let diff = (a - b).abs();
-            diff < 10.
-        }
-
-        // Distinguish between eg: dpi being detected as double the initial dpi (where
-        // the pixel dimensions don't change), and the dpi change being detected, but
-        // where the window manager also decides to tile/resize the window.
-        // In the latter case, we don't want to preserve the terminal rows/cols.
-        let simple_dpi_change = dimensions.dpi != self.dimensions.dpi
-            && ((close_enough(
-                dpi_adjusted(dimensions.pixel_height, dimensions.dpi),
-                dpi_adjusted(self.dimensions.pixel_height, self.dimensions.dpi),
-            ) && close_enough(
-                dpi_adjusted(dimensions.pixel_width, dimensions.dpi),
-                dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi),
-            )) || (close_enough(
-                dimensions.pixel_width as f32,
-                self.dimensions.pixel_width as f32,
-            ) && close_enough(
-                dimensions.pixel_height as f32,
-                self.dimensions.pixel_height as f32,
-            )));
+        let simple_dpi_change = is_simple_dpi_change(self.dimensions, dimensions);
 
         if simple_dpi_change && cfg!(target_os = "macos") {
             // Spooky action at a distance: on macOS, NSWindow::isZoomed can falsely
