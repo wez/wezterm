@@ -28,9 +28,11 @@ WezTerm supports the following IME preedit rendering.
   draw the covered text in the resolved composition background color.
   Bar and underline carets leave the preedit text colors unchanged.
 
-  At the end of the preedit, block and underline carets use the following
-  terminal cell when there is room. Any terminal text in that cell remains
-  visible; it is not replaced with a blank cell.
+  Block and underline carets only cover graphemes within the preedit. They
+  are not drawn at its end or when it is empty, and never move back onto a
+  preceding grapheme at the pane edge. A bar caret still marks the insertion
+  point at the end of the preedit. No extra blank cell is inserted, and
+  terminal text following the preedit is left unchanged.
 
 * `"System"` - IME preedit is rendered by system
 

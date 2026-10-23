@@ -19,9 +19,9 @@ use wezterm_bidi::Direction;
 use wezterm_term::color::ColorAttribute;
 use wezterm_term::CellAttributes;
 
-/// Keep the caret within the pane, covering whole graphemes for block and
-/// underline shapes. A trailing bar stays on the preedit background; other
-/// shapes use the following cell, or the last grapheme at the pane edge.
+/// Keep the caret within the pane. Block and underline shapes cover only
+/// preedit graphemes, never a cell after the text or before the insertion point.
+/// A trailing bar stays on the preedit background.
 fn composition_caret_quad(
     start_column: usize,
     text: &str,
@@ -32,10 +32,12 @@ fn composition_caret_quad(
 ) -> Option<(Range<f32>, bool)> {
     text.get(..cursor)?;
     let is_bar = matches!(shape, CursorShape::BlinkingBar | CursorShape::SteadyBar);
+    if !is_bar && cursor == text.len() {
+        return None;
+    }
     let mut column = 0;
     let mut byte_offset = 0;
     let mut width = 1;
-    let mut last_width = 1;
     for grapheme in Graphemes::new(text) {
         let grapheme_width = grapheme_column_width(grapheme, None);
         if cursor < byte_offset + grapheme.len() {
@@ -44,17 +46,14 @@ fn composition_caret_quad(
         }
         column += grapheme_width;
         byte_offset += grapheme.len();
-        last_width = grapheme_width.max(1);
     }
     let x = (start_column + column) as f32 * cell_width;
-    if x > pixel_width || pixel_width <= 0. {
+    if x > pixel_width || pixel_width <= 0. || (!is_bar && x == pixel_width) {
         return None;
     }
     let right_aligned = is_bar && ((column > 0 && cursor == text.len()) || x == pixel_width);
     let range = if right_aligned {
         x - cell_width..x
-    } else if x == pixel_width {
-        x - last_width as f32 * cell_width..x
     } else {
         x..(x + if is_bar { 1 } else { width } as f32 * cell_width).min(pixel_width)
     };
@@ -168,7 +167,8 @@ impl crate::TermWindow {
         };
 
         let cursor_range = if composition_cursor.is_some() {
-            params.cursor.x..params.cursor.x + composition_width.max(1)
+            params.cursor.x
+                ..params.cursor.x + composition_width.max(usize::from(composition_caret.is_some()))
         } else if composition_width > 0 {
             params.cursor.x..params.cursor.x + composition_width
         } else if params.stable_line_idx == Some(params.cursor.y) {
@@ -1141,6 +1141,7 @@ mod tests {
     #[test]
     fn block_and_underline_carets_cover_whole_graphemes() {
         for shape in [
+            CursorShape::Default,
             CursorShape::BlinkingBlock,
             CursorShape::SteadyBlock,
             CursorShape::BlinkingUnderline,
@@ -1163,19 +1164,25 @@ mod tests {
     }
 
     #[test]
-    fn trailing_caret_uses_following_cell_or_last_grapheme_at_pane_edge() {
-        for shape in [CursorShape::SteadyBlock, CursorShape::SteadyUnderline] {
+    fn block_and_underline_carets_do_not_cover_cells_outside_preedit() {
+        for shape in [
+            CursorShape::Default,
+            CursorShape::BlinkingBlock,
+            CursorShape::SteadyBlock,
+            CursorShape::BlinkingUnderline,
+            CursorShape::SteadyUnderline,
+        ] {
+            for (start, text, pixel_width) in [(3, "你好", 200.), (76, "你好", 800.), (3, "", 200.)]
+            {
+                assert_eq!(
+                    composition_caret_quad(start, text, text.len(), shape, 10., pixel_width),
+                    None
+                );
+            }
+            // A clipped insertion point must not shift back onto a preceding glyph.
             assert_eq!(
-                composition_caret_quad(3, "你好", 6, shape, 10., 200.),
-                Some((70.0..80.0, false))
-            );
-            assert_eq!(
-                composition_caret_quad(76, "你好", 6, shape, 10., 800.),
-                Some((780.0..800.0, false))
-            );
-            assert_eq!(
-                composition_caret_quad(3, "", 0, shape, 10., 200.),
-                Some((30.0..40.0, false))
+                composition_caret_quad(72, "abcdefghi", 8, shape, 10., 800.),
+                None
             );
         }
     }
@@ -1186,12 +1193,10 @@ mod tests {
             composition_caret_quad(72, "abcdefghi", 9, CursorShape::SteadyBar, 10., 800.),
             None
         );
-        for shape in [CursorShape::SteadyBar, CursorShape::SteadyBlock] {
-            assert_eq!(
-                composition_caret_quad(72, "abcdefghi", 8, shape, 10., 800.),
-                Some((790.0..800.0, shape == CursorShape::SteadyBar))
-            );
-        }
+        assert_eq!(
+            composition_caret_quad(72, "abcdefghi", 8, CursorShape::SteadyBar, 10., 800.),
+            Some((790.0..800.0, true))
+        );
         assert_eq!(
             composition_caret_quad(32, "abcdefgh", 8, CursorShape::SteadyBar, 20., 800.),
             Some((780.0..800.0, true))
