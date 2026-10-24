@@ -162,7 +162,7 @@ cargo build --release \
 BUILDEOFEOF
 )
           BUILD_REQUIRES=$(cat <<BREQEOF
-BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
+BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git, ncurses
 %if 0%{?suse_version}
 BuildRequires: Mesa-libEGL-devel
 %else
@@ -239,7 +239,8 @@ ${BUILD_SECTION}
 %install
 set -x
 cd ${HERE}
-mkdir -p %{buildroot}/usr/bin %{buildroot}/etc/profile.d %{buildroot}/usr/share/icons/hicolor/128x128/apps %{buildroot}/usr/share/applications %{buildroot}/usr/share/metainfo %{buildroot}/usr/share/nautilus-python/extensions
+mkdir -p %{buildroot}/usr/bin %{buildroot}/etc/profile.d %{buildroot}/usr/share/icons/hicolor/128x128/apps %{buildroot}/usr/share/applications %{buildroot}/usr/share/metainfo %{buildroot}/usr/share/nautilus-python/extensions %{buildroot}/usr/share/terminfo/
+tic -x -o %{buildroot}/usr/share/terminfo/ termwiz/data/wezterm.terminfo
 install -Dm755 assets/open-wezterm-here -t %{buildroot}/usr/bin
 install -Dsm755 $TARGET_DIR/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 $TARGET_DIR/release/wezterm-gui -t %{buildroot}/usr/bin
@@ -260,6 +261,7 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /usr/bin/wezterm
 /usr/bin/strip-ansi-escapes
 /usr/share/zsh/site-functions/_wezterm
+/usr/share/terminfo/w/wezterm
 /etc/bash_completion.d/wezterm
 /etc/profile.d/*
 
