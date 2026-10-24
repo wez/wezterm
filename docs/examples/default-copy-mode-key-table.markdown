@@ -129,6 +129,11 @@ return {
         action = act.CopyMode 'MoveToStartOfLineContent',
       },
       { key = 'b', mods = 'NONE', action = act.CopyMode 'MoveBackwardWord' },
+      {
+        key = 'B',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveBackwardNonBlankWord',
+      },
       { key = 'b', mods = 'ALT', action = act.CopyMode 'MoveBackwardWord' },
       { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
       {
@@ -148,6 +153,11 @@ return {
         key = 'e',
         mods = 'NONE',
         action = act.CopyMode 'MoveForwardWordEnd',
+      },
+      {
+        key = 'E',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveForwardNonBlankWordEnd',
       },
       {
         key = 'f',
@@ -212,6 +222,11 @@ return {
         action = act.CopyMode { SetSelectionMode = 'Block' },
       },
       { key = 'w', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
+      {
+        key = 'W',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveForwardNonBlankWord',
+      },
       {
         key = 'y',
         mods = 'NONE',
