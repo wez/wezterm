@@ -2,7 +2,7 @@ use crate::terminal::{Alert, Progress};
 use crate::terminalstate::{
     default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
 };
-use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex, DCS, ST};
+use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex};
 use finl_unicode::grapheme_clusters::Graphemes;
 use log::{debug, error};
 use num_traits::FromPrimitive;
@@ -293,56 +293,7 @@ impl<'a> Performer<'a> {
             DeviceControlMode::ShortDeviceControl(s) => {
                 match (s.byte, s.intermediates.as_slice()) {
                     (b'q', &[b'$']) => {
-                        // DECRQSS - Request Status String
-                        // https://vt100.net/docs/vt510-rm/DECRQSS.html
-                        // The response is described here:
-                        // https://vt100.net/docs/vt510-rm/DECRPSS.html
-                        // but note that *that* text has the validity value
-                        // inverted; there's a note about this in the xterm
-                        // ctlseqs docs.
-                        match s.data.as_slice() {
-                            &[b'"', b'p'] => {
-                                // DECSCL - select conformance level
-                                write!(self.writer, "{}1$r65;1\"p{}", DCS, ST).ok();
-                                self.writer.flush().ok();
-                            }
-                            &[b'r'] => {
-                                // DECSTBM - top and bottom margins
-                                let margins = self.top_and_bottom_margins.clone();
-                                write!(
-                                    self.writer,
-                                    "{}1$r{};{}r{}",
-                                    DCS,
-                                    margins.start + 1,
-                                    margins.end,
-                                    ST
-                                )
-                                .ok();
-                                self.writer.flush().ok();
-                            }
-                            &[b's'] => {
-                                // DECSLRM - left and right margins
-                                let margins = self.left_and_right_margins.clone();
-                                write!(
-                                    self.writer,
-                                    "{}1$r{};{}s{}",
-                                    DCS,
-                                    margins.start + 1,
-                                    margins.end,
-                                    ST
-                                )
-                                .ok();
-                                self.writer.flush().ok();
-                            }
-                            _ => {
-                                if self.config.log_unknown_escape_sequences() {
-                                    log::warn!("unhandled DECRQSS {:?}", s);
-                                }
-                                // Reply that the request is invalid
-                                write!(self.writer, "{}0$r{}", DCS, ST).ok();
-                                self.writer.flush().ok();
-                            }
-                        }
+                        self.state.perform_decrqss(s);
                     }
                     _ => {
                         if self.config.log_unknown_escape_sequences() {

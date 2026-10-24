@@ -23,7 +23,7 @@ use wezterm_escape_parser::csi::{
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
     XtSmGraphicsAction, XtSmGraphicsItem, XtSmGraphicsStatus, XtermKeyModifierResource,
 };
-use wezterm_escape_parser::{OneBased, OperatingSystemCommand, CSI};
+use wezterm_escape_parser::{OneBased, OperatingSystemCommand, ShortDeviceControl, CSI};
 use wezterm_surface::{CursorShape, CursorVisibility, SequenceNo};
 
 mod image;
@@ -1553,14 +1553,48 @@ impl TerminalState {
         match mode {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::StartBlinkingCursor,
-            ))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+            )) => {
+                // An application is enabling blinking. Change the current shape to its
+                // blinking variant.
+                self.cursor.shape = match self.cursor.shape {
+                    CursorShape::SteadyBlock => CursorShape::BlinkingBlock,
+                    CursorShape::SteadyUnderline => CursorShape::BlinkingUnderline,
+                    CursorShape::SteadyBar => CursorShape::BlinkingBar,
+                    // If it's already blinking or default, do nothing
+                    _ => self.cursor.shape,
+                };
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::StartBlinkingCursor,
-            )) => {}
+            )) => {
+                // An application is disabling blinking. Change the current shape to its
+                // steady variant.
+                self.cursor.shape = match self.cursor.shape {
+                    CursorShape::BlinkingBlock | CursorShape::Default => CursorShape::SteadyBlock,
+                    CursorShape::BlinkingUnderline => CursorShape::SteadyUnderline,
+                    CursorShape::BlinkingBar => CursorShape::SteadyBar,
+                    // If it's already steady, do nothing
+                    _ => self.cursor.shape,
+                };
+            }
+
             Mode::QueryDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::StartBlinkingCursor,
             )) => {
-                self.decqrm_response(mode, true, false);
+                let shape = self.cursor.shape;
+                // Query the live configuration -- not implemented yet -- need some help
+                //
+                // if shape == CursorShape::Default {
+                //
+                //     shape = wezterm.config.default_cursor_style().into();
+                let is_blinking = matches!(
+                    shape,
+                    CursorShape::BlinkingBlock
+                        | CursorShape::BlinkingUnderline
+                        | CursorShape::BlinkingBar
+                );
+                self.decqrm_response(mode, true, is_blinking);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
@@ -2715,6 +2749,77 @@ impl TerminalState {
                 log::debug!("Cursor shape is now {:?}", self.cursor.shape);
             }
         }
+    }
+
+    fn perform_decrqss(&mut self, s: &Box<ShortDeviceControl>) {
+        // DECRQSS - Request Status String
+        // https://vt100.net/docs/vt510-rm/DECRQSS.html
+        // The response is described here:
+        // https://vt100.net/docs/vt510-rm/DECRPSS.html
+        // but note that *that* text has the validity value
+        // inverted; there's a note about this in the xterm
+        // ctlseqs docs.
+        match s.data.as_slice() {
+            &[b'"', b'p'] => {
+                // DECSCL - select conformance level
+                write!(self.writer, "{}1$r65;1\"p{}", DCS, ST).ok();
+            }
+            &[b' ', b'q'] => {
+                // DECSCUSR - cursor style query (xterm extension)
+                let shape = self.cursor.shape;
+                // Query the live configuration -- not implemented yet -- need some help
+                //
+                // if shape == CursorShape::Default {
+                //
+                //     shape = wezterm.config.default_cursor_style().into();
+                // }
+                // Map the internal CursorShape to the standard CSI CursorStyle enum
+                let style_code = match shape {
+                    CursorShape::BlinkingBlock => CursorStyle::BlinkingBlock,
+                    CursorShape::SteadyBlock => CursorStyle::SteadyBlock,
+                    CursorShape::BlinkingUnderline => CursorStyle::BlinkingUnderline,
+                    CursorShape::SteadyUnderline => CursorStyle::SteadyUnderline,
+                    CursorShape::BlinkingBar => CursorStyle::BlinkingBar,
+                    CursorShape::SteadyBar => CursorStyle::SteadyBar,
+                    CursorShape::Default => CursorStyle::Default,
+                };
+                write!(self.writer, "{}1$r{} q{}", DCS, style_code as u16, ST).ok();
+            }
+            &[b'r'] => {
+                // DECSTBM - top and bottom margins
+                let margins = self.top_and_bottom_margins.clone();
+                write!(
+                    self.writer,
+                    "{}1$r{};{}r{}",
+                    DCS,
+                    margins.start + 1,
+                    margins.end,
+                    ST
+                )
+                .ok();
+            }
+            &[b's'] => {
+                // DECSLRM - left and right margins
+                let margins = self.left_and_right_margins.clone();
+                write!(
+                    self.writer,
+                    "{}1$r{};{}s{}",
+                    DCS,
+                    margins.start + 1,
+                    margins.end,
+                    ST
+                )
+                .ok();
+            }
+            _ => {
+                if self.config.log_unknown_escape_sequences() {
+                    log::warn!("unhandled DECRQSS {:?}", s);
+                }
+                // Reply that the request is invalid
+                write!(self.writer, "{}0$r{}", DCS, ST).ok();
+            }
+        }
+        self.writer.flush().ok();
     }
 
     /// https://vt100.net/docs/vt510-rm/DECSC.html
